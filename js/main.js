@@ -1,477 +1,485 @@
-// Placeholder for main.js
-/* ===== PULSE MAIN APPLICATION - UPDATED ARCHITECTURE ===== */
-/* Application controller with new modular architecture */
+/* ===== PULSE PLATFORM MAIN APPLICATION ===== */
+/* js/main.js - Application Bootstrap */
 
-(function() {
-    'use strict';
+// Simple Event Bus for component communication
+class EventBus {
+    constructor() {
+        this.events = {};
+    }
 
-    // Application state
-    let app = {
-        charts: {},
-        currentData: null,
-        initialized: false,
-        modules: {},
-        version: '2.0.0'
-    };
+    on(event, callback) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(callback);
+    }
 
-    // Initialize the application with new architecture
-    function initializeApp() {
-        console.log('=== Initializing Pulse Financial Visualization Platform v2.0 ===');
-        
+    emit(event, data) {
+        if (this.events[event]) {
+            this.events[event].forEach(callback => callback(data));
+        }
+    }
+
+    off(event, callback) {
+        if (this.events[event]) {
+            this.events[event] = this.events[event].filter(cb => cb !== callback);
+        }
+    }
+}
+
+// Configuration Manager for saving/loading presets
+class ConfigManager {
+    constructor() {
+        this.storageKey = 'pulse-chart-presets';
+        this.presets = this.loadPresets();
+    }
+
+    loadPresets() {
         try {
-            // Step 1: Verify core modules are loaded
-            checkCoreModules();
-            
-            // Step 2: Initialize core system
-            initializeCoreSystem();
-            
-            // Step 3: Register chart types
-            registerChartTypes();
-            
-            // Step 4: Setup application event listeners
-            setupApplicationEventListeners();
-            
-            // Step 5: Initialize main chart
-            initializeMainChart();
-            
-            // Step 6: Load and display default data
-            loadDefaultData();
-            
-            // Step 7: Finalize initialization
-            finalizeInitialization();
-            
+            const saved = localStorage.getItem(this.storageKey);
+            return saved ? JSON.parse(saved) : {};
         } catch (error) {
-            handleInitializationError(error);
+            console.warn('Failed to load presets from localStorage:', error);
+            return {};
         }
     }
 
-    // Check if all required core modules are loaded
-    function checkCoreModules() {
-        const requiredModules = [
-            'BaseChart',
-            'ChartFactory', 
-            'ConfigManager',
-            'ErrorHandler',
-            'EventManager',
-            'SankeyChart'
-        ];
-        
-        const missingModules = requiredModules.filter(module => !window[module]);
-        
-        if (missingModules.length > 0) {
-            throw new Error(`Missing required modules: ${missingModules.join(', ')}`);
+    savePresets() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.presets));
+        } catch (error) {
+            console.warn('Failed to save presets to localStorage:', error);
         }
-        
-        console.log('✅ All core modules loaded successfully');
     }
 
-    // Initialize core system components
-    function initializeCoreSystem() {
-        console.log('Initializing core system...');
-        
-        // Store references to singletons
-        app.modules = {
-            configManager: window.configManager,
-            errorHandler: window.errorHandler,
-            eventManager: window.eventManager,
-            chartFactory: window.chartFactory
+    savePreset(name, config) {
+        this.presets[name] = {
+            config,
+            created: new Date().toISOString(),
+            chartType: 'sankey' // For future multi-chart support
         };
-        
-        // Configure application-specific settings
-        app.modules.configManager.updateGlobal({
-            app: {
-                name: 'Pulse Financial Visualization Platform',
-                version: app.version,
-                initialized: true
-            }
-        });
-        
-        // Set up error handling for the application
-        app.modules.errorHandler.addErrorListener((error) => {
-            console.warn('Application error detected:', error);
-            app.modules.eventManager.emit('app:error', { error });
-        });
-        
-        console.log('✅ Core system initialized');
+        this.savePresets();
     }
 
-    // Register available chart types
-    function registerChartTypes() {
-        console.log('Registering chart types...');
+    getPreset(name) {
+        return this.presets[name];
+    }
+
+    getAllPresets() {
+        return Object.keys(this.presets);
+    }
+
+    deletePreset(name) {
+        delete this.presets[name];
+        this.savePresets();
+    }
+}
+
+// Chart Registry for managing different chart types
+class ChartRegistry {
+    constructor() {
+        this.chartTypes = new Map();
+    }
+
+    register(type, definition) {
+        this.chartTypes.set(type, definition);
+        console.log(`Chart type '${type}' registered:`, definition.name);
+    }
+
+    get(type) {
+        return this.chartTypes.get(type);
+    }
+
+    getAll() {
+        return Array.from(this.chartTypes.entries()).map(([type, def]) => ({
+            type,
+            ...def
+        }));
+    }
+}
+
+// Main Application Class
+class PulseApplication {
+    constructor() {
+        this.eventBus = new EventBus();
+        this.chartRegistry = new ChartRegistry();
+        this.controlPanel = null;
+        this.configManager = new ConfigManager();
+        this.currentChart = null;
+        this.currentChartType = 'sankey';
+        this.currentData = null;
         
+        console.log('🚀 Initializing Pulse Analytics Platform...');
+        this.init();
+    }
+
+    async init() {
         try {
-            // Register Sankey chart with metadata
-            app.modules.chartFactory.registerChart('sankey', window.SankeyChart.SankeyChart, {
-                name: 'Sankey Flow Chart',
-                description: 'Professional financial flow visualization with Salesforce-quality design',
-                category: 'flow',
-                dataRequirements: ['nodes', 'links'],
-                capabilities: {
-                    supportsExport: true,
-                    supportsInteraction: true,
-                    supportsAnimation: true,
-                    supportsResize: true,
-                    supportedFormats: ['png', 'svg', 'csv']
-                },
-                version: '2.0.0',
-                author: 'Pulse Financial Insights'
-            });
+            // Register chart types
+            this.registerChartTypes();
             
-            // Register default configuration for Sankey charts
-            app.modules.chartFactory.registerDefaultConfig('sankey', {
-                autoCenter: true,
-                autoMiddleAlign: true,
-                enableInteractions: true,
-                animationDuration: 800
-            });
+            // Initialize UI components
+            this.initializeUI();
             
-            console.log('✅ Chart types registered successfully');
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            // Load default data and chart
+            await this.loadDefaultChart();
+            
+            console.log('✅ Pulse Platform initialized successfully');
             
         } catch (error) {
-            throw new Error(`Failed to register chart types: ${error.message}`);
+            console.error('❌ Failed to initialize Pulse Platform:', error);
+            this.showError('Failed to initialize application: ' + error.message);
         }
     }
 
-    // Setup application-wide event listeners
-    function setupApplicationEventListeners() {
-        console.log('Setting up application event listeners...');
-        
-        const eventManager = app.modules.eventManager;
-        
-        // Chart lifecycle events
-        eventManager.on('chart:created', (event) => {
-            console.log(`Chart created: ${event.data.chartType} in ${event.data.chartId}`);
+    registerChartTypes() {
+        // Register the Sankey chart with its capabilities
+        this.chartRegistry.register('sankey', {
+            name: 'Sankey Flow Chart',
+            description: 'Financial flow visualization with customizable styling',
+            chartClass: window.SankeyChart.SankeyChart, // Your existing chart class
+            capabilities: SankeyCapabilities, // Controls definition
+            sampleData: window.SAMPLE_FINANCIAL_DATA,
+            icon: '〰️'
         });
+
+        // Future chart types can be registered here
+        // this.chartRegistry.register('bar', BarChartDefinition);
+        // this.chartRegistry.register('line', LineChartDefinition);
+    }
+
+    initializeUI() {
+        // Initialize control panel
+        this.controlPanel = new ControlPanel('dynamic-controls', this.eventBus);
         
-        eventManager.on('chart:rendered', (event) => {
-            console.log(`Chart rendered in ${event.data.renderTime}ms`);
+        // Populate chart type selector
+        this.populateChartSelector();
+        
+        // Initialize toolbar buttons
+        this.initializeToolbar();
+        
+        console.log('UI components initialized');
+    }
+
+    populateChartSelector() {
+        const selector = document.getElementById('chart-type-select');
+        if (!selector) return;
+
+        selector.innerHTML = '';
+        
+        this.chartRegistry.getAll().forEach(chart => {
+            const option = document.createElement('option');
+            option.value = chart.type;
+            option.textContent = `${chart.icon} ${chart.name}`;
+            option.disabled = chart.type !== 'sankey'; // Only Sankey enabled for now
+            selector.appendChild(option);
         });
+    }
+
+    initializeToolbar() {
+        // Data control buttons
+        const loadDataBtn = document.getElementById('load-data');
+        const sampleDataBtn = document.getElementById('sample-data');
         
-        eventManager.on('chart:error', (event) => {
-            console.error('Chart error:', event.data.error);
-            showUserMessage('Chart Error', 'There was a problem with the chart. Please try refreshing.', 'error');
+        // Export control buttons  
+        const exportPngBtn = document.getElementById('export-png');
+        const exportSvgBtn = document.getElementById('export-svg');
+        const exportDataBtn = document.getElementById('export-data');
+        
+        // Reset button
+        const resetBtn = document.getElementById('reset-defaults');
+
+        // Event listeners
+        if (loadDataBtn) {
+            loadDataBtn.addEventListener('click', () => this.handleLoadData());
+        }
+        
+        if (sampleDataBtn) {
+            sampleDataBtn.addEventListener('click', () => this.loadSampleData());
+        }
+        
+        if (exportPngBtn) {
+            exportPngBtn.addEventListener('click', () => this.exportChart('png'));
+        }
+        
+        if (exportSvgBtn) {
+            exportSvgBtn.addEventListener('click', () => this.exportChart('svg'));
+        }
+        
+        if (exportDataBtn) {
+            exportDataBtn.addEventListener('click', () => this.exportChart('data'));
+        }
+        
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => this.resetToDefaults());
+        }
+    }
+
+    setupEventListeners() {
+        // Chart type selector
+        const chartTypeSelect = document.getElementById('chart-type-select');
+        if (chartTypeSelect) {
+            chartTypeSelect.addEventListener('change', (e) => {
+                this.switchChartType(e.target.value);
+            });
+        }
+
+        // Configuration change events
+        this.eventBus.on('configChanged', (data) => {
+            console.log('Configuration changed:', data.controlId, '=', data.value);
         });
-        
-        // Data events
-        eventManager.on('data:loaded', (event) => {
-            console.log(`Data loaded: ${event.data.nodeCount} nodes, ${event.data.linkCount} links`);
-        });
-        
-        eventManager.on('data:error', (event) => {
-            console.error('Data error:', event.data.error);
-            showUserMessage('Data Error', 'There was a problem loading the data. Please check your data format.', 'error');
-        });
-        
-        // Export events
-        eventManager.on('chart:exported', (event) => {
-            console.log(`Chart exported: ${event.data.format} - ${event.data.filename}`);
-            showUserMessage('Export Complete', `Chart exported as ${event.data.format.toUpperCase()}`, 'success');
-        });
-        
-        // Configuration events
-        eventManager.on('config:changed', (event) => {
-            console.log('Configuration changed:', event.data.key);
-        });
-        
-        // System events
-        eventManager.on('system:ready', (event) => {
-            console.log('System ready event received');
-        });
-        
-        // Window resize handling with debouncing
+
+        // Window resize handling
         let resizeTimeout;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                eventManager.emit('system:resize', {
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                });
-                handleWindowResize();
-            }, 250);
+            resizeTimeout = setTimeout(() => this.handleResize(), 250);
         });
-        
+
         // Keyboard shortcuts
-        document.addEventListener('keydown', handleKeyboardShortcuts);
-        
-        // Page visibility changes
-        document.addEventListener('visibilitychange', () => {
-            eventManager.emit('system:visibility', {
-                visible: !document.hidden
-            });
-        });
-        
-        console.log('✅ Application event listeners set up');
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     }
 
-    // Initialize the main Sankey chart
-    function initializeMainChart() {
-        console.log('Initializing main Sankey chart...');
-        
+    async loadDefaultChart() {
         try {
-            // Create chart using factory
-            app.charts.sankey = app.modules.chartFactory.createChart('sankey', 'sankey-chart');
-            
-            // Emit chart created event
-            app.modules.eventManager.emit('chart:created', {
-                chartId: 'sankey-chart',
-                chartType: 'sankey',
-                timestamp: Date.now()
-            });
-            
-            console.log('✅ Main Sankey chart initialized');
-            
-        } catch (error) {
-            throw new Error(`Failed to initialize main chart: ${error.message}`);
-        }
-    }
-
-    // Load and display the default financial data
-    function loadDefaultData() {
-        console.log('Loading default financial data...');
-        
-        try {
-            // Check if sample data is available
-            if (typeof SAMPLE_FINANCIAL_DATA === 'undefined') {
-                throw new Error('Sample financial data not available');
+            // Load sample data
+            if (typeof window.SAMPLE_FINANCIAL_DATA === 'undefined') {
+                throw new Error('Sample data not available');
             }
+
+            this.currentData = window.SAMPLE_FINANCIAL_DATA;
             
-            // Emit data loading event
-            app.modules.eventManager.emit('data:loading', {
-                source: 'sample',
-                timestamp: Date.now()
-            });
-            
-            // Process and validate data
-            const startTime = performance.now();
-            
-            // Store current data
-            app.currentData = SAMPLE_FINANCIAL_DATA;
-            
-            // Render the chart
-            const renderStartTime = performance.now();
-            app.charts.sankey.render(SAMPLE_FINANCIAL_DATA);
-            const renderTime = performance.now() - renderStartTime;
-            
-            // Emit success events
-            app.modules.eventManager.emit('data:loaded', {
-                source: 'sample',
-                nodeCount: SAMPLE_FINANCIAL_DATA.nodes.length,
-                linkCount: SAMPLE_FINANCIAL_DATA.links.length,
-                processingTime: performance.now() - startTime
-            });
-            
-            app.modules.eventManager.emit('chart:rendered', {
-                chartId: 'sankey-chart',
-                renderTime: renderTime,
-                nodeCount: SAMPLE_FINANCIAL_DATA.nodes.length
-            });
+            // Create and render chart
+            await this.createChart('sankey');
             
             // Hide loading indicator
-            hideLoadingIndicator();
+            this.hideLoadingIndicator();
             
-            console.log(`✅ Default data loaded and rendered in ${renderTime.toFixed(2)}ms`);
+            console.log('Default chart loaded successfully');
             
         } catch (error) {
-            app.modules.eventManager.emit('data:error', {
-                error: error.message,
-                source: 'sample'
+            console.error('Failed to load default chart:', error);
+            this.showError('Failed to load default chart: ' + error.message);
+        }
+    }
+
+    async createChart(chartType) {
+        try {
+            const chartDefinition = this.chartRegistry.get(chartType);
+            if (!chartDefinition) {
+                throw new Error(`Chart type '${chartType}' not found`);
+            }
+
+            // Destroy existing chart if any
+            if (this.currentChart) {
+                this.currentChart.destroy();
+            }
+
+            // Create new chart wrapped with the control interface
+            this.currentChart = new ChartWrapper(
+                chartDefinition.chartClass,
+                chartDefinition.capabilities,
+                'main-chart',
+                this.getDefaultConfig(chartType)
+            );
+
+            // Render with current data
+            if (this.currentData) {
+                this.currentChart.render(this.currentData);
+            }
+
+            // Update control panel
+            this.controlPanel.generateControls(this.currentChart);
+            
+            this.currentChartType = chartType;
+            
+            console.log(`Chart '${chartType}' created successfully`);
+            
+        } catch (error) {
+            console.error(`Failed to create chart '${chartType}':`, error);
+            throw error;
+        }
+    }
+
+    getDefaultConfig(chartType) {
+        // Extract default values from capabilities
+        const chartDef = this.chartRegistry.get(chartType);
+        if (!chartDef || !chartDef.capabilities) return {};
+
+        const config = {};
+        
+        Object.values(chartDef.capabilities).forEach(section => {
+            section.controls.forEach(control => {
+                if (control.default !== undefined) {
+                    config[control.id] = control.default;
+                }
             });
-            throw new Error(`Failed to load default data: ${error.message}`);
-        }
-    }
-
-    // Finalize application initialization
-    function finalizeInitialization() {
-        // Mark application as initialized
-        app.initialized = true;
-        
-        // Update configuration
-        app.modules.configManager.setGlobal('app.initialized', true);
-        app.modules.configManager.setGlobal('app.initializationTime', Date.now());
-        
-        // Emit system ready event
-        app.modules.eventManager.emit('system:ready', {
-            version: app.version,
-            modules: Object.keys(app.modules),
-            charts: Object.keys(app.charts),
-            timestamp: Date.now()
         });
+
+        return config;
+    }
+
+    switchChartType(newType) {
+        if (newType === this.currentChartType) return;
         
-        console.log('🎉 Pulse Financial Visualization Platform initialized successfully!');
-        
-        // Show welcome message in development
-        if (window.location.hostname === 'localhost') {
-            setTimeout(() => {
-                showUserMessage('Welcome', 'Pulse v2.0 loaded successfully with modular architecture!', 'info', 3000);
-            }, 1000);
+        console.log(`Switching chart type from '${this.currentChartType}' to '${newType}'`);
+        this.createChart(newType);
+    }
+
+    handleLoadData() {
+        // Create file input for data loading
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.csv';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.loadDataFromFile(file);
+            }
+        };
+        input.click();
+    }
+
+    async loadDataFromFile(file) {
+        try {
+            const text = await file.text();
+            let data;
+
+            if (file.name.endsWith('.json')) {
+                data = JSON.parse(text);
+            } else if (file.name.endsWith('.csv')) {
+                // Simple CSV parsing - you might want to use a proper CSV parser
+                console.warn('CSV loading not fully implemented yet');
+                return;
+            }
+
+            // Validate data
+            const validation = window.DataProcessor.validate.data(data);
+            if (!validation.valid) {
+                throw new Error('Invalid data format: ' + validation.error);
+            }
+
+            // Load the data
+            this.currentData = data;
+            if (this.currentChart) {
+                this.currentChart.render(data);
+            }
+
+            console.log('Data loaded from file successfully');
+
+        } catch (error) {
+            console.error('Failed to load data from file:', error);
+            alert('Failed to load data: ' + error.message);
         }
     }
 
-    // Handle initialization errors
-    function handleInitializationError(error) {
-        console.error('💥 Failed to initialize Pulse application:', error);
-        
-        // Try to report to error handler if available
-        if (app.modules.errorHandler) {
-            app.modules.errorHandler.reportError(error, {
-                component: 'application',
-                action: 'initialize'
-            });
+    loadSampleData() {
+        if (window.SAMPLE_FINANCIAL_DATA) {
+            this.currentData = window.SAMPLE_FINANCIAL_DATA;
+            if (this.currentChart) {
+                this.currentChart.render(this.currentData);
+            }
+            console.log('Sample data loaded');
+        } else {
+            alert('Sample data not available');
         }
-        
-        // Show error message to user
-        showError('Application failed to load properly. Please refresh the page.', error.message);
     }
 
-    // === EVENT HANDLERS ===
+    exportChart(format) {
+        if (!this.currentChart) {
+            alert('No chart to export');
+            return;
+        }
 
-    // Handle window resize
-    function handleWindowResize() {
-        if (!app.initialized || !app.charts.sankey) return;
-        
-        console.log('Handling window resize...');
-        
-        const container = document.getElementById('sankey-chart');
-        if (!container) return;
-        
-        const containerRect = container.getBoundingClientRect();
-        const newWidth = Math.max(800, containerRect.width);
-        const newHeight = Math.max(500, containerRect.height || 600);
-        
-        // Resize chart
-        app.charts.sankey.resize(newWidth, newHeight);
-        
-        // Emit resize event
-        app.modules.eventManager.emit('chart:resized', {
-            chartId: 'sankey-chart',
-            newWidth,
-            newHeight
-        });
+        try {
+            switch (format) {
+                case 'png':
+                    this.currentChart.exportToPNG();
+                    break;
+                case 'svg':
+                    this.currentChart.exportToSVG();
+                    break;
+                case 'data':
+                    if (this.currentData) {
+                        window.ExportUtils.exportDataToCSV(this.currentData);
+                    }
+                    break;
+                default:
+                    console.warn('Unknown export format:', format);
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Export failed: ' + error.message);
+        }
     }
 
-    // Handle keyboard shortcuts
-    function handleKeyboardShortcuts(event) {
-        if (!app.initialized) return;
+    resetToDefaults() {
+        if (!this.currentChart) return;
+
+        const defaultConfig = this.getDefaultConfig(this.currentChartType);
+        this.currentChart.updateConfig(defaultConfig);
+        this.controlPanel.generateControls(this.currentChart);
         
-        // Check for modifier keys
+        console.log('Chart reset to defaults');
+    }
+
+    handleResize() {
+        if (this.currentChart && this.currentChart.chartInstance && this.currentChart.chartInstance.resize) {
+            const container = document.getElementById('main-chart');
+            if (container) {
+                const rect = container.getBoundingClientRect();
+                this.currentChart.chartInstance.resize(rect.width - 40, rect.height - 40);
+            }
+        }
+    }
+
+    handleKeyboard(event) {
         if (event.ctrlKey || event.metaKey) {
             switch (event.key.toLowerCase()) {
                 case 's':
                     event.preventDefault();
-                    exportChart('png');
-                    break;
-                case 'e':
-                    event.preventDefault();
-                    showExportMenu();
+                    this.exportChart('png');
                     break;
                 case 'r':
                     event.preventDefault();
-                    refreshChart();
+                    this.resetToDefaults();
                     break;
-                case 'd':
-                    if (event.shiftKey) {
-                        event.preventDefault();
-                        toggleDebugMode();
-                    }
+                case 'l':
+                    event.preventDefault();
+                    this.handleLoadData();
                     break;
             }
         }
-        
-        // Function keys
-        switch (event.key) {
-            case 'F1':
-                event.preventDefault();
-                showHelp();
-                break;
-            case 'F5':
-                // Allow default refresh behavior
-                break;
+    }
+
+    hideLoadingIndicator() {
+        const loading = document.querySelector('.chart-loading');
+        if (loading) {
+            loading.style.display = 'none';
         }
     }
 
-    // === UTILITY FUNCTIONS ===
-
-    // Hide loading indicator
-    function hideLoadingIndicator() {
-        const loadingDiv = document.querySelector('.chart-loading');
-        if (loadingDiv) {
-            loadingDiv.style.display = 'none';
-        }
-    }
-
-    // Show user message
-    function showUserMessage(title, message, type = 'info', duration = 3000) {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `pulse-notification pulse-notification-${type}`;
-        notification.innerHTML = `
-            <div class="pulse-notification-content">
-                <div class="pulse-notification-title">${title}</div>
-                <div class="pulse-notification-message">${message}</div>
-            </div>
-            <div class="pulse-notification-close" onclick="this.parentElement.remove()">×</div>
-        `;
+    showError(message) {
+        this.hideLoadingIndicator();
         
-        // Style the notification
-        Object.assign(notification.style, {
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            background: type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#17a2b8',
-            color: 'white',
-            padding: '12px 16px',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            zIndex: '10001',
-            minWidth: '300px',
-            opacity: '0',
-            transform: 'translateX(100%)',
-            transition: 'all 0.3s ease'
-        });
-        
-        document.body.appendChild(notification);
-        
-        // Animate in
-        requestAnimationFrame(() => {
-            notification.style.opacity = '1';
-            notification.style.transform = 'translateX(0)';
-        });
-        
-        // Auto-hide
-        if (duration > 0) {
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => notification.remove(), 300);
-            }, duration);
-        }
-    }
-
-    // Show error message
-    function showError(message, technicalDetails = '') {
-        hideLoadingIndicator();
-        
-        const chartContainer = document.getElementById('sankey-chart');
-        if (chartContainer) {
-            chartContainer.innerHTML = `
-                <div class="chart-error" style="
+        const container = document.getElementById('main-chart');
+        if (container) {
+            container.innerHTML = `
+                <div style="
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     height: 400px;
-                    color: #dc3545;
+                    color: #e74c3c;
                     text-align: center;
                     padding: 2rem;
                 ">
-                    <div style="font-size: 48px; margin-bottom: 1rem;">⚠️</div>
-                    <h3 style="margin-bottom: 1rem; color: #dc3545;">Error Loading Chart</h3>
-                    <p style="color: #6c757d; max-width: 400px; margin-bottom: 1rem;">${message}</p>
-                    ${technicalDetails ? `<details style="margin-top: 1rem; color: #6c757d;">
-                        <summary style="cursor: pointer;">Technical Details</summary>
-                        <pre style="margin-top: 0.5rem; font-size: 12px; text-align: left;">${technicalDetails}</pre>
-                    </details>` : ''}
+                    <h3 style="margin-bottom: 1rem;">⚠ Error</h3>
+                    <p style="color: #6c757d; max-width: 400px;">${message}</p>
                     <button onclick="location.reload()" style="
                         margin-top: 1rem;
                         padding: 0.5rem 1rem;
@@ -480,223 +488,37 @@
                         border: none;
                         border-radius: 4px;
                         cursor: pointer;
-                    ">Reload Page</button>
+                    ">Reload Application</button>
                 </div>
             `;
         }
     }
+}
 
-    // === CHART OPERATIONS ===
+// Global API for external access
+window.PulseApp = null;
 
-    // Export chart
-    function exportChart(format = 'png') {
-        if (!app.charts.sankey) {
-            console.error('Chart not available for export');
-            return;
-        }
-        
-        try {
-            switch (format.toLowerCase()) {
-                case 'png':
-                    app.charts.sankey.exportToPNG();
-                    break;
-                case 'svg':
-                    app.charts.sankey.exportToSVG();
-                    break;
-                case 'csv':
-                    app.charts.sankey.exportDataToCSV();
-                    break;
-                default:
-                    console.warn(`Unknown export format: ${format}`);
-            }
-            
-            app.modules.eventManager.emit('chart:exported', {
-                format,
-                filename: `pulse-chart.${format}`,
-                timestamp: Date.now()
-            });
-            
-        } catch (error) {
-            app.modules.errorHandler.reportError(error, {
-                component: 'export',
-                format
-            });
-        }
+// Initialize application when DOM is ready
+function initializePulseApp() {
+    try {
+        window.PulseApp = new PulseApplication();
+    } catch (error) {
+        console.error('Failed to create Pulse Application:', error);
     }
+}
 
-    // Show export menu
-    function showExportMenu() {
-        if (app.charts.sankey && app.charts.sankey.showExportMenu) {
-            app.charts.sankey.showExportMenu();
-        }
-    }
+// Start the application
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePulseApp);
+} else {
+    initializePulseApp();
+}
 
-    // Refresh chart
-    function refreshChart() {
-        if (app.charts.sankey && app.currentData) {
-            console.log('Refreshing chart...');
-            app.charts.sankey.render(app.currentData);
-            showUserMessage('Chart Refreshed', 'Chart has been refreshed successfully', 'success', 2000);
-        }
-    }
+// Global error handling
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+});
 
-    // Toggle debug mode
-    function toggleDebugMode() {
-        const isDebug = app.modules.configManager.getGlobal('development.enableDebugMode');
-        app.modules.configManager.setGlobal('development.enableDebugMode', !isDebug);
-        
-        if (!isDebug) {
-            app.modules.eventManager.enableDebugMode();
-            console.log('🐛 Debug mode enabled');
-            showUserMessage('Debug Mode', 'Debug mode enabled - check console for detailed logs', 'info', 2000);
-        } else {
-            app.modules.eventManager.disableDebugMode();
-            console.log('🐛 Debug mode disabled');
-            showUserMessage('Debug Mode', 'Debug mode disabled', 'info', 2000);
-        }
-    }
-
-    // Show help
-    function showHelp() {
-        const helpContent = `
-            <h3>Pulse Financial Visualization - Help</h3>
-            <h4>Keyboard Shortcuts:</h4>
-            <ul>
-                <li><strong>Ctrl+S</strong> - Export as PNG</li>
-                <li><strong>Ctrl+E</strong> - Show export menu</li>
-                <li><strong>Ctrl+R</strong> - Refresh chart</li>
-                <li><strong>Ctrl+Shift+D</strong> - Toggle debug mode</li>
-                <li><strong>F1</strong> - Show this help</li>
-            </ul>
-            <h4>Chart Features:</h4>
-            <ul>
-                <li>Hover over nodes and links for details</li>
-                <li>Click export buttons in the chart header</li>
-                <li>Chart automatically resizes with window</li>
-            </ul>
-        `;
-        
-        showUserMessage('Help', helpContent, 'info', 0); // 0 = no auto-hide
-    }
-
-    // === PUBLIC API ===
-
-    // Public API for external interaction
-    window.PulseApp = {
-        // Get application state
-        getState: function() {
-            return {
-                ...app,
-                initialized: app.initialized,
-                version: app.version,
-                currentData: app.currentData ? {
-                    nodeCount: app.currentData.nodes?.length || 0,
-                    linkCount: app.currentData.links?.length || 0
-                } : null,
-                modules: Object.keys(app.modules),
-                charts: Object.keys(app.charts)
-            };
-        },
-        
-        // Load new data
-        loadData: function(data) {
-            try {
-                if (!app.charts.sankey) {
-                    throw new Error('Chart not initialized');
-                }
-                
-                app.currentData = data;
-                app.charts.sankey.render(data);
-                
-                app.modules.eventManager.emit('data:loaded', {
-                    source: 'external',
-                    nodeCount: data.nodes?.length || 0,
-                    linkCount: data.links?.length || 0
-                });
-                
-                return { success: true };
-            } catch (error) {
-                app.modules.errorHandler.reportError(error, {
-                    component: 'dataLoader',
-                    action: 'loadData'
-                });
-                return { success: false, error: error.message };
-            }
-        },
-        
-        // Chart operations
-        chart: {
-            export: exportChart,
-            exportMenu: showExportMenu,
-            refresh: refreshChart,
-            resize: handleWindowResize,
-            getState: () => app.charts.sankey ? app.charts.sankey.getState() : null
-        },
-        
-        // Configuration
-        config: {
-            get: (key) => app.modules.configManager.getGlobal(key),
-            set: (key, value) => app.modules.configManager.setGlobal(key, value),
-            getTheme: () => app.modules.configManager.getCurrentTheme(),
-            setTheme: (theme) => app.modules.configManager.setTheme(theme)
-        },
-        
-        // Events
-        events: {
-            on: (event, callback) => app.modules.eventManager.on(event, callback),
-            off: (event, callback) => app.modules.eventManager.off(event, callback),
-            emit: (event, data) => app.modules.eventManager.emit(event, data)
-        },
-        
-        // Debug utilities
-        debug: {
-            toggle: toggleDebugMode,
-            getStats: () => ({
-                config: app.modules.configManager.debug(),
-                events: app.modules.eventManager.debug(),
-                errors: app.modules.errorHandler.debug(),
-                charts: app.modules.chartFactory.debug()
-            }),
-            showHelp: showHelp
-        },
-        
-        // Version info
-        version: app.version
-    };
-
-    // === INITIALIZATION ===
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeApp);
-    } else {
-        // DOM already loaded, initialize immediately
-        setTimeout(initializeApp, 0);
-    }
-
-    // Global error handling
-    window.addEventListener('error', function(event) {
-        console.error('Global error caught:', event.error);
-        if (app.modules?.errorHandler) {
-            app.modules.errorHandler.reportError(event.error, {
-                component: 'global',
-                filename: event.filename,
-                lineno: event.lineno
-            });
-        }
-    });
-
-    // Unhandled promise rejection handling
-    window.addEventListener('unhandledrejection', function(event) {
-        console.error('Unhandled promise rejection:', event.reason);
-        if (app.modules?.errorHandler) {
-            app.modules.errorHandler.reportError(event.reason, {
-                component: 'promise',
-                type: 'unhandledRejection'
-            });
-        }
-    });
-
-    console.log('Pulse main application loaded - waiting for DOM ready...');
-
-})();
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+});

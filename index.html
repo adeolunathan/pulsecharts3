@@ -3,358 +3,1459 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pulse - Professional Financial Visualization Platform v2.0</title>
+    <title>Pulse Analytics Platform - Fixed Version</title>
     
-    <!-- Meta tags for better SEO and social sharing -->
-    <meta name="description" content="Professional financial data visualization platform with interactive Sankey charts and advanced analytics.">
-    <meta name="keywords" content="financial visualization, sankey chart, data analytics, business intelligence">
-    <meta name="author" content="Pulse Financial Insights">
+    <!-- D3.js and Sankey plugin from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
     
-    <!-- Open Graph tags -->
-    <meta property="og:title" content="Pulse Financial Visualization Platform">
-    <meta property="og:description" content="Professional financial data visualization with interactive charts">
-    <meta property="og:type" content="website">
-    
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/charts.css">
-    
-    <!-- Favicon (optional) -->
-    <!-- <link rel="icon" type="image/x-icon" href="/favicon.ico"> -->
+    <!-- All styles inline -->
+    <style>
+        /* Reset and Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Segoe UI Web', Tahoma, Arial, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+            font-size: 14px;
+        }
+
+        /* Layout */
+        .pulse-app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chart-selector select, .data-selector select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #495057;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .app-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .chart-area {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-toolbar {
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-controls, .export-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-container {
+            flex: 1;
+            padding: 20px;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .chart-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 400px;
+            color: #6b7280;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            width: 320px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e1e5e9;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            font-family: 'Segoe UI', 'Segoe UI Web', Tahoma, Arial, sans-serif;
+        }
+
+        .control-panel-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-panel-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .control-panel-content {
+            padding: 0;
+        }
+
+        /* Control Sections */
+        .control-section {
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .control-section-header {
+            padding: 16px 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color 0.2s ease;
+            user-select: none;
+        }
+
+        .control-section-header:hover {
+            background: #e9ecef;
+        }
+
+        .section-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .section-title {
+            flex: 1;
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .toggle-icon {
+            font-size: 12px;
+            color: #6c757d;
+            transition: transform 0.2s ease;
+        }
+
+        .control-section.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .control-section-content {
+            padding: 0;
+            background: white;
+        }
+
+        .control-section.collapsed .control-section-content {
+            display: none;
+        }
+
+        /* Individual Controls */
+        .control-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .control-item:last-child {
+            border-bottom: none;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin: 0;
+        }
+
+        .control-unit {
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .control-description {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* Slider Controls */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-slider {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: #e1e5e9;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .control-slider::-webkit-slider-thumb:hover {
+            background: #5a6fd8;
+            transform: scale(1.1);
+        }
+
+        .slider-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            min-width: 40px;
+            text-align: right;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e1e5e9;
+        }
+
+        /* Dropdown Controls */
+        .control-dropdown {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 13px;
+            color: #374151;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .control-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Toggle Controls */
+        .toggle-container {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .control-toggle {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-toggle:checked + .toggle-slider {
+            background-color: #667eea;
+        }
+
+        .control-toggle:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #6c757d;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-outline:hover {
+            background: #f8f9fa;
+            color: #495057;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-ready { background: #d4edda; color: #155724; }
+        .status-loading { background: #fff3cd; color: #856404; }
+        .status-error { background: #f8d7da; color: #721c24; }
+
+        .pulse-sankey-tooltip {
+            position: absolute;
+            background: rgba(17, 24, 39, 0.95);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-family: 'Segoe UI', 'Segoe UI Web', Tahoma, Arial, sans-serif;
+            font-weight: 500;
+            pointer-events: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            transform: translate(-50%, -120%);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10000;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @media (max-width: 1200px) {
+            .app-content {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .control-panel {
+                order: -1;
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto;
+                max-height: none;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Loading screen -->
-    <div id="loading-screen" style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        z-index: 9999;
-        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    ">
-        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
-        <div style="font-size: 24px; font-weight: 600; margin-bottom: 10px;">Pulse Financial Insights</div>
-        <div style="font-size: 16px; opacity: 0.9; margin-bottom: 30px;">Loading visualization platform...</div>
-        <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden;">
-            <div id="loading-bar" style="width: 0%; height: 100%; background: white; border-radius: 2px; transition: width 0.3s ease;"></div>
-        </div>
-        <div id="loading-status" style="font-size: 14px; opacity: 0.8; margin-top: 15px;">Initializing core modules...</div>
-    </div>
-
-    <div class="app-container">
-        <!-- Header -->
+    <div class="pulse-app">
+        <!-- Application Header -->
         <header class="app-header">
-            <h1 class="app-title">Pulse<span style="font-size: 0.6em; opacity: 0.8; margin-left: 8px;">v2.0</span></h1>
-            <p class="app-subtitle">Professional Financial Visualization Platform</p>
+            <h1>Pulse Analytics Platform</h1>
+            <div class="header-controls">
+                <div class="data-selector">
+                    <label for="data-select" style="color: white; margin-right: 8px;">Data:</label>
+                    <select id="data-select">
+                        <option value="saas">SaaS Company (Sample)</option>
+                        <option value="asml">ASML (Large Corp)</option>
+                        <option value="custom">Load Custom Data...</option>
+                    </select>
+                </div>
+                <div class="chart-selector">
+                    <label for="chart-type-select" style="color: white; margin-right: 8px;">Chart:</label>
+                    <select id="chart-type-select">
+                        <option value="sankey">🌊 Sankey Flow</option>
+                    </select>
+                </div>
+            </div>
         </header>
 
         <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Chart Container -->
-            <div class="chart-container">
-                <div class="chart-header">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <h2 class="chart-title">Financial Flow Analysis</h2>
-                        <div class="chart-type-indicator">Sankey</div>
+        <div class="app-content">
+            <!-- Chart Area -->
+            <div class="chart-area">
+                <!-- Chart Toolbar -->
+                <div class="chart-toolbar">
+                    <div class="data-controls">
+                        <span id="data-status" class="status-indicator status-loading">Loading...</span>
                     </div>
-                    <div class="chart-controls">
-                        <!-- Export Controls -->
-                        <div class="export-controls">
-                            <button class="export-btn export-btn-primary" onclick="PulseApp.chart.export('png')" title="Export as PNG image">
-                                📊 PNG
-                            </button>
-                            <button class="export-btn" onclick="PulseApp.chart.export('svg')" title="Export as SVG vector">
-                                📈 SVG  
-                            </button>
-                            <button class="export-btn" onclick="PulseApp.chart.export('csv')" title="Export data as CSV">
-                                📋 Data
-                            </button>
-                            <button class="export-btn export-btn-menu" onclick="PulseApp.chart.exportMenu()" title="Show export menu">
-                                ⚙️ Menu
-                            </button>
-                        </div>
+                    
+                    <div class="export-controls">
+                        <button id="export-png" class="btn btn-primary">
+                            🖼️ PNG
+                        </button>
+                        <button id="export-svg" class="btn btn-primary">
+                            📐 SVG
+                        </button>
+                        <button id="export-data" class="btn btn-primary">
+                            📊 CSV
+                        </button>
                     </div>
                 </div>
                 
-                <!-- The actual chart will be rendered here -->
-                <div id="sankey-chart" class="chart-wrapper">
+                <!-- Chart Container -->
+                <div id="main-chart" class="chart-container">
                     <div class="chart-loading">
-                        <p>Initializing chart visualization...</p>
+                        <div class="loading-spinner"></div>
+                        <p>Initializing Pulse Analytics Platform...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart Information Panel -->
-            <div class="info-panel">
-                <div class="info-section">
-                    <h3>Enhanced Platform v2.0</h3>
-                    <p>This new version features a completely modular architecture with advanced error handling, event management, and configuration systems.</p>
+            <!-- Dynamic Control Panel -->
+            <div class="control-panel">
+                <div class="control-panel-header">
+                    <h3>Chart Controls</h3>
+                    <button id="reset-defaults" class="btn btn-outline">
+                        🔄 Reset
+                    </button>
                 </div>
                 
-                <div class="info-section">
-                    <h3>Key Features</h3>
-                    <ul>
-                        <li>Modular chart architecture</li>
-                        <li>Advanced data processing</li>
-                        <li>Professional export options</li>
-                        <li>Real-time error handling</li>
-                        <li>Event-driven interactions</li>
-                        <li>Responsive design</li>
-                    </ul>
-                </div>
-                
-                <div class="info-section">
-                    <h3>Keyboard Shortcuts</h3>
-                    <ul>
-                        <li><strong>Ctrl+S:</strong> Export PNG</li>
-                        <li><strong>Ctrl+E:</strong> Export menu</li>
-                        <li><strong>Ctrl+R:</strong> Refresh chart</li>
-                        <li><strong>Ctrl+Shift+D:</strong> Debug mode</li>
-                        <li><strong>F1:</strong> Help</li>
-                    </ul>
-                </div>
-                
-                <div class="info-section">
-                    <h3>System Status</h3>
-                    <div id="system-status" style="font-size: 12px; color: #6c757d;">
-                        <div>Status: <span id="status-indicator">Initializing...</span></div>
-                        <div>Version: <span id="version-indicator">v2.0.0</span></div>
-                        <div>Modules: <span id="modules-indicator">Loading...</span></div>
+                <!-- Controls are generated dynamically here -->
+                <div id="dynamic-controls" class="control-panel-content">
+                    <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
+                        <p>Loading chart controls...</p>
                     </div>
                 </div>
             </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="app-footer">
-            <p>&copy; 2025 Pulse Financial Visualization Platform v2.0 - Enhanced Modular Architecture</p>
-        </footer>
-    </div>
-
-    <!-- Debug Panel (development only) -->
-    <div id="debug-panel" style="
-        position: fixed; 
-        bottom: 10px; 
-        left: 10px; 
-        background: rgba(0,0,0,0.8); 
-        color: white;
-        padding: 10px; 
-        border-radius: 5px; 
-        font-size: 12px; 
-        display: none;
-        z-index: 1000;
-    ">
-        <button onclick="toggleDebug()" style="
-            background: #007bff; 
-            color: white; 
-            border: none; 
-            padding: 5px 10px; 
-            border-radius: 3px; 
-            cursor: pointer;
-            margin-bottom: 5px;
-        ">Debug Panel</button>
-        <div id="debug-info" style="display: none;">
-            <button onclick="PulseApp.debug.getStats()" style="background: #28a745; color: white; border: none; padding: 3px 8px; margin: 2px; border-radius: 3px; cursor: pointer;">System Stats</button>
-            <button onclick="console.log(PulseApp.getState())" style="background: #ffc107; color: black; border: none; padding: 3px 8px; margin: 2px; border-radius: 3px; cursor: pointer;">App State</button>
-            <button onclick="PulseApp.debug.toggle()" style="background: #6f42c1; color: white; border: none; padding: 3px 8px; margin: 2px; border-radius: 3px; cursor: pointer;">Toggle Debug</button>
-            <button onclick="testAllSystems()" style="background: #fd7e14; color: white; border: none; padding: 3px 8px; margin: 2px; border-radius: 3px; cursor: pointer;">Test Systems</button>
         </div>
     </div>
 
-    <!-- Loading and Debug Scripts - MUST BE FIRST -->
+    <!-- Hidden file input for custom data -->
+    <input type="file" id="file-input" style="display: none;" accept=".json">
+
+    <!-- All JavaScript inline -->
     <script>
-        // Loading progress management - DEFINED FIRST
-        function updateLoadingProgress(percent, status) {
-            const loadingBar = document.getElementById('loading-bar');
-            const loadingStatus = document.getElementById('loading-status');
-            
-            if (loadingBar) {
-                loadingBar.style.width = percent + '%';
-            }
-            if (loadingStatus) {
-                loadingStatus.textContent = status;
-            }
-        }
+        console.log('🚀 Starting Pulse Analytics Platform');
 
-        // Hide loading screen when everything is ready
-        function hideLoadingScreen() {
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.style.opacity = '0';
-                loadingScreen.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                }, 500);
-            }
-        }
+        // Multiple sample datasets (organized like your data/samples/ folder would be)
+        const SAMPLE_DATASETS = {
+            saas: {
+                nodes: [
+                    { id: "Subscription Revenue", depth: 0, value: 180, category: "revenue", description: "Recurring subscription revenue" },
+                    { id: "Professional Services", depth: 0, value: 60, category: "revenue", description: "Implementation services" },
+                    { id: "Platform & Other", depth: 0, value: 35, category: "revenue", description: "Platform fees" },
+                    { id: "Total Revenue", depth: 1, value: 275, category: "revenue", description: "Total company revenue" },
+                    { id: "Gross Profit", depth: 2, value: 220, category: "profit", description: "Revenue minus direct costs" },
+                    { id: "Cost of Revenue", depth: 2, value: 55, category: "cost", description: "Direct costs" },
+                    { id: "Operating Profit", depth: 3, value: 65, category: "profit", description: "Operating income" },
+                    { id: "Operating Expenses", depth: 3, value: 155, category: "expense", description: "Operating expenses" },
+                    { id: "Sales & Marketing", depth: 4, value: 85, category: "expense", description: "Customer acquisition costs" },
+                    { id: "R&D", depth: 4, value: 45, category: "expense", description: "Research and development" },
+                    { id: "G&A", depth: 4, value: 20, category: "expense", description: "General and administrative" },
+                    { id: "Restructuring", depth: 4, value: 5, category: "expense", description: "Restructuring costs" },
+                    { id: "Net Income", depth: 4, value: 50, category: "income", description: "Final net income" },
+                    { id: "Tax Expense", depth: 4, value: 12, category: "expense", description: "Income tax" },
+                    { id: "Other Expense", depth: 4, value: 3, category: "expense", description: "Other expenses" }
+                ],
+                links: [
+                    { source: "Subscription Revenue", target: "Total Revenue", value: 180, type: "revenue" },
+                    { source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue" },
+                    { source: "Platform & Other", target: "Total Revenue", value: 35, type: "revenue" },
+                    { source: "Total Revenue", target: "Gross Profit", value: 220, type: "profit" },
+                    { source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost" },
+                    { source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit" },
+                    { source: "Gross Profit", target: "Operating Expenses", value: 155, type: "expense" },
+                    { source: "Operating Expenses", target: "Sales & Marketing", value: 85, type: "expense" },
+                    { source: "Operating Expenses", target: "R&D", value: 45, type: "expense" },
+                    { source: "Operating Expenses", target: "G&A", value: 20, type: "expense" },
+                    { source: "Operating Expenses", target: "Restructuring", value: 5, type: "expense" },
+                    { source: "Operating Profit", target: "Net Income", value: 50, type: "income" },
+                    { source: "Operating Profit", target: "Tax Expense", value: 12, type: "expense" },
+                    { source: "Operating Profit", target: "Other Expense", value: 3, type: "expense" }
+                ],
+                metadata: {
+                    title: "SaaS Company Financial Flow",
+                    subtitle: "Q3 2025 Financial Performance",
+                    currency: "USD",
+                    unit: "millions"
+                }
+            },
 
-        // Update system status indicators
-        function updateSystemStatus() {
-            const statusIndicator = document.getElementById('status-indicator');
-            const modulesIndicator = document.getElementById('modules-indicator');
-            
-            if (window.PulseApp && statusIndicator) {
-                const state = PulseApp.getState();
-                statusIndicator.textContent = state.initialized ? '✅ Ready' : '⚠️ Loading';
-                statusIndicator.style.color = state.initialized ? '#28a745' : '#ffc107';
-                
-                if (modulesIndicator) {
-                    modulesIndicator.textContent = `${state.modules.length} loaded`;
+            asml: {
+                nodes: [
+                    { id: "EUV", depth: 0, value: 320, category: "revenue", description: "Extreme Ultraviolet systems" },
+                    { id: "ArFi", depth: 0, value: 390, category: "revenue", description: "Argon Fluoride immersion" },
+                    { id: "ArF Dry", depth: 0, value: 10, category: "revenue", description: "Argon Fluoride dry" },
+                    { id: "KrF", depth: 0, value: 30, category: "revenue", description: "Krypton Fluoride" },
+                    { id: "I-line", depth: 0, value: 10, category: "revenue", description: "I-line lithography" },
+                    { id: "Metrology", depth: 0, value: 20, category: "revenue", description: "Metrology and inspection" },
+                    { id: "Total Revenue", depth: 1, value: 780, category: "revenue", description: "Total company revenue" },
+                    { id: "Gross Profit", depth: 2, value: 420, category: "profit", description: "Revenue minus direct costs" },
+                    { id: "Cost of Revenue", depth: 2, value: 360, category: "cost", description: "Direct production costs" },
+                    { id: "Operating Profit", depth: 3, value: 270, category: "profit", description: "Operating income" },
+                    { id: "Operating Expenses", depth: 3, value: 150, category: "expense", description: "Operating expenses" },
+                    { id: "R&D", depth: 4, value: 120, category: "expense", description: "Research and development" },
+                    { id: "SG&A", depth: 4, value: 30, category: "expense", description: "Sales, general & administrative" },
+                    { id: "Net Profit", depth: 4, value: 220, category: "income", description: "Final net income" },
+                    { id: "Tax Expense", depth: 4, value: 50, category: "expense", description: "Income tax expense" }
+                ],
+                links: [
+                    { source: "EUV", target: "Total Revenue", value: 320, type: "revenue" },
+                    { source: "ArFi", target: "Total Revenue", value: 390, type: "revenue" },
+                    { source: "ArF Dry", target: "Total Revenue", value: 10, type: "revenue" },
+                    { source: "KrF", target: "Total Revenue", value: 30, type: "revenue" },
+                    { source: "I-line", target: "Total Revenue", value: 10, type: "revenue" },
+                    { source: "Metrology", target: "Total Revenue", value: 20, type: "revenue" },
+                    { source: "Total Revenue", target: "Gross Profit", value: 420, type: "profit" },
+                    { source: "Total Revenue", target: "Cost of Revenue", value: 360, type: "cost" },
+                    { source: "Gross Profit", target: "Operating Profit", value: 270, type: "profit" },
+                    { source: "Gross Profit", target: "Operating Expenses", value: 150, type: "expense" },
+                    { source: "Operating Expenses", target: "R&D", value: 120, type: "expense" },
+                    { source: "Operating Expenses", target: "SG&A", value: 30, type: "expense" },
+                    { source: "Operating Profit", target: "Tax Expense", value: 50, type: "expense" },
+                    { source: "Operating Profit", target: "Net Profit", value: 220, type: "income" }
+                ],
+                metadata: {
+                    title: "ASML Financial Flow Analysis",
+                    subtitle: "Q3 2025 Financial Performance",
+                    currency: "USD",
+                    unit: "millions"
                 }
             }
-        }
+        };
 
-        // Debug functions
-        function toggleDebug() {
-            const panel = document.getElementById('debug-panel');
-            const info = document.getElementById('debug-info');
-            
-            if (info.style.display === 'none') {
-                info.style.display = 'block';
-            } else {
-                info.style.display = 'none';
+        // Simple Sankey Chart Implementation (improved)
+        class SimpleSankeyChart {
+            constructor(containerId) {
+                this.containerId = containerId;
+                this.container = d3.select(`#${containerId}`);
+                this.svg = null;
+                this.chart = null;
+                this.data = null;
+                this.tooltip = null;
+                this.nodes = [];
+                this.links = [];
+                
+                // Configuration
+                this.config = {
+                    width: 1200,
+                    height: 700,
+                    margin: { top: 60, right: 100, bottom: 60, left: 100 },
+                    nodeWidth: 28,
+                    nodePadding: 40,
+                    curveIntensity: 0.4,
+                    animationDuration: 800,
+                    leftmostSpacing: 0.8,
+                    middleSpacing: 0.9,
+                    rightmostSpacing: 0.7,
+                    autoCenter: true,
+                    autoMiddleAlign: true,
+                    nodeHeightScale: 0.65,
+                    linkWidthScale: 0.65,
+                    nodeOpacity: 1.0,
+                    linkOpacity: 1.0
+                };
+                
+                this.initializeChart();
             }
-        }
 
-        function testAllSystems() {
-            console.log("=== TESTING ALL SYSTEMS ===");
-            
-            try {
-                if (typeof PulseApp !== 'undefined') {
-                    console.log("✅ PulseApp loaded");
+            initializeChart() {
+                this.container.selectAll('*').remove();
+                
+                const dimensions = {
+                    width: this.config.width - this.config.margin.left - this.config.margin.right,
+                    height: this.config.height - this.config.margin.top - this.config.margin.bottom
+                };
+
+                this.svg = this.container
+                    .append('svg')
+                    .attr('class', 'chart-svg')
+                    .attr('width', this.config.width)
+                    .attr('height', this.config.height)
+                    .attr('viewBox', `0 0 ${this.config.width} ${this.config.height}`)
+                    .style('max-width', '100%')
+                    .style('display', 'block')
+                    .style('margin', '0 auto');
+
+                this.chart = this.svg
+                    .append('g')
+                    .attr('transform', `translate(${this.config.margin.left}, ${this.config.margin.top})`);
+
+                this.createTooltip();
+            }
+
+            createTooltip() {
+                d3.select('.pulse-sankey-tooltip').remove();
+                
+                this.tooltip = d3.select('body')
+                    .append('div')
+                    .attr('class', 'pulse-sankey-tooltip');
+            }
+
+            render(data) {
+                this.data = data;
+                this.processData(data);
+                this.calculateLayout();
+                
+                this.chart.selectAll('*').remove();
+                
+                this.renderTitle();
+                this.renderLinks();
+                this.renderNodes();
+                this.renderLabels();
+                
+                return this;
+            }
+
+            processData(data) {
+                const nodeMap = new Map();
+                
+                data.nodes.forEach(node => {
+                    nodeMap.set(node.id, {
+                        ...node,
+                        sourceLinks: [],
+                        targetLinks: [],
+                        value: node.value || 0
+                    });
+                });
+                
+                data.links.forEach(link => {
+                    const sourceNode = nodeMap.get(link.source);
+                    const targetNode = nodeMap.get(link.target);
                     
-                    const state = PulseApp.getState();
-                    console.log("App State:", state);
-                    
-                    if (PulseApp.debug) {
-                        const stats = PulseApp.debug.getStats();
-                        console.log("System Stats:", stats);
+                    if (sourceNode && targetNode) {
+                        const processedLink = {
+                            ...link,
+                            source: sourceNode,
+                            target: targetNode,
+                            value: link.value || 0
+                        };
+                        
+                        sourceNode.sourceLinks.push(processedLink);
+                        targetNode.targetLinks.push(processedLink);
                     }
-                    
-                    console.log("✅ All systems operational");
-                    alert("✅ All systems are working correctly! Check console for details.");
-                    
-                } else {
-                    throw new Error("PulseApp not loaded");
-                }
+                });
                 
-            } catch (error) {
-                console.error("❌ System test failed:", error);
-                alert("❌ System test failed. Check console for details.");
+                this.nodes = Array.from(nodeMap.values());
+                this.links = data.links.map(link => ({
+                    ...link,
+                    source: nodeMap.get(link.source),
+                    target: nodeMap.get(link.target)
+                }));
             }
-        }
 
-        // Show debug panel in development
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.search.includes('debug=true')) {
-            document.getElementById('debug-panel').style.display = 'block';
-        }
+            calculateLayout() {
+                const dimensions = {
+                    width: this.config.width - this.config.margin.left - this.config.margin.right,
+                    height: this.config.height - this.config.margin.top - this.config.margin.bottom
+                };
 
-        // Global error handler for script loading
-        window.addEventListener('error', function(e) {
-            console.error('Script loading error:', e);
-            updateLoadingProgress(0, 'Error loading modules - check console');
-        });
+                // Group by depth
+                const nodesByDepth = d3.group(this.nodes, d => d.depth);
+                const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
+                const maxDepth = Math.max(...depths);
 
-        // Listen for application ready event
-        document.addEventListener('pulse:system:ready', function(event) {
-            console.log('System ready event received:', event.detail);
-            updateLoadingProgress(100, 'Ready!');
-            updateSystemStatus();
-            
-            // Hide loading screen after a brief delay
-            setTimeout(hideLoadingScreen, 500);
-        });
+                // X positioning
+                const xScale = d3.scaleLinear()
+                    .domain([0, maxDepth])
+                    .range([0, dimensions.width - this.config.nodeWidth]);
 
-        // Fallback to hide loading screen after timeout
-        setTimeout(() => {
-            if (document.getElementById('loading-screen').style.display !== 'none') {
-                console.warn('Loading screen timeout - hiding anyway');
-                hideLoadingScreen();
-                updateSystemStatus();
+                this.nodes.forEach(node => {
+                    node.x = xScale(node.depth);
+                });
+
+                // Node heights
+                this.nodes.forEach(node => {
+                    node.height = Math.max(8, node.value * this.config.nodeHeightScale);
+                });
+
+                // Y positioning
+                depths.forEach(depth => {
+                    const nodesAtDepth = nodesByDepth.get(depth);
+                    this.positionNodesAtDepth(nodesAtDepth, dimensions.height);
+                });
+
+                this.calculateLinkPositions();
             }
-        }, 10000); // 10 second timeout
 
-        // Update status periodically
-        setInterval(updateSystemStatus, 2000);
-
-        // Performance monitoring
-        window.addEventListener('load', function() {
-            const loadTime = performance.now();
-            console.log(`Page loaded in ${loadTime.toFixed(2)}ms`);
-            
-            // Report to analytics if available
-            if (window.gtag) {
-                gtag('event', 'page_load_time', {
-                    event_category: 'Performance',
-                    value: Math.round(loadTime)
+            positionNodesAtDepth(nodes, availableHeight) {
+                nodes.sort((a, b) => b.value - a.value);
+                
+                const totalHeight = d3.sum(nodes, d => d.height);
+                const totalPadding = this.config.nodePadding * (nodes.length - 1);
+                const totalRequired = totalHeight + totalPadding;
+                
+                const startY = Math.max(20, (availableHeight - totalRequired) / 2);
+                let currentY = startY;
+                
+                nodes.forEach(node => {
+                    node.y = currentY;
+                    currentY += node.height + this.config.nodePadding;
                 });
             }
+
+            calculateLinkPositions() {
+                this.links.forEach(link => {
+                    link.width = Math.max(2, link.value * this.config.linkWidthScale);
+                    link.path = this.createPath(link);
+                });
+            }
+
+            createPath(link) {
+                const sourceX = link.source.x + this.config.nodeWidth;
+                const targetX = link.target.x;
+                const sourceY = link.source.y + link.source.height / 2;
+                const targetY = link.target.y + link.target.height / 2;
+                
+                const controlX1 = sourceX + (targetX - sourceX) * this.config.curveIntensity;
+                const controlX2 = targetX - (targetX - sourceX) * this.config.curveIntensity;
+                
+                const halfWidth = link.width / 2;
+                
+                return `M${sourceX},${sourceY - halfWidth}
+                        C${controlX1},${sourceY - halfWidth} ${controlX2},${targetY - halfWidth} ${targetX},${targetY - halfWidth}
+                        L${targetX},${targetY + halfWidth}
+                        C${controlX2},${targetY + halfWidth} ${controlX1},${sourceY + halfWidth} ${sourceX},${sourceY + halfWidth}
+                        Z`;
+            }
+
+            renderTitle() {
+                const title = this.svg.append('g')
+                    .attr('class', 'chart-title')
+                    .attr('transform', `translate(${this.config.width/2}, 35)`);
+
+                title.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '24px')
+                    .attr('font-weight', '700')
+                    .attr('fill', '#1f2937')
+                    .attr('letter-spacing', '-0.5px')
+                    .text(this.data.metadata?.title || 'Financial Flow Analysis');
+
+                if (this.data.metadata?.subtitle) {
+                    title.append('text')
+                        .attr('text-anchor', 'middle')
+                        .attr('y', 22)
+                        .attr('font-size', '14px')
+                        .attr('font-weight', '500')
+                        .attr('fill', '#6b7280')
+                        .text(this.data.metadata.subtitle);
+                }
+            }
+
+            renderLinks() {
+                const linkGroups = this.chart.selectAll('.sankey-link')
+                    .data(this.links)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'sankey-link');
+
+                linkGroups.append('path')
+                    .attr('d', d => d.path)
+                    .attr('fill', d => this.getLinkColor(d))
+                    .attr('fill-opacity', this.config.linkOpacity)
+                    .style('cursor', 'pointer')
+                    .style('transition', 'all 0.2s ease')
+                    .on('mouseover', (event, d) => {
+                        d3.select(event.currentTarget)
+                            .attr('fill-opacity', Math.min(1.0, this.config.linkOpacity + 0.2));
+                        this.showLinkTooltip(event, d);
+                    })
+                    .on('mouseout', (event, d) => {
+                        d3.select(event.currentTarget)
+                            .attr('fill-opacity', this.config.linkOpacity);
+                        this.hideTooltip();
+                    });
+            }
+
+            renderNodes() {
+                const nodeGroups = this.chart.selectAll('.sankey-node')
+                    .data(this.nodes)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'sankey-node')
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+
+                nodeGroups.append('rect')
+                    .attr('width', this.config.nodeWidth)
+                    .attr('height', d => d.height)
+                    .attr('fill', d => this.getNodeColor(d))
+                    .attr('fill-opacity', this.config.nodeOpacity)
+                    .attr('stroke', 'white')
+                    .attr('stroke-width', 2)
+                    .attr('rx', 1)
+                    .style('cursor', 'pointer')
+                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
+                    .style('transition', 'all 0.2s ease')
+                    .on('mouseover', (event, d) => {
+                        d3.select(event.currentTarget)
+                            .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))')
+                            .style('transform', 'scale(1.02)');
+                        this.showNodeTooltip(event, d);
+                    })
+                    .on('mouseout', (event, d) => {
+                        d3.select(event.currentTarget)
+                            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
+                            .style('transform', 'scale(1)');
+                        this.hideTooltip();
+                    });
+            }
+
+            renderLabels() {
+                this.nodes.forEach(node => {
+                    const labelGroup = this.chart.append('g')
+                        .attr('class', 'node-label')
+                        .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - 12})`);
+
+                    // Node name
+                    labelGroup.append('text')
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', '12px')
+                        .attr('font-weight', '600')
+                        .attr('fill', '#374151')
+                        .attr('letter-spacing', '-0.2px')
+                        .text(this.wrapText(node.id, 18));
+
+                    // Node value
+                    labelGroup.append('text')
+                        .attr('text-anchor', 'middle')
+                        .attr('y', node.height + 24)
+                        .attr('font-size', '11px')
+                        .attr('font-weight', '500')
+                        .attr('fill', this.getNodeColor(node))
+                        .text(this.formatCurrency(node.value));
+                });
+            }
+
+            wrapText(text, maxLength) {
+                if (text.length <= maxLength) return text;
+                const words = text.split(' ');
+                if (words.length === 1) {
+                    return text.length > maxLength ? text.substring(0, maxLength-2) + '...' : text;
+                }
+                let result = words[0];
+                for (let i = 1; i < words.length; i++) {
+                    if ((result + ' ' + words[i]).length <= maxLength) {
+                        result += ' ' + words[i];
+                    } else {
+                        break;
+                    }
+                }
+                return result + (result !== text ? '...' : '');
+            }
+
+            formatCurrency(value) {
+                if (value >= 1000) {
+                    return `$${(value/1000).toFixed(1)}B`;
+                } else if (value >= 1) {
+                    return `$${value.toFixed(0)}M`;
+                } else {
+                    return `$${(value * 1000).toFixed(0)}K`;
+                }
+            }
+
+            getNodeColor(node) {
+                const colors = {
+                    revenue: '#3498db',
+                    cost: '#e74c3c',
+                    profit: '#27ae60',
+                    expense: '#e67e22',
+                    income: '#9b59b6'
+                };
+                return colors[node.category] || '#95a5a6';
+            }
+
+            getLinkColor(link) {
+                const baseColor = this.getNodeColor(link.source);
+                // Make links slightly lighter
+                const lighterColors = {
+                    '#3498db': '#5dade2',
+                    '#e74c3c': '#ec7063',
+                    '#27ae60': '#52c785',
+                    '#e67e22': '#f1975a',
+                    '#9b59b6': '#bb8fce'
+                };
+                return lighterColors[baseColor] || baseColor;
+            }
+
+            showNodeTooltip(event, d) {
+                const content = `
+                    <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">${d.id}</div>
+                    <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
+                        ${this.formatCurrency(d.value)}
+                    </div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.4;">
+                        ${d.description || 'Financial component'}
+                    </div>
+                `;
+                
+                this.tooltip
+                    .html(content)
+                    .style('left', (event.pageX) + 'px')
+                    .style('top', (event.pageY - 10) + 'px')
+                    .style('opacity', 1);
+            }
+
+            showLinkTooltip(event, d) {
+                const percentage = d.source.value > 0 ? 
+                    ((d.value / d.source.value) * 100).toFixed(1) : '0';
+                    
+                const content = `
+                    <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">
+                        ${d.source.id} → ${d.target.id}
+                    </div>
+                    <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
+                        ${this.formatCurrency(d.value)}
+                    </div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.8);">
+                        ${percentage}% of source flow
+                    </div>
+                `;
+                
+                this.tooltip
+                    .html(content)
+                    .style('left', (event.pageX) + 'px')
+                    .style('top', (event.pageY - 10) + 'px')
+                    .style('opacity', 1);
+            }
+
+            hideTooltip() {
+                this.tooltip.style('opacity', 0);
+            }
+
+            // Control methods
+            setCurveIntensity(intensity) {
+                this.config.curveIntensity = intensity;
+                this.calculateLinkPositions();
+                this.renderLinks();
+                return this;
+            }
+
+            setSpacing(base, left, middle, right) {
+                this.config.nodePadding = base;
+                this.config.leftmostSpacing = left;
+                this.config.middleSpacing = middle;
+                this.config.rightmostSpacing = right;
+                this.calculateLayout();
+                this.renderNodes();
+                this.renderLabels();
+                return this;
+            }
+
+            setOpacity(nodeOpacity, linkOpacity) {
+                this.config.nodeOpacity = nodeOpacity;
+                this.config.linkOpacity = linkOpacity;
+                
+                this.chart.selectAll('.sankey-node rect')
+                    .attr('fill-opacity', nodeOpacity);
+                this.chart.selectAll('.sankey-link path')
+                    .attr('fill-opacity', linkOpacity);
+                return this;
+            }
+
+            exportToPNG() {
+                try {
+                    const svgData = new XMLSerializer().serializeToString(this.svg.node());
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    canvas.width = this.config.width * 2;
+                    canvas.height = this.config.height * 2;
+                    ctx.scale(2, 2);
+                    
+                    img.onload = () => {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, this.config.width, this.config.height);
+                        ctx.drawImage(img, 0, 0);
+                        
+                        canvas.toBlob(blob => {
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = 'pulse-sankey-chart.png';
+                            link.click();
+                            URL.revokeObjectURL(url);
+                        });
+                    };
+                    
+                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                    const svgUrl = URL.createObjectURL(svgBlob);
+                    img.src = svgUrl;
+                } catch (error) {
+                    console.error('PNG export failed:', error);
+                    alert('PNG export failed. Please try again.');
+                }
+            }
+
+            exportToSVG() {
+                try {
+                    const svgData = new XMLSerializer().serializeToString(this.svg.node());
+                    const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'pulse-sankey-chart.svg';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('SVG export failed:', error);
+                    alert('SVG export failed. Please try again.');
+                }
+            }
+
+            exportDataToCSV(data) {
+                try {
+                    let csvContent = 'Type,ID,Depth,Value,Category,Description\n';
+                    
+                    data.nodes.forEach(node => {
+                        csvContent += `Node,"${node.id}",${node.depth},${node.value},"${node.category}","${node.description || ''}"\n`;
+                    });
+                    
+                    csvContent += '\nType,Source,Target,Value,Flow Type\n';
+                    
+                    data.links.forEach(link => {
+                        csvContent += `Link,"${link.source}","${link.target}",${link.value},"${link.type || ''}"\n`;
+                    });
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'pulse-financial-data.csv';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('CSV export failed:', error);
+                    alert('CSV export failed. Please try again.');
+                }
+            }
+        }
+
+        // Control Panel Implementation
+        const controlCapabilities = {
+            layout: {
+                title: "Layout & Positioning",
+                icon: "⚖️",
+                controls: [
+                    { id: "nodePadding", type: "slider", label: "Node Spacing", min: 20, max: 100, default: 40, step: 5, unit: "px", description: "Vertical spacing between nodes" },
+                    { id: "leftmostSpacing", type: "slider", label: "Left Layer Spacing", min: 0.5, max: 1.5, default: 0.8, step: 0.1, unit: "×", description: "Spacing multiplier for leftmost layer" },
+                    { id: "middleSpacing", type: "slider", label: "Middle Layer Spacing", min: 0.5, max: 1.5, default: 0.9, step: 0.1, unit: "×", description: "Spacing multiplier for middle layers" },
+                    { id: "rightmostSpacing", type: "slider", label: "Right Layer Spacing", min: 0.5, max: 1.5, default: 0.7, step: 0.1, unit: "×", description: "Spacing multiplier for rightmost layer" }
+                ]
+            },
+            curves: {
+                title: "Flow Curves",
+                icon: "〰️",
+                controls: [
+                    { id: "curveIntensity", type: "slider", label: "Curve Intensity", min: 0.1, max: 0.8, default: 0.4, step: 0.05, description: "How curved the flow connections are" }
+                ]
+            },
+            styling: {
+                title: "Visual Style",
+                icon: "🎨",
+                controls: [
+                    { id: "nodeOpacity", type: "slider", label: "Node Opacity", min: 0.5, max: 1.0, default: 1.0, step: 0.05, description: "Transparency of node rectangles" },
+                    { id: "linkOpacity", type: "slider", label: "Flow Opacity", min: 0.3, max: 1.0, default: 1.0, step: 0.05, description: "Transparency of flow connections" }
+                ]
+            }
+        };
+
+        class ControlPanel {
+            constructor(containerId) {
+                this.container = d3.select(`#${containerId}`);
+                this.chart = null;
+                this.config = {};
+            }
+
+            init(chart) {
+                this.chart = chart;
+                this.config = { ...chart.config };
+                this.generateControls();
+            }
+
+            generateControls() {
+                this.container.selectAll('*').remove();
+                
+                Object.entries(controlCapabilities).forEach(([sectionKey, section]) => {
+                    this.createSection(sectionKey, section);
+                });
+            }
+
+            createSection(sectionKey, section) {
+                const sectionDiv = this.container
+                    .append('div')
+                    .attr('class', 'control-section')
+                    .attr('data-section', sectionKey);
+
+                const header = sectionDiv
+                    .append('div')
+                    .attr('class', 'control-section-header')
+                    .on('click', () => this.toggleSection(sectionKey));
+
+                header.append('span').attr('class', 'section-icon').text(section.icon);
+                header.append('h3').attr('class', 'section-title').text(section.title);
+                header.append('span').attr('class', 'toggle-icon').text('▼');
+
+                const content = sectionDiv
+                    .append('div')
+                    .attr('class', 'control-section-content');
+
+                section.controls.forEach(control => {
+                    this.createControl(content, control);
+                });
+            }
+
+            createControl(container, config) {
+                const controlDiv = container
+                    .append('div')
+                    .attr('class', 'control-item');
+
+                const header = controlDiv.append('div').attr('class', 'control-header');
+                header.append('label').attr('class', 'control-label').text(config.label);
+                if (config.unit) header.append('span').attr('class', 'control-unit').text(config.unit);
+
+                const sliderContainer = controlDiv.append('div').attr('class', 'slider-container');
+                
+                const currentValue = this.config[config.id] ?? config.default;
+                
+                const slider = sliderContainer.append('input')
+                    .attr('type', 'range')
+                    .attr('min', config.min)
+                    .attr('max', config.max)
+                    .attr('step', config.step)
+                    .attr('value', currentValue)
+                    .attr('class', 'control-slider')
+                    .on('input', (event) => {
+                        const value = parseFloat(event.target.value);
+                        valueDisplay.text(value);
+                        this.handleChange(config.id, value);
+                    });
+
+                const valueDisplay = sliderContainer.append('span')
+                    .attr('class', 'slider-value')
+                    .text(currentValue);
+
+                if (config.description) {
+                    controlDiv.append('div')
+                        .attr('class', 'control-description')
+                        .text(config.description);
+                }
+            }
+
+            handleChange(controlId, value) {
+                this.config[controlId] = value;
+                
+                switch (controlId) {
+                    case 'curveIntensity':
+                        this.chart.setCurveIntensity(value);
+                        break;
+                    case 'nodePadding':
+                    case 'leftmostSpacing':
+                    case 'middleSpacing':
+                    case 'rightmostSpacing':
+                        this.chart.setSpacing(
+                            this.config.nodePadding,
+                            this.config.leftmostSpacing,
+                            this.config.middleSpacing,
+                            this.config.rightmostSpacing
+                        );
+                        break;
+                    case 'nodeOpacity':
+                    case 'linkOpacity':
+                        this.chart.setOpacity(this.config.nodeOpacity, this.config.linkOpacity);
+                        break;
+                }
+            }
+
+            toggleSection(sectionKey) {
+                const section = this.container.select(`[data-section="${sectionKey}"]`);
+                const content = section.select('.control-section-content');
+                const icon = section.select('.toggle-icon');
+                
+                const isHidden = content.style('display') === 'none';
+                content.style('display', isHidden ? 'block' : 'none');
+                icon.text(isHidden ? '▼' : '▶');
+                section.classed('collapsed', !isHidden);
+            }
+        }
+
+        // Main Application
+        let app = {
+            chart: null,
+            controlPanel: null,
+            currentData: null,
+            currentDataset: 'saas'
+        };
+
+        function setStatus(message, type = 'loading') {
+            const statusEl = document.getElementById('data-status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status-indicator status-${type}`;
+            }
+        }
+
+        function hideLoadingIndicator() {
+            const loadingEl = document.querySelector('.chart-loading');
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            hideLoadingIndicator();
+            const container = document.getElementById('main-chart');
+            if (container) {
+                container.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; text-align: center; padding: 2rem;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                        <h3 style="color: #e74c3c; margin-bottom: 12px;">Error Loading Chart</h3>
+                        <p style="color: #6c757d; max-width: 400px; margin-bottom: 16px;">${message}</p>
+                        <button onclick="location.reload()" class="btn btn-primary">Reload Application</button>
+                    </div>
+                `;
+            }
+            setStatus('Error', 'error');
+        }
+
+        function loadDataset(datasetKey) {
+            try {
+                if (!SAMPLE_DATASETS[datasetKey]) {
+                    throw new Error(`Dataset '${datasetKey}' not found`);
+                }
+
+                app.currentData = SAMPLE_DATASETS[datasetKey];
+                app.currentDataset = datasetKey;
+                
+                if (app.chart) {
+                    app.chart.render(app.currentData);
+                }
+
+                setStatus(`${app.currentData.metadata.title}`, 'ready');
+                console.log(`📊 Loaded dataset: ${datasetKey}`);
+                
+            } catch (error) {
+                console.error('Failed to load dataset:', error);
+                showError(`Failed to load dataset: ${error.message}`);
+            }
+        }
+
+        function loadCustomData() {
+            const fileInput = document.getElementById('file-input');
+            fileInput.onchange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        // Basic validation
+                        if (!data.nodes || !data.links) {
+                            throw new Error('Invalid data format: must contain nodes and links arrays');
+                        }
+
+                        app.currentData = data;
+                        app.currentDataset = 'custom';
+                        
+                        if (app.chart) {
+                            app.chart.render(app.currentData);
+                        }
+
+                        setStatus(`Custom: ${data.metadata?.title || 'Untitled'}`, 'ready');
+                        console.log('📁 Loaded custom data');
+                        
+                    } catch (error) {
+                        console.error('Failed to parse custom data:', error);
+                        alert(`Failed to load custom data: ${error.message}`);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            fileInput.click();
+        }
+
+        function initializeApp() {
+            console.log('🚀 Initializing Pulse Analytics Platform');
+            setStatus('Initializing...', 'loading');
+            
+            try {
+                // Create chart
+                app.chart = new SimpleSankeyChart('main-chart');
+                
+                // Create control panel
+                app.controlPanel = new ControlPanel('dynamic-controls');
+                app.controlPanel.init(app.chart);
+                
+                // Load default dataset
+                loadDataset('saas');
+                
+                // Set up events
+                setupEvents();
+                
+                // Hide loading
+                hideLoadingIndicator();
+                
+                console.log('✅ Platform initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                showError(`Initialization failed: ${error.message}`);
+            }
+        }
+
+        function setupEvents() {
+            // Data selector
+            document.getElementById('data-select')?.addEventListener('change', (e) => {
+                if (e.target.value === 'custom') {
+                    loadCustomData();
+                } else {
+                    loadDataset(e.target.value);
+                }
+            });
+
+            // Export buttons
+            document.getElementById('export-png')?.addEventListener('click', () => {
+                app.chart?.exportToPNG();
+            });
+            
+            document.getElementById('export-svg')?.addEventListener('click', () => {
+                app.chart?.exportToSVG();
+            });
+            
+            document.getElementById('export-data')?.addEventListener('click', () => {
+                if (app.currentData) {
+                    app.chart?.exportDataToCSV(app.currentData);
+                }
+            });
+            
+            // Reset button
+            document.getElementById('reset-defaults')?.addEventListener('click', () => {
+                app.controlPanel?.init(app.chart);
+            });
+        }
+
+        // Initialize when ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Global error handling
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
         });
-
-        console.log('🚀 Pulse Financial Visualization Platform v2.0 - Enhanced Architecture');
-        console.log('📊 Loading modular components...');
     </script>
-
-    <!-- External Libraries - LOAD EARLY -->
-    <!-- D3.js from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js" 
-            integrity="sha512-H0zmGhWdktRnojq7ML1QQ7YQDFgNg/I3A6/6QgZKr9rXCbV2P5k+/7z+l4O8I8mf0uPUWMvGPOr3TnGDiPY5IA==" 
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    
-    <!-- D3 Sankey plugin from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js" 
-            integrity="sha512-YS6KYqT5OcRvM9w5iYQWKW8KjWa1OwzQAaK1bYmSKE/k0xXOh4aKgJ0LhqJpxYJRMzOB6Cm9RJ9lq7rNUmj7pw==" 
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-    <!-- Scripts - Load in strict dependency order -->
-    
-    <!-- Step 1: Sample Data (needs to be loaded first) -->
-    <script>updateLoadingProgress(10, 'Loading sample data...');</script>
-    <script src="examples/sample-data.js"></script>
-    
-    <!-- Step 2: Core Architecture Modules (no dependencies) -->
-    <script>updateLoadingProgress(20, 'Loading core modules...');</script>
-    <script src="js/core/BaseChart.js"></script>
-    <script src="js/core/ConfigManager.js"></script>
-    <script src="js/core/ErrorHandler.js"></script>
-    <script src="js/core/EventManager.js"></script>
-    <script src="js/core/ChartFactory.js"></script>
-    
-    <!-- Step 3: Global Utilities -->
-    <script>updateLoadingProgress(40, 'Loading utilities...');</script>
-    <script src="js/utils/data-processor.js"></script>
-    <script src="js/utils/export.js"></script>
-    
-    <!-- Step 4: Chart-Specific Modules (Sankey) -->
-    <script>updateLoadingProgress(60, 'Loading chart modules...');</script>
-    <script src="js/charts/sankey/SankeyConfig.js"></script>
-    <script src="js/charts/sankey/SankeyDataProcessor.js"></script>
-    <script src="js/charts/sankey/SankeyLayout.js"></script>
-    <script src="js/charts/sankey/SankeyRenderer.js"></script>
-    <script src="js/charts/sankey/SankeyInteractions.js"></script>
-    <script src="js/charts/sankey/SankeyExport.js"></script>
-    <script src="js/charts/sankey/SankeyChart.js"></script>
-    
-    <!-- Step 5: Main Application (depends on everything) -->
-    <script>updateLoadingProgress(80, 'Initializing application...');</script>
-    <script src="js/main.js"></script>
-
-    <!-- Optional: Analytics tracking -->
-    <!-- 
-    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'GA_MEASUREMENT_ID');
-    </script>
-    -->
 </body>
 </html>
