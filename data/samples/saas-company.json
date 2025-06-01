@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "title": "SaaS Company Financial Flow",
+    "subtitle": "Q3 2025 Financial Performance",
+    "currency": "USD",
+    "unit": "millions",
+    "period": "Q3 2025",
+    "company": "Sample SaaS Company"
+  },
+  "flow_structure": {
+    "revenue_sources": [
+      {
+        "id": "Subscription Revenue",
+        "value": 180,
+        "category": "recurring_revenue",
+        "description": "Recurring subscription revenue from software licenses",
+        "order": 1
+      },
+      {
+        "id": "Professional Services",
+        "value": 60,
+        "category": "semi_recurring_revenue",
+        "description": "Implementation and consulting services",
+        "order": 2
+      },
+      {
+        "id": "Platform & Other",
+        "value": 35,
+        "category": "one_time_revenue",
+        "description": "Platform fees and other revenue streams",
+        "order": 3
+      }
+    ],
+    "intermediate_flows": [
+      {
+        "id": "Total Revenue",
+        "value": 275,
+        "category": "total_revenue",
+        "description": "Sum of all revenue sources"
+      },
+      {
+        "id": "Cost of Revenue",
+        "value": 55,
+        "category": "cost_of_revenue",
+        "description": "Direct costs associated with delivering services"
+      },
+      {
+        "id": "Gross Profit",
+        "value": 220,
+        "category": "gross_profit",
+        "description": "Revenue minus direct costs"
+      },
+      {
+        "id": "Operating Expenses",
+        "value": 155,
+        "category": "operating_expenses",
+        "description": "Total operating expenses"
+      },
+      {
+        "id": "Operating Profit",
+        "value": 65,
+        "category": "operating_profit",
+        "description": "Profit from core business operations"
+      }
+    ],
+    "expense_breakdown": [
+      {
+        "id": "Sales & Marketing",
+        "value": 85,
+        "category": "sales_marketing",
+        "description": "Customer acquisition and marketing costs",
+        "parent": "Operating Expenses",
+        "order": 1
+      },
+      {
+        "id": "R&D",
+        "value": 45,
+        "category": "research_development",
+        "description": "Research and development investments",
+        "parent": "Operating Expenses",
+        "order": 2
+      },
+      {
+        "id": "G&A",
+        "value": 20,
+        "category": "general_administrative",
+        "description": "General and administrative expenses",
+        "parent": "Operating Expenses",
+        "order": 3
+      },
+      {
+        "id": "Restructuring",
+        "value": 5,
+        "category": "restructuring",
+        "description": "One-time restructuring costs",
+        "parent": "Operating Expenses",
+        "order": 4
+      }
+    ],
+    "final_results": [
+      {
+        "id": "Net Income",
+        "value": 50,
+        "category": "net_income",
+        "description": "Final profit after all expenses",
+        "parent": "Operating Profit",
+        "order": 1
+      },
+      {
+        "id": "Tax Expense",
+        "value": 12,
+        "category": "tax_expense",
+        "description": "Income tax obligations",
+        "parent": "Operating Profit",
+        "order": 2
+      },
+      {
+        "id": "Other Expense",
+        "value": 3,
+        "category": "other_expense",
+        "description": "Miscellaneous other expenses",
+        "parent": "Operating Profit",
+        "order": 3
+      }
+    ]
+  }
+}

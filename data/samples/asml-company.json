@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "title": "ASML Financial Flow Analysis",
+    "subtitle": "Q3 2025 Financial Performance", 
+    "currency": "USD",
+    "unit": "millions",
+    "period": "Q3 2025",
+    "company": "ASML Holding N.V."
+  },
+  "income_statement": {
+    "revenue": {
+      "euv_systems": 320,
+      "arfi_systems": 390,
+      "arf_dry_systems": 10,
+      "krf_systems": 30,
+      "iline_systems": 10,
+      "metrology_inspection": 20
+    },
+    "cost_of_revenue": 360,
+    "operating_expenses": {
+      "research_development": 120,
+      "sales_general_administrative": 30
+    },
+    "other_expenses": {
+      "tax_expense": 50
+    }
+  },
+  "flow_structure": {
+    "revenue_sources": [
+      {
+        "id": "EUV Systems",
+        "value": 320,
+        "category": "advanced_lithography",
+        "description": "Extreme Ultraviolet lithography systems for cutting-edge semiconductors",
+        "order": 1
+      },
+      {
+        "id": "ArFi Systems", 
+        "value": 390,
+        "category": "immersion_lithography",
+        "description": "Argon Fluoride immersion lithography systems",
+        "order": 2
+      },
+      {
+        "id": "ArF Dry Systems",
+        "value": 10,
+        "category": "dry_lithography",
+        "description": "Argon Fluoride dry lithography systems",
+        "order": 3
+      },
+      {
+        "id": "KrF Systems",
+        "value": 30, 
+        "category": "legacy_lithography",
+        "description": "Krypton Fluoride lithography systems",
+        "order": 4
+      },
+      {
+        "id": "I-line Systems",
+        "value": 10,
+        "category": "legacy_lithography", 
+        "description": "I-line lithography systems for mature nodes",
+        "order": 5
+      },
+      {
+        "id": "Metrology & Inspection",
+        "value": 20,
+        "category": "metrology",
+        "description": "Metrology and inspection equipment",
+        "order": 6
+      }
+    ],
+    "intermediate_flows": [
+      {
+        "id": "Total Revenue",
+        "value": 780,
+        "category": "total_revenue",
+        "description": "Total system and service revenue",
+        "calculation": "sum_of_sources"
+      },
+      {
+        "id": "Cost of Revenue",
+        "value": 360,
+        "category": "cost_of_revenue",
+        "description": "Direct manufacturing and service delivery costs", 
+        "deduction_from": "Total Revenue"
+      },
+      {
+        "id": "Gross Profit",
+        "value": 420,
+        "category": "gross_profit",
+        "description": "Revenue minus direct production costs",
+        "calculation": "Total Revenue - Cost of Revenue"
+      },
+      {
+        "id": "Operating Expenses",
+        "value": 150,
+        "category": "operating_expenses",
+        "description": "Research, development, and administrative costs",
+        "deduction_from": "Gross Profit"
+      },
+      {
+        "id": "Operating Profit",
+        "value": 270,
+        "category": "operating_profit", 
+        "description": "Profit from core semiconductor equipment operations",
+        "calculation": "Gross Profit - Operating Expenses"
+      }
+    ],
+    "expense_breakdown": [
+      {
+        "id": "R&D",
+        "value": 120,
+        "category": "research_development",
+        "description": "Innovation and next-generation technology development",
+        "parent": "Operating Expenses",
+        "order": 1
+      },
+      {
+        "id": "SG&A",
+        "value": 30,
+        "category": "sales_general_administrative",
+        "description": "Sales, general and administrative expenses",
+        "parent": "Operating Expenses", 
+        "order": 2
+      }
+    ],
+    "final_results": [
+      {
+        "id": "Net Profit",
+        "value": 220,
+        "category": "net_profit",
+        "description": "Final profit after all expenses and taxes",
+        "parent": "Operating Profit",
+        "order": 1
+      },
+      {
+        "id": "Tax Expense",
+        "value": 50, 
+        "category": "tax_expense",
+        "description": "Corporate income tax expense",
+        "parent": "Operating Profit",
+        "order": 2
+      }
+    ]
+  },
+  "display_settings": {
+    "sort_by_value": true,
+    "group_by_parent": true,
+    "show_percentages": true,
+    "link_height_matching": true
+  }
+}

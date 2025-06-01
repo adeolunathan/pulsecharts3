@@ -1,0 +1,133 @@
+{
+  "metadata": {
+    "title": "Your Company Financial Flow",
+    "subtitle": "Q1 2025 Financial Performance",
+    "currency": "USD",
+    "unit": "millions",
+    "period": "Q1 2025",
+    "company": "Your Company Name"
+  },
+  "flow_structure": {
+    "revenue_sources": [
+      {
+        "id": "Product Revenue",
+        "value": 100,
+        "category": "product_revenue",
+        "description": "Revenue from product sales",
+        "order": 1
+      },
+      {
+        "id": "Service Revenue",
+        "value": 50,
+        "category": "service_revenue",
+        "description": "Revenue from services",
+        "order": 2
+      },
+      {
+        "id": "Subscription Revenue",
+        "value": 30,
+        "category": "subscription_revenue",
+        "description": "Recurring subscription income",
+        "order": 3
+      }
+    ],
+    "intermediate_flows": [
+      {
+        "id": "Total Revenue",
+        "value": 180,
+        "category": "total_revenue",
+        "description": "Sum of all revenue sources"
+      },
+      {
+        "id": "Cost of Revenue",
+        "value": 72,
+        "category": "cost_of_revenue",
+        "description": "Direct costs to deliver products and services"
+      },
+      {
+        "id": "Gross Profit",
+        "value": 108,
+        "category": "gross_profit",
+        "description": "Revenue minus direct costs"
+      },
+      {
+        "id": "Operating Expenses",
+        "value": 65,
+        "category": "operating_expenses",
+        "description": "Total operating expenses"
+      },
+      {
+        "id": "Operating Profit",
+        "value": 43,
+        "category": "operating_profit",
+        "description": "Profit from core business operations"
+      }
+    ],
+    "expense_breakdown": [
+      {
+        "id": "Sales & Marketing",
+        "value": 35,
+        "category": "sales_marketing",
+        "description": "Customer acquisition and marketing expenses",
+        "parent": "Operating Expenses",
+        "order": 1
+      },
+      {
+        "id": "Research & Development",
+        "value": 18,
+        "category": "research_development",
+        "description": "Product development and innovation",
+        "parent": "Operating Expenses",
+        "order": 2
+      },
+      {
+        "id": "General & Administrative",
+        "value": 10,
+        "category": "general_administrative",
+        "description": "Corporate overhead and administration",
+        "parent": "Operating Expenses",
+        "order": 3
+      },
+      {
+        "id": "Other Operating Expenses",
+        "value": 2,
+        "category": "other_operating",
+        "description": "Miscellaneous operating costs",
+        "parent": "Operating Expenses",
+        "order": 4
+      }
+    ],
+    "final_results": [
+      {
+        "id": "Net Income",
+        "value": 32,
+        "category": "net_income",
+        "description": "Final profit after all expenses and taxes",
+        "parent": "Operating Profit",
+        "order": 1
+      },
+      {
+        "id": "Tax Expense",
+        "value": 8,
+        "category": "tax_expense",
+        "description": "Income tax expense",
+        "parent": "Operating Profit",
+        "order": 2
+      },
+      {
+        "id": "Interest & Other",
+        "value": 3,
+        "category": "other_expense",
+        "description": "Interest and other non-operating expenses",
+        "parent": "Operating Profit",
+        "order": 3
+      }
+    ]
+  },
+  "display_settings": {
+    "sort_by_value": true,
+    "group_by_parent": true,
+    "show_percentages": true,
+    "link_height_matching": true
+  }
+}

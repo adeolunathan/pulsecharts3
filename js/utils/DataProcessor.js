@@ -1,8 +1,17 @@
-/* ===== PULSE DATA PROCESSOR ===== */
+/* 
+ * FILE: /js/utils/DataProcessor.js (REPLACE EXISTING)
+ * PURPOSE: Extended data processor with new input format support
+ * MAINTAINS: All existing functionality + adds new conversion capabilities
+ */
+
+/* ===== PULSE DATA PROCESSOR - EXTENDED VERSION ===== */
 /* Utilities for processing and validating financial data */
+/* NOW SUPPORTS: Traditional Sankey format + Intuitive income statement format + CSV */
 
 window.DataProcessor = (function() {
     'use strict';
+
+    // ========== EXISTING FUNCTIONALITY (PRESERVED) ==========
 
     // Text wrapping utility for node labels
     function wrapText(text, maxCharsPerLine = 15) {
@@ -46,7 +55,7 @@ window.DataProcessor = (function() {
         return lines.length > 0 ? lines : [text];
     }
 
-    // Process and validate financial data
+    // Process and validate financial data (EXISTING - supports traditional Sankey format)
     function processFinancialData(rawData) {
         if (!rawData || !rawData.nodes || !rawData.links) {
             throw new Error('Invalid data structure: missing nodes or links');
@@ -118,7 +127,7 @@ window.DataProcessor = (function() {
         return data;
     }
 
-    // Validate that flows balance correctly
+    // Validate that flows balance correctly (EXISTING)
     function validateFlowBalance(data) {
         const nodeFlows = new Map();
         
@@ -170,7 +179,7 @@ window.DataProcessor = (function() {
         return nodeFlows;
     }
 
-    // Calculate layout positions for nodes with proportional scaling
+    // Calculate layout positions for nodes with proportional scaling (EXISTING)
     function calculateNodePositions(data, width, height, margin) {
         const processedData = processFinancialData(data);
         
@@ -217,7 +226,7 @@ window.DataProcessor = (function() {
         return processedData;
     }
 
-    // Format financial values for display
+    // Format financial values for display (EXISTING)
     function formatValue(value, metadata = {}) {
         const unit = metadata.unit || 'millions';
         const currency = metadata.currency || 'USD';
@@ -234,7 +243,7 @@ window.DataProcessor = (function() {
         return formatted;
     }
 
-    // Generate color palette for categories
+    // Generate color palette for categories (EXISTING)
     function generateColorPalette(data) {
         const categories = new Set();
         data.nodes.forEach(node => categories.add(node.category));
@@ -258,8 +267,345 @@ window.DataProcessor = (function() {
         return palette;
     }
 
-    // Export public API
+    // ========== NEW FUNCTIONALITY (ADDED) ==========
+
+    // NEW: Detect input data format and process appropriately
+    function processAnyFinancialData(inputData) {
+        // Check if it's already in Sankey format
+        if (inputData.nodes && inputData.links) {
+            console.log('📊 Processing traditional Sankey format data');
+            return processFinancialData(inputData);
+        }
+        
+        // Check if it's in intuitive income statement format
+        if (inputData.flow_structure) {
+            console.log('📊 Converting from intuitive format to Sankey format');
+            const sankeyData = convertToSankeyFormat(inputData);
+            return processFinancialData(sankeyData);
+        }
+        
+        throw new Error('Unrecognized data format. Please use traditional Sankey format (nodes/links) or intuitive format (flow_structure).');
+    }
+
+    // NEW: Convert intuitive income statement format to Sankey format
+    function convertToSankeyFormat(inputData) {
+        const nodes = [];
+        const links = [];
+        
+        const { flow_structure, metadata } = inputData;
+        
+        // Create nodes from flow structure
+        let currentDepth = 0;
+        
+        // Revenue sources (depth 0)
+        flow_structure.revenue_sources.forEach((source, index) => {
+            nodes.push({
+                id: source.id,
+                depth: 0,
+                value: source.value,
+                category: source.category,
+                description: source.description,
+                order: source.order || index,
+                type: 'revenue_source'
+            });
+        });
+        
+        // Intermediate flows (depths 1+)
+        currentDepth = 1;
+        flow_structure.intermediate_flows.forEach((flow, index) => {
+            nodes.push({
+                id: flow.id,
+                depth: currentDepth,
+                value: flow.value,
+                category: flow.category,
+                description: flow.description,
+                order: index,
+                type: 'intermediate_flow'
+            });
+            
+            if (flow.id === 'Total Revenue' || flow.id === 'Gross Profit' || flow.id === 'Operating Profit') {
+                currentDepth++;
+            }
+        });
+        
+        // Final depth for expenses and results
+        const finalDepth = currentDepth;
+        
+        // Expense breakdown
+        if (flow_structure.expense_breakdown) {
+            flow_structure.expense_breakdown.forEach((expense) => {
+                nodes.push({
+                    id: expense.id,
+                    depth: finalDepth,
+                    value: expense.value,
+                    category: expense.category,
+                    description: expense.description,
+                    order: expense.order,
+                    parent: expense.parent,
+                    type: 'expense'
+                });
+            });
+        }
+        
+        // Final results
+        if (flow_structure.final_results) {
+            flow_structure.final_results.forEach((result) => {
+                nodes.push({
+                    id: result.id,
+                    depth: finalDepth,
+                    value: result.value,
+                    category: result.category,
+                    description: result.description,
+                    order: result.order,
+                    parent: result.parent,
+                    type: 'final_result'
+                });
+            });
+        }
+        
+        // Create links
+        const nodeMap = new Map(nodes.map(node => [node.id, node]));
+        
+        // Revenue to Total Revenue
+        flow_structure.revenue_sources.forEach(source => {
+            links.push({
+                source: source.id,
+                target: 'Total Revenue',
+                value: source.value,
+                type: 'revenue'
+            });
+        });
+        
+        // Total Revenue splits
+        const totalRevenue = nodeMap.get('Total Revenue');
+        const costOfRevenue = nodeMap.get('Cost of Revenue');
+        const grossProfit = nodeMap.get('Gross Profit');
+        
+        if (totalRevenue && costOfRevenue) {
+            links.push({
+                source: 'Total Revenue',
+                target: 'Cost of Revenue',
+                value: costOfRevenue.value,
+                type: 'cost'
+            });
+        }
+        
+        if (totalRevenue && grossProfit) {
+            links.push({
+                source: 'Total Revenue',
+                target: 'Gross Profit',
+                value: grossProfit.value,
+                type: 'profit'
+            });
+        }
+        
+        // Gross Profit splits
+        const operatingExpenses = nodeMap.get('Operating Expenses');
+        const operatingProfit = nodeMap.get('Operating Profit');
+        
+        if (grossProfit && operatingExpenses) {
+            links.push({
+                source: 'Gross Profit',
+                target: 'Operating Expenses',
+                value: operatingExpenses.value,
+                type: 'expense'
+            });
+        }
+        
+        if (grossProfit && operatingProfit) {
+            links.push({
+                source: 'Gross Profit',
+                target: 'Operating Profit',
+                value: operatingProfit.value,
+                type: 'profit'
+            });
+        }
+        
+        // Expense breakdown
+        if (flow_structure.expense_breakdown) {
+            flow_structure.expense_breakdown.forEach(expense => {
+                if (expense.parent === 'Operating Expenses') {
+                    links.push({
+                        source: 'Operating Expenses',
+                        target: expense.id,
+                        value: expense.value,
+                        type: 'expense'
+                    });
+                }
+            });
+        }
+        
+        // Final results
+        if (flow_structure.final_results) {
+            flow_structure.final_results.forEach(result => {
+                if (result.parent === 'Operating Profit') {
+                    links.push({
+                        source: 'Operating Profit',
+                        target: result.id,
+                        value: result.value,
+                        type: result.category.includes('income') ? 'income' : 'expense'
+                    });
+                }
+            });
+        }
+        
+        return {
+            nodes: nodes,
+            links: links,
+            metadata: metadata
+        };
+    }
+
+    // NEW: Process CSV data
+    function processCsvData(csvText) {
+        try {
+            // Parse CSV using a simple parser
+            const lines = csvText.split('\n').filter(line => 
+                line.trim() && !line.trim().startsWith('#')
+            );
+            
+            const data = {
+                metadata: {},
+                flow_structure: {
+                    revenue_sources: [],
+                    intermediate_flows: [],
+                    expense_breakdown: [],
+                    final_results: []
+                }
+            };
+
+            // Process each line
+            for (const line of lines) {
+                const row = parseCSVRow(line);
+                if (row.length < 2) continue;
+
+                const [dataType, ...values] = row;
+                
+                switch (dataType.toLowerCase()) {
+                    case 'company_info':
+                        processMetadata(data.metadata, values);
+                        break;
+                    case 'revenue_source':
+                        processRevenueSource(data.flow_structure.revenue_sources, values);
+                        break;
+                    case 'intermediate_flow':
+                        processIntermediateFlow(data.flow_structure.intermediate_flows, values);
+                        break;
+                    case 'expense':
+                        processExpense(data.flow_structure.expense_breakdown, values);
+                        break;
+                    case 'final_result':
+                        processFinalResult(data.flow_structure.final_results, values);
+                        break;
+                }
+            }
+
+            // Validate and clean the data
+            validateAndCleanCsvData(data);
+
+            // Convert to Sankey format
+            return convertToSankeyFormat(data);
+        } catch (error) {
+            throw new Error(`CSV processing failed: ${error.message}`);
+        }
+    }
+
+    // Helper functions for CSV processing
+    function parseCSVRow(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        
+        result.push(current.trim());
+        return result.map(field => field.replace(/^"|"$/g, '')); // Remove quotes
+    }
+
+    function processMetadata(metadata, values) {
+        if (values.length >= 6) {
+            metadata.title = values[0] || 'Financial Flow';
+            metadata.subtitle = values[1] || '';
+            metadata.currency = values[2] || 'USD';
+            metadata.unit = values[3] || 'millions';
+            metadata.period = values[4] || '';
+            metadata.company = values[5] || '';
+        }
+    }
+
+    function processRevenueSource(revenueSourcesArray, values) {
+        if (values.length >= 4) {
+            revenueSourcesArray.push({
+                id: values[0],
+                value: parseFloat(values[1]) || 0,
+                category: values[2] || 'revenue',
+                description: values[3] || '',
+                order: parseInt(values[4]) || revenueSourcesArray.length + 1
+            });
+        }
+    }
+
+    function processIntermediateFlow(intermediateFlowsArray, values) {
+        if (values.length >= 4) {
+            intermediateFlowsArray.push({
+                id: values[0],
+                value: parseFloat(values[1]) || 0,
+                category: values[2] || 'intermediate',
+                description: values[3] || '',
+                order: parseInt(values[4]) || intermediateFlowsArray.length + 1,
+                parent: values[5] || null
+            });
+        }
+    }
+
+    function processExpense(expenseArray, values) {
+        if (values.length >= 6) {
+            expenseArray.push({
+                id: values[0],
+                value: parseFloat(values[1]) || 0,
+                category: values[2] || 'expense',
+                description: values[3] || '',
+                order: parseInt(values[4]) || expenseArray.length + 1,
+                parent: values[5] || 'Operating Expenses'
+            });
+        }
+    }
+
+    function processFinalResult(finalResultsArray, values) {
+        if (values.length >= 6) {
+            finalResultsArray.push({
+                id: values[0],
+                value: parseFloat(values[1]) || 0,
+                category: values[2] || 'final',
+                description: values[3] || '',
+                order: parseInt(values[4]) || finalResultsArray.length + 1,
+                parent: values[5] || 'Operating Profit'
+            });
+        }
+    }
+
+    function validateAndCleanCsvData(data) {
+        // Sort arrays by order
+        data.flow_structure.revenue_sources.sort((a, b) => (a.order || 0) - (b.order || 0));
+        data.flow_structure.intermediate_flows.sort((a, b) => (a.order || 0) - (b.order || 0));
+        data.flow_structure.expense_breakdown.sort((a, b) => (a.order || 0) - (b.order || 0));
+        data.flow_structure.final_results.sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+
+    // Export public API (EXTENDED)
     return {
+        // EXISTING functions (preserved for backward compatibility)
         processFinancialData: processFinancialData,
         validateFlowBalance: validateFlowBalance,
         calculateNodePositions: calculateNodePositions,
@@ -267,11 +613,16 @@ window.DataProcessor = (function() {
         generateColorPalette: generateColorPalette,
         wrapText: wrapText,
         
-        // Validation utilities
+        // NEW functions (added capabilities)
+        processAnyFinancialData: processAnyFinancialData,  // Smart processor
+        convertToSankeyFormat: convertToSankeyFormat,      // Intuitive → Sankey
+        processCsvData: processCsvData,                    // CSV → Sankey
+        
+        // Validation utilities (EXTENDED)
         validate: {
             data: function(data) {
                 try {
-                    processFinancialData(data);
+                    processAnyFinancialData(data);  // Now handles both formats
                     return { valid: true };
                 } catch (error) {
                     return { valid: false, error: error.message };
@@ -285,6 +636,15 @@ window.DataProcessor = (function() {
                 } catch (error) {
                     return { balanced: false, error: error.message };
                 }
+            },
+
+            // NEW: Validate specific input formats
+            sankeyFormat: function(data) {
+                return data.nodes && data.links;
+            },
+            
+            intuitiveFormat: function(data) {
+                return data.flow_structure && data.flow_structure.revenue_sources;
             }
         }
     };

@@ -727,6 +727,8 @@
                     });
                 });
                 
+                // Process links and establish relationships
+                const processedLinks = [];
                 data.links.forEach(link => {
                     const sourceNode = nodeMap.get(link.source);
                     const targetNode = nodeMap.get(link.target);
@@ -741,15 +743,14 @@
                         
                         sourceNode.sourceLinks.push(processedLink);
                         targetNode.targetLinks.push(processedLink);
+                        processedLinks.push(processedLink);
                     }
                 });
                 
                 this.nodes = Array.from(nodeMap.values());
-                this.links = data.links.map(link => ({
-                    ...link,
-                    source: nodeMap.get(link.source),
-                    target: nodeMap.get(link.target)
-                }));
+                this.links = processedLinks; // Use the processed links
+                
+                console.log('Processed data:', { nodes: this.nodes.length, links: this.links.length });
             }
 
             calculateLayout() {
@@ -803,27 +804,118 @@
             }
 
             calculateLinkPositions() {
+                console.log('Calculating link positions for', this.links.length, 'links');
+                
+                // Calculate link widths but ensure they scale to fill node heights properly
                 this.links.forEach(link => {
-                    link.width = Math.max(2, link.value * this.config.linkWidthScale);
-                    link.path = this.createPath(link);
+                    link.width = link.value * this.config.linkWidthScale;
                 });
+                
+                // FIXED: Calculate source link positions (outgoing from nodes) - SEAMLESS STACKING
+                this.nodes.forEach(node => {
+                    if (node.sourceLinks.length === 0) return;
+                    
+                    console.log(`Processing source links for node: ${node.id}, links: ${node.sourceLinks.length}`);
+                    
+                    // Sort source links by target node position for better visual flow
+                    node.sourceLinks.sort((a, b) => a.target.y - b.target.y);
+                    
+                    // CRITICAL FIX: Scale links to fill ENTIRE node height with NO GAPS
+                    const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
+                    
+                    // Links must collectively fill the full node height
+                    let currentY = node.y;  // Start at top of node
+                    
+                    node.sourceLinks.forEach((link, index) => {
+                        link.sourceY = currentY;
+                        
+                        // PROPORTIONAL HEIGHT: Each link gets height proportional to its value
+                        // relative to total outflow, scaled to fill the entire node height
+                        const proportionalHeight = (link.value / totalOutflow) * node.height;
+                        link.sourceHeight = proportionalHeight;
+                        
+                        // SEAMLESS STACKING: Next link starts exactly where this one ends
+                        currentY += proportionalHeight;
+                    });
+                    
+                    // Ensure we've filled the entire node height (handle any rounding errors)
+                    const totalUsedHeight = d3.sum(node.sourceLinks, d => d.sourceHeight);
+                    if (Math.abs(totalUsedHeight - node.height) > 0.01) {
+                        // Adjust the last link to ensure perfect fill
+                        const lastLink = node.sourceLinks[node.sourceLinks.length - 1];
+                        lastLink.sourceHeight += (node.height - totalUsedHeight);
+                    }
+                });
+                
+                // FIXED: Calculate target link positions (incoming to nodes) - SEAMLESS STACKING
+                this.nodes.forEach(node => {
+                    if (node.targetLinks.length === 0) return;
+                    
+                    console.log(`Processing target links for node: ${node.id}, links: ${node.targetLinks.length}`);
+                    
+                    // Sort target links by source node position for visual consistency
+                    node.targetLinks.sort((a, b) => a.source.y - b.source.y);
+                    
+                    // CRITICAL FIX: Scale links to fill ENTIRE node height with NO GAPS
+                    const totalInflow = d3.sum(node.targetLinks, d => d.value);
+                    
+                    // Links must collectively fill the full node height
+                    let currentY = node.y;  // Start at top of node
+                    
+                    node.targetLinks.forEach((link, index) => {
+                        link.targetY = currentY;
+                        
+                        // PROPORTIONAL HEIGHT: Each link gets height proportional to its value
+                        // relative to total inflow, scaled to fill the entire node height
+                        const proportionalHeight = (link.value / totalInflow) * node.height;
+                        link.targetHeight = proportionalHeight;
+                        
+                        // SEAMLESS STACKING: Next link starts exactly where this one ends
+                        currentY += proportionalHeight;
+                    });
+                    
+                    // Ensure we've filled the entire node height (handle any rounding errors)
+                    const totalUsedHeight = d3.sum(node.targetLinks, d => d.targetHeight);
+                    if (Math.abs(totalUsedHeight - node.height) > 0.01) {
+                        // Adjust the last link to ensure perfect fill
+                        const lastLink = node.targetLinks[node.targetLinks.length - 1];
+                        lastLink.targetHeight += (node.height - totalUsedHeight);
+                    }
+                });
+                
+                // Generate smooth paths with layer-specific curvature
+                this.links.forEach((link, index) => {
+                    // Determine layer based on source node depth
+                    const sourceDepth = link.source.depth;
+                    const layerCurvature = this.config.layerCurvature?.[sourceDepth] || this.config.curveIntensity;
+                    
+                    link.path = this.createSmoothPath(link, layerCurvature);
+                    console.log(`Generated path for link ${index}: ${link.source.id} -> ${link.target.id}`);
+                });
+                
+                console.log('Link position calculation complete');
             }
 
-            createPath(link) {
+            createSmoothPath(link, curvature = this.config.curveIntensity) {
+                // Source and target positions with proper edge alignment
                 const sourceX = link.source.x + this.config.nodeWidth;
                 const targetX = link.target.x;
-                const sourceY = link.source.y + link.source.height / 2;
-                const targetY = link.target.y + link.target.height / 2;
                 
-                const controlX1 = sourceX + (targetX - sourceX) * this.config.curveIntensity;
-                const controlX2 = targetX - (targetX - sourceX) * this.config.curveIntensity;
+                // FIXED: Use calculated link heights for seamless connections
+                const sourceY0 = link.sourceY;
+                const sourceY1 = link.sourceY + link.sourceHeight;
+                const targetY0 = link.targetY;
+                const targetY1 = link.targetY + link.targetHeight;
                 
-                const halfWidth = link.width / 2;
+                // Calculate control points for smooth bezier curve with custom curvature
+                const controlX1 = sourceX + (targetX - sourceX) * curvature;
+                const controlX2 = targetX - (targetX - sourceX) * curvature;
                 
-                return `M${sourceX},${sourceY - halfWidth}
-                        C${controlX1},${sourceY - halfWidth} ${controlX2},${targetY - halfWidth} ${targetX},${targetY - halfWidth}
-                        L${targetX},${targetY + halfWidth}
-                        C${controlX2},${targetY + halfWidth} ${controlX1},${sourceY + halfWidth} ${sourceX},${sourceY + halfWidth}
+                // Create path that perfectly connects the calculated link heights
+                return `M${sourceX},${sourceY0}
+                        C${controlX1},${sourceY0} ${controlX2},${targetY0} ${targetX},${targetY0}
+                        L${targetX},${targetY1}
+                        C${controlX2},${targetY1} ${controlX1},${sourceY1} ${sourceX},${sourceY1}
                         Z`;
             }
 
@@ -838,9 +930,9 @@
                     .attr('font-weight', '700')
                     .attr('fill', '#1f2937')
                     .attr('letter-spacing', '-0.5px')
-                    .text(this.data.metadata?.title || 'Financial Flow Analysis');
+                    .text(this.data?.metadata?.title || 'Financial Flow Analysis');
 
-                if (this.data.metadata?.subtitle) {
+                if (this.data?.metadata?.subtitle) {
                     title.append('text')
                         .attr('text-anchor', 'middle')
                         .attr('y', 22)
@@ -852,6 +944,13 @@
             }
 
             renderLinks() {
+                console.log('Rendering links:', this.links.length);
+                
+                if (this.links.length === 0) {
+                    console.warn('No links to render!');
+                    return;
+                }
+
                 const linkGroups = this.chart.selectAll('.sankey-link')
                     .data(this.links)
                     .enter()
@@ -859,7 +958,10 @@
                     .attr('class', 'sankey-link');
 
                 linkGroups.append('path')
-                    .attr('d', d => d.path)
+                    .attr('d', d => {
+                        console.log('Rendering link path:', d.source.id, '->', d.target.id, 'path:', d.path ? 'exists' : 'missing');
+                        return d.path;
+                    })
                     .attr('fill', d => this.getLinkColor(d))
                     .attr('fill-opacity', this.config.linkOpacity)
                     .style('cursor', 'pointer')
@@ -1135,7 +1237,7 @@
                     URL.revokeObjectURL(url);
                 } catch (error) {
                     console.error('CSV export failed:', error);
-                    alert('CSV export failed. Please try again.');
+                    alert('CSV export failed. Please check console for details.');
                 }
             }
         }
