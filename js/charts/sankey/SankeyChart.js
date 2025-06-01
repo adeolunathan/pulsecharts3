@@ -29,7 +29,17 @@ class PulseSankeyChart {
             nodeHeightScale: 0.65,
             linkWidthScale: 0.65,
             nodeOpacity: 1.0,
-            linkOpacity: 1.0
+            linkOpacity: 1.0,
+            // **NEW LABEL POSITIONING CONTROLS**
+            labelDistance: 15,        // Distance of labels from nodes
+            valueDistance: 8,         // Distance of values from nodes/labels
+            layerSpacing: {           // Per-layer node spacing multipliers
+                0: 0.8,  // Leftmost
+                1: 1.0,  // Middle layers
+                2: 1.0,
+                3: 0.9,
+                4: 0.7   // Rightmost
+            }
         };
         
         this.initializeChart();
@@ -154,11 +164,16 @@ class PulseSankeyChart {
     }
 
     positionNodesAtDepth(nodes, availableHeight) {
-        // IMPROVED: Group-based sorting for better logical flow
+        // **IMPROVED: Consistent cross-layer sorting for better logical flow**
         const groupedNodes = this.groupAndSortNodes(nodes);
         
+        // **USE PER-LAYER SPACING**
+        const depth = nodes[0]?.depth ?? 0;
+        const spacingMultiplier = this.config.layerSpacing[depth] ?? 1.0;
+        const layerPadding = this.config.nodePadding * spacingMultiplier;
+        
         const totalHeight = d3.sum(groupedNodes, d => d.height);
-        const totalPadding = this.config.nodePadding * (groupedNodes.length - 1);
+        const totalPadding = layerPadding * (groupedNodes.length - 1);
         const totalRequired = totalHeight + totalPadding;
         
         const startY = Math.max(20, (availableHeight - totalRequired) / 2);
@@ -166,12 +181,23 @@ class PulseSankeyChart {
         
         groupedNodes.forEach(node => {
             node.y = currentY;
-            currentY += node.height + this.config.nodePadding;
+            currentY += node.height + layerPadding;
         });
     }
 
     groupAndSortNodes(nodes) {
-        // Group nodes by their logical grouping
+        // **CONSISTENT CROSS-LAYER SORTING MECHANISM**
+        // For final layer: group by source parent, then sort by value
+        // For other layers: group by functional category
+        
+        const depth = nodes[0]?.depth;
+        
+        // **SPECIAL HANDLING FOR FINAL LAYER (depth 4)**
+        if (depth === 4) {
+            return this.sortFinalLayerBySource(nodes);
+        }
+        
+        // **STANDARD SORTING FOR OTHER LAYERS**
         const groups = new Map();
         
         nodes.forEach(node => {
@@ -182,68 +208,135 @@ class PulseSankeyChart {
             groups.get(group).push(node);
         });
 
-        // Define group order for logical financial flow
         const groupOrder = [
-            'revenue_sources',
-            'aggregated_revenue', 
-            'gross_metrics',
-            'operating_metrics',
-            'final_results',        // Net Income should come first in final layer
-            'operating_expenses',   // Operating expenses grouped together
-            'final_adjustments'     // Tax and other adjustments last
+            'revenue_sources',      
+            'aggregated_revenue',   
+            'gross_metrics',        
+            'operating_metrics',    
+            'final_results',        
+            'operating_expenses',   
+            'final_adjustments',    
+            'default'               
         ];
 
         const sortedNodes = [];
         
-        // Process groups in logical order
         groupOrder.forEach(groupName => {
             if (groups.has(groupName)) {
                 const groupNodes = groups.get(groupName);
                 
-                // Sort within group
                 groupNodes.sort((a, b) => {
-                    // First sort by explicit sort_order if available
                     if (a.sort_order !== undefined && b.sort_order !== undefined) {
                         return a.sort_order - b.sort_order;
                     }
                     
-                    // Then by category priority (profits first, then expenses)
-                    const categoryPriority = {
-                        'income': 1,
-                        'profit': 2,
-                        'revenue': 3,
-                        'expense': 4,
-                        'cost': 5
-                    };
-                    
-                    const aPriority = categoryPriority[a.category] || 6;
-                    const bPriority = categoryPriority[b.category] || 6;
-                    
-                    if (aPriority !== bPriority) {
-                        return aPriority - bPriority;
+                    const categoryPriority = this.getCategoryPriority(a.category, b.category, groupName);
+                    if (categoryPriority !== 0) {
+                        return categoryPriority;
                     }
                     
-                    // Finally by value (descending for most groups, ascending for adjustments)
-                    if (groupName === 'final_adjustments') {
-                        return a.value - b.value; // Ascending for adjustments
-                    } else {
-                        return b.value - a.value; // Descending for everything else
-                    }
+                    return a.value - b.value;
                 });
                 
                 sortedNodes.push(...groupNodes);
             }
         });
 
-        // Add any remaining ungrouped nodes
+        const processedGroups = new Set(groupOrder);
         groups.forEach((groupNodes, groupName) => {
-            if (!groupOrder.includes(groupName)) {
-                groupNodes.sort((a, b) => b.value - a.value);
+            if (!processedGroups.has(groupName)) {
+                groupNodes.sort((a, b) => a.value - b.value);
                 sortedNodes.push(...groupNodes);
             }
         });
         
         return sortedNodes;
+    }
+
+    sortFinalLayerBySource(nodes) {
+        // **GROUP BY SOURCE PARENT FOR FINAL LAYER**
+        // Sort by source node Y position to prevent crossing
+        
+        const sourceGroups = new Map();
+        
+        nodes.forEach(node => {
+            let sourceParent = 'unknown';
+            let sourceNode = null;
+            
+            // Find which parent this node comes from by checking links
+            this.links.forEach(link => {
+                if (link.target.id === node.id) {
+                    sourceParent = link.source.id;
+                    sourceNode = link.source;
+                }
+            });
+            
+            if (!sourceGroups.has(sourceParent)) {
+                sourceGroups.set(sourceParent, { nodes: [], sourceNode: sourceNode });
+            }
+            sourceGroups.get(sourceParent).nodes.push(node);
+        });
+        
+        // **SORT SOURCE GROUPS BY THEIR Y POSITION**
+        // This prevents crossing by maintaining spatial order
+        const sortedSourceGroups = Array.from(sourceGroups.entries())
+            .sort((a, b) => {
+                const aSourceY = a[1].sourceNode?.y || 0;
+                const bSourceY = b[1].sourceNode?.y || 0;
+                return aSourceY - bSourceY;
+            });
+        
+        const sortedNodes = [];
+        
+        // Process each source group in Y order
+        sortedSourceGroups.forEach(([sourceName, groupData]) => {
+            const sourceNodes = groupData.nodes;
+            
+            // **SORT WITHIN EACH SOURCE GROUP BY VALUE (DESCENDING)**
+            sourceNodes.sort((a, b) => b.value - a.value);
+            
+            sortedNodes.push(...sourceNodes);
+        });
+        
+        return sortedNodes;
+    }
+
+    getCategoryPriority(categoryA, categoryB, groupName) {
+        // **CATEGORY-BASED PRIORITY SYSTEM**
+        // Ensures logical ordering within functional groups
+        
+        const categoryPriorities = {
+            // Positive flow categories (appear first)
+            'income': 1,
+            'profit': 2,
+            'revenue': 3,
+            
+            // Neutral categories  
+            'cost': 4,
+            
+            // Negative flow categories (appear last)
+            'expense': 5,
+            'tax': 6,
+            'other': 7
+        };
+        
+        // Special handling for specific groups
+        if (groupName === 'final_results') {
+            // In final results, prioritize income/profit outcomes
+            if (categoryA === 'income' && categoryB !== 'income') return -1;
+            if (categoryB === 'income' && categoryA !== 'income') return 1;
+        }
+        
+        if (groupName === 'final_adjustments') {
+            // In adjustments, taxes typically come before other expenses
+            if (categoryA === 'tax' && categoryB !== 'tax') return -1;
+            if (categoryB === 'tax' && categoryA !== 'tax') return 1;
+        }
+        
+        const priorityA = categoryPriorities[categoryA] || 5;
+        const priorityB = categoryPriorities[categoryB] || 5;
+        
+        return priorityA - priorityB;
     }
 
     calculateLinkPositions() {
@@ -449,29 +542,101 @@ class PulseSankeyChart {
     }
 
     renderLabels() {
+        const maxDepth = Math.max(...this.nodes.map(n => n.depth));
+        
         this.nodes.forEach(node => {
-            const labelGroup = this.chart.append('g')
-                .attr('class', 'node-label')
-                .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - 12})`);
-
-            // Node name
-            labelGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
-                .attr('fill', '#374151')
-                .attr('letter-spacing', '-0.2px')
-                .text(this.wrapText(node.id, 18));
-
-            // Node value
-            labelGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('y', node.height + 24)
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', this.getNodeColor(node))
-                .text(this.formatCurrency(node.value));
+            const isLeftmost = node.depth === 0;
+            const isRightmost = node.depth === maxDepth;
+            const isMiddle = !isLeftmost && !isRightmost;
+            
+            if (isLeftmost) {
+                // **LEFTMOST NODES**: Label outside left, value on top
+                this.renderLeftmostLabels(node);
+            } else if (isRightmost) {
+                // **RIGHTMOST NODES**: Label outside right, value on top  
+                this.renderRightmostLabels(node);
+            } else {
+                // **MIDDLE NODES**: Label above, value below label
+                this.renderMiddleLabels(node);
+            }
         });
+    }
+
+    renderLeftmostLabels(node) {
+        // Label outside to the left, vertically centered
+        const labelGroup = this.chart.append('g')
+            .attr('class', 'node-label')
+            .attr('transform', `translate(${node.x - this.config.labelDistance}, ${node.y + node.height/2})`);
+
+        labelGroup.append('text')
+            .attr('text-anchor', 'end')
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', '#374151')
+            .text(this.wrapText(node.id, 18));
+
+        // Value centered directly above the node
+        const valueGroup = this.chart.append('g')
+            .attr('class', 'node-value')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.valueDistance})`);
+
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', this.getNodeColor(node))
+            .text(this.formatCurrency(node.value));
+    }
+
+    renderRightmostLabels(node) {
+        // Label outside to the right, vertically centered
+        const labelGroup = this.chart.append('g')
+            .attr('class', 'node-label')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth + this.config.labelDistance}, ${node.y + node.height/2})`);
+
+        labelGroup.append('text')
+            .attr('text-anchor', 'start')
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', '#374151')
+            .text(this.wrapText(node.id, 18));
+
+        // Value centered directly above the node (separate from label)
+        const valueGroup = this.chart.append('g')
+            .attr('class', 'node-value')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.valueDistance})`);
+
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', this.getNodeColor(node))
+            .text(this.formatCurrency(node.value));
+    }
+
+    renderMiddleLabels(node) {
+        const labelGroup = this.chart.append('g')
+            .attr('class', 'node-label')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.labelDistance})`);
+
+        // Label above the node
+        labelGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', '#374151')
+            .text(this.wrapText(node.id, 18));
+
+        // Value below the label (with controlled spacing)
+        labelGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('y', this.config.valueDistance + 8)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', this.getNodeColor(node))
+            .text(this.formatCurrency(node.value));
     }
 
     // Utility methods
@@ -508,7 +673,8 @@ class PulseSankeyChart {
             cost: '#e74c3c',
             profit: '#27ae60',
             expense: '#e67e22',
-            income: '#9b59b6'
+            income: '#9b59b6',
+            tax: '#c0392b'
         };
         return colors[node.category] || '#95a5a6';
     }
@@ -521,7 +687,8 @@ class PulseSankeyChart {
             '#e74c3c': '#ec7063',
             '#27ae60': '#52c785',
             '#e67e22': '#f1975a',
-            '#9b59b6': '#bb8fce'
+            '#9b59b6': '#bb8fce',
+            '#c0392b': '#e74c3c'
         };
         return lighterColors[baseColor] || baseColor;
     }
@@ -586,8 +753,7 @@ class PulseSankeyChart {
         this.config.middleSpacing = middle;
         this.config.rightmostSpacing = right;
         this.calculateLayout();
-        this.renderNodes();
-        this.renderLabels();
+        this.render(this.data);
         return this;
     }
 
@@ -600,6 +766,79 @@ class PulseSankeyChart {
         this.chart.selectAll('.sankey-link path')
             .attr('fill-opacity', linkOpacity);
         return this;
+    }
+
+    // **NEW CONTROL METHODS FOR ALL CONFIG OPTIONS**
+    setLabelPositioning(labelDistance, valueDistance) {
+        this.config.labelDistance = labelDistance;
+        this.config.valueDistance = valueDistance;
+        this.chart.selectAll('.node-label, .node-value').remove();
+        this.renderLabels();
+        return this;
+    }
+
+    setLayerSpacing(depth, multiplier) {
+        this.config.layerSpacing[depth] = multiplier;
+        this.calculateLayout();
+        this.render(this.data);
+        return this;
+    }
+
+    setNodeDimensions(width, heightScale) {
+        this.config.nodeWidth = width;
+        this.config.nodeHeightScale = heightScale;
+        this.calculateLayout();
+        this.render(this.data);
+        return this;
+    }
+
+    setLinkWidth(widthScale) {
+        this.config.linkWidthScale = widthScale;
+        this.calculateLinkPositions();
+        this.renderLinks();
+        return this;
+    }
+
+    // **GENERIC CONFIG UPDATE METHOD**
+    updateConfig(newConfig) {
+        const oldConfig = { ...this.config };
+        this.config = { ...this.config, ...newConfig };
+        
+        // Determine what needs to be re-rendered
+        const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig);
+        const needsLayoutRecalc = this.configRequiresLayoutRecalc(oldConfig, newConfig);
+        const needsLabelsUpdate = this.configRequiresLabelsUpdate(oldConfig, newConfig);
+        
+        if (needsFullRender) {
+            this.render(this.data);
+        } else if (needsLayoutRecalc) {
+            this.calculateLayout();
+            this.renderNodes();
+            this.renderLabels();
+            this.renderLinks();
+        } else if (needsLabelsUpdate) {
+            this.chart.selectAll('.node-label, .node-value').remove();
+            this.renderLabels();
+        }
+        
+        return this;
+    }
+
+    configRequiresFullRender(oldConfig, newConfig) {
+        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale', 'linkWidthScale', 'nodePadding'];
+        return fullRenderKeys.some(key => oldConfig[key] !== newConfig[key]);
+    }
+
+    configRequiresLayoutRecalc(oldConfig, newConfig) {
+        const layoutKeys = ['leftmostSpacing', 'middleSpacing', 'rightmostSpacing', 'layerSpacing'];
+        return layoutKeys.some(key => 
+            JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
+        );
+    }
+
+    configRequiresLabelsUpdate(oldConfig, newConfig) {
+        const labelKeys = ['labelDistance', 'valueDistance'];
+        return labelKeys.some(key => oldConfig[key] !== newConfig[key]);
     }
 
     // Export methods

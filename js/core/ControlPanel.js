@@ -14,15 +14,26 @@ class PulseControlPanel {
                 icon: "⚖️",
                 controls: [
                     { 
+                        id: "nodeWidth", 
+                        type: "slider", 
+                        label: "Node Width", 
+                        min: 15, 
+                        max: 50, 
+                        default: 28, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Width of the flow nodes" 
+                    },
+                    { 
                         id: "nodePadding", 
                         type: "slider", 
-                        label: "Node Spacing", 
+                        label: "Base Node Spacing", 
                         min: 20, 
                         max: 100, 
                         default: 40, 
                         step: 5, 
                         unit: "px", 
-                        description: "Vertical spacing between nodes" 
+                        description: "Base vertical spacing between nodes" 
                     },
                     { 
                         id: "leftmostSpacing", 
@@ -59,6 +70,7 @@ class PulseControlPanel {
                     }
                 ]
             },
+            
             curves: {
                 title: "Flow Curves",
                 icon: "〰️",
@@ -75,6 +87,63 @@ class PulseControlPanel {
                     }
                 ]
             },
+
+            labels: {
+                title: "Labels & Values",
+                icon: "🏷️",
+                controls: [
+                    { 
+                        id: "labelDistance", 
+                        type: "slider", 
+                        label: "Label Distance", 
+                        min: 5, 
+                        max: 30, 
+                        default: 15, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of labels from nodes" 
+                    },
+                    { 
+                        id: "valueDistance", 
+                        type: "slider", 
+                        label: "Value Distance", 
+                        min: 3, 
+                        max: 20, 
+                        default: 8, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of values from nodes/labels" 
+                    }
+                ]
+            },
+
+            dimensions: {
+                title: "Node & Link Dimensions",
+                icon: "📏",
+                controls: [
+                    { 
+                        id: "nodeHeightScale", 
+                        type: "slider", 
+                        label: "Node Height Scale", 
+                        min: 0.3, 
+                        max: 1.0, 
+                        default: 0.65, 
+                        step: 0.05, 
+                        description: "Scale factor for node heights" 
+                    },
+                    { 
+                        id: "linkWidthScale", 
+                        type: "slider", 
+                        label: "Flow Width Scale", 
+                        min: 0.3, 
+                        max: 1.0, 
+                        default: 0.65, 
+                        step: 0.05, 
+                        description: "Scale factor for flow widths" 
+                    }
+                ]
+            },
+            
             styling: {
                 title: "Visual Style",
                 icon: "🎨",
@@ -248,29 +317,9 @@ class PulseControlPanel {
         
         if (!this.chart) return;
 
-        // Apply changes to chart based on control type
-        switch (controlId) {
-            case 'curveIntensity':
-                this.chart.setCurveIntensity(value);
-                break;
-            case 'nodePadding':
-            case 'leftmostSpacing':
-            case 'middleSpacing':
-            case 'rightmostSpacing':
-                this.chart.setSpacing(
-                    this.config.nodePadding,
-                    this.config.leftmostSpacing,
-                    this.config.middleSpacing,
-                    this.config.rightmostSpacing
-                );
-                break;
-            case 'nodeOpacity':
-            case 'linkOpacity':
-                this.chart.setOpacity(this.config.nodeOpacity, this.config.linkOpacity);
-                break;
-            default:
-                console.log('Control change:', controlId, '=', value);
-        }
+        // **USE GENERIC CONFIG UPDATE METHOD**
+        // This automatically determines what needs to be re-rendered
+        this.chart.updateConfig({ [controlId]: value });
     }
 
     toggleSection(sectionKey) {
@@ -298,9 +347,7 @@ class PulseControlPanel {
         // Apply defaults to chart
         if (this.chart) {
             Object.assign(this.chart.config, this.config);
-            this.chart.calculateLayout();
-            this.chart.renderNodes();
-            this.chart.renderLabels();
+            this.chart.render(this.chart.data);
         }
     }
 
@@ -315,10 +362,7 @@ class PulseControlPanel {
         this.generateControls();
         
         if (this.chart) {
-            Object.assign(this.chart.config, this.config);
-            this.chart.calculateLayout();
-            this.chart.renderNodes();
-            this.chart.renderLabels();
+            this.chart.updateConfig(this.config);
         }
     }
 }

@@ -85,7 +85,7 @@
       "id": "Net Income",
       "depth": 4,
       "value": 50,
-      "category": "final_income",
+      "category": "income",
       "description": "Final net income after all adjustments",
       "group": "final_results",
       "sort_order": 1
@@ -103,7 +103,7 @@
       "id": "Other Expense",
       "depth": 4,
       "value": 3,
-      "category": "other",
+      "category": "expense",
       "description": "Other non-operating expenses",
       "group": "final_adjustments",
       "sort_order": 2
