@@ -91,17 +91,40 @@ class PulseControlPanel {
             labels: {
                 title: "Labels & Values",
                 icon: "🏷️",
+                collapsed: true,
                 controls: [
                     { 
-                        id: "labelDistance", 
+                        id: "labelDistanceLeftmost", 
                         type: "slider", 
-                        label: "Label Distance", 
+                        label: "Leftmost Label Distance", 
                         min: 5, 
-                        max: 30, 
+                        max: 40, 
                         default: 15, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of labels from nodes" 
+                        description: "Distance of leftmost labels from nodes" 
+                    },
+                    { 
+                        id: "labelDistanceMiddle", 
+                        type: "slider", 
+                        label: "Middle Label Distance", 
+                        min: 5, 
+                        max: 30, 
+                        default: 12, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of middle labels from nodes" 
+                    },
+                    { 
+                        id: "labelDistanceRightmost", 
+                        type: "slider", 
+                        label: "Rightmost Label Distance", 
+                        min: 5, 
+                        max: 40, 
+                        default: 15, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of rightmost labels from nodes" 
                     },
                     { 
                         id: "valueDistance", 
@@ -190,7 +213,7 @@ class PulseControlPanel {
     createSection(sectionKey, section) {
         const sectionDiv = this.container
             .append('div')
-            .attr('class', 'control-section')
+            .attr('class', `control-section ${section.collapsed ? 'collapsed' : ''}`)
             .attr('data-section', sectionKey);
 
         const header = sectionDiv
@@ -200,11 +223,12 @@ class PulseControlPanel {
 
         header.append('span').attr('class', 'section-icon').text(section.icon);
         header.append('h3').attr('class', 'section-title').text(section.title);
-        header.append('span').attr('class', 'toggle-icon').text('▼');
+        header.append('span').attr('class', 'toggle-icon').text(section.collapsed ? '▶' : '▼');
 
         const content = sectionDiv
             .append('div')
-            .attr('class', 'control-section-content');
+            .attr('class', 'control-section-content')
+            .style('display', section.collapsed ? 'none' : 'block');
 
         section.controls.forEach(control => {
             this.createControl(content, control);
@@ -313,13 +337,26 @@ class PulseControlPanel {
     }
 
     handleChange(controlId, value) {
-        this.config[controlId] = value;
-        
-        if (!this.chart) return;
-
-        // **USE GENERIC CONFIG UPDATE METHOD**
-        // This automatically determines what needs to be re-rendered
-        this.chart.updateConfig({ [controlId]: value });
+        // **MAP LAYER-SPECIFIC CONTROLS TO CHART CONFIG**
+        if (controlId === 'labelDistanceLeftmost') {
+            this.config.labelDistance = this.config.labelDistance || {};
+            this.config.labelDistance.leftmost = value;
+            this.chart.updateConfig({ labelDistance: this.config.labelDistance });
+        } else if (controlId === 'labelDistanceMiddle') {
+            this.config.labelDistance = this.config.labelDistance || {};
+            this.config.labelDistance.middle = value;
+            this.chart.updateConfig({ labelDistance: this.config.labelDistance });
+        } else if (controlId === 'labelDistanceRightmost') {
+            this.config.labelDistance = this.config.labelDistance || {};
+            this.config.labelDistance.rightmost = value;
+            this.chart.updateConfig({ labelDistance: this.config.labelDistance });
+        } else {
+            // **STANDARD CONTROL HANDLING**
+            this.config[controlId] = value;
+            if (this.chart) {
+                this.chart.updateConfig({ [controlId]: value });
+            }
+        }
     }
 
     toggleSection(sectionKey) {

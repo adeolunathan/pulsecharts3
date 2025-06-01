@@ -1,153 +1,272 @@
 {
   "metadata": {
-    "title": "ASML Financial Flow Analysis",
-    "subtitle": "Q3 2025 Financial Performance", 
+    "title": "ASML Financial Flow",
+    "subtitle": "Q3 2025 Financial Performance",
     "currency": "USD",
     "unit": "millions",
+    "company": "ASML Holding N.V.",
     "period": "Q3 2025",
-    "company": "ASML Holding N.V."
+    "prepared_date": "2025-01-15"
   },
-  "income_statement": {
-    "revenue": {
-      "euv_systems": 320,
-      "arfi_systems": 390,
-      "arf_dry_systems": 10,
-      "krf_systems": 30,
-      "iline_systems": 10,
-      "metrology_inspection": 20
+  "nodes": [
+    {
+      "id": "EUV Systems",
+      "depth": 0,
+      "value": 320,
+      "category": "revenue",
+      "description": "Extreme Ultraviolet lithography systems for cutting-edge semiconductors",
+      "group": "revenue_sources",
+      "sort_order": 1
     },
-    "cost_of_revenue": 360,
-    "operating_expenses": {
-      "research_development": 120,
-      "sales_general_administrative": 30
+    {
+      "id": "ArFi Systems",
+      "depth": 0,
+      "value": 390,
+      "category": "revenue",
+      "description": "Argon Fluoride immersion lithography systems",
+      "group": "revenue_sources",
+      "sort_order": 2
     },
-    "other_expenses": {
-      "tax_expense": 50
+    {
+      "id": "ArF Dry Systems",
+      "depth": 0,
+      "value": 10,
+      "category": "revenue",
+      "description": "Argon Fluoride dry lithography systems",
+      "group": "revenue_sources",
+      "sort_order": 3
+    },
+    {
+      "id": "KrF Systems",
+      "depth": 0,
+      "value": 30,
+      "category": "revenue",
+      "description": "Krypton Fluoride lithography systems",
+      "group": "revenue_sources",
+      "sort_order": 4
+    },
+    {
+      "id": "I-line Systems",
+      "depth": 0,
+      "value": 10,
+      "category": "revenue",
+      "description": "I-line lithography systems for mature nodes",
+      "group": "revenue_sources",
+      "sort_order": 5
+    },
+    {
+      "id": "Metrology & Inspection",
+      "depth": 0,
+      "value": 20,
+      "category": "revenue",
+      "description": "Metrology and inspection equipment",
+      "group": "revenue_sources",
+      "sort_order": 6
+    },
+    {
+      "id": "Total Revenue",
+      "depth": 1,
+      "value": 780,
+      "category": "revenue",
+      "description": "Total system and service revenue",
+      "group": "aggregated_revenue",
+      "sort_order": 1
+    },
+    {
+      "id": "Gross Profit",
+      "depth": 2,
+      "value": 420,
+      "category": "profit",
+      "description": "Revenue minus direct production costs",
+      "group": "gross_metrics",
+      "sort_order": 1
+    },
+    {
+      "id": "Cost of Revenue",
+      "depth": 2,
+      "value": 360,
+      "category": "cost",
+      "description": "Direct manufacturing and service delivery costs",
+      "group": "gross_metrics",
+      "sort_order": 2
+    },
+    {
+      "id": "Operating Expenses",
+      "depth": 3,
+      "value": 150,
+      "category": "expense",
+      "description": "Research, development, and administrative costs",
+      "group": "operating_metrics",
+      "sort_order": 1
+    },
+    {
+      "id": "Operating Profit",
+      "depth": 3,
+      "value": 270,
+      "category": "profit",
+      "description": "Profit from core semiconductor equipment operations",
+      "group": "operating_metrics",
+      "sort_order": 2
+    },
+    {
+      "id": "R&D",
+      "depth": 4,
+      "value": 120,
+      "category": "expense",
+      "description": "Innovation and next-generation technology development",
+      "group": "operating_expenses",
+      "sort_order": 1
+    },
+    {
+      "id": "SG&A",
+      "depth": 4,
+      "value": 30,
+      "category": "expense",
+      "description": "Sales, general and administrative expenses",
+      "group": "operating_expenses",
+      "sort_order": 2
+    },
+    {
+      "id": "Net Profit",
+      "depth": 4,
+      "value": 220,
+      "category": "income",
+      "description": "Final profit after all expenses and taxes",
+      "group": "final_results",
+      "sort_order": 1
+    },
+    {
+      "id": "Tax Expense",
+      "depth": 4,
+      "value": 50,
+      "category": "tax",
+      "description": "Corporate income tax expense",
+      "group": "final_adjustments",
+      "sort_order": 1
     }
-  },
-  "flow_structure": {
-    "revenue_sources": [
-      {
-        "id": "EUV Systems",
-        "value": 320,
-        "category": "advanced_lithography",
-        "description": "Extreme Ultraviolet lithography systems for cutting-edge semiconductors",
-        "order": 1
+  ],
+  "links": [
+    {
+      "source": "EUV Systems",
+      "target": "Total Revenue",
+      "value": 320,
+      "type": "revenue_flow",
+      "description": "Revenue from EUV systems"
+    },
+    {
+      "source": "ArFi Systems",
+      "target": "Total Revenue",
+      "value": 390,
+      "type": "revenue_flow",
+      "description": "Revenue from ArFi systems"
+    },
+    {
+      "source": "ArF Dry Systems",
+      "target": "Total Revenue",
+      "value": 10,
+      "type": "revenue_flow",
+      "description": "Revenue from ArF dry systems"
+    },
+    {
+      "source": "KrF Systems",
+      "target": "Total Revenue",
+      "value": 30,
+      "type": "revenue_flow",
+      "description": "Revenue from KrF systems"
+    },
+    {
+      "source": "I-line Systems",
+      "target": "Total Revenue",
+      "value": 10,
+      "type": "revenue_flow",
+      "description": "Revenue from I-line systems"
+    },
+    {
+      "source": "Metrology & Inspection",
+      "target": "Total Revenue",
+      "value": 20,
+      "type": "revenue_flow",
+      "description": "Revenue from metrology and inspection"
+    },
+    {
+      "source": "Total Revenue",
+      "target": "Gross Profit",
+      "value": 420,
+      "type": "profit_flow",
+      "description": "Revenue after cost of revenue"
+    },
+    {
+      "source": "Total Revenue",
+      "target": "Cost of Revenue",
+      "value": 360,
+      "type": "cost_flow",
+      "description": "Cost of revenue deducted from total"
+    },
+    {
+      "source": "Gross Profit",
+      "target": "Operating Profit",
+      "value": 270,
+      "type": "profit_flow",
+      "description": "Profit after operating expenses"
+    },
+    {
+      "source": "Gross Profit",
+      "target": "Operating Expenses",
+      "value": 150,
+      "type": "expense_flow",
+      "description": "Operating expenses deducted from gross profit"
+    },
+    {
+      "source": "Operating Expenses",
+      "target": "R&D",
+      "value": 120,
+      "type": "expense_breakdown",
+      "description": "R&D expense breakdown"
+    },
+    {
+      "source": "Operating Expenses",
+      "target": "SG&A",
+      "value": 30,
+      "type": "expense_breakdown",
+      "description": "SG&A expense breakdown"
+    },
+    {
+      "source": "Operating Profit",
+      "target": "Net Profit",
+      "value": 220,
+      "type": "final_income",
+      "description": "Final net profit after tax"
+    },
+    {
+      "source": "Operating Profit",
+      "target": "Tax Expense",
+      "value": 50,
+      "type": "tax_flow",
+      "description": "Corporate tax expense"
+    }
+  ],
+  "formatting": {
+    "node_groups": {
+      "revenue_sources": {
+        "label": "Revenue Sources",
+        "color_scheme": "blues",
+        "sort_direction": "desc"
       },
-      {
-        "id": "ArFi Systems", 
-        "value": 390,
-        "category": "immersion_lithography",
-        "description": "Argon Fluoride immersion lithography systems",
-        "order": 2
+      "operating_expenses": {
+        "label": "Operating Expenses",
+        "color_scheme": "reds",
+        "sort_direction": "desc"
       },
-      {
-        "id": "ArF Dry Systems",
-        "value": 10,
-        "category": "dry_lithography",
-        "description": "Argon Fluoride dry lithography systems",
-        "order": 3
+      "final_results": {
+        "label": "Final Results",
+        "color_scheme": "greens",
+        "sort_direction": "desc"
       },
-      {
-        "id": "KrF Systems",
-        "value": 30, 
-        "category": "legacy_lithography",
-        "description": "Krypton Fluoride lithography systems",
-        "order": 4
-      },
-      {
-        "id": "I-line Systems",
-        "value": 10,
-        "category": "legacy_lithography", 
-        "description": "I-line lithography systems for mature nodes",
-        "order": 5
-      },
-      {
-        "id": "Metrology & Inspection",
-        "value": 20,
-        "category": "metrology",
-        "description": "Metrology and inspection equipment",
-        "order": 6
+      "final_adjustments": {
+        "label": "Adjustments",
+        "color_scheme": "oranges",
+        "sort_direction": "desc"
       }
-    ],
-    "intermediate_flows": [
-      {
-        "id": "Total Revenue",
-        "value": 780,
-        "category": "total_revenue",
-        "description": "Total system and service revenue",
-        "calculation": "sum_of_sources"
-      },
-      {
-        "id": "Cost of Revenue",
-        "value": 360,
-        "category": "cost_of_revenue",
-        "description": "Direct manufacturing and service delivery costs", 
-        "deduction_from": "Total Revenue"
-      },
-      {
-        "id": "Gross Profit",
-        "value": 420,
-        "category": "gross_profit",
-        "description": "Revenue minus direct production costs",
-        "calculation": "Total Revenue - Cost of Revenue"
-      },
-      {
-        "id": "Operating Expenses",
-        "value": 150,
-        "category": "operating_expenses",
-        "description": "Research, development, and administrative costs",
-        "deduction_from": "Gross Profit"
-      },
-      {
-        "id": "Operating Profit",
-        "value": 270,
-        "category": "operating_profit", 
-        "description": "Profit from core semiconductor equipment operations",
-        "calculation": "Gross Profit - Operating Expenses"
-      }
-    ],
-    "expense_breakdown": [
-      {
-        "id": "R&D",
-        "value": 120,
-        "category": "research_development",
-        "description": "Innovation and next-generation technology development",
-        "parent": "Operating Expenses",
-        "order": 1
-      },
-      {
-        "id": "SG&A",
-        "value": 30,
-        "category": "sales_general_administrative",
-        "description": "Sales, general and administrative expenses",
-        "parent": "Operating Expenses", 
-        "order": 2
-      }
-    ],
-    "final_results": [
-      {
-        "id": "Net Profit",
-        "value": 220,
-        "category": "net_profit",
-        "description": "Final profit after all expenses and taxes",
-        "parent": "Operating Profit",
-        "order": 1
-      },
-      {
-        "id": "Tax Expense",
-        "value": 50, 
-        "category": "tax_expense",
-        "description": "Corporate income tax expense",
-        "parent": "Operating Profit",
-        "order": 2
-      }
-    ]
-  },
-  "display_settings": {
-    "sort_by_value": true,
-    "group_by_parent": true,
-    "show_percentages": true,
-    "link_height_matching": true
+    }
   }
 }

@@ -16,7 +16,7 @@ class PulseSankeyChart {
         this.config = {
             width: 1200,
             height: 700,
-            margin: { top: 60, right: 100, bottom: 60, left: 100 },
+            margin: { top: 60, right: 150, bottom: 60, left: 150 },
             nodeWidth: 28,
             nodePadding: 40,
             curveIntensity: 0.4,
@@ -30,10 +30,14 @@ class PulseSankeyChart {
             linkWidthScale: 0.65,
             nodeOpacity: 1.0,
             linkOpacity: 1.0,
-            // **NEW LABEL POSITIONING CONTROLS**
-            labelDistance: 15,        // Distance of labels from nodes
-            valueDistance: 8,         // Distance of values from nodes/labels
-            layerSpacing: {           // Per-layer node spacing multipliers
+            // **LABEL POSITIONING CONTROLS BY LAYER**
+            labelDistance: {
+                leftmost: 15,
+                middle: 12,
+                rightmost: 15
+            },
+            valueDistance: 8,
+            layerSpacing: {
                 0: 0.8,  // Leftmost
                 1: 1.0,  // Middle layers
                 2: 1.0,
@@ -84,11 +88,14 @@ class PulseSankeyChart {
         this.calculateLayout();
         
         this.chart.selectAll('*').remove();
+        this.svg.selectAll('.chart-header, .chart-footnotes, .chart-branding').remove();
         
         this.renderTitle();
         this.renderLinks();
         this.renderNodes();
         this.renderLabels();
+        this.renderFootnotes();
+        this.renderBrandingFooter();
         
         return this;
     }
@@ -441,41 +448,101 @@ class PulseSankeyChart {
     }
 
     renderTitle() {
-        const title = this.svg.append('g')
-            .attr('class', 'chart-title')
-            .attr('transform', `translate(${this.config.width/2}, 35)`);
+        // **CLEAN HEADER WITHOUT BACKGROUND**
+        const headerGroup = this.svg.append('g')
+            .attr('class', 'chart-header');
 
-        title.append('text')
+        // **MAIN TITLE: "Company Period Income Statement"**
+        const company = this.data?.metadata?.company || 'Company';
+        const period = this.data?.metadata?.period || 'Period';
+        const titleText = `${company} ${period} Income Statement`;
+
+        headerGroup.append('text')
+            .attr('x', this.config.width / 2)
+            .attr('y', 60)
             .attr('text-anchor', 'middle')
-            .attr('font-size', '24px')
-            .attr('font-weight', '700')
+            .attr('font-size', '40px')
+            .attr('font-weight', '1000')
             .attr('fill', '#1f2937')
-            .attr('letter-spacing', '-0.5px')
-            .text(this.data?.metadata?.title || 'Financial Flow Analysis');
+            .attr('letter-spacing', '0.5px')
+            .text(titleText);
 
+        // Subtitle (if exists)
         if (this.data?.metadata?.subtitle) {
-            title.append('text')
+            headerGroup.append('text')
+                .attr('x', this.config.width / 2)
+                .attr('y', 85)
                 .attr('text-anchor', 'middle')
-                .attr('y', 22)
-                .attr('font-size', '14px')
-                .attr('font-weight', '500')
-                .attr('fill', '#6b7280')
+                .attr('font-size', '13px')
+                .attr('font-weight', '900')
+                .attr('fill', '#1f2937')
                 .text(this.data.metadata.subtitle);
         }
+    }
 
-        // Add data source indicator
-        if (this.data?.metadata?.source) {
-            const sourceColor = this.data.metadata.source.includes('external file') ? '#27ae60' : 
-                               this.data.metadata.source.includes('SIMULATION') ? '#f39c12' : '#6b7280';
-            
-            title.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('y', 40)
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', sourceColor)
-                .text(`Source: ${this.data.metadata.source}`);
-        }
+    renderBrandingFooter() {
+        const footerGroup = this.svg.append('g')
+            .attr('class', 'chart-branding')
+            .attr('transform', `translate(0, ${this.config.height - 35})`);
+
+        // **LOGO IMAGE (Base64 or URL)**
+        // You can replace this with your actual logo
+        const logoUrl = this.data?.metadata?.logoUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8dGV4dCB4PSIxMCIgeT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UDwvdGV4dD4KPC9zdmc+';
+        
+        footerGroup.append('image')
+            .attr('x', 20)
+            .attr('y', -40)
+            .attr('width', 24)
+            .attr('height', 24)
+            .attr('href', logoUrl)
+            .attr('opacity', 0.8);
+
+        // Company/Brand name next to logo
+        footerGroup.append('text')
+            .attr('x', 50)
+            .attr('y', -25)
+            .attr('font-size', '16px')
+            .attr('font-weight', '800')
+            .attr('fill', '#667eea')
+            .text('PULSE ANALYTICS');
+
+        // Center: Website
+        footerGroup.append('text')
+            .attr('x', this.config.width / 2)
+            .attr('y', -25)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '16px')
+            .attr('font-weight', '800')
+            .attr('fill', '#9ca3af')
+            .text('pulse-analytics.com');
+
+        // Right: Chart type/watermark
+        footerGroup.append('text')
+            .attr('x', this.config.width - 20)
+            .attr('y', -25)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '16px')
+            .attr('font-weight', '800')
+            .attr('fill', '#9ca3af')
+            .attr('opacity', 0.7)
+            .text('Generated by Pulse Chart');
+    }
+
+    renderFootnotes() {
+        if (!this.data?.metadata?.footnotes) return;
+        
+        const footnotes = this.svg.append('g')
+            .attr('class', 'chart-footnotes')
+            .attr('transform', `translate(${this.config.margin.left}, ${this.config.height - 80})`);
+
+        this.data.metadata.footnotes.forEach((note, index) => {
+            footnotes.append('text')
+                .attr('y', index * 12)
+                .attr('font-size', '10px')
+                .attr('font-weight', '400')
+                .attr('fill', '#6b7280')
+                .text(`${index + 1}. ${note}`);
+        });
     }
 
     renderLinks() {
@@ -563,18 +630,26 @@ class PulseSankeyChart {
     }
 
     renderLeftmostLabels(node) {
+        const labelDistance = this.config.labelDistance.leftmost;
+        const wrappedText = this.wrapText(node.id, 15);
+        const nodeColor = this.getNodeColor(node);
+        
         // Label outside to the left, vertically centered
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x - this.config.labelDistance}, ${node.y + node.height/2})`);
+            .attr('transform', `translate(${node.x - labelDistance}, ${node.y + node.height/2})`);
 
-        labelGroup.append('text')
-            .attr('text-anchor', 'end')
-            .attr('dominant-baseline', 'middle')
-            .attr('font-size', '12px')
-            .attr('font-weight', '600')
-            .attr('fill', '#374151')
-            .text(this.wrapText(node.id, 18));
+        // Multi-line text rendering
+        wrappedText.forEach((line, index) => {
+            labelGroup.append('text')
+                .attr('text-anchor', 'end')
+                .attr('dominant-baseline', 'middle')
+                .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
+                .attr('font-size', '12px')
+                .attr('font-weight', '600')
+                .attr('fill', nodeColor)
+                .text(line);
+        });
 
         // Value centered directly above the node
         const valueGroup = this.chart.append('g')
@@ -585,25 +660,33 @@ class PulseSankeyChart {
             .attr('text-anchor', 'middle')
             .attr('font-size', '11px')
             .attr('font-weight', '500')
-            .attr('fill', this.getNodeColor(node))
+            .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value));
     }
 
     renderRightmostLabels(node) {
+        const labelDistance = this.config.labelDistance.rightmost;
+        const wrappedText = this.wrapText(node.id, 15);
+        const nodeColor = this.getNodeColor(node);
+        
         // Label outside to the right, vertically centered
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth + this.config.labelDistance}, ${node.y + node.height/2})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth + labelDistance}, ${node.y + node.height/2})`);
 
-        labelGroup.append('text')
-            .attr('text-anchor', 'start')
-            .attr('dominant-baseline', 'middle')
-            .attr('font-size', '12px')
-            .attr('font-weight', '600')
-            .attr('fill', '#374151')
-            .text(this.wrapText(node.id, 18));
+        // Multi-line text rendering
+        wrappedText.forEach((line, index) => {
+            labelGroup.append('text')
+                .attr('text-anchor', 'start')
+                .attr('dominant-baseline', 'middle')
+                .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
+                .attr('font-size', '12px')
+                .attr('font-weight', '600')
+                .attr('fill', nodeColor)
+                .text(line);
+        });
 
-        // Value centered directly above the node (separate from label)
+        // Value centered directly above the node
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.valueDistance})`);
@@ -612,49 +695,69 @@ class PulseSankeyChart {
             .attr('text-anchor', 'middle')
             .attr('font-size', '11px')
             .attr('font-weight', '500')
-            .attr('fill', this.getNodeColor(node))
+            .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value));
     }
 
     renderMiddleLabels(node) {
+        const labelDistance = this.config.labelDistance.middle;
+        const wrappedText = this.wrapText(node.id, 18);
+        const nodeColor = this.getNodeColor(node);
+        
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.labelDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - labelDistance})`);
 
-        // Label above the node
+        // Multi-line label above the node
+        wrappedText.forEach((line, index) => {
+            labelGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('y', index * 14)
+                .attr('font-size', '12px')
+                .attr('font-weight', '600')
+                .attr('fill', nodeColor)
+                .text(line);
+        });
+
+        // Value below the label
         labelGroup.append('text')
             .attr('text-anchor', 'middle')
-            .attr('font-size', '12px')
-            .attr('font-weight', '600')
-            .attr('fill', '#374151')
-            .text(this.wrapText(node.id, 18));
-
-        // Value below the label (with controlled spacing)
-        labelGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('y', this.config.valueDistance + 8)
+            .attr('y', (wrappedText.length * 14) + this.config.valueDistance)
             .attr('font-size', '11px')
             .attr('font-weight', '500')
-            .attr('fill', this.getNodeColor(node))
+            .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value));
     }
 
-    // Utility methods
-    wrapText(text, maxLength) {
-        if (text.length <= maxLength) return text;
+    // Smart text wrapping utility
+    wrapText(text, maxLength = 10) {
+        if (text.length <= maxLength) return [text];
+        
         const words = text.split(' ');
-        if (words.length === 1) {
-            return text.length > maxLength ? text.substring(0, maxLength-2) + '...' : text;
-        }
-        let result = words[0];
-        for (let i = 1; i < words.length; i++) {
-            if ((result + ' ' + words[i]).length <= maxLength) {
-                result += ' ' + words[i];
+        const lines = [];
+        let currentLine = '';
+        
+        words.forEach(word => {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            
+            if (testLine.length <= maxLength) {
+                currentLine = testLine;
             } else {
-                break;
+                if (currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    // Single word longer than maxLength
+                    lines.push(word);
+                }
             }
+        });
+        
+        if (currentLine) {
+            lines.push(currentLine);
         }
-        return result + (result !== text ? '...' : '');
+        
+        return lines;
     }
 
     formatCurrency(value) {
@@ -804,6 +907,19 @@ class PulseSankeyChart {
         const oldConfig = { ...this.config };
         this.config = { ...this.config, ...newConfig };
         
+        // Apply layer spacing updates to layerSpacing object
+        if (newConfig.leftmostSpacing !== undefined) {
+            this.config.layerSpacing[0] = newConfig.leftmostSpacing;
+        }
+        if (newConfig.middleSpacing !== undefined) {
+            this.config.layerSpacing[1] = newConfig.middleSpacing;
+            this.config.layerSpacing[2] = newConfig.middleSpacing;
+        }
+        if (newConfig.rightmostSpacing !== undefined) {
+            const maxDepth = Math.max(...this.nodes.map(n => n.depth));
+            this.config.layerSpacing[maxDepth] = newConfig.rightmostSpacing;
+        }
+        
         // Determine what needs to be re-rendered
         const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig);
         const needsLayoutRecalc = this.configRequiresLayoutRecalc(oldConfig, newConfig);
@@ -819,26 +935,36 @@ class PulseSankeyChart {
         } else if (needsLabelsUpdate) {
             this.chart.selectAll('.node-label, .node-value').remove();
             this.renderLabels();
+        } else {
+            // Handle opacity changes
+            if (newConfig.nodeOpacity !== undefined) {
+                this.chart.selectAll('.sankey-node rect').attr('fill-opacity', newConfig.nodeOpacity);
+            }
+            if (newConfig.linkOpacity !== undefined) {
+                this.chart.selectAll('.sankey-link path').attr('fill-opacity', newConfig.linkOpacity);
+            }
         }
         
         return this;
     }
 
     configRequiresFullRender(oldConfig, newConfig) {
-        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale', 'linkWidthScale', 'nodePadding'];
-        return fullRenderKeys.some(key => oldConfig[key] !== newConfig[key]);
-    }
-
-    configRequiresLayoutRecalc(oldConfig, newConfig) {
-        const layoutKeys = ['leftmostSpacing', 'middleSpacing', 'rightmostSpacing', 'layerSpacing'];
-        return layoutKeys.some(key => 
+        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale', 'nodePadding', 'layerSpacing'];
+        return fullRenderKeys.some(key => 
             JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
         );
     }
 
+    configRequiresLayoutRecalc(oldConfig, newConfig) {
+        const layoutKeys = ['leftmostSpacing', 'middleSpacing', 'rightmostSpacing', 'linkWidthScale'];
+        return layoutKeys.some(key => oldConfig[key] !== newConfig[key]);
+    }
+
     configRequiresLabelsUpdate(oldConfig, newConfig) {
         const labelKeys = ['labelDistance', 'valueDistance'];
-        return labelKeys.some(key => oldConfig[key] !== newConfig[key]);
+        return labelKeys.some(key => 
+            JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
+        );
     }
 
     // Export methods
