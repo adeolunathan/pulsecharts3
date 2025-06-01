@@ -12,14 +12,15 @@ class PulseControlPanel {
             layout: {
                 title: "Layout & Positioning",
                 icon: "⚖️",
+                collapsed: true,
                 controls: [
                     { 
                         id: "nodeWidth", 
                         type: "slider", 
                         label: "Node Width", 
-                        min: 15, 
-                        max: 50, 
-                        default: 28, 
+                        min: 10, 
+                        max: 40, 
+                        default: 30, 
                         step: 1, 
                         unit: "px", 
                         description: "Width of the flow nodes" 
@@ -28,8 +29,8 @@ class PulseControlPanel {
                         id: "nodePadding", 
                         type: "slider", 
                         label: "Base Node Spacing", 
-                        min: 20, 
-                        max: 100, 
+                        min: 40, 
+                        max: 80, 
                         default: 40, 
                         step: 5, 
                         unit: "px", 
@@ -41,7 +42,7 @@ class PulseControlPanel {
                         label: "Left Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
-                        default: 0.8, 
+                        default: 1, 
                         step: 0.1, 
                         unit: "×", 
                         description: "Spacing multiplier for leftmost layer" 
@@ -52,7 +53,7 @@ class PulseControlPanel {
                         label: "Middle Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
-                        default: 0.9, 
+                        default: 1, 
                         step: 0.1, 
                         unit: "×", 
                         description: "Spacing multiplier for middle layers" 
@@ -63,7 +64,7 @@ class PulseControlPanel {
                         label: "Right Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
-                        default: 0.7, 
+                        default: 1, 
                         step: 0.1, 
                         unit: "×", 
                         description: "Spacing multiplier for rightmost layer" 
@@ -74,6 +75,7 @@ class PulseControlPanel {
             curves: {
                 title: "Flow Curves",
                 icon: "〰️",
+                collapsed: true,
                 controls: [
                     { 
                         id: "curveIntensity", 
@@ -97,8 +99,8 @@ class PulseControlPanel {
                         id: "labelDistanceLeftmost", 
                         type: "slider", 
                         label: "Leftmost Label Distance", 
-                        min: 5, 
-                        max: 40, 
+                        min: 1, 
+                        max: 30, 
                         default: 15, 
                         step: 1, 
                         unit: "px", 
@@ -108,9 +110,9 @@ class PulseControlPanel {
                         id: "labelDistanceMiddle", 
                         type: "slider", 
                         label: "Middle Label Distance", 
-                        min: 5, 
+                        min: 1, 
                         max: 30, 
-                        default: 12, 
+                        default: 20, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of middle labels from nodes" 
@@ -119,9 +121,9 @@ class PulseControlPanel {
                         id: "labelDistanceRightmost", 
                         type: "slider", 
                         label: "Rightmost Label Distance", 
-                        min: 5, 
-                        max: 40, 
-                        default: 15, 
+                        min: 1, 
+                        max: 30, 
+                        default: 20, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of rightmost labels from nodes" 
@@ -130,9 +132,9 @@ class PulseControlPanel {
                         id: "valueDistance", 
                         type: "slider", 
                         label: "Value Distance", 
-                        min: 3, 
-                        max: 20, 
-                        default: 8, 
+                        min: 1, 
+                        max: 10, 
+                        default: 1, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of values from nodes/labels" 
@@ -143,14 +145,15 @@ class PulseControlPanel {
             dimensions: {
                 title: "Node & Link Dimensions",
                 icon: "📏",
+                collapsed: true,
                 controls: [
                     { 
                         id: "nodeHeightScale", 
                         type: "slider", 
                         label: "Node Height Scale", 
-                        min: 0.3, 
+                        min: 0.1, 
                         max: 1.0, 
-                        default: 0.65, 
+                        default: 0.2, 
                         step: 0.05, 
                         description: "Scale factor for node heights" 
                     },
@@ -170,6 +173,7 @@ class PulseControlPanel {
             styling: {
                 title: "Visual Style",
                 icon: "🎨",
+                collapsed: true,
                 controls: [
                     { 
                         id: "nodeOpacity", 
