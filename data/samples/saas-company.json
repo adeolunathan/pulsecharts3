@@ -12,7 +12,7 @@
     {
       "id": "Subscription Revenue",
       "depth": 0,
-      "value": 200,
+      "value": 300,
       "category": "revenue",
       "description": "Recurring subscription revenue from software licenses",
       "group": "revenue_sources",
@@ -30,7 +30,7 @@
     {
       "id": "Platform & Other",
       "depth": 0,
-      "value": 35,
+      "value": 135,
       "category": "revenue",
       "description": "Platform fees and other revenue streams",
       "group": "revenue_sources",
@@ -39,7 +39,7 @@
     {
       "id": "Total Revenue",
       "depth": 1,
-      "value": 295,
+      "value": 395,
       "category": "revenue",
       "description": "Total company revenue for the period",
       "group": "aggregated_revenue",
@@ -48,7 +48,7 @@
     {
       "id": "Gross Profit",
       "depth": 2,
-      "value": 220,
+      "value": 340,
       "category": "profit",
       "description": "Revenue minus direct costs of providing services",
       "group": "gross_metrics",
@@ -79,6 +79,33 @@
       "category": "expense",
       "description": "Total operating expenses excluding COGS",
       "group": "operating_metrics",
+      "sort_order": 2
+    },
+    {
+      "id": "Net Income",
+      "depth": 4,
+      "value": 50,
+      "category": "final_income",
+      "description": "Final net income after all adjustments",
+      "group": "final_results",
+      "sort_order": 1
+    },
+    {
+      "id": "Tax Expense",
+      "depth": 4,
+      "value": 12,
+      "category": "tax",
+      "description": "Income tax expense on operating profit",
+      "group": "final_adjustments",
+      "sort_order": 1
+    },
+    {
+      "id": "Other Expense",
+      "depth": 4,
+      "value": 3,
+      "category": "other",
+      "description": "Other non-operating expenses",
+      "group": "final_adjustments",
       "sort_order": 2
     },
     {
@@ -116,33 +143,6 @@
       "description": "One-time restructuring costs",
       "group": "operating_expenses",
       "sort_order": 4
-    },
-    {
-      "id": "Net Income",
-      "depth": 4,
-      "value": 50,
-      "category": "income",
-      "description": "Final net income after all expenses",
-      "group": "final_results",
-      "sort_order": 1
-    },
-    {
-      "id": "Tax Expense",
-      "depth": 4,
-      "value": 12,
-      "category": "expense",
-      "description": "Income tax expense",
-      "group": "final_adjustments",
-      "sort_order": 2
-    },
-    {
-      "id": "Other Expense",
-      "depth": 4,
-      "value": 3,
-      "category": "expense",
-      "description": "Other non-operating expenses",
-      "group": "final_adjustments",
-      "sort_order": 3
     }
   ],
   "links": [
@@ -196,6 +196,27 @@
       "description": "Operating expenses reducing gross profit"
     },
     {
+      "source": "Operating Profit",
+      "target": "Net Income",
+      "value": 50,
+      "type": "final_income",
+      "description": "Final net income after all adjustments"
+    },
+    {
+      "source": "Operating Profit",
+      "target": "Tax Expense",
+      "value": 12,
+      "type": "tax_flow",
+      "description": "Income tax on operating profit"
+    },
+    {
+      "source": "Operating Profit",
+      "target": "Other Expense",
+      "value": 3,
+      "type": "other_flow",
+      "description": "Other expenses reducing operating profit"
+    },
+    {
       "source": "Operating Expenses",
       "target": "Sales & Marketing",
       "value": 85,
@@ -222,27 +243,6 @@
       "value": 5,
       "type": "expense_breakdown",
       "description": "Restructuring portion of operating expenses"
-    },
-    {
-      "source": "Operating Profit",
-      "target": "Net Income",
-      "value": 50,
-      "type": "final_income",
-      "description": "Final net income after all adjustments"
-    },
-    {
-      "source": "Operating Profit",
-      "target": "Tax Expense",
-      "value": 12,
-      "type": "tax_flow",
-      "description": "Income tax on operating profit"
-    },
-    {
-      "source": "Operating Profit",
-      "target": "Other Expense",
-      "value": 3,
-      "type": "other_flow",
-      "description": "Other expenses reducing operating profit"
     }
   ],
   "formatting": {
@@ -265,7 +265,7 @@
       "final_adjustments": {
         "label": "Adjustments",
         "color_scheme": "oranges", 
-        "sort_direction": "asc"
+        "sort_direction": "desc"
       }
     }
   }
