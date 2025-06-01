@@ -1,13 +1,28 @@
-/* ===== PULSE ANALYTICS - MAIN APPLICATION ===== */
-/* Orchestrates chart, data, and controls for the complete application */
+/* ===== PULSE ANALYTICS - MAIN APPLICATION (REFACTORED) ===== */
+/* Orchestrates chart, data, and controls with dynamic control module loading */
 
 class PulseApplication {
     constructor() {
         this.chart = null;
         this.controlPanel = null;
+        this.controlModule = null;
         this.dataManager = null;
         this.currentData = null;
         this.currentDataset = 'saas';
+        this.currentChartType = 'sankey';
+        
+        // Registry of available chart types and their control modules
+        this.chartRegistry = {
+            sankey: {
+                name: 'Sankey Flow Chart',
+                chartClass: PulseSankeyChart,
+                controlModuleClass: SankeyControlModule,
+                description: 'Financial flow visualization'
+            }
+            // Future chart types will be added here:
+            // bar: { chartClass: BarChart, controlModuleClass: BarControlModule },
+            // line: { chartClass: LineChart, controlModuleClass: LineControlModule }
+        };
         
         console.log('🚀 Starting Pulse Analytics Platform');
     }
@@ -20,12 +35,8 @@ class PulseApplication {
             // Initialize data manager
             this.dataManager = new PulseDataManager();
             
-            // Create chart instance
-            this.chart = new PulseSankeyChart('main-chart');
-            
-            // Create control panel
-            this.controlPanel = new PulseControlPanel('dynamic-controls');
-            this.controlPanel.init(this.chart);
+            // Initialize with default chart type
+            await this.initializeChartType('sankey');
             
             // Set up event listeners
             this.setupEventListeners();
@@ -44,7 +55,74 @@ class PulseApplication {
         }
     }
 
+    async initializeChartType(chartType) {
+        const chartDefinition = this.chartRegistry[chartType];
+        if (!chartDefinition) {
+            throw new Error(`Chart type '${chartType}' not found in registry`);
+        }
+
+        console.log(`🎯 Initializing ${chartType} chart with controls`);
+
+        // Create chart instance
+        this.chart = new chartDefinition.chartClass('main-chart');
+        
+        // Create chart-specific control module
+        this.controlModule = new chartDefinition.controlModuleClass();
+        
+        // Create generic control panel and initialize with chart + controls
+        this.controlPanel = new PulseControlPanel('dynamic-controls');
+        this.controlPanel.init(this.chart, this.controlModule);
+        
+        this.currentChartType = chartType;
+        console.log(`✅ ${chartType} chart and controls initialized`);
+    }
+
+    async switchChartType(newChartType) {
+        if (newChartType === this.currentChartType) {
+            return; // Already using this chart type
+        }
+
+        console.log(`🔄 Switching from ${this.currentChartType} to ${newChartType}`);
+        
+        try {
+            // Clean up current chart and controls
+            if (this.controlPanel) {
+                this.controlPanel.destroy();
+            }
+            if (this.chart) {
+                // Clear chart container
+                const container = document.getElementById('main-chart');
+                if (container) {
+                    container.innerHTML = '<div class="chart-loading"><div class="loading-spinner"></div><p>Switching chart type...</p></div>';
+                }
+            }
+
+            // Initialize new chart type
+            await this.initializeChartType(newChartType);
+            
+            // Re-render with current data if available
+            if (this.currentData) {
+                this.chart.render(this.currentData);
+                this.hideLoadingIndicator();
+            }
+            
+            console.log(`✅ Successfully switched to ${newChartType}`);
+            
+        } catch (error) {
+            console.error(`❌ Failed to switch to ${newChartType}:`, error);
+            this.showError(`Failed to switch chart type: ${error.message}`);
+        }
+    }
+
     setupEventListeners() {
+        // Chart type selector
+        const chartTypeSelect = document.getElementById('chart-type-select');
+        if (chartTypeSelect) {
+            chartTypeSelect.addEventListener('change', async (e) => {
+                await this.switchChartType(e.target.value);
+            });
+        }
+
         // Data selector
         const dataSelect = document.getElementById('data-select');
         if (dataSelect) {
@@ -183,6 +261,21 @@ class PulseApplication {
         reader.readAsText(file);
     }
 
+    // Register a new chart type
+    registerChartType(key, definition) {
+        this.chartRegistry[key] = definition;
+        console.log(`📋 Registered chart type: ${key}`);
+    }
+
+    // Get available chart types
+    getAvailableChartTypes() {
+        return Object.entries(this.chartRegistry).map(([key, def]) => ({
+            key,
+            name: def.name,
+            description: def.description
+        }));
+    }
+
     // UI Helper Methods
     setStatus(message, type = 'loading') {
         const statusEl = document.getElementById('data-status');
@@ -233,6 +326,14 @@ class PulseApplication {
         return this.chart;
     }
 
+    getCurrentChartType() {
+        return this.currentChartType;
+    }
+
+    getControlModule() {
+        return this.controlModule;
+    }
+
     getDataManager() {
         return this.dataManager;
     }
@@ -247,7 +348,6 @@ class PulseApplication {
             const container = document.getElementById('main-chart');
             if (container) {
                 const rect = container.getBoundingClientRect();
-                // Reinitialize chart with new dimensions if needed
                 console.log('Window resized, chart dimensions:', rect.width, 'x', rect.height);
             }
         }

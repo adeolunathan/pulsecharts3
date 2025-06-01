@@ -11,7 +11,7 @@
     
     <!-- Application Styles -->
     <style>
-        /* Reset and Base */
+        /* [Previous CSS remains the same - truncated for brevity] */
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +26,6 @@
             font-size: 14px;
         }
 
-        /* Layout */
         .pulse-app {
             min-height: 100vh;
             display: flex;
@@ -133,7 +132,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Control Panel */
+        /* Control Panel Styles */
         .control-panel {
             width: 320px;
             background: white;
@@ -165,7 +164,6 @@
             padding: 0;
         }
 
-        /* Control Sections */
         .control-section {
             border-bottom: 1px solid #e1e5e9;
         }
@@ -218,7 +216,6 @@
             display: none;
         }
 
-        /* Individual Controls */
         .control-item {
             padding: 16px 20px;
             border-bottom: 1px solid #f1f3f4;
@@ -255,7 +252,6 @@
             line-height: 1.4;
         }
 
-        /* Slider Controls */
         .slider-container {
             display: flex;
             align-items: center;
@@ -301,7 +297,6 @@
             border: 1px solid #e1e5e9;
         }
 
-        /* Dropdown Controls */
         .control-dropdown {
             width: 100%;
             padding: 8px 12px;
@@ -320,7 +315,6 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        /* Toggle Controls */
         .toggle-container {
             position: relative;
             display: inline-block;
@@ -367,7 +361,6 @@
             transform: translateX(20px);
         }
 
-        /* Buttons */
         .btn {
             padding: 8px 16px;
             border-radius: 6px;
@@ -393,17 +386,6 @@
             box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
         }
 
-        .btn-secondary {
-            background: #f8f9fa;
-            color: #495057;
-            border: 1px solid #d1d5db;
-        }
-
-        .btn-secondary:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-        }
-
         .btn-outline {
             background: transparent;
             color: #6c757d;
@@ -415,7 +397,6 @@
             color: #495057;
         }
 
-        /* Status indicators */
         .status-indicator {
             padding: 4px 12px;
             border-radius: 4px;
@@ -427,7 +408,6 @@
         .status-loading { background: #fff3cd; color: #856404; }
         .status-error { background: #f8d7da; color: #721c24; }
 
-        /* Tooltip */
         .pulse-sankey-tooltip {
             position: absolute;
             background: rgba(17, 24, 39, 0.95);
@@ -446,7 +426,6 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* Responsive Design */
         @media (max-width: 1200px) {
             .app-content {
                 grid-template-columns: 1fr;
@@ -482,6 +461,8 @@
                     <label for="chart-type-select" style="color: white; margin-right: 8px;">Chart:</label>
                     <select id="chart-type-select">
                         <option value="sankey">🌊 Sankey Flow</option>
+                        <option value="bar">📊 Bar Chart</option>
+                        <option value="line">📈 Line Chart</option>
                     </select>
                 </div>
             </div>
@@ -542,10 +523,19 @@
     <!-- Hidden file input for custom data -->
     <input type="file" id="file-input" style="display: none;" accept=".json">
 
-    <!-- Application JavaScript Modules -->
-    <script src="js/charts/sankey/SankeyChart.js"></script>
+    <!-- Core Application Scripts (Order Matters) -->
     <script src="js/core/DataManager.js"></script>
     <script src="js/core/ControlPanel.js"></script>
+    
+    <!-- Chart Scripts -->
+    <script src="js/charts/sankey/SankeyChart.js"></script>
+    <script src="js/charts/sankey/SankeyControls.js"></script>
+    
+    <!-- Future Chart Control Modules -->
+    <!-- <script src="js/charts/bar/BarControls.js"></script> -->
+    <!-- <script src="js/charts/line/LineControls.js"></script> -->
+    
+    <!-- Main Application -->
     <script src="js/app.js"></script>
 </body>
 </html>

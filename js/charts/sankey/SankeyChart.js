@@ -362,14 +362,17 @@ class PulseSankeyChart {
             // Scale links to fill ENTIRE node height with NO GAPS
             const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
             
-            // Links must collectively fill the full node height
-            let currentY = node.y;  // Start at top of node
+            // **APPLY linkWidthScale to height calculations**
+            const effectiveNodeHeight = node.height * this.config.linkWidthScale;
+            
+            // Links must collectively fill the scaled node height
+            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;  // Center the scaled height
             
             node.sourceLinks.forEach((link, index) => {
                 link.sourceY = currentY;
                 
                 // PROPORTIONAL HEIGHT: Each link gets height proportional to its value
-                const proportionalHeight = (link.value / totalOutflow) * node.height;
+                const proportionalHeight = (link.value / totalOutflow) * effectiveNodeHeight;
                 link.sourceHeight = proportionalHeight;
                 
                 // SEAMLESS STACKING: Next link starts exactly where this one ends
@@ -378,9 +381,9 @@ class PulseSankeyChart {
             
             // Ensure perfect fill (handle any rounding errors)
             const totalUsedHeight = d3.sum(node.sourceLinks, d => d.sourceHeight);
-            if (Math.abs(totalUsedHeight - node.height) > 0.01) {
+            if (Math.abs(totalUsedHeight - effectiveNodeHeight) > 0.01) {
                 const lastLink = node.sourceLinks[node.sourceLinks.length - 1];
-                lastLink.sourceHeight += (node.height - totalUsedHeight);
+                lastLink.sourceHeight += (effectiveNodeHeight - totalUsedHeight);
             }
         });
         
@@ -394,14 +397,17 @@ class PulseSankeyChart {
             // Scale links to fill ENTIRE node height with NO GAPS
             const totalInflow = d3.sum(node.targetLinks, d => d.value);
             
-            // Links must collectively fill the full node height
-            let currentY = node.y;  // Start at top of node
+            // **APPLY linkWidthScale to height calculations**
+            const effectiveNodeHeight = node.height * this.config.linkWidthScale;
+            
+            // Links must collectively fill the scaled node height
+            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;  // Center the scaled height
             
             node.targetLinks.forEach((link, index) => {
                 link.targetY = currentY;
                 
                 // PROPORTIONAL HEIGHT: Each link gets height proportional to its value
-                const proportionalHeight = (link.value / totalInflow) * node.height;
+                const proportionalHeight = (link.value / totalInflow) * effectiveNodeHeight;
                 link.targetHeight = proportionalHeight;
                 
                 // SEAMLESS STACKING: Next link starts exactly where this one ends
@@ -410,9 +416,9 @@ class PulseSankeyChart {
             
             // Ensure perfect fill (handle any rounding errors)
             const totalUsedHeight = d3.sum(node.targetLinks, d => d.targetHeight);
-            if (Math.abs(totalUsedHeight - node.height) > 0.01) {
+            if (Math.abs(totalUsedHeight - effectiveNodeHeight) > 0.01) {
                 const lastLink = node.targetLinks[node.targetLinks.length - 1];
-                lastLink.targetHeight += (node.height - totalUsedHeight);
+                lastLink.targetHeight += (effectiveNodeHeight - totalUsedHeight);
             }
         });
         
