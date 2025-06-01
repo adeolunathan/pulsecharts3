@@ -1,0 +1,103 @@
+{
+  "template_info": {
+    "name": "Standard Income Statement to Sankey Mapper",
+    "version": "1.0",
+    "description": "Template for converting standard income statement format to Sankey chart visualization",
+    "compatible_formats": ["10-K", "10-Q", "Standard GAAP Income Statement", "Management Reports"]
+  },
+  
+  "input_format": {
+    "description": "Standard income statement format that most companies use",
+    "example": {
+      "company_info": {
+        "name": "Your Company Name",
+        "period": "Q3 2025",
+        "currency": "USD",
+        "unit": "millions"
+      },
+      "revenue": {
+        "product_sales": 150,
+        "service_revenue": 80,
+        "subscription_revenue": 45,
+        "other_revenue": 10,
+        "total_revenue": 285
+      },
+      "cost_of_goods_sold": {
+        "direct_materials": 25,
+        "direct_labor": 20,
+        "manufacturing_overhead": 15,
+        "total_cogs": 60
+      },
+      "gross_profit": 225,
+      "operating_expenses": {
+        "sales_and_marketing": 90,
+        "research_and_development": 50,
+        "general_and_administrative": 25,
+        "depreciation": 10,
+        "total_operating_expenses": 175
+      },
+      "operating_income": 50,
+      "other_income_expense": {
+        "interest_income": 2,
+        "interest_expense": -5,
+        "other_income": 1,
+        "total_other": -2
+      },
+      "income_before_tax": 48,
+      "tax_expense": 12,
+      "net_income": 36
+    }
+  },
+  
+  "mapping_rules": {
+    "description": "How the system converts standard format to Sankey structure",
+    "depth_assignment": {
+      "0": "Individual revenue streams",
+      "1": "Total revenue aggregation", 
+      "2": "Gross profit calculation (revenue - COGS)",
+      "3": "Operating profit calculation", 
+      "4": "Final income statement items"
+    },
+    "node_grouping": {
+      "revenue_sources": ["product_sales", "service_revenue", "subscription_revenue", "other_revenue"],
+      "cost_breakdown": ["direct_materials", "direct_labor", "manufacturing_overhead"],
+      "operating_expenses": ["sales_and_marketing", "research_and_development", "general_and_administrative"],
+      "final_adjustments": ["interest_expense", "tax_expense", "other_expenses"],
+      "final_results": ["net_income"]
+    },
+    "flow_calculation": {
+      "revenue_flows": "Each revenue component flows into total_revenue",
+      "cost_flows": "Total_revenue splits into gross_profit and total_cogs",
+      "expense_flows": "Gross_profit splits into operating_income and operating_expenses",
+      "final_flows": "Operating_income splits into net_income and final adjustments"
+    }
+  },
+  
+  "auto_generation_example": {
+    "description": "Example of what the system automatically generates from the input",
+    "generated_nodes": [
+      {"id": "Product Sales", "depth": 0, "value": 150, "category": "revenue", "group": "revenue_sources"},
+      {"id": "Service Revenue", "depth": 0, "value": 80, "category": "revenue", "group": "revenue_sources"},
+      {"id": "Total Revenue", "depth": 1, "value": 285, "category": "revenue", "group": "aggregated_revenue"},
+      {"id": "Gross Profit", "depth": 2, "value": 225, "category": "profit", "group": "gross_metrics"},
+      {"id": "Total COGS", "depth": 2, "value": 60, "category": "cost", "group": "gross_metrics"},
+      {"id": "Operating Income", "depth": 3, "value": 50, "category": "profit", "group": "operating_metrics"},
+      {"id": "Operating Expenses", "depth": 3, "value": 175, "category": "expense", "group": "operating_metrics"},
+      {"id": "Net Income", "depth": 4, "value": 36, "category": "income", "group": "final_results"}
+    ],
+    "generated_links": [
+      {"source": "Product Sales", "target": "Total Revenue", "value": 150, "type": "revenue_flow"},
+      {"source": "Service Revenue", "target": "Total Revenue", "value": 80, "type": "revenue_flow"},
+      {"source": "Total Revenue", "target": "Gross Profit", "value": 225, "type": "profit_flow"},
+      {"source": "Total Revenue", "target": "Total COGS", "value": 60, "type": "cost_flow"}
+    ]
+  },
+  
+  "user_instructions": {
+    "step_1": "Prepare your financial data in the standard income statement format shown above",
+    "step_2": "Ensure all revenue components, expenses, and profit calculations are clearly separated",
+    "step_3": "Upload your JSON file or use our CSV converter",
+    "step_4": "The system will automatically generate the Sankey visualization with proper flow logic",
+    "step_5": "Customize colors, groupings, and labels as needed"
+  }
+}
