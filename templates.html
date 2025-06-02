@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editable Data Templates</title>
+    <title>Editable Data Templates - Fixed</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -13,12 +13,19 @@
         }
 
         .template-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 0;
+        }
+
+        .template-main {
+            min-height: 100vh;
         }
 
         .template-header {
@@ -139,31 +146,53 @@
             gap: 15px;
         }
 
-        .preview-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 30px;
+        /* Live Preview Panel */
+        .preview-panel {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 0;
+            border-left: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
+            max-height: 100vh;
         }
 
         .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+            background: #374151;
+            padding: 15px 20px;
+            border-bottom: 1px solid #4b5563;
+            color: white;
+            font-weight: 600;
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
         }
 
         .json-preview {
-            background: #1f2937;
+            background: transparent;
             color: #e5e7eb;
-            padding: 20px;
-            border-radius: 6px;
             font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 12px;
+            font-size: 11px;
             line-height: 1.4;
-            overflow-x: auto;
-            max-height: 400px;
-            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 0;
+            border: none;
+            outline: none;
+            resize: none;
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+        }
+
+        .json-stats {
+            background: #374151;
+            padding: 10px 20px;
+            border-top: 1px solid #4b5563;
+            font-size: 12px;
+            color: #9ca3af;
         }
 
         .action-buttons {
@@ -202,7 +231,16 @@
             background: #e5e7eb;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1200px) {
+            .template-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-panel {
+                max-height: 400px;
+                order: -1;
+            }
+            
             .item-fields {
                 grid-template-columns: 1fr;
                 gap: 8px;
@@ -216,93 +254,108 @@
 </head>
 <body>
     <div class="template-container">
-        <div class="template-header">
-            <h1>📊 Editable Sample Data Template</h1>
-            <p>Modify the sample data below to match your company's financial structure</p>
-        </div>
+        <div class="template-main">
+            <div class="template-header">
+                <h1>📊 Editable Sample Data Template</h1>
+                <p>Modify the sample data below to match your company's financial structure</p>
+            </div>
 
-        <div class="template-content">
-            <!-- Metadata Section -->
-            <div class="data-section">
-                <div class="section-header">
-                    <h3 class="section-title">📋 Company Information</h3>
-                </div>
-                <div class="section-content">
-                    <div class="metadata-grid">
-                        <div class="field-group">
-                            <label class="field-label">Company Name</label>
-                            <input type="text" class="field-input" id="company-name" value="TechFlow SaaS Corp">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-label">Period</label>
-                            <input type="text" class="field-input" id="period" value="Q3 2025">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-label">Currency</label>
-                            <select class="field-input" id="currency">
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                                <option value="GBP">GBP</option>
-                            </select>
-                        </div>
-                        <div class="field-group">
-                            <label class="field-label">Units</label>
-                            <select class="field-input" id="units">
-                                <option value="millions">Millions</option>
-                                <option value="thousands">Thousands</option>
-                                <option value="billions">Billions</option>
-                            </select>
-                        </div>
-                        <div class="field-group">
-                            <label class="field-label">Chart Title</label>
-                            <input type="text" class="field-input" id="chart-title" value="SaaS Company Financial Flow">
-                        </div>
-                        <div class="field-group">
-                            <label class="field-label">Subtitle</label>
-                            <input type="text" class="field-input" id="subtitle" value="Q3 2025 Financial Performance">
+            <div class="template-content">
+                <!-- Metadata Section -->
+                <div class="data-section">
+                    <div class="section-header">
+                        <h3 class="section-title">📋 Company Information</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="metadata-grid">
+                            <div class="field-group">
+                                <label class="field-label">Company Name</label>
+                                <input type="text" class="field-input" id="company-name" value="TechFlow SaaS Corp">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Period</label>
+                                <input type="text" class="field-input" id="period" value="Q3 2025">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Currency</label>
+                                <select class="field-input" id="currency">
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="GBP">GBP</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Units</label>
+                                <select class="field-input" id="units">
+                                    <option value="millions">Millions</option>
+                                    <option value="thousands">Thousands</option>
+                                    <option value="billions">Billions</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Chart Title</label>
+                                <input type="text" class="field-input" id="chart-title" value="SaaS Company Financial Flow">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Subtitle</label>
+                                <input type="text" class="field-input" id="subtitle" value="Q3 2025 Financial Performance">
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Revenue Sources -->
-            <div class="data-section">
-                <div class="section-header">
-                    <h3 class="section-title">💰 Revenue Sources (Depth 0)</h3>
-                    <button class="add-item-btn" onclick="addRevenueSource()">+ Add Revenue Source</button>
+                <!-- Revenue Sources -->
+                <div class="data-section">
+                    <div class="section-header">
+                        <h3 class="section-title">💰 Revenue Sources (Depth 0)</h3>
+                        <button class="add-item-btn" onclick="addRevenueSource()">+ Add Revenue Source</button>
+                    </div>
+                    <div class="section-content" id="revenue-sources">
+                        <!-- Revenue items will be dynamically generated -->
+                    </div>
                 </div>
-                <div class="section-content" id="revenue-sources">
-                    <!-- Revenue items will be dynamically generated -->
+
+                <!-- Intermediate Flows -->
+                <div class="data-section">
+                    <div class="section-header">
+                        <h3 class="section-title">🔄 Intermediate Flows (Depths 1-3)</h3>
+                        <button class="add-item-btn" onclick="addIntermediateFlow()">+ Add Flow</button>
+                    </div>
+                    <div class="section-content" id="intermediate-flows">
+                        <!-- Intermediate flow items will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Final Results -->
+                <div class="data-section">
+                    <div class="section-header">
+                        <h3 class="section-title">🎯 Final Results (Depth 4)</h3>
+                        <button class="add-item-btn" onclick="addFinalResult()">+ Add Final Item</button>
+                    </div>
+                    <div class="section-content" id="final-results">
+                        <!-- Final result items will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="generateChart()">🚀 Generate Chart</button>
+                    <button class="btn btn-secondary" onclick="exportData()">📁 Export Data</button>
+                    <button class="btn btn-secondary" onclick="loadTemplate()">📋 Load Different Template</button>
                 </div>
             </div>
+        </div>
 
-            <!-- Intermediate Flows -->
-            <div class="data-section">
-                <div class="section-header">
-                    <h3 class="section-title">🔄 Intermediate Flows (Depths 1-3)</h3>
-                    <button class="add-item-btn" onclick="addIntermediateFlow()">+ Add Flow</button>
-                </div>
-                <div class="section-content" id="intermediate-flows">
-                    <!-- Intermediate flow items will be dynamically generated -->
-                </div>
+        <!-- Live Preview Panel -->
+        <div class="preview-panel">
+            <div class="preview-header">
+                📊 Live Data Preview
             </div>
-
-            <!-- Final Results -->
-            <div class="data-section">
-                <div class="section-header">
-                    <h3 class="section-title">🎯 Final Results (Depth 4)</h3>
-                    <button class="add-item-btn" onclick="addFinalResult()">+ Add Final Item</button>
-                </div>
-                <div class="section-content" id="final-results">
-                    <!-- Final result items will be dynamically generated -->
-                </div>
+            <div class="preview-content">
+                <textarea class="json-preview" id="json-preview" readonly></textarea>
             </div>
-
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="generateChart()">🚀 Generate Chart</button>
-                <button class="btn btn-secondary" onclick="exportData()">📁 Export Data</button>
-                <button class="btn btn-secondary" onclick="loadTemplate()">📋 Load Different Template</button>
+            <div class="json-stats" id="json-stats">
+                Nodes: 0 | Links: 0 | Total Value: $0M
             </div>
         </div>
     </div>
@@ -322,39 +375,98 @@
                 {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue", group: "revenue_sources", sort_order: 1},
                 {id: "Professional Services", depth: 0, value: 60, category: "revenue", group: "revenue_sources", sort_order: 2},
                 {id: "Platform & Other", depth: 0, value: 135, category: "revenue", group: "revenue_sources", sort_order: 3},
-                {id: "Total Revenue", depth: 1, value: 395, category: "revenue", group: "aggregated_revenue", sort_order: 1},
-                {id: "Gross Profit", depth: 2, value: 340, category: "profit", group: "gross_metrics", sort_order: 1},
+                {id: "Total Revenue", depth: 1, value: 495, category: "revenue", group: "aggregated_revenue", sort_order: 1},
+                {id: "Gross Profit", depth: 2, value: 440, category: "profit", group: "gross_metrics", sort_order: 1},
                 {id: "Cost of Revenue", depth: 2, value: 55, category: "cost", group: "gross_metrics", sort_order: 2},
                 {id: "Operating Profit", depth: 3, value: 65, category: "profit", group: "operating_metrics", sort_order: 1},
-                {id: "Operating Expenses", depth: 3, value: 155, category: "expense", group: "operating_metrics", sort_order: 2},
+                {id: "Operating Expenses", depth: 3, value: 375, category: "expense", group: "operating_metrics", sort_order: 2},
                 {id: "Net Income", depth: 4, value: 50, category: "income", group: "final_results", sort_order: 1},
-                {id: "Sales & Marketing", depth: 4, value: 85, category: "expense", group: "operating_expenses", sort_order: 1},
-                {id: "R&D", depth: 4, value: 45, category: "expense", group: "operating_expenses", sort_order: 2},
-                {id: "G&A", depth: 4, value: 20, category: "expense", group: "operating_expenses", sort_order: 3},
-                {id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1}
+                {id: "Sales & Marketing", depth: 4, value: 200, category: "expense", group: "operating_expenses", sort_order: 1},
+                {id: "R&D", depth: 4, value: 125, category: "expense", group: "operating_expenses", sort_order: 2},
+                {id: "G&A", depth: 4, value: 50, category: "expense", group: "operating_expenses", sort_order: 3},
+                {id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1},
+                {id: "Other Expense", depth: 4, value: 3, category: "expense", group: "final_adjustments", sort_order: 2}
             ],
             links: [
                 {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
                 {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
                 {source: "Platform & Other", target: "Total Revenue", value: 135, type: "revenue_flow"},
-                {source: "Total Revenue", target: "Gross Profit", value: 340, type: "profit_flow"},
+                {source: "Total Revenue", target: "Gross Profit", value: 440, type: "profit_flow"},
                 {source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost_flow"},
                 {source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit_flow"},
-                {source: "Gross Profit", target: "Operating Expenses", value: 155, type: "expense_flow"},
-                {source: "Operating Expenses", target: "Sales & Marketing", value: 85, type: "expense_breakdown"},
-                {source: "Operating Expenses", target: "R&D", value: 45, type: "expense_breakdown"},
-                {source: "Operating Expenses", target: "G&A", value: 20, type: "expense_breakdown"},
+                {source: "Gross Profit", target: "Operating Expenses", value: 375, type: "expense_flow"},
+                {source: "Operating Expenses", target: "Sales & Marketing", value: 200, type: "expense_breakdown"},
+                {source: "Operating Expenses", target: "R&D", value: 125, type: "expense_breakdown"},
+                {source: "Operating Expenses", target: "G&A", value: 50, type: "expense_breakdown"},
                 {source: "Operating Profit", target: "Net Income", value: 50, type: "final_income"},
-                {source: "Operating Profit", target: "Tax Expense", value: 12, type: "tax_flow"}
+                {source: "Operating Profit", target: "Tax Expense", value: 12, type: "tax_flow"},
+                {source: "Operating Profit", target: "Other Expense", value: 3, type: "other_flow"}
             ]
         };
 
+        // Store current form state to persist across re-renders
+        let formState = {};
+        let nodeUUIDs = new Map(); // Stable IDs that don't change when node properties change
+
+        function getNodeUUID(nodeId) {
+            if (!nodeUUIDs.has(nodeId)) {
+                nodeUUIDs.set(nodeId, 'node_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+            }
+            return nodeUUIDs.get(nodeId);
+        }
+
+        function captureFormState() {
+            const forms = document.querySelectorAll('.field-input');
+            forms.forEach(input => {
+                const stableKey = input.dataset.stableKey;
+                if (stableKey) {
+                    formState[stableKey] = input.value;
+                }
+            });
+        }
+
+        function restoreFormState() {
+            // Wait for DOM to be ready
+            setTimeout(() => {
+                Object.entries(formState).forEach(([stableKey, value]) => {
+                    const input = document.querySelector(`[data-stable-key="${stableKey}"]`);
+                    if (input && input.value !== value) {
+                        input.value = value;
+                        // Trigger the update to sync with data
+                        if (input.dataset.nodeUuid && input.dataset.field) {
+                            const nodeId = findNodeIdByUUID(input.dataset.nodeUuid);
+                            if (nodeId) {
+                                if (input.dataset.field === 'value') {
+                                    updateNodeValue(nodeId, parseFloat(value) || 0);
+                                } else {
+                                    updateNodeField(nodeId, input.dataset.field, value);
+                                }
+                            }
+                        }
+                    }
+                });
+            }, 10);
+        }
+
+        function findNodeIdByUUID(uuid) {
+            for (let [nodeId, nodeUuid] of nodeUUIDs.entries()) {
+                if (nodeUuid === uuid) {
+                    return nodeId;
+                }
+            }
+            return null;
+        }
+
         function renderEditableData() {
+            captureFormState(); // Capture current state before re-rendering
+            
             renderRevenueSource();
             renderIntermediateFlows();
             renderFinalResults();
-            updateMetadata();
-            updatePreview();
+            setupMetadataListeners();
+            
+            restoreFormState(); // Restore state after re-rendering
+            updateLivePreview();
         }
 
         function renderRevenueSource() {
@@ -391,23 +503,31 @@
             const div = document.createElement('div');
             div.className = 'data-item';
             
+            const nodeUUID = getNodeUUID(node.id);
+            
             div.innerHTML = `
                 <button class="remove-item" onclick="removeNode('${node.id}', '${type}')" title="Remove">×</button>
                 <div class="item-fields">
                     <div class="field-group">
                         <label class="field-label">Name</label>
                         <input type="text" class="field-input" value="${node.id}" 
-                               onchange="updateNode('${node.id}', 'id', this.value)">
+                               data-stable-key="${nodeUUID}-id"
+                               data-node-uuid="${nodeUUID}" data-field="id"
+                               oninput="updateNodeFieldStable(this, 'id', this.value)">
                     </div>
                     <div class="field-group">
                         <label class="field-label">Value</label>
                         <input type="number" class="field-input" value="${node.value}" 
-                               oninput="updateNodeValue('${node.id}', parseFloat(this.value) || 0)"
-                               onchange="updateNodeValue('${node.id}', parseFloat(this.value) || 0)">
+                               data-stable-key="${nodeUUID}-value"
+                               data-node-uuid="${nodeUUID}" data-field="value"
+                               oninput="updateNodeFieldStable(this, 'value', parseFloat(this.value) || 0)">
                     </div>
                     <div class="field-group">
                         <label class="field-label">Depth</label>
-                        <select class="field-input" onchange="updateNode('${node.id}', 'depth', parseInt(this.value))">
+                        <select class="field-input" 
+                                data-stable-key="${nodeUUID}-depth"
+                                data-node-uuid="${nodeUUID}" data-field="depth"
+                                onchange="updateNodeFieldStable(this, 'depth', parseInt(this.value))">
                             <option value="0" ${node.depth === 0 ? 'selected' : ''}>0</option>
                             <option value="1" ${node.depth === 1 ? 'selected' : ''}>1</option>
                             <option value="2" ${node.depth === 2 ? 'selected' : ''}>2</option>
@@ -417,7 +537,10 @@
                     </div>
                     <div class="field-group">
                         <label class="field-label">Category</label>
-                        <select class="field-input" onchange="updateNode('${node.id}', 'category', this.value)">
+                        <select class="field-input" 
+                                data-stable-key="${nodeUUID}-category"
+                                data-node-uuid="${nodeUUID}" data-field="category"
+                                onchange="updateNodeFieldStable(this, 'category', this.value)">
                             <option value="revenue" ${node.category === 'revenue' ? 'selected' : ''}>Revenue</option>
                             <option value="cost" ${node.category === 'cost' ? 'selected' : ''}>Cost</option>
                             <option value="profit" ${node.category === 'profit' ? 'selected' : ''}>Profit</option>
@@ -428,7 +551,9 @@
                     <div class="field-group">
                         <label class="field-label">Description</label>
                         <input type="text" class="field-input" value="${node.description || ''}" 
-                               onchange="updateNode('${node.id}', 'description', this.value)">
+                               data-stable-key="${nodeUUID}-description"
+                               data-node-uuid="${nodeUUID}" data-field="description"
+                               oninput="updateNodeFieldStable(this, 'description', this.value)">
                     </div>
                 </div>
             `;
@@ -436,7 +561,21 @@
             return div;
         }
 
-        // Separate function for value updates (no re-render)
+        // New function that uses stable UUID to find the correct node
+        function updateNodeFieldStable(inputElement, field, value) {
+            const nodeUUID = inputElement.dataset.nodeUuid;
+            const currentNodeId = findNodeIdByUUID(nodeUUID);
+            
+            if (!currentNodeId) return;
+            
+            if (field === 'value') {
+                updateNodeValue(currentNodeId, value);
+            } else {
+                updateNodeField(currentNodeId, field, value);
+            }
+        }
+
+        // Immediate update without re-rendering
         function updateNodeValue(nodeId, value) {
             const node = templateData.nodes.find(n => n.id === nodeId);
             if (node) {
@@ -444,31 +583,32 @@
                 updateLinksForNode(nodeId, value);
                 
                 if (node.depth === 0) {
-                    recalculateTotalRevenue();
+                    recalculateTotals();
                 }
                 
-                updatePreview(); // Only update JSON preview
+                updateLivePreview(); // Only update preview, not form
             }
         }
 
-        function updateNode(oldId, field, value) {
+        function updateNodeField(oldId, field, value) {
             const node = templateData.nodes.find(n => n.id === oldId);
             if (node) {
-                if (field === 'id') {
-                    // Update links that reference this node
+                if (field === 'id' && value !== oldId) {
+                    // Update all links that reference this node
                     templateData.links.forEach(link => {
                         if (link.source === oldId) link.source = value;
                         if (link.target === oldId) link.target = value;
                     });
+                    
+                    // Update the UUID mapping
+                    if (nodeUUIDs.has(oldId)) {
+                        const uuid = nodeUUIDs.get(oldId);
+                        nodeUUIDs.delete(oldId);
+                        nodeUUIDs.set(value, uuid);
+                    }
                 }
                 node[field] = value;
-                
-                // Auto-update link values when node values change
-                if (field === 'value') {
-                    updateLinksForNode(node.id, value);
-                }
-                
-                updatePreview();
+                updateLivePreview();
             }
         }
 
@@ -479,53 +619,102 @@
                     link.value = newValue;
                 }
             });
-            
-            // Recalculate total revenue if revenue source changed
-            if (templateData.nodes.find(n => n.id === nodeId)?.depth === 0) {
-                recalculateTotalRevenue();
-            }
         }
 
-        function recalculateTotalRevenue() {
+        function recalculateTotals() {
+            // Recalculate Total Revenue
             const revenueNodes = templateData.nodes.filter(n => n.depth === 0);
             const totalRevenue = revenueNodes.reduce((sum, node) => sum + (node.value || 0), 0);
             
-            // Update Total Revenue node
             const totalRevenueNode = templateData.nodes.find(n => n.id === "Total Revenue");
             if (totalRevenueNode) {
                 totalRevenueNode.value = totalRevenue;
+                updateLinksForNode("Total Revenue", totalRevenue);
+            }
+
+            // Recalculate Operating Expenses
+            const operatingExpenseNodes = templateData.nodes.filter(n => 
+                n.depth === 4 && (n.group === "operating_expenses" || 
+                ["Sales & Marketing", "R&D", "G&A"].includes(n.id))
+            );
+            const totalOperatingExpenses = operatingExpenseNodes.reduce((sum, node) => sum + (node.value || 0), 0);
+            
+            const operatingExpensesNode = templateData.nodes.find(n => n.id === "Operating Expenses");
+            if (operatingExpensesNode) {
+                operatingExpensesNode.value = totalOperatingExpenses;
+                updateLinksForNode("Operating Expenses", totalOperatingExpenses);
+            }
+
+            // Recalculate Gross Profit (Total Revenue - Cost of Revenue)
+            const costOfRevenueNode = templateData.nodes.find(n => n.id === "Cost of Revenue");
+            const grossProfitNode = templateData.nodes.find(n => n.id === "Gross Profit");
+            
+            if (totalRevenueNode && costOfRevenueNode && grossProfitNode) {
+                const grossProfit = totalRevenueNode.value - costOfRevenueNode.value;
+                grossProfitNode.value = grossProfit;
+                updateLinksForNode("Gross Profit", grossProfit);
+            }
+
+            // Recalculate Operating Profit (Gross Profit - Operating Expenses)
+            const operatingProfitNode = templateData.nodes.find(n => n.id === "Operating Profit");
+            if (grossProfitNode && operatingExpensesNode && operatingProfitNode) {
+                const operatingProfit = grossProfitNode.value - operatingExpensesNode.value;
+                operatingProfitNode.value = operatingProfit;
+                updateLinksForNode("Operating Profit", operatingProfit);
             }
         }
 
         function removeNode(nodeId, type) {
             templateData.nodes = templateData.nodes.filter(n => n.id !== nodeId);
             templateData.links = templateData.links.filter(l => l.source !== nodeId && l.target !== nodeId);
-            recalculateTotalRevenue();
+            recalculateTotals();
+            renderEditableData();
+        }
+
+        function setupMetadataListeners() {
+            const metadataFields = [
+                { id: 'company-name', field: 'company' },
+                { id: 'period', field: 'period' },
+                { id: 'currency', field: 'currency' },
+                { id: 'units', field: 'unit' },
+                { id: 'chart-title', field: 'title' },
+                { id: 'subtitle', field: 'subtitle' }
+            ];
+
+            metadataFields.forEach(({ id, field }) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', (e) => {
+                        templateData.metadata[field] = e.target.value;
+                        updateLivePreview();
+                    });
+                }
+            });
+        }
+
+        function updateLivePreview() {
+            const preview = document.getElementById('json-preview');
+            const stats = document.getElementById('json-stats');
             
-            if (type === 'revenue') {
-                renderRevenueSource();
-            } else if (type === 'intermediate') {
-                renderIntermediateFlows();
-            } else if (type === 'final') {
-                renderFinalResults();
+            if (preview) {
+                preview.textContent = JSON.stringify(templateData, null, 2);
+            }
+            
+            if (stats) {
+                const nodeCount = templateData.nodes.length;
+                const linkCount = templateData.links.length;
+                const totalValue = templateData.nodes
+                    .filter(n => n.depth === 0)
+                    .reduce((sum, node) => sum + (node.value || 0), 0);
+                
+                stats.textContent = `Nodes: ${nodeCount} | Links: ${linkCount} | Total Revenue: $${totalValue}${templateData.metadata.unit === 'millions' ? 'M' : 'K'}`;
             }
         }
 
-        function updateMetadata() {
-            console.log('updateMetadata deprecated - using setupMetadataListeners');
-        }
-
-        function updatePreview() {
-            // Removed JSON preview functionality
-        }
-
-        function togglePreview() {
-            // Removed JSON preview functionality
-        }
-
         function addRevenueSource() {
+            const newId = `New Revenue Source ${Date.now()}`;
             const newNode = {
-                id: "New Revenue Source",
+                id: newId,
                 depth: 0,
                 value: 100,
                 category: "revenue",
@@ -536,19 +725,25 @@
             
             // Auto-create link to Total Revenue
             templateData.links.push({
-                source: "New Revenue Source",
+                source: newId,
                 target: "Total Revenue",
                 value: 100,
                 type: "revenue_flow"
             });
             
-            recalculateTotalRevenue();
-            renderEditableData();
+            // Instead of re-rendering, just append the new item
+            const container = document.getElementById('revenue-sources');
+            const newEditor = createNodeEditor(newNode, 'revenue', templateData.nodes.filter(n => n.depth === 0).length - 1);
+            container.appendChild(newEditor);
+            
+            recalculateTotals();
+            updateLivePreview();
         }
 
         function addIntermediateFlow() {
+            const newId = `New Flow ${Date.now()}`;
             const newNode = {
-                id: "New Flow",
+                id: newId,
                 depth: 2,
                 value: 50,
                 category: "profit",
@@ -556,12 +751,19 @@
                 sort_order: 1
             };
             templateData.nodes.push(newNode);
-            renderEditableData();
+            
+            // Append without re-rendering
+            const container = document.getElementById('intermediate-flows');
+            const newEditor = createNodeEditor(newNode, 'intermediate', templateData.nodes.filter(n => n.depth >= 1 && n.depth <= 3).length - 1);
+            container.appendChild(newEditor);
+            
+            updateLivePreview();
         }
 
         function addFinalResult() {
+            const newId = `New Final Item ${Date.now()}`;
             const newNode = {
-                id: "New Final Item",
+                id: newId,
                 depth: 4,
                 value: 25,
                 category: "expense",
@@ -573,55 +775,28 @@
             // Auto-create link from Operating Profit
             templateData.links.push({
                 source: "Operating Profit",
-                target: "New Final Item",
+                target: newId,
                 value: 25,
                 type: "expense_breakdown"
             });
             
-            renderEditableData();
-        }
-
-        function updateMetadata() {
-            document.getElementById('company-name').addEventListener('change', (e) => {
-                templateData.metadata.company = e.target.value;
-                updatePreview();
-            });
+            // Append without re-rendering
+            const container = document.getElementById('final-results');
+            const newEditor = createNodeEditor(newNode, 'final', templateData.nodes.filter(n => n.depth === 4).length - 1);
+            container.appendChild(newEditor);
             
-            document.getElementById('period').addEventListener('change', (e) => {
-                templateData.metadata.period = e.target.value;
-                updatePreview();
-            });
-            
-            // Add other metadata listeners...
-        }
-
-        function updatePreview() {
-            const preview = document.getElementById('json-preview');
-            preview.textContent = JSON.stringify(templateData, null, 2);
-        }
-
-        function togglePreview() {
-            const preview = document.getElementById('json-preview');
-            if (preview.style.display === 'none') {
-                preview.style.display = 'block';
-                updatePreview();
-            } else {
-                preview.style.display = 'none';
-            }
+            updateLivePreview();
         }
 
         function generateChart() {
-            // Check if we came from guided flow
             const urlParams = new URLSearchParams(window.location.search);
             const chartType = urlParams.get('chartType') || 'sankey';
             const returnTo = urlParams.get('returnTo');
             
             if (returnTo === 'guided') {
-                // Go back to guided flow step 3 with data
                 const dataString = encodeURIComponent(JSON.stringify(templateData));
                 window.location.href = `guided.html?step=3&chartType=${chartType}&data=${dataString}&dataInput=template`;
             } else {
-                // Navigate directly to chart page
                 const dataString = encodeURIComponent(JSON.stringify(templateData));
                 window.location.href = `chart.html?chartType=${chartType}&data=${dataString}`;
             }
@@ -635,16 +810,18 @@
             link.href = url;
             link.download = 'financial-data.json';
             link.click();
+            URL.revokeObjectURL(url);
         }
 
         function loadTemplate() {
-            // Show template selection dialog
             alert('Template selection would open here');
         }
 
         // Initialize the interface
         document.addEventListener('DOMContentLoaded', function() {
             renderEditableData();
+            recalculateTotals();
+            updateLivePreview();
         });
     </script>
 </body>
