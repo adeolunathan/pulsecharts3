@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Analytics - Guided Chart Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+
+        /* Step Progress Indicator */
+        .step-progress {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .progress-container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .step-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #e1e5e9;
+            z-index: -1;
+        }
+
+        .step-item.active::after,
+        .step-item.completed::after {
+            background: #667eea;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e1e5e9;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .step-item.active .step-circle {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .step-item.completed .step-circle {
+            background: #27ae60;
+            color: white;
+        }
+
+        .step-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .step-item.active .step-title {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Main Content Container */
+        .main-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .step-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+            min-height: 600px;
+        }
+
+        /* Step 1: Chart Type Selection */
+        .chart-selection {
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .chart-selection h1 {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .chart-selection .subtitle {
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin-bottom: 50px;
+        }
+
+        .chart-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .chart-type-card {
+            background: #f8f9fa;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 30px 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .chart-type-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .chart-type-card.selected {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .chart-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .chart-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .chart-description {
+            color: #6b7280;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .chart-status {
+            margin-top: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-coming-soon {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Step 2: Data Input */
+        .data-input {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 600px;
+        }
+
+        .input-option {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-right: 1px solid #e1e5e9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-option:last-child {
+            border-right: none;
+        }
+
+        .input-option:hover {
+            background: #f8f9fa;
+        }
+
+        .option-icon {
+            font-size: 4rem;
+            margin-bottom: 24px;
+            color: #667eea;
+        }
+
+        .option-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+
+        .option-description {
+            color: #6b7280;
+            line-height: 1.6;
+            max-width: 300px;
+        }
+
+        /* Step 3: Chart Display */
+        .chart-display {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            min-height: 700px;
+        }
+
+        .chart-area {
+            padding: 20px;
+            border-right: 1px solid #e1e5e9;
+        }
+
+        .chart-placeholder {
+            background: #f8f9fa;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #6b7280;
+        }
+
+        .chart-controls {
+            padding: 20px;
+            background: #f8f9fa;
+            overflow-y: auto;
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .controls-title {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            padding: 20px 40px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Hidden step content */
+        .step-content[data-step]:not(.active) {
+            display: none;
+        }
+
+        /* URL/Bookmark section */
+        .bookmark-section {
+            background: #e7f3ff;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .bookmark-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1e40af;
+        }
+
+        .bookmark-url {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #6b7280;
+            word-break: break-all;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .chart-types {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-input {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-option {
+                border-right: none;
+                border-bottom: 1px solid #e1e5e9;
+            }
+            
+            .chart-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-area {
+                border-right: none;
+                border-bottom: 1px solid #e1e5e9;
+            }
+            
+            .progress-container {
+                padding: 0 10px;
+            }
+            
+            .step-title {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Step Progress Indicator -->
+    <div class="step-progress">
+        <div class="progress-container">
+            <div class="step-item active" data-step="1">
+                <div class="step-circle">1</div>
+                <div class="step-title">Choose Chart</div>
+            </div>
+            <div class="step-item" data-step="2">
+                <div class="step-circle">2</div>
+                <div class="step-title">Add Data</div>
+            </div>
+            <div class="step-item" data-step="3">
+                <div class="step-circle">3</div>
+                <div class="step-title">Customize & View</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Step 1: Chart Type Selection -->
+        <div class="step-content active" data-step="1">
+            <div class="chart-selection">
+                <h1>What type of chart would you like to build?</h1>
+                <p class="subtitle">Choose the visualization that best represents your data</p>
+                
+                <div class="chart-types">
+                    <div class="chart-type-card" data-chart-type="sankey" onclick="selectChartType('sankey')">
+                        <span class="chart-icon">🌊</span>
+                        <h3 class="chart-name">Sankey Flow Chart</h3>
+                        <p class="chart-description">Visualize financial flows and relationships between revenue, costs, and profits</p>
+                        <span class="chart-status status-available">Available</span>
+                    </div>
+                    
+                    <div class="chart-type-card" data-chart-type="bar" onclick="selectChartType('bar')">
+                        <span class="chart-icon">📊</span>
+                        <h3 class="chart-name">Bar Chart</h3>
+                        <p class="chart-description">Compare values across categories with horizontal or vertical bars</p>
+                        <span class="chart-status status-coming-soon">Coming Soon</span>
+                    </div>
+                    
+                    <div class="chart-type-card" data-chart-type="line" onclick="selectChartType('line')">
+                        <span class="chart-icon">📈</span>
+                        <h3 class="chart-name">Line Chart</h3>
+                        <p class="chart-description">Track trends and changes over time periods</p>
+                        <span class="chart-status status-coming-soon">Coming Soon</span>
+                    </div>
+                    
+                    <div class="chart-type-card" data-chart-type="treemap" onclick="selectChartType('treemap')">
+                        <span class="chart-icon">🗂️</span>
+                        <h3 class="chart-name">Treemap</h3>
+                        <p class="chart-description">Display hierarchical data with nested rectangles</p>
+                        <span class="chart-status status-coming-soon">Coming Soon</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-buttons">
+                <div></div>
+                <button class="btn btn-primary" id="step1-next" onclick="nextStep()" disabled>
+                    Continue <span>→</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Data Input/Template Selection -->
+        <div class="step-content" data-step="2">
+            <div class="data-input">
+                <div class="input-option" onclick="selectDataInput('template')">
+                    <span class="option-icon">📋</span>
+                    <h3 class="option-title">Start with Template</h3>
+                    <p class="option-description">Use pre-filled sample data that you can edit and customize for your company</p>
+                </div>
+                
+                <div class="input-option" onclick="selectDataInput('upload')">
+                    <span class="option-icon">📁</span>
+                    <h3 class="option-title">Upload Your Data</h3>
+                    <p class="option-description">Import your financial data from JSON, CSV, or standard income statement format</p>
+                </div>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="previousStep()">
+                    <span>←</span> Back
+                </button>
+                <button class="btn btn-primary" id="step2-next" onclick="nextStep()" disabled>
+                    Continue <span>→</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: Chart Display & Controls -->
+        <div class="step-content" data-step="3">
+            <div class="chart-display">
+                <div class="chart-area">
+                    <div class="chart-placeholder">
+                        <span style="font-size: 4rem; margin-bottom: 16px;">📊</span>
+                        <h3>Your Chart Will Appear Here</h3>
+                        <p style="color: #6b7280; margin-top: 8px;">Chart rendering with your selected data and type</p>
+                    </div>
+                </div>
+                
+                <div class="chart-controls">
+                    <div class="controls-header">
+                        <h3 class="controls-title">Chart Controls</h3>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">Reset</button>
+                    </div>
+                    
+                    <div style="color: #6b7280; text-align: center; margin-top: 40px;">
+                        <span style="font-size: 2rem; display: block; margin-bottom: 12px;">⚙️</span>
+                        <p>Chart-specific controls will appear here based on your selected chart type</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bookmark/Share Section -->
+            <div class="bookmark-section">
+                <div class="bookmark-title">📎 Shareable Link</div>
+                <div class="bookmark-url" id="shareable-url">
+                    https://pulse-analytics.com/chart?type=sankey&data=template&id=saas-demo
+                </div>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="previousStep()">
+                    <span>←</span> Back to Data
+                </button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="exportChart()">
+                        📁 Export
+                    </button>
+                    <button class="btn btn-primary" onclick="startOver()">
+                        🔄 Start Over
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let currentStep = 1;
+        let selectedChartType = null;
+        let selectedDataInput = null;
+        let appState = {
+            chartType: null,
+            dataInput: null,
+            data: null,
+            config: {}
+        };
+
+        // Step Management
+        function updateStepProgress() {
+            // Update progress indicators
+            document.querySelectorAll('.step-item').forEach((item, index) => {
+                const stepNum = index + 1;
+                item.classList.remove('active', 'completed');
+                
+                if (stepNum < currentStep) {
+                    item.classList.add('completed');
+                } else if (stepNum === currentStep) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Show/hide step content
+            document.querySelectorAll('.step-content').forEach((content) => {
+                content.classList.remove('active');
+                if (content.dataset.step == currentStep) {
+                    content.classList.add('active');
+                }
+            });
+
+            // Update URL for bookmarking
+            updateURL();
+        }
+
+        function nextStep() {
+            if (currentStep < 3 && validateCurrentStep()) {
+                currentStep++;
+                updateStepProgress();
+                
+                // Initialize step-specific functionality
+                if (currentStep === 3) {
+                    initializeChartDisplay();
+                }
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepProgress();
+            }
+        }
+
+        function validateCurrentStep() {
+            switch (currentStep) {
+                case 1:
+                    return selectedChartType !== null;
+                case 2:
+                    return selectedDataInput !== null;
+                case 3:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // Step 1: Chart Type Selection
+        function selectChartType(chartType) {
+            // Only allow selection of available chart types
+            if (chartType !== 'sankey') {
+                alert('This chart type is coming soon! Please select Sankey Flow Chart for now.');
+                return;
+            }
+            
+            selectedChartType = chartType;
+            appState.chartType = chartType;
+            
+            // Update UI
+            document.querySelectorAll('.chart-type-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-chart-type="${chartType}"]`).classList.add('selected');
+            
+            // Enable next button
+            document.getElementById('step1-next').disabled = false;
+        }
+
+        // Step 2: Data Input Selection
+        function selectDataInput(inputType) {
+            selectedDataInput = inputType;
+            appState.dataInput = inputType;
+            
+            // Update UI
+            document.querySelectorAll('.input-option').forEach(option => {
+                option.style.background = '';
+            });
+            event.currentTarget.style.background = '#f0f3ff';
+            
+            // Handle different input types
+            if (inputType === 'template') {
+                // Redirect to template editing page
+                const params = new URLSearchParams({
+                    chartType: selectedChartType,
+                    returnTo: 'guided'
+                });
+                window.location.href = `templates.html?${params.toString()}`;
+            } else if (inputType === 'upload') {
+                showUploadDialog();
+                // Enable next button after successful upload
+                document.getElementById('step2-next').disabled = false;
+            }
+        }
+
+        function loadTemplateData() {
+            // Load sample SaaS data (matches your existing format)
+            appState.data = {
+                metadata: {
+                    title: "SaaS Company Financial Flow",
+                    subtitle: "Q3 2025 Financial Performance",
+                    currency: "USD",
+                    unit: "millions",
+                    company: "TechFlow SaaS Corp",
+                    period: "Q3 2025"
+                },
+                nodes: [
+                    {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue", group: "revenue_sources", sort_order: 1},
+                    {id: "Professional Services", depth: 0, value: 60, category: "revenue", group: "revenue_sources", sort_order: 2},
+                    {id: "Platform & Other", depth: 0, value: 135, category: "revenue", group: "revenue_sources", sort_order: 3},
+                    {id: "Total Revenue", depth: 1, value: 395, category: "revenue", group: "aggregated_revenue", sort_order: 1},
+                    {id: "Gross Profit", depth: 2, value: 340, category: "profit", group: "gross_metrics", sort_order: 1},
+                    {id: "Cost of Revenue", depth: 2, value: 55, category: "cost", group: "gross_metrics", sort_order: 2},
+                    {id: "Operating Profit", depth: 3, value: 65, category: "profit", group: "operating_metrics", sort_order: 1},
+                    {id: "Operating Expenses", depth: 3, value: 155, category: "expense", group: "operating_metrics", sort_order: 2},
+                    {id: "Net Income", depth: 4, value: 50, category: "income", group: "final_results", sort_order: 1},
+                    {id: "Sales & Marketing", depth: 4, value: 85, category: "expense", group: "operating_expenses", sort_order: 1},
+                    {id: "R&D", depth: 4, value: 45, category: "expense", group: "operating_expenses", sort_order: 2},
+                    {id: "G&A", depth: 4, value: 20, category: "expense", group: "operating_expenses", sort_order: 3},
+                    {id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1}
+                ],
+                links: [
+                    {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
+                    {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
+                    {source: "Platform & Other", target: "Total Revenue", value: 135, type: "revenue_flow"},
+                    {source: "Total Revenue", target: "Gross Profit", value: 340, type: "profit_flow"},
+                    {source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost_flow"},
+                    {source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit_flow"},
+                    {source: "Gross Profit", target: "Operating Expenses", value: 155, type: "expense_flow"},
+                    {source: "Operating Expenses", target: "Sales & Marketing", value: 85, type: "expense_breakdown"},
+                    {source: "Operating Expenses", target: "R&D", value: 45, type: "expense_breakdown"},
+                    {source: "Operating Expenses", target: "G&A", value: 20, type: "expense_breakdown"},
+                    {source: "Operating Profit", target: "Net Income", value: 50, type: "final_income"},
+                    {source: "Operating Profit", target: "Tax Expense", value: 12, type: "tax_flow"}
+                ]
+            };
+            console.log('Template data loaded');
+        }
+
+        function showUploadDialog() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,.csv';
+            input.onchange = handleFileUpload;
+            input.click();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        appState.data = data;
+                        console.log('Uploaded data:', data);
+                    } catch (error) {
+                        alert('Error parsing file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Step 3: Chart Display
+        function initializeChartDisplay() {
+            console.log('Initializing chart display with:', appState);
+            
+            // This would integrate with your existing PulseSankeyChart
+            // For now, just update the placeholder
+            const placeholder = document.querySelector('.chart-placeholder');
+            placeholder.innerHTML = `
+                <span style="font-size: 4rem; margin-bottom: 16px;">🌊</span>
+                <h3>Sankey Chart Ready</h3>
+                <p style="color: #6b7280; margin-top: 8px;">Chart would render here with ${appState.dataInput} data</p>
+                <button class="btn btn-primary" style="margin-top: 16px;" onclick="renderActualChart()">
+                    🚀 Render Chart
+                </button>
+            `;
+
+            // Update controls section
+            const controls = document.querySelector('.chart-controls');
+            controls.innerHTML = `
+                <div class="controls-header">
+                    <h3 class="controls-title">Sankey Controls</h3>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">Reset</button>
+                </div>
+                <div style="margin-top: 20px;">
+                    <p style="color: #6b7280; margin-bottom: 16px;">Chart-specific controls for ${selectedChartType}:</p>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; color: #495057;">
+                        • Node spacing controls<br>
+                        • Flow curve adjustments<br>
+                        • Color scheme options<br>
+                        • Export settings<br>
+                        • And more...
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderActualChart() {
+            // Navigate to chart page with data
+            const dataString = encodeURIComponent(JSON.stringify(appState.data));
+            window.location.href = `chart.html?chartType=${selectedChartType}&data=${dataString}`;
+        }
+
+        // URL Management for Bookmarking
+        function updateURL() {
+            const params = new URLSearchParams();
+            if (selectedChartType) params.set('type', selectedChartType);
+            if (selectedDataInput) params.set('data', selectedDataInput);
+            params.set('step', currentStep);
+            
+            const newURL = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState(null, '', newURL);
+            
+            // Update shareable URL display
+            const shareableUrl = document.getElementById('shareable-url');
+            if (shareableUrl) {
+                shareableUrl.textContent = window.location.href;
+            }
+        }
+
+        function loadFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (params.has('chartType')) {
+                selectChartType(params.get('chartType'));
+            }
+            
+            if (params.has('dataInput')) {
+                selectedDataInput = params.get('dataInput');
+                appState.dataInput = selectedDataInput;
+            }
+            
+            if (params.has('data')) {
+                try {
+                    appState.data = JSON.parse(decodeURIComponent(params.get('data')));
+                    console.log('Loaded data from URL:', appState.data);
+                } catch (error) {
+                    console.error('Error parsing URL data:', error);
+                }
+            }
+            
+            if (params.has('step')) {
+                currentStep = parseInt(params.get('step')) || 1;
+                updateStepProgress();
+                
+                if (currentStep === 3 && appState.data) {
+                    // Coming back from template editing - render chart immediately
+                    initializeChartDisplay();
+                    setTimeout(renderActualChart, 500);
+                }
+            }
+        }
+
+        // Utility Functions
+        function exportChart() {
+            alert('Export functionality would integrate with your existing ExportUtils');
+        }
+
+        function startOver() {
+            if (confirm('Are you sure you want to start over? This will clear your current progress.')) {
+                currentStep = 1;
+                selectedChartType = null;
+                selectedDataInput = null;
+                appState = { chartType: null, dataInput: null, data: null, config: {} };
+                
+                // Reset UI
+                document.querySelectorAll('.chart-type-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                document.querySelectorAll('.input-option').forEach(option => {
+                    option.style.background = '';
+                });
+                document.getElementById('step1-next').disabled = true;
+                document.getElementById('step2-next').disabled = true;
+                
+                updateStepProgress();
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromURL();
+            updateStepProgress();
+        });
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', function() {
+            loadFromURL();
+        });
+    </script>
+</body>
+</html>

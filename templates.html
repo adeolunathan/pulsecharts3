@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editable Data Templates</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .template-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .template-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .template-content {
+            padding: 30px;
+        }
+
+        .data-section {
+            margin-bottom: 30px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .add-item-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        .data-item {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .data-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-fields {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 3fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .field-input {
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+        }
+
+        .field-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .remove-item {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .preview-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .json-preview {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        @media (max-width: 768px) {
+            .item-fields {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .metadata-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="template-container">
+        <div class="template-header">
+            <h1>📊 Editable Sample Data Template</h1>
+            <p>Modify the sample data below to match your company's financial structure</p>
+        </div>
+
+        <div class="template-content">
+            <!-- Metadata Section -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h3 class="section-title">📋 Company Information</h3>
+                </div>
+                <div class="section-content">
+                    <div class="metadata-grid">
+                        <div class="field-group">
+                            <label class="field-label">Company Name</label>
+                            <input type="text" class="field-input" id="company-name" value="TechFlow SaaS Corp">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Period</label>
+                            <input type="text" class="field-input" id="period" value="Q3 2025">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Currency</label>
+                            <select class="field-input" id="currency">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Units</label>
+                            <select class="field-input" id="units">
+                                <option value="millions">Millions</option>
+                                <option value="thousands">Thousands</option>
+                                <option value="billions">Billions</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Chart Title</label>
+                            <input type="text" class="field-input" id="chart-title" value="SaaS Company Financial Flow">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Subtitle</label>
+                            <input type="text" class="field-input" id="subtitle" value="Q3 2025 Financial Performance">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Sources -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h3 class="section-title">💰 Revenue Sources (Depth 0)</h3>
+                    <button class="add-item-btn" onclick="addRevenueSource()">+ Add Revenue Source</button>
+                </div>
+                <div class="section-content" id="revenue-sources">
+                    <!-- Revenue items will be dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Intermediate Flows -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h3 class="section-title">🔄 Intermediate Flows (Depths 1-3)</h3>
+                    <button class="add-item-btn" onclick="addIntermediateFlow()">+ Add Flow</button>
+                </div>
+                <div class="section-content" id="intermediate-flows">
+                    <!-- Intermediate flow items will be dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Final Results -->
+            <div class="data-section">
+                <div class="section-header">
+                    <h3 class="section-title">🎯 Final Results (Depth 4)</h3>
+                    <button class="add-item-btn" onclick="addFinalResult()">+ Add Final Item</button>
+                </div>
+                <div class="section-content" id="final-results">
+                    <!-- Final result items will be dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="generateChart()">🚀 Generate Chart</button>
+                <button class="btn btn-secondary" onclick="exportData()">📁 Export Data</button>
+                <button class="btn btn-secondary" onclick="loadTemplate()">📋 Load Different Template</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data structure (preserves existing format)
+        let templateData = {
+            metadata: {
+                title: "SaaS Company Financial Flow",
+                subtitle: "Q3 2025 Financial Performance",
+                currency: "USD",
+                unit: "millions",
+                company: "TechFlow SaaS Corp",
+                period: "Q3 2025"
+            },
+            nodes: [
+                {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue", group: "revenue_sources", sort_order: 1},
+                {id: "Professional Services", depth: 0, value: 60, category: "revenue", group: "revenue_sources", sort_order: 2},
+                {id: "Platform & Other", depth: 0, value: 135, category: "revenue", group: "revenue_sources", sort_order: 3},
+                {id: "Total Revenue", depth: 1, value: 395, category: "revenue", group: "aggregated_revenue", sort_order: 1},
+                {id: "Gross Profit", depth: 2, value: 340, category: "profit", group: "gross_metrics", sort_order: 1},
+                {id: "Cost of Revenue", depth: 2, value: 55, category: "cost", group: "gross_metrics", sort_order: 2},
+                {id: "Operating Profit", depth: 3, value: 65, category: "profit", group: "operating_metrics", sort_order: 1},
+                {id: "Operating Expenses", depth: 3, value: 155, category: "expense", group: "operating_metrics", sort_order: 2},
+                {id: "Net Income", depth: 4, value: 50, category: "income", group: "final_results", sort_order: 1},
+                {id: "Sales & Marketing", depth: 4, value: 85, category: "expense", group: "operating_expenses", sort_order: 1},
+                {id: "R&D", depth: 4, value: 45, category: "expense", group: "operating_expenses", sort_order: 2},
+                {id: "G&A", depth: 4, value: 20, category: "expense", group: "operating_expenses", sort_order: 3},
+                {id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1}
+            ],
+            links: [
+                {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
+                {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
+                {source: "Platform & Other", target: "Total Revenue", value: 135, type: "revenue_flow"},
+                {source: "Total Revenue", target: "Gross Profit", value: 340, type: "profit_flow"},
+                {source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost_flow"},
+                {source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit_flow"},
+                {source: "Gross Profit", target: "Operating Expenses", value: 155, type: "expense_flow"},
+                {source: "Operating Expenses", target: "Sales & Marketing", value: 85, type: "expense_breakdown"},
+                {source: "Operating Expenses", target: "R&D", value: 45, type: "expense_breakdown"},
+                {source: "Operating Expenses", target: "G&A", value: 20, type: "expense_breakdown"},
+                {source: "Operating Profit", target: "Net Income", value: 50, type: "final_income"},
+                {source: "Operating Profit", target: "Tax Expense", value: 12, type: "tax_flow"}
+            ]
+        };
+
+        function renderEditableData() {
+            renderRevenueSource();
+            renderIntermediateFlows();
+            renderFinalResults();
+            updateMetadata();
+            updatePreview();
+        }
+
+        function renderRevenueSource() {
+            const container = document.getElementById('revenue-sources');
+            const revenueNodes = templateData.nodes.filter(n => n.depth === 0);
+            
+            container.innerHTML = '';
+            revenueNodes.forEach((node, index) => {
+                container.appendChild(createNodeEditor(node, 'revenue', index));
+            });
+        }
+
+        function renderIntermediateFlows() {
+            const container = document.getElementById('intermediate-flows');
+            const intermediateNodes = templateData.nodes.filter(n => n.depth >= 1 && n.depth <= 3);
+            
+            container.innerHTML = '';
+            intermediateNodes.forEach((node, index) => {
+                container.appendChild(createNodeEditor(node, 'intermediate', index));
+            });
+        }
+
+        function renderFinalResults() {
+            const container = document.getElementById('final-results');
+            const finalNodes = templateData.nodes.filter(n => n.depth === 4);
+            
+            container.innerHTML = '';
+            finalNodes.forEach((node, index) => {
+                container.appendChild(createNodeEditor(node, 'final', index));
+            });
+        }
+
+        function createNodeEditor(node, type, index) {
+            const div = document.createElement('div');
+            div.className = 'data-item';
+            
+            div.innerHTML = `
+                <button class="remove-item" onclick="removeNode('${node.id}', '${type}')" title="Remove">×</button>
+                <div class="item-fields">
+                    <div class="field-group">
+                        <label class="field-label">Name</label>
+                        <input type="text" class="field-input" value="${node.id}" 
+                               onchange="updateNode('${node.id}', 'id', this.value)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Value</label>
+                        <input type="number" class="field-input" value="${node.value}" 
+                               oninput="updateNodeValue('${node.id}', parseFloat(this.value) || 0)"
+                               onchange="updateNodeValue('${node.id}', parseFloat(this.value) || 0)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Depth</label>
+                        <select class="field-input" onchange="updateNode('${node.id}', 'depth', parseInt(this.value))">
+                            <option value="0" ${node.depth === 0 ? 'selected' : ''}>0</option>
+                            <option value="1" ${node.depth === 1 ? 'selected' : ''}>1</option>
+                            <option value="2" ${node.depth === 2 ? 'selected' : ''}>2</option>
+                            <option value="3" ${node.depth === 3 ? 'selected' : ''}>3</option>
+                            <option value="4" ${node.depth === 4 ? 'selected' : ''}>4</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Category</label>
+                        <select class="field-input" onchange="updateNode('${node.id}', 'category', this.value)">
+                            <option value="revenue" ${node.category === 'revenue' ? 'selected' : ''}>Revenue</option>
+                            <option value="cost" ${node.category === 'cost' ? 'selected' : ''}>Cost</option>
+                            <option value="profit" ${node.category === 'profit' ? 'selected' : ''}>Profit</option>
+                            <option value="expense" ${node.category === 'expense' ? 'selected' : ''}>Expense</option>
+                            <option value="income" ${node.category === 'income' ? 'selected' : ''}>Income</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Description</label>
+                        <input type="text" class="field-input" value="${node.description || ''}" 
+                               onchange="updateNode('${node.id}', 'description', this.value)">
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Separate function for value updates (no re-render)
+        function updateNodeValue(nodeId, value) {
+            const node = templateData.nodes.find(n => n.id === nodeId);
+            if (node) {
+                node.value = value;
+                updateLinksForNode(nodeId, value);
+                
+                if (node.depth === 0) {
+                    recalculateTotalRevenue();
+                }
+                
+                updatePreview(); // Only update JSON preview
+            }
+        }
+
+        function updateNode(oldId, field, value) {
+            const node = templateData.nodes.find(n => n.id === oldId);
+            if (node) {
+                if (field === 'id') {
+                    // Update links that reference this node
+                    templateData.links.forEach(link => {
+                        if (link.source === oldId) link.source = value;
+                        if (link.target === oldId) link.target = value;
+                    });
+                }
+                node[field] = value;
+                
+                // Auto-update link values when node values change
+                if (field === 'value') {
+                    updateLinksForNode(node.id, value);
+                }
+                
+                updatePreview();
+            }
+        }
+
+        function updateLinksForNode(nodeId, newValue) {
+            // Update outgoing links from this node
+            templateData.links.forEach(link => {
+                if (link.source === nodeId) {
+                    link.value = newValue;
+                }
+            });
+            
+            // Recalculate total revenue if revenue source changed
+            if (templateData.nodes.find(n => n.id === nodeId)?.depth === 0) {
+                recalculateTotalRevenue();
+            }
+        }
+
+        function recalculateTotalRevenue() {
+            const revenueNodes = templateData.nodes.filter(n => n.depth === 0);
+            const totalRevenue = revenueNodes.reduce((sum, node) => sum + (node.value || 0), 0);
+            
+            // Update Total Revenue node
+            const totalRevenueNode = templateData.nodes.find(n => n.id === "Total Revenue");
+            if (totalRevenueNode) {
+                totalRevenueNode.value = totalRevenue;
+            }
+        }
+
+        function removeNode(nodeId, type) {
+            templateData.nodes = templateData.nodes.filter(n => n.id !== nodeId);
+            templateData.links = templateData.links.filter(l => l.source !== nodeId && l.target !== nodeId);
+            recalculateTotalRevenue();
+            
+            if (type === 'revenue') {
+                renderRevenueSource();
+            } else if (type === 'intermediate') {
+                renderIntermediateFlows();
+            } else if (type === 'final') {
+                renderFinalResults();
+            }
+        }
+
+        function updateMetadata() {
+            console.log('updateMetadata deprecated - using setupMetadataListeners');
+        }
+
+        function updatePreview() {
+            // Removed JSON preview functionality
+        }
+
+        function togglePreview() {
+            // Removed JSON preview functionality
+        }
+
+        function addRevenueSource() {
+            const newNode = {
+                id: "New Revenue Source",
+                depth: 0,
+                value: 100,
+                category: "revenue",
+                group: "revenue_sources",
+                sort_order: templateData.nodes.filter(n => n.depth === 0).length + 1
+            };
+            templateData.nodes.push(newNode);
+            
+            // Auto-create link to Total Revenue
+            templateData.links.push({
+                source: "New Revenue Source",
+                target: "Total Revenue",
+                value: 100,
+                type: "revenue_flow"
+            });
+            
+            recalculateTotalRevenue();
+            renderEditableData();
+        }
+
+        function addIntermediateFlow() {
+            const newNode = {
+                id: "New Flow",
+                depth: 2,
+                value: 50,
+                category: "profit",
+                group: "gross_metrics",
+                sort_order: 1
+            };
+            templateData.nodes.push(newNode);
+            renderEditableData();
+        }
+
+        function addFinalResult() {
+            const newNode = {
+                id: "New Final Item",
+                depth: 4,
+                value: 25,
+                category: "expense",
+                group: "final_adjustments",
+                sort_order: 1
+            };
+            templateData.nodes.push(newNode);
+            
+            // Auto-create link from Operating Profit
+            templateData.links.push({
+                source: "Operating Profit",
+                target: "New Final Item",
+                value: 25,
+                type: "expense_breakdown"
+            });
+            
+            renderEditableData();
+        }
+
+        function updateMetadata() {
+            document.getElementById('company-name').addEventListener('change', (e) => {
+                templateData.metadata.company = e.target.value;
+                updatePreview();
+            });
+            
+            document.getElementById('period').addEventListener('change', (e) => {
+                templateData.metadata.period = e.target.value;
+                updatePreview();
+            });
+            
+            // Add other metadata listeners...
+        }
+
+        function updatePreview() {
+            const preview = document.getElementById('json-preview');
+            preview.textContent = JSON.stringify(templateData, null, 2);
+        }
+
+        function togglePreview() {
+            const preview = document.getElementById('json-preview');
+            if (preview.style.display === 'none') {
+                preview.style.display = 'block';
+                updatePreview();
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function generateChart() {
+            // Check if we came from guided flow
+            const urlParams = new URLSearchParams(window.location.search);
+            const chartType = urlParams.get('chartType') || 'sankey';
+            const returnTo = urlParams.get('returnTo');
+            
+            if (returnTo === 'guided') {
+                // Go back to guided flow step 3 with data
+                const dataString = encodeURIComponent(JSON.stringify(templateData));
+                window.location.href = `guided.html?step=3&chartType=${chartType}&data=${dataString}&dataInput=template`;
+            } else {
+                // Navigate directly to chart page
+                const dataString = encodeURIComponent(JSON.stringify(templateData));
+                window.location.href = `chart.html?chartType=${chartType}&data=${dataString}`;
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(templateData, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'financial-data.json';
+            link.click();
+        }
+
+        function loadTemplate() {
+            // Show template selection dialog
+            alert('Template selection would open here');
+        }
+
+        // Initialize the interface
+        document.addEventListener('DOMContentLoaded', function() {
+            renderEditableData();
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
-/* ===== PULSE ANALYTICS - MAIN APPLICATION (REFACTORED) ===== */
-/* Orchestrates chart, data, and controls with dynamic control module loading */
+/* ===== PULSE ANALYTICS - MAIN APPLICATION (UPDATED) ===== */
+/* Updated to handle URL data parameters from guided flow */
 
 class PulseApplication {
     constructor() {
@@ -19,9 +19,6 @@ class PulseApplication {
                 controlModuleClass: SankeyControlModule,
                 description: 'Financial flow visualization'
             }
-            // Future chart types will be added here:
-            // bar: { chartClass: BarChart, controlModuleClass: BarControlModule },
-            // line: { chartClass: LineChart, controlModuleClass: LineControlModule }
         };
         
         console.log('🚀 Starting Pulse Analytics Platform');
@@ -41,8 +38,13 @@ class PulseApplication {
             // Set up event listeners
             this.setupEventListeners();
             
-            // Load default dataset
-            await this.loadDataset('saas');
+            // Check for URL parameters first (from guided flow)
+            const urlData = this.handleURLParameters();
+            
+            if (!urlData) {
+                // Only load default dataset if no URL data
+                await this.loadDataset('saas');
+            }
             
             // Hide loading indicator
             this.hideLoadingIndicator();
@@ -53,6 +55,48 @@ class PulseApplication {
             console.error('❌ Initialization failed:', error);
             this.showError(`Initialization failed: ${error.message}`);
         }
+    }
+
+    // NEW: Handle URL parameters from guided flow
+    handleURLParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.has('data')) {
+            try {
+                const data = JSON.parse(decodeURIComponent(urlParams.get('data')));
+                console.log('📊 Loading data from URL parameters:', data);
+                
+                // Validate the data structure
+                const validation = this.dataManager.validateData(data);
+                if (!validation.valid) {
+                    throw new Error(`Data validation failed: ${validation.errors.join(', ')}`);
+                }
+                
+                // Set the data and render
+                this.currentData = data;
+                this.currentDataset = 'url-data';
+                
+                if (this.chart) {
+                    this.chart.render(data);
+                }
+                
+                // Update status
+                const title = data.metadata?.title || 'Custom Data';
+                this.setStatus(`Loaded: ${title}`, 'ready');
+                
+                // Clean up URL (optional - removes parameters from browser bar)
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                return true; // Indicate that URL data was loaded
+                
+            } catch (error) {
+                console.error('❌ Error parsing URL data:', error);
+                this.showError(`Failed to load data from URL: ${error.message}`);
+                return false;
+            }
+        }
+        
+        return false; // No URL data found
     }
 
     async initializeChartType(chartType) {
@@ -79,7 +123,7 @@ class PulseApplication {
 
     async switchChartType(newChartType) {
         if (newChartType === this.currentChartType) {
-            return; // Already using this chart type
+            return;
         }
 
         console.log(`🔄 Switching from ${this.currentChartType} to ${newChartType}`);
@@ -90,7 +134,6 @@ class PulseApplication {
                 this.controlPanel.destroy();
             }
             if (this.chart) {
-                // Clear chart container
                 const container = document.getElementById('main-chart');
                 if (container) {
                     container.innerHTML = '<div class="chart-loading"><div class="loading-spinner"></div><p>Switching chart type...</p></div>';
@@ -202,7 +245,6 @@ class PulseApplication {
         } catch (error) {
             console.error('❌ Dataset loading failed:', error);
             
-            // Show specific error for external file loading
             if (error.message.includes('fetch') || error.message.includes('Failed to load dataset')) {
                 this.showError(`External File Loading Failed: ${error.message}\n\nTo test with real external files:\n1. Set up a local server\n2. Place data files in data/samples/\n3. Serve the HTML from the server`);
             } else {
