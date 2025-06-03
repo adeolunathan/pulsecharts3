@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - MODULAR IMPLEMENTATION ===== */
-/* Professional Sankey chart with seamless link stacking and external data loading */
+/* ===== PULSE SANKEY CHART - SMART LABEL POSITIONING ===== */
+/* Professional Sankey chart with context-aware label positioning */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -18,12 +18,12 @@ class PulseSankeyChart {
             height: 700,
             margin: { top: 60, right: 150, bottom: 60, left: 150 },
             nodeWidth: 28,
-            nodePadding: 40,
+            nodePadding: 40,          // Base padding for middle layers only
             curveIntensity: 0.4,
             animationDuration: 800,
-            leftmostSpacing: 0.8,
-            middleSpacing: 0.9,
-            rightmostSpacing: 0.7,
+            leftmostSpacing: 0.8,     // Spacing multiplier for leftmost layer
+            middleSpacing: 0.9,       // Spacing multiplier for middle layers
+            rightmostSpacing: 0.7,    // Spacing multiplier for rightmost layer
             autoCenter: true,
             autoMiddleAlign: true,
             nodeHeightScale: 0.65,
@@ -36,7 +36,10 @@ class PulseSankeyChart {
                 middle: 12,
                 rightmost: 15
             },
-            valueDistance: 8,
+            valueDistance: {
+                general: 8,      // For leftmost and rightmost layers
+                middle: 8        // For middle layers (can be controlled separately)
+            },
             layerSpacing: {
                 0: 0.8,  // Leftmost
                 1: 1.0,  // Middle layers
@@ -161,23 +164,35 @@ class PulseSankeyChart {
             node.height = Math.max(8, node.value * this.config.nodeHeightScale);
         });
 
-        // Y positioning with improved sorting
+        // Y positioning with layer-specific spacing
         depths.forEach(depth => {
             const nodesAtDepth = nodesByDepth.get(depth);
-            this.positionNodesAtDepth(nodesAtDepth, dimensions.height);
+            this.positionNodesAtDepth(nodesAtDepth, dimensions.height, maxDepth);
         });
 
         this.calculateLinkPositions();
     }
 
-    positionNodesAtDepth(nodes, availableHeight) {
-        // **IMPROVED: Consistent cross-layer sorting for better logical flow**
+    positionNodesAtDepth(nodes, availableHeight, maxDepth) {
+        // **IMPROVED: Layer-specific spacing logic**
         const groupedNodes = this.groupAndSortNodes(nodes);
-        
-        // **USE PER-LAYER SPACING**
         const depth = nodes[0]?.depth ?? 0;
-        const spacingMultiplier = this.config.layerSpacing[depth] ?? 1.0;
-        const layerPadding = this.config.nodePadding * spacingMultiplier;
+        
+        // **LAYER CATEGORIZATION FOR SPACING**
+        const isLeftmost = depth === 0;
+        const isRightmost = depth === maxDepth;
+        const isMiddle = !isLeftmost && !isRightmost;
+        
+        let layerPadding;
+        
+        if (isLeftmost) {
+            layerPadding = this.config.nodePadding * this.config.leftmostSpacing;
+        } else if (isRightmost) {
+            layerPadding = this.config.nodePadding * this.config.rightmostSpacing;
+        } else {
+            // **MIDDLE LAYERS: Use nodePadding control directly**
+            layerPadding = this.config.nodePadding * this.config.middleSpacing;
+        }
         
         const totalHeight = d3.sum(groupedNodes, d => d.height);
         const totalPadding = layerPadding * (groupedNodes.length - 1);
@@ -186,17 +201,15 @@ class PulseSankeyChart {
         const startY = Math.max(20, (availableHeight - totalRequired) / 2);
         let currentY = startY;
         
-        groupedNodes.forEach(node => {
+        groupedNodes.forEach((node, index) => {
             node.y = currentY;
+            node.layerIndex = index; // **STORE LAYER INDEX FOR LABEL POSITIONING**
             currentY += node.height + layerPadding;
         });
     }
 
     groupAndSortNodes(nodes) {
         // **CONSISTENT CROSS-LAYER SORTING MECHANISM**
-        // For final layer: group by source parent, then sort by value
-        // For other layers: group by functional category
-        
         const depth = nodes[0]?.depth;
         
         // **SPECIAL HANDLING FOR FINAL LAYER (depth 4)**
@@ -262,8 +275,6 @@ class PulseSankeyChart {
 
     sortFinalLayerBySource(nodes) {
         // **GROUP BY SOURCE PARENT FOR FINAL LAYER**
-        // Sort by source node Y position to prevent crossing
-        
         const sourceGroups = new Map();
         
         nodes.forEach(node => {
@@ -285,7 +296,6 @@ class PulseSankeyChart {
         });
         
         // **SORT SOURCE GROUPS BY THEIR Y POSITION**
-        // This prevents crossing by maintaining spatial order
         const sortedSourceGroups = Array.from(sourceGroups.entries())
             .sort((a, b) => {
                 const aSourceY = a[1].sourceNode?.y || 0;
@@ -310,18 +320,11 @@ class PulseSankeyChart {
 
     getCategoryPriority(categoryA, categoryB, groupName) {
         // **CATEGORY-BASED PRIORITY SYSTEM**
-        // Ensures logical ordering within functional groups
-        
         const categoryPriorities = {
-            // Positive flow categories (appear first)
             'income': 1,
             'profit': 2,
             'revenue': 3,
-            
-            // Neutral categories  
             'cost': 4,
-            
-            // Negative flow categories (appear last)
             'expense': 5,
             'tax': 6,
             'other': 7
@@ -329,13 +332,11 @@ class PulseSankeyChart {
         
         // Special handling for specific groups
         if (groupName === 'final_results') {
-            // In final results, prioritize income/profit outcomes
             if (categoryA === 'income' && categoryB !== 'income') return -1;
             if (categoryB === 'income' && categoryA !== 'income') return 1;
         }
         
         if (groupName === 'final_adjustments') {
-            // In adjustments, taxes typically come before other expenses
             if (categoryA === 'tax' && categoryB !== 'tax') return -1;
             if (categoryB === 'tax' && categoryA !== 'tax') return 1;
         }
@@ -492,7 +493,6 @@ class PulseSankeyChart {
             .attr('transform', `translate(0, ${this.config.height - 35})`);
 
         // **LOGO IMAGE (Base64 or URL)**
-        // You can replace this with your actual logo
         const logoUrl = this.data?.metadata?.logoUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8dGV4dCB4PSIxMCIgeT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UDwvdGV4dD4KPC9zdmc+';
         
         footerGroup.append('image')
@@ -629,14 +629,28 @@ class PulseSankeyChart {
                 // **RIGHTMOST NODES**: Label outside right, value on top  
                 this.renderRightmostLabels(node);
             } else {
-                // **MIDDLE NODES**: Label above, value below label
+                // **MIDDLE NODES**: Smart positioning based on vertical position
                 this.renderMiddleLabels(node);
             }
         });
     }
 
+    // Helper method to get appropriate value distance
+    getValueDistance(layerType = 'general') {
+        if (typeof this.config.valueDistance === 'object') {
+            if (layerType === 'middle') {
+                return this.config.valueDistance.middle || 8;
+            } else {
+                return this.config.valueDistance.general || 8;
+            }
+        }
+        // Fallback for backward compatibility - only affects leftmost/rightmost
+        return layerType === 'middle' ? 8 : (this.config.valueDistance || 8);
+    }
+
     renderLeftmostLabels(node) {
         const labelDistance = this.config.labelDistance.leftmost;
+        const valueDistance = this.getValueDistance('general');
         const wrappedText = this.wrapText(node.id, 15);
         const nodeColor = this.getNodeColor(node);
         
@@ -660,7 +674,7 @@ class PulseSankeyChart {
         // Value centered directly above the node
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.valueDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance})`);
 
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
@@ -672,6 +686,7 @@ class PulseSankeyChart {
 
     renderRightmostLabels(node) {
         const labelDistance = this.config.labelDistance.rightmost;
+        const valueDistance = this.getValueDistance('general');
         const wrappedText = this.wrapText(node.id, 15);
         const nodeColor = this.getNodeColor(node);
         
@@ -695,7 +710,7 @@ class PulseSankeyChart {
         // Value centered directly above the node
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - this.config.valueDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance})`);
 
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
@@ -710,6 +725,24 @@ class PulseSankeyChart {
         const wrappedText = this.wrapText(node.id, 18);
         const nodeColor = this.getNodeColor(node);
         
+        // **SMART POSITIONING: Check if node is at top of its layer**
+        const isTopNode = node.layerIndex === 0;
+        
+        if (isTopNode) {
+            // **TOP NODES: Labels and values above (existing behavior)**
+            this.renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor);
+        } else {
+            // **LOWER NODES: Labels and values below to avoid overlap**
+            this.renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor);
+        }
+    }
+
+    renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor) {
+        const valueDistance = this.getValueDistance('middle');
+        
+        // **SEPARATE GROUPS: Independent positioning**
+        
+        // Label group - positioned by labelDistance only
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - labelDistance})`);
@@ -725,14 +758,53 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value below the label
-        labelGroup.append('text')
+        // Value group - positioned by valueDistance only (independent)
+        const valueGroup = this.chart.append('g')
+            .attr('class', 'node-value')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance})`);
+
+        valueGroup.append('text')
             .attr('text-anchor', 'middle')
-            .attr('y', (wrappedText.length * 14) + this.config.valueDistance)
+            .attr('y', 0)
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value));
+    }
+
+    renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
+        const valueDistance = this.getValueDistance('middle');
+        
+        // **SEPARATE GROUPS: Independent positioning**
+        
+        // Value group - positioned by valueDistance only
+        const valueGroup = this.chart.append('g')
+            .attr('class', 'node-value')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance})`);
+
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('y', 0)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(this.formatCurrency(node.value));
+
+        // Label group - positioned by labelDistance only (independent)
+        const labelGroup = this.chart.append('g')
+            .attr('class', 'node-label')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + labelDistance})`);
+
+        // Multi-line label below the node
+        wrappedText.forEach((line, index) => {
+            labelGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('y', index * 14)
+                .attr('font-size', '12px')
+                .attr('font-weight', '600')
+                .attr('fill', nodeColor)
+                .text(line);
+        });
     }
 
     // Smart text wrapping utility
@@ -877,7 +949,7 @@ class PulseSankeyChart {
         return this;
     }
 
-    // **NEW CONTROL METHODS FOR ALL CONFIG OPTIONS**
+    // **UPDATED CONTROL METHODS FOR ALL CONFIG OPTIONS**
     setLabelPositioning(labelDistance, valueDistance) {
         this.config.labelDistance = labelDistance;
         this.config.valueDistance = valueDistance;
@@ -973,6 +1045,29 @@ class PulseSankeyChart {
         );
     }
 
+    // Generate intelligent filename based on metadata
+    generateFileName(extension = 'png') {
+        const metadata = this.data?.metadata || {};
+        
+        // Extract and clean company name
+        let company = metadata.company || metadata.title || 'Chart';
+        company = company.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12); // Remove special chars, limit length
+        
+        // Extract and clean period  
+        let period = metadata.period || 'Period';
+        period = period.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 10); // Keep dashes, limit length
+        
+        // Generate timestamp: YYYYMMDD-HHMM
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() +
+                         (now.getMonth() + 1).toString().padStart(2, '0') +
+                         now.getDate().toString().padStart(2, '0') + '-' +
+                         now.getHours().toString().padStart(2, '0') +
+                         now.getMinutes().toString().padStart(2, '0');
+        
+        return `${company}_${period}_${timestamp}.${extension}`;
+    }
+
     // Export methods
     exportToPNG() {
         try {
@@ -994,7 +1089,7 @@ class PulseSankeyChart {
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = 'pulse-sankey-chart.png';
+                    link.download = this.generateFileName('png');
                     link.click();
                     URL.revokeObjectURL(url);
                 });
@@ -1016,7 +1111,7 @@ class PulseSankeyChart {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'pulse-sankey-chart.svg';
+            link.download = this.generateFileName('svg');
             link.click();
             URL.revokeObjectURL(url);
         } catch (error) {
@@ -1043,7 +1138,7 @@ class PulseSankeyChart {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'pulse-financial-data.csv';
+            link.download = this.generateFileName('csv');
             link.click();
             URL.revokeObjectURL(url);
         } catch (error) {

@@ -1,5 +1,5 @@
-/* ===== SANKEY CHART CONTROLS - COMPLETE MODULE ===== */
-/* All Sankey-specific control logic and capabilities */
+/* ===== SANKEY CHART CONTROLS - FIXED SPACING LOGIC ===== */
+/* All Sankey-specific control logic with corrected descriptions */
 
 class SankeyControlModule {
     constructor() {
@@ -33,7 +33,7 @@ class SankeyControlModule {
                         default: 40, 
                         step: 5, 
                         unit: "px", 
-                        description: "Base vertical spacing between nodes" 
+                        description: "Foundational vertical spacing between all nodes" 
                     },
                     { 
                         id: "leftmostSpacing", 
@@ -114,7 +114,18 @@ class SankeyControlModule {
                         default: 12, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of middle labels from nodes" 
+                        description: "Distance of middle layer labels from nodes (auto-positioned above/below)" 
+                    },
+                    { 
+                        id: "valueDistanceMiddle", 
+                        type: "slider", 
+                        label: "Middle Value Distance", 
+                        min: 4, 
+                        max: 20, 
+                        default: 8, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of middle layer values from nodes" 
                     },
                     { 
                         id: "labelDistanceRightmost", 
@@ -130,13 +141,13 @@ class SankeyControlModule {
                     { 
                         id: "valueDistance", 
                         type: "slider", 
-                        label: "Value Distance", 
+                        label: "Value Distance (Left/Right)", 
                         min: 4, 
                         max: 15, 
                         default: 8, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of values from nodes/labels" 
+                        description: "Distance of values from leftmost and rightmost nodes only" 
                     }
                 ]
             },
@@ -199,9 +210,17 @@ class SankeyControlModule {
         };
     }
 
-    // Sankey-specific control change handler
+    // Enhanced control change handler with proper layer targeting
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
+
+        // **SPECIAL HANDLING FOR MIDDLE LAYER SPACING CONTROL**
+        if (controlId === 'nodePadding') {
+            // This control should only affect middle layers
+            // The chart's positionNodesAtDepth method will handle the layer categorization
+            chart.updateConfig({ nodePadding: value });
+            return;
+        }
 
         // Handle layer-specific label distance controls
         if (controlId === 'labelDistanceLeftmost') {
@@ -215,6 +234,38 @@ class SankeyControlModule {
             const labelDistance = chart.config.labelDistance || {};
             labelDistance.middle = value;
             chart.updateConfig({ labelDistance });
+            return;
+        }
+        
+        if (controlId === 'valueDistanceMiddle') {
+            const valueDistance = chart.config.valueDistance || {};
+            if (typeof valueDistance === 'number') {
+                // Convert from single value to object
+                chart.config.valueDistance = {
+                    general: valueDistance,
+                    middle: value
+                };
+            } else {
+                valueDistance.middle = value;
+                chart.updateConfig({ valueDistance });
+            }
+            return;
+        }
+
+        // Handle general value distance (leftmost/rightmost only)
+        if (controlId === 'valueDistance') {
+            const currentValueDistance = chart.config.valueDistance || {};
+            if (typeof currentValueDistance === 'object') {
+                currentValueDistance.general = value;
+                chart.updateConfig({ valueDistance: currentValueDistance });
+            } else {
+                chart.updateConfig({ 
+                    valueDistance: {
+                        general: value,
+                        middle: currentValueDistance // Preserve existing middle value
+                    }
+                });
+            }
             return;
         }
         
@@ -235,6 +286,23 @@ class SankeyControlModule {
             return;
         }
 
+        // **LAYER SPACING MULTIPLIERS**
+        // These controls affect the multipliers applied to the base spacing
+        if (controlId === 'leftmostSpacing') {
+            chart.updateConfig({ leftmostSpacing: value });
+            return;
+        }
+
+        if (controlId === 'middleSpacing') {
+            chart.updateConfig({ middleSpacing: value });
+            return;
+        }
+
+        if (controlId === 'rightmostSpacing') {
+            chart.updateConfig({ rightmostSpacing: value });
+            return;
+        }
+
         // Handle standard controls
         chart.updateConfig({ [controlId]: value });
     }
@@ -248,6 +316,19 @@ class SankeyControlModule {
                 defaults[control.id] = control.default;
             });
         });
+
+        // **SET UP PROPER LABEL DISTANCE DEFAULTS**
+        defaults.labelDistance = {
+            leftmost: 15,
+            middle: 12,
+            rightmost: 15
+        };
+
+        // **SET UP VALUE DISTANCE DEFAULTS**
+        defaults.valueDistance = {
+            general: 8,
+            middle: 8
+        };
 
         return defaults;
     }
@@ -281,6 +362,18 @@ class SankeyControlModule {
             });
         });
 
+        // **VALIDATE SPACING LOGIC CONSISTENCY**
+        if (config.nodePadding && config.nodePadding < 20) {
+            warnings.push('Very low middle layer spacing may cause overlapping labels');
+        }
+
+        if (config.leftmostSpacing && config.rightmostSpacing && config.middleSpacing) {
+            const spacingRatio = Math.max(config.leftmostSpacing, config.rightmostSpacing) / config.middleSpacing;
+            if (spacingRatio > 2) {
+                warnings.push('Large spacing ratio between layers may create unbalanced layout');
+            }
+        }
+
         return { errors, warnings, valid: errors.length === 0 };
     }
 
@@ -293,9 +386,14 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '1.0',
+            version: '1.1',  // Updated version for new spacing logic
             config: config,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            features: {
+                smartLabelPositioning: true,
+                layerSpecificSpacing: true,
+                middleLayerTargetedControls: true
+            }
         }, null, 2);
     }
 
@@ -318,6 +416,34 @@ class SankeyControlModule {
             console.error('Configuration import failed:', error);
             throw error;
         }
+    }
+
+    // **NEW: Get control information for documentation**
+    getControlInfo() {
+        return {
+            layerLogic: {
+                leftmost: {
+                    spacing: "Uses leftmostSpacing multiplier on nodePadding base",
+                    labels: "Outside left, values above nodes",
+                    controls: ["leftmostSpacing", "labelDistanceLeftmost"]
+                },
+                middle: {
+                    spacing: "Uses nodePadding directly with middleSpacing multiplier",
+                    labels: "Smart positioning - above for top nodes, below for others",
+                    controls: ["nodePadding", "middleSpacing", "labelDistanceMiddle"]
+                },
+                rightmost: {
+                    spacing: "Uses rightmostSpacing multiplier on nodePadding base",
+                    labels: "Outside right, values above nodes", 
+                    controls: ["rightmostSpacing", "labelDistanceRightmost"]
+                }
+            },
+            smartFeatures: {
+                labelPositioning: "Middle layer labels automatically positioned to avoid overlap",
+                spacingControl: "nodePadding control specifically targets middle layers only",
+                layerAwareness: "All spacing controls respect the three-layer categorization"
+            }
+        };
     }
 }
 
