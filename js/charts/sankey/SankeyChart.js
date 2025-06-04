@@ -671,13 +671,14 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value centered directly above the node
+        // Value centered directly above the node with consistent spacing
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
@@ -707,13 +708,14 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value centered directly above the node
+        // Value centered directly above the node with consistent spacing
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
@@ -751,6 +753,7 @@ class PulseSankeyChart {
         wrappedText.forEach((line, index) => {
             labelGroup.append('text')
                 .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
                 .attr('y', index * 14)
                 .attr('font-size', '12px')
                 .attr('font-weight', '600')
@@ -758,13 +761,14 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value group - positioned by valueDistance only (independent)
+        // Value group - positioned by valueDistance with consistent spacing (same as above methods)
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
             .attr('y', 0)
             .attr('font-size', '11px')
             .attr('font-weight', '500')
@@ -777,13 +781,14 @@ class PulseSankeyChart {
         
         // **SEPARATE GROUPS: Independent positioning**
         
-        // Value group - positioned by valueDistance only
+        // Value group - positioned with consistent spacing (add offset to match above positioning)
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance + 11})`);
 
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
             .attr('y', 0)
             .attr('font-size', '11px')
             .attr('font-weight', '500')
@@ -799,6 +804,7 @@ class PulseSankeyChart {
         wrappedText.forEach((line, index) => {
             labelGroup.append('text')
                 .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'hanging')
                 .attr('y', index * 14)
                 .attr('font-size', '12px')
                 .attr('font-weight', '600')
@@ -839,12 +845,65 @@ class PulseSankeyChart {
     }
 
     formatCurrency(value) {
-        if (value >= 1000) {
-            return `$${(value/1000).toFixed(1)}B`;
-        } else if (value >= 1) {
-            return `$${value.toFixed(0)}M`;
-        } else {
-            return `$${(value * 1000).toFixed(0)}K`;
+        // Get currency and unit from metadata, with fallbacks
+        const currency = this.data?.metadata?.currency || 'USD';
+        const unit = this.data?.metadata?.unit || 'millions';
+
+        // Currency symbol mapping
+        const currencySymbols = {
+            'USD': '$',
+            'EUR': '€',
+            'GBP': '£',
+            'JPY': '¥',
+            'CAD': 'C$',
+            'AUD': 'A$',
+            'CHF': 'CHF ',
+            'CNY': '¥'
+        };
+
+        const symbol = currencySymbols[currency] || '$';
+
+        // Format based on the selected unit
+        switch (unit.toLowerCase()) {
+            case 'thousands':
+                // Values are already in thousands
+                if (value >= 1000) {
+                    return `${symbol}${(value/1000).toFixed(1)}M`;
+                } else if (value >= 1) {
+                    return `${symbol}${value.toFixed(0)}K`;
+                } else {
+                    return `${symbol}${(value * 1000).toFixed(0)}`;
+                }
+
+            case 'millions':
+                // Values are already in millions
+                if (value >= 1000) {
+                    return `${symbol}${(value/1000).toFixed(1)}B`;
+                } else if (value >= 1) {
+                    return `${symbol}${value.toFixed(0)}M`;
+                } else {
+                    return `${symbol}${(value * 1000).toFixed(0)}K`;
+                }
+
+            case 'billions':
+                // Values are already in billions
+                if (value >= 1000) {
+                    return `${symbol}${(value/1000).toFixed(1)}T`;
+                } else if (value >= 1) {
+                    return `${symbol}${value.toFixed(1)}B`;
+                } else {
+                    return `${symbol}${(value * 1000).toFixed(0)}M`;
+                }
+
+            default:
+                // Fallback to millions formatting
+                if (value >= 1000) {
+                    return `${symbol}${(value/1000).toFixed(1)}B`;
+                } else if (value >= 1) {
+                    return `${symbol}${value.toFixed(0)}M`;
+                } else {
+                    return `${symbol}${(value * 1000).toFixed(0)}K`;
+                }
         }
     }
 

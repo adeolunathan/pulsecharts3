@@ -279,16 +279,21 @@
                             <div class="field-group">
                                 <label class="field-label">Currency</label>
                                 <select class="field-input" id="currency">
-                                    <option value="USD">USD</option>
-                                    <option value="EUR">EUR</option>
-                                    <option value="GBP">GBP</option>
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                    <option value="JPY">JPY (¥)</option>
+                                    <option value="CAD">CAD (C$)</option>
+                                    <option value="AUD">AUD (A$)</option>
+                                    <option value="CHF">CHF</option>
+                                    <option value="CNY">CNY (¥)</option>
                                 </select>
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Units</label>
                                 <select class="field-input" id="units">
-                                    <option value="millions">Millions</option>
                                     <option value="thousands">Thousands</option>
+                                    <option value="millions" selected>Millions</option>
                                     <option value="billions">Billions</option>
                                 </select>
                             </div>
@@ -684,10 +689,17 @@
             metadataFields.forEach(({ id, field }) => {
                 const element = document.getElementById(id);
                 if (element) {
-                    element.addEventListener('input', (e) => {
+                    // Listen to both 'input' and 'change' events to catch all updates
+                    const updateHandler = (e) => {
                         templateData.metadata[field] = e.target.value;
                         updateLivePreview();
-                    });
+                        
+                        // Log metadata changes for debugging
+                        console.log(`Metadata updated: ${field} = ${e.target.value}`);
+                    };
+                    
+                    element.addEventListener('input', updateHandler);
+                    element.addEventListener('change', updateHandler);
                 }
             });
         }
@@ -707,7 +719,26 @@
                     .filter(n => n.depth === 0)
                     .reduce((sum, node) => sum + (node.value || 0), 0);
                 
-                stats.textContent = `Nodes: ${nodeCount} | Links: ${linkCount} | Total Revenue: $${totalValue}${templateData.metadata.unit === 'millions' ? 'M' : 'K'}`;
+                // Use the formatted currency display in stats
+                const formattedTotal = formatValueForStats(totalValue, templateData.metadata.currency, templateData.metadata.unit);
+                stats.textContent = `Nodes: ${nodeCount} | Links: ${linkCount} | Total Revenue: ${formattedTotal}`;
+            }
+        }
+
+        // Helper function to format values in the stats display
+        function formatValueForStats(value, currency = 'USD', unit = 'millions') {
+            const symbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CAD': 'C$', 'AUD': 'A$', 'CHF': 'CHF ', 'CNY': '¥' };
+            const symbol = symbols[currency] || '$';
+            
+            switch (unit.toLowerCase()) {
+                case 'thousands':
+                    return `${symbol}${value}K`;
+                case 'millions':
+                    return `${symbol}${value}M`;
+                case 'billions':
+                    return `${symbol}${value}B`;
+                default:
+                    return `${symbol}${value}M`;
             }
         }
 
