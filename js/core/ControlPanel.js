@@ -14,7 +14,13 @@ class PulseControlPanel {
     init(chart, controlModule) {
         this.chart = chart;
         this.controlModule = controlModule;
+        
+        // **CRITICAL: Properly synchronize config with chart's actual config**
         this.config = { ...chart.config };
+        
+        console.log('🎛️ Control panel initializing with config:', this.config);
+        console.log('📊 Chart config:', chart.config);
+        
         this.generateControls();
     }
 
@@ -31,6 +37,8 @@ class PulseControlPanel {
         Object.entries(capabilities).forEach(([sectionKey, section]) => {
             this.createSection(sectionKey, section);
         });
+        
+        console.log('✅ Generated controls for all sections');
     }
 
     // Create a control section
@@ -83,6 +91,9 @@ class PulseControlPanel {
             case 'color':
                 this.createColorControl(controlDiv, config);
                 break;
+            case 'info':
+                this.createInfoControl(controlDiv, config);
+                break;
             case 'custom':
                 this.createCustomControl(controlDiv, config);
                 break;
@@ -100,7 +111,9 @@ class PulseControlPanel {
     // Create slider control
     createSliderControl(container, config) {
         const sliderContainer = container.append('div').attr('class', 'slider-container');
-        const currentValue = this.config[config.id] ?? config.default;
+        
+        // **ENHANCED: Get current value with better fallback logic**
+        let currentValue = this.getCurrentValue(config);
         
         const slider = sliderContainer.append('input')
             .attr('type', 'range')
@@ -111,18 +124,18 @@ class PulseControlPanel {
             .attr('class', 'control-slider')
             .on('input', (event) => {
                 const value = parseFloat(event.target.value);
-                valueDisplay.text(value);
+                valueDisplay.text(this.formatValue(value, config));
                 this.handleChange(config.id, value);
             });
 
         const valueDisplay = sliderContainer.append('span')
             .attr('class', 'slider-value')
-            .text(currentValue);
+            .text(this.formatValue(currentValue, config));
     }
 
     // Create dropdown control
     createDropdownControl(container, config) {
-        const currentValue = this.config[config.id] ?? config.default;
+        let currentValue = this.getCurrentValue(config);
         
         const select = container.append('select')
             .attr('class', 'control-dropdown')
@@ -140,7 +153,7 @@ class PulseControlPanel {
 
     // Create toggle control
     createToggleControl(container, config) {
-        const currentValue = this.config[config.id] ?? config.default;
+        let currentValue = this.getCurrentValue(config);
         
         const toggleContainer = container.append('div').attr('class', 'toggle-container');
 
@@ -157,7 +170,7 @@ class PulseControlPanel {
 
     // Create color control
     createColorControl(container, config) {
-        const currentValue = this.config[config.id] ?? config.default;
+        let currentValue = this.getCurrentValue(config);
         
         container.append('input')
             .attr('type', 'color')
@@ -166,6 +179,22 @@ class PulseControlPanel {
             .on('change', (event) => {
                 this.handleChange(config.id, event.target.value);
             });
+    }
+
+    // NEW: Create info control (for displaying information)
+    createInfoControl(container, config) {
+        const infoDiv = container.append('div')
+            .attr('class', 'control-info')
+            .style('background', '#f8f9fa')
+            .style('padding', '12px')
+            .style('border-radius', '6px')
+            .style('border', '1px solid #e1e5e9')
+            .style('font-size', '12px')
+            .style('line-height', '1.4')
+            .style('color', '#374151')
+            .style('white-space', 'pre-line');
+
+        infoDiv.text(config.description || 'Information');
     }
 
     // Create custom control (placeholder for extensibility)
@@ -177,10 +206,61 @@ class PulseControlPanel {
         console.warn(`Custom control type '${config.component}' not implemented`);
     }
 
+    /**
+     * ENHANCED: Get current value with proper fallback logic for complex configs
+     */
+    getCurrentValue(config) {
+        // Handle special cases for complex configuration structures
+        if (config.id.includes('Distance')) {
+            // Handle labelDistance and valueDistance objects
+            if (config.id === 'labelDistanceLeftmost' && this.config.labelDistance) {
+                return this.config.labelDistance.leftmost ?? config.default;
+            }
+            if (config.id === 'labelDistanceMiddle' && this.config.labelDistance) {
+                return this.config.labelDistance.middle ?? config.default;
+            }
+            if (config.id === 'labelDistanceRightmost' && this.config.labelDistance) {
+                return this.config.labelDistance.rightmost ?? config.default;
+            }
+            if (config.id === 'valueDistanceMiddle' && this.config.valueDistance) {
+                return this.config.valueDistance.middle ?? config.default;
+            }
+            if (config.id === 'valueDistance' && this.config.valueDistance) {
+                return this.config.valueDistance.general ?? config.default;
+            }
+        }
+
+        // Handle dynamic layer controls
+        if (config.isDynamic && config.layerDepth !== undefined) {
+            if (this.config.layerSpacing && this.config.layerSpacing[config.layerDepth] !== undefined) {
+                return this.config.layerSpacing[config.layerDepth];
+            }
+        }
+
+        // Standard config lookup
+        const value = this.config[config.id];
+        if (value !== undefined && value !== null) {
+            return value;
+        }
+
+        // Fallback to default
+        return config.default;
+    }
+
+    /**
+     * NEW: Format value for display
+     */
+    formatValue(value, config) {
+        if (config.step && config.step < 1) {
+            return parseFloat(value).toFixed(2);
+        }
+        return value;
+    }
+
     // Handle control value changes
     handleChange(controlId, value) {
         // Update local config
-        this.config[controlId] = value;
+        this.updateLocalConfig(controlId, value);
 
         // Debounce updates for smooth interaction
         clearTimeout(this.updateTimeout);
@@ -195,6 +275,54 @@ class PulseControlPanel {
                 }
             }
         }, 100);
+    }
+
+    /**
+     * ENHANCED: Update local config handling complex structures
+     */
+    updateLocalConfig(controlId, value) {
+        // Handle special cases for complex configuration structures
+        if (controlId.includes('Distance')) {
+            // Handle labelDistance and valueDistance objects
+            if (controlId === 'labelDistanceLeftmost') {
+                if (!this.config.labelDistance) this.config.labelDistance = {};
+                this.config.labelDistance.leftmost = value;
+                return;
+            }
+            if (controlId === 'labelDistanceMiddle') {
+                if (!this.config.labelDistance) this.config.labelDistance = {};
+                this.config.labelDistance.middle = value;
+                return;
+            }
+            if (controlId === 'labelDistanceRightmost') {
+                if (!this.config.labelDistance) this.config.labelDistance = {};
+                this.config.labelDistance.rightmost = value;
+                return;
+            }
+            if (controlId === 'valueDistanceMiddle') {
+                if (!this.config.valueDistance) this.config.valueDistance = {};
+                this.config.valueDistance.middle = value;
+                return;
+            }
+            if (controlId === 'valueDistance') {
+                if (!this.config.valueDistance) this.config.valueDistance = {};
+                this.config.valueDistance.general = value;
+                return;
+            }
+        }
+
+        // Handle dynamic layer controls
+        if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
+            const depth = parseInt(controlId.split('_')[1]);
+            if (!isNaN(depth)) {
+                if (!this.config.layerSpacing) this.config.layerSpacing = {};
+                this.config.layerSpacing[depth] = value;
+                return;
+            }
+        }
+
+        // Standard config update
+        this.config[controlId] = value;
     }
 
     // Toggle section visibility
@@ -213,15 +341,19 @@ class PulseControlPanel {
     resetToDefaults() {
         if (this.controlModule && this.controlModule.resetToDefaults) {
             const defaults = this.controlModule.resetToDefaults();
-            this.config = defaults;
+            
+            // **ENHANCED: Properly merge defaults with chart config**
+            this.config = { ...this.chart.getInitialConfig(), ...defaults };
             
             // Apply defaults to chart
             if (this.chart) {
-                this.chart.updateConfig(defaults);
+                this.chart.updateConfig(this.config);
             }
             
             // Regenerate controls with default values
             this.generateControls();
+            
+            console.log('✅ Reset to defaults complete', this.config);
         } else {
             console.warn('Control module does not support reset to defaults');
         }
@@ -242,12 +374,20 @@ class PulseControlPanel {
 
     // Apply external configuration
     applyConfig(newConfig) {
-        this.config = { ...this.config, ...newConfig };
-        this.generateControls();
+        console.log('🔧 Applying new config to control panel:', newConfig);
         
+        // **ENHANCED: Properly merge new config**
+        this.config = { ...this.config, ...newConfig };
+        
+        // Apply to chart
         if (this.chart) {
             this.chart.updateConfig(this.config);
         }
+        
+        // Regenerate controls to reflect new values
+        this.generateControls();
+        
+        console.log('✅ Config applied and controls regenerated');
     }
 
     // Export configuration
@@ -282,6 +422,21 @@ class PulseControlPanel {
         }
         
         return { valid: true, errors: [], warnings: [] };
+    }
+
+    /**
+     * ENHANCED: Update dynamic controls when chart data changes
+     */
+    updateDynamicControls() {
+        if (this.controlModule && this.controlModule.supportsDynamicLayers && this.chart) {
+            // Re-initialize dynamic controls
+            this.controlModule.updateCapabilities(this.chart);
+            
+            // Regenerate control panel
+            this.generateControls();
+            
+            console.log('🔄 Updated dynamic controls');
+        }
     }
 
     // Cleanup

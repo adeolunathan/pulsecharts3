@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - SMART LABEL POSITIONING ===== */
-/* Professional Sankey chart with context-aware label positioning */
+/* ===== PULSE SANKEY CHART - WITH COLOR CUSTOMIZATION ===== */
+/* Professional Sankey chart with context-aware label positioning and custom colors */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -12,33 +12,42 @@ class PulseSankeyChart {
         this.nodes = [];
         this.links = [];
         
-        // Configuration
-        this.config = {
+        // **NEW: Custom color storage**
+        this.customColors = {};
+        
+        // Initialize with proper defaults that match control module
+        this.config = this.getInitialConfig();
+        
+        this.initializeChart();
+    }
+
+    // Get initial configuration that matches control module defaults
+    getInitialConfig() {
+        return {
             width: 1200,
             height: 700,
             margin: { top: 60, right: 150, bottom: 60, left: 150 },
             nodeWidth: 28,
-            nodePadding: 40,          // Base padding for middle layers only
+            nodePadding: 40,
             curveIntensity: 0.4,
             animationDuration: 800,
-            leftmostSpacing: 0.8,     // Spacing multiplier for leftmost layer
-            middleSpacing: 0.9,       // Spacing multiplier for middle layers
-            rightmostSpacing: 0.7,    // Spacing multiplier for rightmost layer
+            leftmostSpacing: 0.8,
+            middleSpacing: 0.9,
+            rightmostSpacing: 0.7,
             autoCenter: true,
             autoMiddleAlign: true,
             nodeHeightScale: 0.65,
             linkWidthScale: 0.65,
             nodeOpacity: 1.0,
             linkOpacity: 1.0,
-            // **LABEL POSITIONING CONTROLS BY LAYER**
             labelDistance: {
                 leftmost: 15,
                 middle: 12,
                 rightmost: 15
             },
             valueDistance: {
-                general: 8,      // For leftmost and rightmost layers
-                middle: 8        // For middle layers (can be controlled separately)
+                general: 8,
+                middle: 8
             },
             layerSpacing: {
                 0: 0.8,  // Leftmost
@@ -48,8 +57,59 @@ class PulseSankeyChart {
                 4: 0.7   // Rightmost
             }
         };
+    }
+
+    // Apply control module defaults if available
+    applyControlDefaults(controlModule) {
+        if (controlModule && controlModule.getDefaultConfig) {
+            const controlDefaults = controlModule.getDefaultConfig();
+            this.config = { ...this.config, ...controlDefaults };
+            console.log('✅ Applied control module defaults to chart config');
+        }
+    }
+
+    // Get layer information for dynamic controls
+    getLayerInfo() {
+        if (!this.nodes || this.nodes.length === 0) {
+            return {
+                totalLayers: 0,
+                maxDepth: 0,
+                layerInfo: { leftmost: 0, rightmost: 0, middle: [] },
+                nodeDistribution: {},
+                layerSpacing: this.config.layerSpacing || {}
+            };
+        }
+
+        const depths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+        const maxDepth = Math.max(...depths);
+        const minDepth = Math.min(...depths);
         
-        this.initializeChart();
+        const nodeDistribution = {};
+        depths.forEach(depth => {
+            const nodesAtDepth = this.nodes.filter(n => n.depth === depth);
+            let layerType = 'middle';
+            if (depth === minDepth) layerType = 'leftmost';
+            else if (depth === maxDepth) layerType = 'rightmost';
+            
+            nodeDistribution[depth] = {
+                count: nodesAtDepth.length,
+                layerType: layerType
+            };
+        });
+
+        const middleLayers = depths.filter(d => d !== minDepth && d !== maxDepth);
+
+        return {
+            totalLayers: depths.length,
+            maxDepth: maxDepth,
+            layerInfo: {
+                leftmost: minDepth,
+                rightmost: maxDepth,
+                middle: middleLayers
+            },
+            nodeDistribution: nodeDistribution,
+            layerSpacing: this.config.layerSpacing || {}
+        };
     }
 
     initializeChart() {
@@ -174,11 +234,9 @@ class PulseSankeyChart {
     }
 
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
-        // **IMPROVED: Layer-specific spacing logic**
         const groupedNodes = this.groupAndSortNodes(nodes);
         const depth = nodes[0]?.depth ?? 0;
         
-        // **LAYER CATEGORIZATION FOR SPACING**
         const isLeftmost = depth === 0;
         const isRightmost = depth === maxDepth;
         const isMiddle = !isLeftmost && !isRightmost;
@@ -190,7 +248,6 @@ class PulseSankeyChart {
         } else if (isRightmost) {
             layerPadding = this.config.nodePadding * this.config.rightmostSpacing;
         } else {
-            // **MIDDLE LAYERS: Use nodePadding control directly**
             layerPadding = this.config.nodePadding * this.config.middleSpacing;
         }
         
@@ -203,21 +260,18 @@ class PulseSankeyChart {
         
         groupedNodes.forEach((node, index) => {
             node.y = currentY;
-            node.layerIndex = index; // **STORE LAYER INDEX FOR LABEL POSITIONING**
+            node.layerIndex = index;
             currentY += node.height + layerPadding;
         });
     }
 
     groupAndSortNodes(nodes) {
-        // **CONSISTENT CROSS-LAYER SORTING MECHANISM**
         const depth = nodes[0]?.depth;
         
-        // **SPECIAL HANDLING FOR FINAL LAYER (depth 4)**
         if (depth === 4) {
             return this.sortFinalLayerBySource(nodes);
         }
         
-        // **STANDARD SORTING FOR OTHER LAYERS**
         const groups = new Map();
         
         nodes.forEach(node => {
@@ -274,14 +328,12 @@ class PulseSankeyChart {
     }
 
     sortFinalLayerBySource(nodes) {
-        // **GROUP BY SOURCE PARENT FOR FINAL LAYER**
         const sourceGroups = new Map();
         
         nodes.forEach(node => {
             let sourceParent = 'unknown';
             let sourceNode = null;
             
-            // Find which parent this node comes from by checking links
             this.links.forEach(link => {
                 if (link.target.id === node.id) {
                     sourceParent = link.source.id;
@@ -295,7 +347,6 @@ class PulseSankeyChart {
             sourceGroups.get(sourceParent).nodes.push(node);
         });
         
-        // **SORT SOURCE GROUPS BY THEIR Y POSITION**
         const sortedSourceGroups = Array.from(sourceGroups.entries())
             .sort((a, b) => {
                 const aSourceY = a[1].sourceNode?.y || 0;
@@ -305,13 +356,9 @@ class PulseSankeyChart {
         
         const sortedNodes = [];
         
-        // Process each source group in Y order
         sortedSourceGroups.forEach(([sourceName, groupData]) => {
             const sourceNodes = groupData.nodes;
-            
-            // **SORT WITHIN EACH SOURCE GROUP BY VALUE (DESCENDING)**
             sourceNodes.sort((a, b) => b.value - a.value);
-            
             sortedNodes.push(...sourceNodes);
         });
         
@@ -319,7 +366,6 @@ class PulseSankeyChart {
     }
 
     getCategoryPriority(categoryA, categoryB, groupName) {
-        // **CATEGORY-BASED PRIORITY SYSTEM**
         const categoryPriorities = {
             'income': 1,
             'profit': 2,
@@ -330,7 +376,6 @@ class PulseSankeyChart {
             'other': 7
         };
         
-        // Special handling for specific groups
         if (groupName === 'final_results') {
             if (categoryA === 'income' && categoryB !== 'income') return -1;
             if (categoryB === 'income' && categoryA !== 'income') return 1;
@@ -348,39 +393,27 @@ class PulseSankeyChart {
     }
 
     calculateLinkPositions() {
-        // Calculate link widths
         this.links.forEach(link => {
             link.width = link.value * this.config.linkWidthScale;
         });
         
-        // SEAMLESS STACKING: Calculate source link positions (outgoing from nodes)
         this.nodes.forEach(node => {
             if (node.sourceLinks.length === 0) return;
             
-            // Sort source links by target node position for better visual flow
             node.sourceLinks.sort((a, b) => a.target.y - b.target.y);
             
-            // Scale links to fill ENTIRE node height with NO GAPS
             const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
-            
-            // **APPLY linkWidthScale to height calculations**
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
             
-            // Links must collectively fill the scaled node height
-            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;  // Center the scaled height
+            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
             
             node.sourceLinks.forEach((link, index) => {
                 link.sourceY = currentY;
-                
-                // PROPORTIONAL HEIGHT: Each link gets height proportional to its value
                 const proportionalHeight = (link.value / totalOutflow) * effectiveNodeHeight;
                 link.sourceHeight = proportionalHeight;
-                
-                // SEAMLESS STACKING: Next link starts exactly where this one ends
                 currentY += proportionalHeight;
             });
             
-            // Ensure perfect fill (handle any rounding errors)
             const totalUsedHeight = d3.sum(node.sourceLinks, d => d.sourceHeight);
             if (Math.abs(totalUsedHeight - effectiveNodeHeight) > 0.01) {
                 const lastLink = node.sourceLinks[node.sourceLinks.length - 1];
@@ -388,34 +421,23 @@ class PulseSankeyChart {
             }
         });
         
-        // SEAMLESS STACKING: Calculate target link positions (incoming to nodes)
         this.nodes.forEach(node => {
             if (node.targetLinks.length === 0) return;
             
-            // Sort target links by source node position for visual consistency
             node.targetLinks.sort((a, b) => a.source.y - b.source.y);
             
-            // Scale links to fill ENTIRE node height with NO GAPS
             const totalInflow = d3.sum(node.targetLinks, d => d.value);
-            
-            // **APPLY linkWidthScale to height calculations**
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
             
-            // Links must collectively fill the scaled node height
-            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;  // Center the scaled height
+            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
             
             node.targetLinks.forEach((link, index) => {
                 link.targetY = currentY;
-                
-                // PROPORTIONAL HEIGHT: Each link gets height proportional to its value
                 const proportionalHeight = (link.value / totalInflow) * effectiveNodeHeight;
                 link.targetHeight = proportionalHeight;
-                
-                // SEAMLESS STACKING: Next link starts exactly where this one ends
                 currentY += proportionalHeight;
             });
             
-            // Ensure perfect fill (handle any rounding errors)
             const totalUsedHeight = d3.sum(node.targetLinks, d => d.targetHeight);
             if (Math.abs(totalUsedHeight - effectiveNodeHeight) > 0.01) {
                 const lastLink = node.targetLinks[node.targetLinks.length - 1];
@@ -423,7 +445,6 @@ class PulseSankeyChart {
             }
         });
         
-        // Generate smooth paths
         this.links.forEach(link => {
             const sourceDepth = link.source.depth;
             const layerCurvature = this.config.layerCurvature?.[sourceDepth] || this.config.curveIntensity;
@@ -432,21 +453,17 @@ class PulseSankeyChart {
     }
 
     createSmoothPath(link, curvature = this.config.curveIntensity) {
-        // Source and target positions with proper edge alignment
         const sourceX = link.source.x + this.config.nodeWidth;
         const targetX = link.target.x;
         
-        // Use calculated link heights for seamless connections
         const sourceY0 = link.sourceY;
         const sourceY1 = link.sourceY + link.sourceHeight;
         const targetY0 = link.targetY;
         const targetY1 = link.targetY + link.targetHeight;
         
-        // Calculate control points for smooth bezier curve
         const controlX1 = sourceX + (targetX - sourceX) * curvature;
         const controlX2 = targetX - (targetX - sourceX) * curvature;
         
-        // Create path that perfectly connects the calculated link heights
         return `M${sourceX},${sourceY0}
                 C${controlX1},${sourceY0} ${controlX2},${targetY0} ${targetX},${targetY0}
                 L${targetX},${targetY1}
@@ -455,11 +472,9 @@ class PulseSankeyChart {
     }
 
     renderTitle() {
-        // **CLEAN HEADER WITHOUT BACKGROUND**
         const headerGroup = this.svg.append('g')
             .attr('class', 'chart-header');
 
-        // **MAIN TITLE: "Company Period Income Statement"**
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
         const titleText = `${company} ${period} Income Statement`;
@@ -474,7 +489,6 @@ class PulseSankeyChart {
             .attr('letter-spacing', '0.5px')
             .text(titleText);
 
-        // Subtitle (if exists)
         if (this.data?.metadata?.subtitle) {
             headerGroup.append('text')
                 .attr('x', this.config.width / 2)
@@ -492,7 +506,6 @@ class PulseSankeyChart {
             .attr('class', 'chart-branding')
             .attr('transform', `translate(0, ${this.config.height - 35})`);
 
-        // **LOGO IMAGE (Base64 or URL)**
         const logoUrl = this.data?.metadata?.logoUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8dGV4dCB4PSIxMCIgeT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UDwvdGV4dD4KPC9zdmc+';
         
         footerGroup.append('image')
@@ -503,7 +516,6 @@ class PulseSankeyChart {
             .attr('href', logoUrl)
             .attr('opacity', 0.8);
 
-        // Company/Brand name next to logo
         footerGroup.append('text')
             .attr('x', 50)
             .attr('y', -25)
@@ -512,7 +524,6 @@ class PulseSankeyChart {
             .attr('fill', '#667eea')
             .text('PULSE ANALYTICS');
 
-        // Center: Website
         footerGroup.append('text')
             .attr('x', this.config.width / 2)
             .attr('y', -25)
@@ -522,7 +533,6 @@ class PulseSankeyChart {
             .attr('fill', '#667eea')
             .text('pulse-analytics.com');
 
-        // Right: Chart type/watermark
         footerGroup.append('text')
             .attr('x', this.config.width - 20)
             .attr('y', -25)
@@ -623,19 +633,15 @@ class PulseSankeyChart {
             const isMiddle = !isLeftmost && !isRightmost;
             
             if (isLeftmost) {
-                // **LEFTMOST NODES**: Label outside left, value on top
                 this.renderLeftmostLabels(node);
             } else if (isRightmost) {
-                // **RIGHTMOST NODES**: Label outside right, value on top  
                 this.renderRightmostLabels(node);
             } else {
-                // **MIDDLE NODES**: Smart positioning based on vertical position
                 this.renderMiddleLabels(node);
             }
         });
     }
 
-    // Helper method to get appropriate value distance
     getValueDistance(layerType = 'general') {
         if (typeof this.config.valueDistance === 'object') {
             if (layerType === 'middle') {
@@ -644,7 +650,6 @@ class PulseSankeyChart {
                 return this.config.valueDistance.general || 8;
             }
         }
-        // Fallback for backward compatibility - only affects leftmost/rightmost
         return layerType === 'middle' ? 8 : (this.config.valueDistance || 8);
     }
 
@@ -654,12 +659,10 @@ class PulseSankeyChart {
         const wrappedText = this.wrapText(node.id, 15);
         const nodeColor = this.getNodeColor(node);
         
-        // Label outside to the left, vertically centered
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
             .attr('transform', `translate(${node.x - labelDistance}, ${node.y + node.height/2})`);
 
-        // Multi-line text rendering
         wrappedText.forEach((line, index) => {
             labelGroup.append('text')
                 .attr('text-anchor', 'end')
@@ -671,7 +674,6 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value centered directly above the node with consistent spacing
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
@@ -691,12 +693,10 @@ class PulseSankeyChart {
         const wrappedText = this.wrapText(node.id, 15);
         const nodeColor = this.getNodeColor(node);
         
-        // Label outside to the right, vertically centered
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
             .attr('transform', `translate(${node.x + this.config.nodeWidth + labelDistance}, ${node.y + node.height/2})`);
 
-        // Multi-line text rendering
         wrappedText.forEach((line, index) => {
             labelGroup.append('text')
                 .attr('text-anchor', 'start')
@@ -708,7 +708,6 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value centered directly above the node with consistent spacing
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
@@ -727,14 +726,11 @@ class PulseSankeyChart {
         const wrappedText = this.wrapText(node.id, 18);
         const nodeColor = this.getNodeColor(node);
         
-        // **SMART POSITIONING: Check if node is at top of its layer**
         const isTopNode = node.layerIndex === 0;
         
         if (isTopNode) {
-            // **TOP NODES: Labels and values above (existing behavior)**
             this.renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor);
         } else {
-            // **LOWER NODES: Labels and values below to avoid overlap**
             this.renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor);
         }
     }
@@ -742,14 +738,10 @@ class PulseSankeyChart {
     renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor) {
         const valueDistance = this.getValueDistance('middle');
         
-        // **SEPARATE GROUPS: Independent positioning**
-        
-        // Label group - positioned by labelDistance only
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - labelDistance})`);
 
-        // Multi-line label above the node
         wrappedText.forEach((line, index) => {
             labelGroup.append('text')
                 .attr('text-anchor', 'middle')
@@ -761,7 +753,6 @@ class PulseSankeyChart {
                 .text(line);
         });
 
-        // Value group - positioned by valueDistance with consistent spacing (same as above methods)
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
@@ -779,9 +770,6 @@ class PulseSankeyChart {
     renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
         const valueDistance = this.getValueDistance('middle');
         
-        // **SEPARATE GROUPS: Independent positioning**
-        
-        // Value group - positioned with consistent spacing (add offset to match above positioning)
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance + 11})`);
@@ -795,12 +783,10 @@ class PulseSankeyChart {
             .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value));
 
-        // Label group - positioned by labelDistance only (independent)
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + labelDistance})`);
 
-        // Multi-line label below the node
         wrappedText.forEach((line, index) => {
             labelGroup.append('text')
                 .attr('text-anchor', 'middle')
@@ -813,7 +799,6 @@ class PulseSankeyChart {
         });
     }
 
-    // Smart text wrapping utility
     wrapText(text, maxLength = 10) {
         if (text.length <= maxLength) return [text];
         
@@ -831,7 +816,6 @@ class PulseSankeyChart {
                     lines.push(currentLine);
                     currentLine = word;
                 } else {
-                    // Single word longer than maxLength
                     lines.push(word);
                 }
             }
@@ -845,11 +829,9 @@ class PulseSankeyChart {
     }
 
     formatCurrency(value) {
-        // Get currency and unit from metadata, with fallbacks
         const currency = this.data?.metadata?.currency || 'USD';
         const unit = this.data?.metadata?.unit || 'millions';
 
-        // Currency symbol mapping
         const currencySymbols = {
             'USD': '$',
             'EUR': '€',
@@ -863,10 +845,8 @@ class PulseSankeyChart {
 
         const symbol = currencySymbols[currency] || '$';
 
-        // Format based on the selected unit
         switch (unit.toLowerCase()) {
             case 'thousands':
-                // Values are already in thousands
                 if (value >= 1000) {
                     return `${symbol}${(value/1000).toFixed(1)}M`;
                 } else if (value >= 1) {
@@ -876,7 +856,6 @@ class PulseSankeyChart {
                 }
 
             case 'millions':
-                // Values are already in millions
                 if (value >= 1000) {
                     return `${symbol}${(value/1000).toFixed(1)}B`;
                 } else if (value >= 1) {
@@ -886,7 +865,6 @@ class PulseSankeyChart {
                 }
 
             case 'billions':
-                // Values are already in billions
                 if (value >= 1000) {
                     return `${symbol}${(value/1000).toFixed(1)}T`;
                 } else if (value >= 1) {
@@ -896,7 +874,6 @@ class PulseSankeyChart {
                 }
 
             default:
-                // Fallback to millions formatting
                 if (value >= 1000) {
                     return `${symbol}${(value/1000).toFixed(1)}B`;
                 } else if (value >= 1) {
@@ -907,8 +884,17 @@ class PulseSankeyChart {
         }
     }
 
+    /**
+     * ENHANCED: Get node color with custom color support
+     */
     getNodeColor(node) {
-        const colors = {
+        // **NEW: Check for custom colors first**
+        if (this.customColors && this.customColors[node.category]) {
+            return this.customColors[node.category];
+        }
+        
+        // **FALLBACK: Use default colors**
+        const defaultColors = {
             revenue: '#3498db',
             cost: '#e74c3c',
             profit: '#27ae60',
@@ -916,12 +902,22 @@ class PulseSankeyChart {
             income: '#9b59b6',
             tax: '#c0392b'
         };
-        return colors[node.category] || '#95a5a6';
+        return defaultColors[node.category] || '#95a5a6';
     }
 
+    /**
+     * ENHANCED: Get link color with custom color support
+     */
     getLinkColor(link) {
         const baseColor = this.getNodeColor(link.source);
-        // Make links slightly lighter
+        
+        // **NEW: If using custom colors, adjust link color accordingly**
+        if (this.customColors && this.customColors[link.source.category]) {
+            // Create a lighter version of the custom color
+            return this.lightenColor(baseColor, 20);
+        }
+        
+        // **FALLBACK: Use predefined lighter colors**
         const lighterColors = {
             '#3498db': '#5dade2',
             '#e74c3c': '#ec7063',
@@ -931,6 +927,47 @@ class PulseSankeyChart {
             '#c0392b': '#e74c3c'
         };
         return lighterColors[baseColor] || baseColor;
+    }
+
+    /**
+     * NEW: Lighten a hex color by a percentage
+     */
+    lightenColor(hex, percent) {
+        const num = parseInt(hex.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    }
+
+    /**
+     * NEW: Set custom colors
+     */
+    setCustomColors(colorMap) {
+        this.customColors = { ...colorMap };
+        if (this.data) {
+            this.render(this.data);
+        }
+    }
+
+    /**
+     * NEW: Get current custom colors
+     */
+    getCustomColors() {
+        return { ...this.customColors };
+    }
+
+    /**
+     * NEW: Reset to default colors
+     */
+    resetColors() {
+        this.customColors = {};
+        if (this.data) {
+            this.render(this.data);
+        }
     }
 
     // Tooltip methods
@@ -1008,7 +1045,6 @@ class PulseSankeyChart {
         return this;
     }
 
-    // **UPDATED CONTROL METHODS FOR ALL CONFIG OPTIONS**
     setLabelPositioning(labelDistance, valueDistance) {
         this.config.labelDistance = labelDistance;
         this.config.valueDistance = valueDistance;
@@ -1039,12 +1075,10 @@ class PulseSankeyChart {
         return this;
     }
 
-    // **GENERIC CONFIG UPDATE METHOD**
     updateConfig(newConfig) {
         const oldConfig = { ...this.config };
         this.config = { ...this.config, ...newConfig };
         
-        // Apply layer spacing updates to layerSpacing object
         if (newConfig.leftmostSpacing !== undefined) {
             this.config.layerSpacing[0] = newConfig.leftmostSpacing;
         }
@@ -1057,7 +1091,6 @@ class PulseSankeyChart {
             this.config.layerSpacing[maxDepth] = newConfig.rightmostSpacing;
         }
         
-        // Determine what needs to be re-rendered
         const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig);
         const needsLayoutRecalc = this.configRequiresLayoutRecalc(oldConfig, newConfig);
         const needsLabelsUpdate = this.configRequiresLabelsUpdate(oldConfig, newConfig);
@@ -1073,7 +1106,6 @@ class PulseSankeyChart {
             this.chart.selectAll('.node-label, .node-value').remove();
             this.renderLabels();
         } else {
-            // Handle opacity changes
             if (newConfig.nodeOpacity !== undefined) {
                 this.chart.selectAll('.sankey-node rect').attr('fill-opacity', newConfig.nodeOpacity);
             }
@@ -1104,19 +1136,15 @@ class PulseSankeyChart {
         );
     }
 
-    // Generate intelligent filename based on metadata
     generateFileName(extension = 'png') {
         const metadata = this.data?.metadata || {};
         
-        // Extract and clean company name
         let company = metadata.company || metadata.title || 'Chart';
-        company = company.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12); // Remove special chars, limit length
+        company = company.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
         
-        // Extract and clean period  
         let period = metadata.period || 'Period';
-        period = period.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 10); // Keep dashes, limit length
+        period = period.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 10);
         
-        // Generate timestamp: YYYYMMDD-HHMM
         const now = new Date();
         const timestamp = now.getFullYear().toString() +
                          (now.getMonth() + 1).toString().padStart(2, '0') +

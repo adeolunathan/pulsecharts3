@@ -11,6 +11,47 @@
     
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
+    
+    <style>
+        .main-tabs {
+            display: flex;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0 20px;
+        }
+        
+        .main-tab {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .main-tab:hover {
+            color: rgba(255,255,255,0.9);
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .main-tab.active {
+            color: white;
+            border-bottom-color: #f59e0b;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .tab-content {
+            display: none;
+            min-height: calc(100vh - 140px);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <div class="pulse-app">
@@ -38,70 +79,500 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <div class="app-content">
-            <!-- Chart Area -->
-            <div class="chart-area">
-                <!-- Chart Toolbar -->
-                <div class="chart-toolbar">
-                    <div class="data-controls">
-                        <span id="data-status" class="status-indicator status-loading">Loading...</span>
+        <!-- Main Tabs Navigation -->
+        <div class="main-tabs">
+            <button class="main-tab" onclick="switchMainTab('data-builder')">
+                📋 Data Builder
+            </button>
+            <button class="main-tab active" onclick="switchMainTab('chart-view')">
+                📊 Chart View
+            </button>
+        </div>
+
+        <!-- Data Builder Tab (Templates View) -->
+        <div id="data-builder" class="tab-content" style="background: #f8f9fa;">
+            <div class="template-container">
+                <div class="template-main">
+                    <div class="template-header">
+                        <h1>📊 Financial Flow Builder</h1>
+                        <span class="feature-badge">✨ Multi-Layer Management</span>
+                        <p>Build and customize your financial flow data structure</p>
                     </div>
-                    
-                    <div class="export-controls">
-                        <button id="export-png" class="btn btn-primary">
-                            🖼️ PNG
-                        </button>
-                        <button id="export-svg" class="btn btn-primary">
-                            📐 SVG
-                        </button>
-                        <button id="export-data" class="btn btn-primary">
-                            📊 CSV
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Chart Container -->
-                <div id="main-chart" class="chart-container">
-                    <div class="chart-loading">
-                        <div class="loading-spinner"></div>
-                        <p>Initializing Pulse Analytics Platform...</p>
+
+                    <div class="template-content">
+                        <!-- Industry Templates -->
+                        <div class="layer-management">
+                            <h3 style="margin: 0 0 10px 0; color: #92400e;">🏢 Quick Start Templates</h3>
+                            <div class="layer-controls">
+                                <button class="layer-btn" onclick="loadSaaSTemplate()">SaaS Company</button>
+                                <button class="layer-btn" onclick="loadManufacturingTemplate()">Manufacturing</button>
+                                <button class="layer-btn" onclick="loadRetailTemplate()">Retail Chain</button>
+                                <button class="layer-btn secondary" onclick="loadBlankTemplate()">Blank Template</button>
+                            </div>
+                        </div>
+
+                        <!-- Metadata Section -->
+                        <div class="data-section">
+                            <div class="section-header">
+                                <h3 class="section-title">📋 Company Information</h3>
+                            </div>
+                            <div class="section-content">
+                                <div class="metadata-grid">
+                                    <div class="field-group">
+                                        <label class="field-label">Company Name</label>
+                                        <input type="text" class="field-input" id="company-name" value="TechFlow SaaS Corp">
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label">Period</label>
+                                        <input type="text" class="field-input" id="period" value="Q3 2025">
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label">Currency</label>
+                                        <select class="field-input" id="currency">
+                                            <option value="USD" selected>USD ($)</option>
+                                            <option value="EUR">EUR (€)</option>
+                                            <option value="GBP">GBP (£)</option>
+                                        </select>
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label">Units</label>
+                                        <select class="field-input" id="units">
+                                            <option value="millions" selected>Millions</option>
+                                            <option value="billions">Billions</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nodes Editor -->
+                        <div class="data-section">
+                            <div class="section-header">
+                                <h3 class="section-title">🎯 Nodes</h3>
+                                <button class="add-item-btn" onclick="addNode()">+ Add Node</button>
+                            </div>
+                            <div class="section-content">
+                                <div id="nodes-container">
+                                    <!-- Nodes dynamically generated -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Links Editor -->
+                        <div class="data-section">
+                            <div class="section-header">
+                                <h3 class="section-title">🔗 Flow Connections</h3>
+                                <button class="add-item-btn" onclick="addCustomLink()">+ Add Connection</button>
+                            </div>
+                            <div class="section-content">
+                                <div id="links-container">
+                                    <!-- Links dynamically generated -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="applyDataAndSwitchToChart()">🚀 Generate Chart</button>
+                            <button class="btn btn-secondary" onclick="validateStructure()">✅ Validate</button>
+                            <button class="btn btn-secondary" onclick="exportCurrentData()">💾 Export</button>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Dynamic Control Panel -->
-            <div class="control-panel">
-                <div class="control-panel-header">
-                    <h3>Chart Controls</h3>
-                    <button id="reset-defaults" class="btn btn-outline">
-                        🔄 Reset
-                    </button>
+        <!-- Chart View Tab (Original) -->
+        <div id="chart-view" class="tab-content active">
+            <div class="app-content">
+                <!-- Chart Area -->
+                <div class="chart-area">
+                    <!-- Chart Toolbar -->
+                    <div class="chart-toolbar">
+                        <div class="data-controls">
+                            <span id="data-status" class="status-indicator status-loading">Loading...</span>
+                        </div>
+                        
+                        <div class="export-controls">
+                            <button id="export-png" class="btn btn-primary">🖼️ PNG</button>
+                            <button id="export-svg" class="btn btn-primary">📐 SVG</button>
+                            <button id="export-data" class="btn btn-primary">📊 CSV</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Chart Container -->
+                    <div id="main-chart" class="chart-container">
+                        <div class="chart-loading">
+                            <div class="loading-spinner"></div>
+                            <p>Initializing Pulse Analytics Platform...</p>
+                        </div>
+                    </div>
                 </div>
-                
-                <!-- Controls are generated dynamically here -->
-                <div id="dynamic-controls" class="control-panel-content">
-                    <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
-                        <p>Loading chart controls...</p>
+
+                <!-- Enhanced Control Panel with Colors -->
+                <div class="control-panel">
+                    <div class="control-panel-header">
+                        <h3>Chart Controls</h3>
+                        <button id="reset-defaults" class="btn btn-outline">🔄 Reset</button>
+                    </div>
+                    
+                    <div id="dynamic-controls" class="control-panel-content">
+                        <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
+                            <div style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
+                            <p>Loading chart controls...</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Hidden file input for custom data -->
+    <!-- Hidden file input -->
     <input type="file" id="file-input" style="display: none;" accept=".json">
 
-    <!-- Core Application Scripts (Order Matters) -->
+    <!-- Core Scripts -->
     <script src="js/core/DataManager.js"></script>
     <script src="js/core/ControlPanel.js"></script>
-    
-    <!-- Chart Scripts -->
     <script src="js/charts/sankey/SankeyChart.js"></script>
     <script src="js/charts/sankey/SankeyControls.js"></script>
-    
-    <!-- Main Application -->
     <script src="js/app.js"></script>
+    
+    <!-- Template Builder Integration Script -->
+    <script>
+        let currentMainTab = 'chart-view';
+        let templateData = {
+            metadata: {
+                title: "SaaS Company Financial Flow",
+                subtitle: "Q3 2025 Financial Performance", 
+                currency: "USD",
+                unit: "millions",
+                company: "TechFlow SaaS Corp",
+                period: "Q3 2025"
+            },
+            nodes: [],
+            links: []
+        };
+        
+        function switchMainTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.main-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[onclick="switchMainTab('${tabName}')"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            
+            currentMainTab = tabName;
+            
+            // Initialize tab content
+            if (tabName === 'data-builder') {
+                initializeDataBuilder();
+            }
+        }
+        
+        function initializeDataBuilder() {
+            // Load current chart data into builder if available
+            if (window.pulseApp && window.pulseApp.getCurrentData()) {
+                templateData = window.pulseApp.getCurrentData();
+                renderTemplateData();
+            } else {
+                loadSaaSTemplate();
+            }
+        }
+        
+        function loadSaaSTemplate() {
+            templateData = {
+                metadata: {
+                    title: "SaaS Company Financial Flow",
+                    subtitle: "Q3 2025 Financial Performance",
+                    currency: "USD",
+                    unit: "millions",
+                    company: "TechFlow SaaS Corp",
+                    period: "Q3 2025"
+                },
+                nodes: [
+                    {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue"},
+                    {id: "Professional Services", depth: 0, value: 60, category: "revenue"},
+                    {id: "Total Revenue", depth: 1, value: 360, category: "revenue"},
+                    {id: "Gross Profit", depth: 2, value: 300, category: "profit"},
+                    {id: "Operating Profit", depth: 3, value: 100, category: "profit"},
+                    {id: "Net Income", depth: 4, value: 75, category: "income"}
+                ],
+                links: [
+                    {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
+                    {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
+                    {source: "Total Revenue", target: "Gross Profit", value: 300, type: "profit_flow"},
+                    {source: "Gross Profit", target: "Operating Profit", value: 100, type: "profit_flow"},
+                    {source: "Operating Profit", target: "Net Income", value: 75, type: "final_flow"}
+                ]
+            };
+            renderTemplateData();
+        }
+        
+        function loadManufacturingTemplate() {
+            templateData = {
+                metadata: {
+                    title: "Manufacturing Corp Financial Flow",
+                    subtitle: "Q3 2025 Operations",
+                    currency: "USD", 
+                    unit: "millions",
+                    company: "Manufacturing Corp",
+                    period: "Q3 2025"
+                },
+                nodes: [
+                    {id: "Product Sales", depth: 0, value: 400, category: "revenue"},
+                    {id: "Total Revenue", depth: 1, value: 400, category: "revenue"},
+                    {id: "Gross Profit", depth: 2, value: 280, category: "profit"},
+                    {id: "Operating Profit", depth: 3, value: 120, category: "profit"},
+                    {id: "Net Income", depth: 4, value: 90, category: "income"}
+                ],
+                links: [
+                    {source: "Product Sales", target: "Total Revenue", value: 400, type: "revenue_flow"},
+                    {source: "Total Revenue", target: "Gross Profit", value: 280, type: "profit_flow"},
+                    {source: "Gross Profit", target: "Operating Profit", value: 120, type: "profit_flow"},
+                    {source: "Operating Profit", target: "Net Income", value: 90, type: "final_flow"}
+                ]
+            };
+            renderTemplateData();
+        }
+        
+        function loadRetailTemplate() {
+            templateData = {
+                metadata: {
+                    title: "Retail Chain Financial Flow",
+                    subtitle: "Q3 2025 Performance",
+                    currency: "USD",
+                    unit: "millions", 
+                    company: "Retail Chain Corp",
+                    period: "Q3 2025"
+                },
+                nodes: [
+                    {id: "Store Sales", depth: 0, value: 250, category: "revenue"},
+                    {id: "Online Sales", depth: 0, value: 150, category: "revenue"},
+                    {id: "Total Revenue", depth: 1, value: 400, category: "revenue"},
+                    {id: "Gross Profit", depth: 2, value: 200, category: "profit"},
+                    {id: "Operating Profit", depth: 3, value: 80, category: "profit"},
+                    {id: "Net Income", depth: 4, value: 60, category: "income"}
+                ],
+                links: [
+                    {source: "Store Sales", target: "Total Revenue", value: 250, type: "revenue_flow"},
+                    {source: "Online Sales", target: "Total Revenue", value: 150, type: "revenue_flow"},
+                    {source: "Total Revenue", target: "Gross Profit", value: 200, type: "profit_flow"},
+                    {source: "Gross Profit", target: "Operating Profit", value: 80, type: "profit_flow"},
+                    {source: "Operating Profit", target: "Net Income", value: 60, type: "final_flow"}
+                ]
+            };
+            renderTemplateData();
+        }
+        
+        function loadBlankTemplate() {
+            templateData = {
+                metadata: {
+                    title: "Your Company Financial Flow",
+                    subtitle: "Financial Performance",
+                    currency: "USD",
+                    unit: "millions",
+                    company: "Your Company",
+                    period: "Q3 2025"
+                },
+                nodes: [
+                    {id: "Revenue Source", depth: 0, value: 100, category: "revenue"}
+                ],
+                links: []
+            };
+            renderTemplateData();
+        }
+        
+        function renderTemplateData() {
+            // Update metadata inputs
+            document.getElementById('company-name').value = templateData.metadata.company || '';
+            document.getElementById('period').value = templateData.metadata.period || '';
+            document.getElementById('currency').value = templateData.metadata.currency || 'USD';
+            document.getElementById('units').value = templateData.metadata.unit || 'millions';
+            
+            // Render nodes
+            const nodesContainer = document.getElementById('nodes-container');
+            nodesContainer.innerHTML = '';
+            templateData.nodes.forEach((node, index) => {
+                const nodeDiv = createNodeEditor(node, index);
+                nodesContainer.appendChild(nodeDiv);
+            });
+            
+            // Render links
+            const linksContainer = document.getElementById('links-container');
+            linksContainer.innerHTML = '';
+            templateData.links.forEach((link, index) => {
+                const linkDiv = createLinkEditor(link, index);
+                linksContainer.appendChild(linkDiv);
+            });
+        }
+        
+        function createNodeEditor(node, index) {
+            const div = document.createElement('div');
+            div.className = 'data-item';
+            div.innerHTML = `
+                <button class="remove-item" onclick="removeNode(${index})" title="Remove Node">×</button>
+                <div class="item-fields">
+                    <div class="field-group">
+                        <label class="field-label">Name</label>
+                        <input type="text" class="field-input" value="${node.id}" 
+                               oninput="updateNode(${index}, 'id', this.value)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Value</label>
+                        <input type="number" class="field-input" value="${node.value}" 
+                               oninput="updateNode(${index}, 'value', parseFloat(this.value) || 0)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Layer</label>
+                        <input type="number" class="field-input depth-input" value="${node.depth}" 
+                               min="0" max="20"
+                               oninput="updateNode(${index}, 'depth', parseInt(this.value) || 0)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Category</label>
+                        <select class="field-input" onchange="updateNode(${index}, 'category', this.value)">
+                            <option value="revenue" ${node.category === 'revenue' ? 'selected' : ''}>Revenue</option>
+                            <option value="cost" ${node.category === 'cost' ? 'selected' : ''}>Cost</option>
+                            <option value="profit" ${node.category === 'profit' ? 'selected' : ''}>Profit</option>
+                            <option value="expense" ${node.category === 'expense' ? 'selected' : ''}>Expense</option>
+                            <option value="income" ${node.category === 'income' ? 'selected' : ''}>Income</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+        
+        function createLinkEditor(link, index) {
+            const div = document.createElement('div');
+            div.className = 'link-item';
+            div.innerHTML = `
+                <button class="remove-item" onclick="removeLink(${index})" title="Remove Link">×</button>
+                <div class="link-fields">
+                    <div class="field-group">
+                        <label class="field-label">Source</label>
+                        <select class="node-selector" onchange="updateLink(${index}, 'source', this.value)">
+                            ${templateData.nodes.map(node => 
+                                `<option value="${node.id}" ${node.id === link.source ? 'selected' : ''}>${node.id}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Target</label>
+                        <select class="node-selector" onchange="updateLink(${index}, 'target', this.value)">
+                            ${templateData.nodes.map(node => 
+                                `<option value="${node.id}" ${node.id === link.target ? 'selected' : ''}>${node.id}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Value</label>
+                        <input type="number" class="field-input" value="${link.value}" 
+                               onchange="updateLink(${index}, 'value', parseFloat(this.value) || 0)">
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+        
+        function updateNode(index, field, value) {
+            if (templateData.nodes[index]) {
+                templateData.nodes[index][field] = value;
+            }
+        }
+        
+        function updateLink(index, field, value) {
+            if (templateData.links[index]) {
+                templateData.links[index][field] = value;
+            }
+        }
+        
+        function addNode() {
+            const newNode = {
+                id: `New Node ${Date.now()}`,
+                depth: Math.max(...templateData.nodes.map(n => n.depth)) + 1,
+                value: 100,
+                category: "revenue"
+            };
+            templateData.nodes.push(newNode);
+            renderTemplateData();
+        }
+        
+        function removeNode(index) {
+            templateData.nodes.splice(index, 1);
+            renderTemplateData();
+        }
+        
+        function addCustomLink() {
+            if (templateData.nodes.length >= 2) {
+                const newLink = {
+                    source: templateData.nodes[0].id,
+                    target: templateData.nodes[1].id,
+                    value: 100,
+                    type: "revenue_flow"
+                };
+                templateData.links.push(newLink);
+                renderTemplateData();
+            }
+        }
+        
+        function removeLink(index) {
+            templateData.links.splice(index, 1);
+            renderTemplateData();
+        }
+        
+        function validateStructure() {
+            const errors = [];
+            if (templateData.nodes.length === 0) errors.push('No nodes defined');
+            if (templateData.links.length === 0) errors.push('No links defined');
+            
+            if (errors.length > 0) {
+                alert('❌ Validation errors:\n' + errors.join('\n'));
+            } else {
+                alert('✅ Structure validation passed!');
+            }
+        }
+        
+        function exportCurrentData() {
+            const dataStr = JSON.stringify(templateData, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'pulse-chart-data.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function applyDataAndSwitchToChart() {
+            // Update metadata from inputs
+            templateData.metadata.company = document.getElementById('company-name').value;
+            templateData.metadata.period = document.getElementById('period').value;
+            templateData.metadata.currency = document.getElementById('currency').value;
+            templateData.metadata.unit = document.getElementById('units').value;
+            templateData.metadata.title = `${templateData.metadata.company} Financial Flow`;
+            
+            // Apply to main app
+            if (window.pulseApp) {
+                window.pulseApp.currentData = templateData;
+                if (window.pulseApp.getCurrentChart()) {
+                    window.pulseApp.getCurrentChart().render(templateData);
+                }
+            }
+            
+            // Switch to chart view
+            switchMainTab('chart-view');
+        }
+        
+        // Initialize with SaaS template on load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSaaSTemplate();
+        });
+    </script>
 </body>
 </html>

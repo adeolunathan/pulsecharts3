@@ -1,5 +1,5 @@
 /* ===== PULSE ANALYTICS - MAIN APPLICATION (UPDATED) ===== */
-/* Updated to handle URL data parameters from guided flow */
+/* Updated to handle URL data parameters from guided flow and fix default settings persistence */
 
 class PulseApplication {
     constructor() {
@@ -107,18 +107,31 @@ class PulseApplication {
 
         console.log(`🎯 Initializing ${chartType} chart with controls`);
 
-        // Create chart instance
-        this.chart = new chartDefinition.chartClass('main-chart');
-        
-        // Create chart-specific control module
+        // **STEP 1: Create control module first**
         this.controlModule = new chartDefinition.controlModuleClass();
         
-        // Create generic control panel and initialize with chart + controls
+        // **STEP 2: Create chart instance**
+        this.chart = new chartDefinition.chartClass('main-chart');
+        
+        // **STEP 3: Apply control module defaults to chart config**
+        this.chart.applyControlDefaults(this.controlModule);
+        
+        // **STEP 4: Initialize dynamic controls if supported**
+        if (this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+            // Wait for data to be available before initializing dynamic controls
+            if (this.currentData) {
+                this.chart.processData(this.currentData);
+                this.controlModule.initializeDynamicControls(this.chart);
+            }
+        }
+        
+        // **STEP 5: Create control panel with properly synchronized chart and controls**
         this.controlPanel = new PulseControlPanel('dynamic-controls');
         this.controlPanel.init(this.chart, this.controlModule);
         
         this.currentChartType = chartType;
-        console.log(`✅ ${chartType} chart and controls initialized`);
+        console.log(`✅ ${chartType} chart and controls initialized with proper defaults`);
+        console.log('📋 Current chart config:', this.chart.config);
     }
 
     async switchChartType(newChartType) {
@@ -146,6 +159,14 @@ class PulseApplication {
             // Re-render with current data if available
             if (this.currentData) {
                 this.chart.render(this.currentData);
+                
+                // **CRITICAL: Initialize dynamic controls after data is rendered**
+                if (this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+                    this.controlModule.initializeDynamicControls(this.chart);
+                    // Regenerate control panel to include dynamic controls
+                    this.controlPanel.generateControls();
+                }
+                
                 this.hideLoadingIndicator();
             }
             
@@ -206,7 +227,7 @@ class PulseApplication {
         const resetDefaults = document.getElementById('reset-defaults');
         if (resetDefaults) {
             resetDefaults.addEventListener('click', () => {
-                this.controlPanel?.resetToDefaults();
+                this.resetToDefaults();
             });
         }
 
@@ -217,6 +238,36 @@ class PulseApplication {
                 this.handleFileUpload(event);
             });
         }
+    }
+
+    /**
+     * ENHANCED: Reset to defaults with proper synchronization
+     */
+    resetToDefaults() {
+        if (!this.controlPanel || !this.controlModule) {
+            console.warn('Cannot reset - control panel or module not available');
+            return;
+        }
+        
+        console.log('🔄 Resetting all controls to defaults');
+        
+        // Get defaults from control module
+        const defaults = this.controlModule.resetToDefaults();
+        
+        // Apply defaults to chart
+        if (this.chart) {
+            this.chart.config = { ...this.chart.getInitialConfig(), ...defaults };
+            
+            // Re-render chart with defaults
+            if (this.currentData) {
+                this.chart.render(this.currentData);
+            }
+        }
+        
+        // Regenerate control panel to reflect defaults
+        this.controlPanel.applyConfig(defaults);
+        
+        console.log('✅ Reset to defaults complete');
     }
 
     async loadDataset(datasetKey) {
@@ -235,6 +286,13 @@ class PulseApplication {
             
             if (this.chart) {
                 this.chart.render(this.currentData);
+                
+                // **CRITICAL: Initialize dynamic controls after data is rendered**
+                if (this.controlModule && this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+                    this.controlModule.initializeDynamicControls(this.chart);
+                    // Regenerate control panel to include dynamic controls
+                    this.controlPanel.generateControls();
+                }
             }
 
             // Show success with source information
@@ -290,6 +348,13 @@ class PulseApplication {
                 
                 if (this.chart) {
                     this.chart.render(this.currentData);
+                    
+                    // **CRITICAL: Initialize dynamic controls after data is rendered**
+                    if (this.controlModule && this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+                        this.controlModule.initializeDynamicControls(this.chart);
+                        // Regenerate control panel to include dynamic controls
+                        this.controlPanel.generateControls();
+                    }
                 }
 
                 this.setStatus(`Custom: ${this.currentData.metadata?.title || 'Untitled'}`, 'ready');

@@ -1,5 +1,5 @@
-/* ===== SANKEY CHART CONTROLS - ENHANCED DYNAMIC LAYER SUPPORT ===== */
-/* All Sankey-specific control logic with dynamic layer capabilities */
+/* ===== SANKEY CHART CONTROLS - WITH COLOR CUSTOMIZATION ===== */
+/* Enhanced Sankey controls with color picker support and dynamic layers */
 
 class SankeyControlModule {
     constructor() {
@@ -21,7 +21,7 @@ class SankeyControlModule {
                         label: "Node Width", 
                         min: 10, 
                         max: 40, 
-                        default: 28, 
+                        default: 35, 
                         step: 1, 
                         unit: "px", 
                         description: "Width of the flow nodes" 
@@ -32,7 +32,7 @@ class SankeyControlModule {
                         label: "Base Node Spacing", 
                         min: 40, 
                         max: 80, 
-                        default: 40, 
+                        default: 50, 
                         step: 5, 
                         unit: "px", 
                         description: "Foundational vertical spacing for middle layers" 
@@ -43,7 +43,7 @@ class SankeyControlModule {
                         label: "Leftmost Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
-                        default: 0.8, 
+                        default: 0.5, 
                         step: 0.1, 
                         unit: "×", 
                         description: "Spacing multiplier for leftmost layer (depth 0)" 
@@ -54,7 +54,7 @@ class SankeyControlModule {
                         label: "Middle Layers Spacing", 
                         min: 0.5, 
                         max: 1.5, 
-                        default: 0.9, 
+                        default: 0.5, 
                         step: 0.1, 
                         unit: "×", 
                         description: "Spacing multiplier for all middle layers" 
@@ -65,7 +65,7 @@ class SankeyControlModule {
                         label: "Rightmost Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
-                        default: 0.7, 
+                        default: 0.5, 
                         step: 0.1, 
                         unit: "×", 
                         description: "Spacing multiplier for rightmost layer (final depth)" 
@@ -84,9 +84,60 @@ class SankeyControlModule {
                         label: "Global Curve Intensity", 
                         min: 0.1, 
                         max: 0.8, 
-                        default: 0.4, 
+                        default: 0.3, 
                         step: 0.05, 
                         description: "How curved the flow connections are" 
+                    }
+                ]
+            },
+
+            // **NEW: Color Customization Section**
+            colors: {
+                title: "Color Customization",
+                icon: "🎨",
+                collapsed: true,
+                controls: [
+                    {
+                        id: "revenueColor",
+                        type: "color",
+                        label: "Revenue Color",
+                        default: "#3498db",
+                        description: "Color for revenue category nodes"
+                    },
+                    {
+                        id: "costColor",
+                        type: "color",
+                        label: "Cost Color",
+                        default: "#e74c3c",
+                        description: "Color for cost category nodes"
+                    },
+                    {
+                        id: "profitColor",
+                        type: "color",
+                        label: "Profit Color",
+                        default: "#27ae60",
+                        description: "Color for profit category nodes"
+                    },
+                    {
+                        id: "expenseColor",
+                        type: "color",
+                        label: "Expense Color",
+                        default: "#e67e22",
+                        description: "Color for expense category nodes"
+                    },
+                    {
+                        id: "incomeColor",
+                        type: "color",
+                        label: "Income Color",
+                        default: "#9b59b6",
+                        description: "Color for income category nodes"
+                    },
+                    {
+                        id: "taxColor",
+                        type: "color",
+                        label: "Tax Color",
+                        default: "#c0392b",
+                        description: "Color for tax category nodes"
                     }
                 ]
             },
@@ -102,7 +153,7 @@ class SankeyControlModule {
                         label: "Leftmost Label Distance", 
                         min: 5, 
                         max: 30, 
-                        default: 15, 
+                        default: 5, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of leftmost labels from nodes" 
@@ -113,10 +164,10 @@ class SankeyControlModule {
                         label: "Middle Label Distance", 
                         min: 5, 
                         max: 30, 
-                        default: 12, 
+                        default: 15, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of middle layer labels from nodes (auto-positioned above/below)" 
+                        description: "Distance of middle layer labels from nodes" 
                     },
                     { 
                         id: "valueDistanceMiddle", 
@@ -124,7 +175,7 @@ class SankeyControlModule {
                         label: "Middle Value Distance", 
                         min: 1, 
                         max: 20, 
-                        default: 8, 
+                        default: 5, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of middle layer values from nodes" 
@@ -133,9 +184,9 @@ class SankeyControlModule {
                         id: "labelDistanceRightmost", 
                         type: "slider", 
                         label: "Rightmost Label Distance", 
-                        min: 5, 
+                        min: 1, 
                         max: 30, 
-                        default: 15, 
+                        default: 1, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of rightmost labels from nodes" 
@@ -144,9 +195,9 @@ class SankeyControlModule {
                         id: "valueDistance", 
                         type: "slider", 
                         label: "Value Distance (Left/Right)", 
-                        min: 4, 
+                        min: 1, 
                         max: 15, 
-                        default: 8, 
+                        default: 3, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of values from leftmost and rightmost nodes only" 
@@ -165,7 +216,7 @@ class SankeyControlModule {
                         label: "Node Height Scale", 
                         min: 0, 
                         max: 1.0, 
-                        default: 0.65, 
+                        default: 0.03, 
                         step: 0.005, 
                         description: "Scale factor for node heights" 
                     },
@@ -184,7 +235,7 @@ class SankeyControlModule {
             
             styling: {
                 title: "Visual Style",
-                icon: "🎨",
+                icon: "✨",
                 collapsed: true,
                 controls: [
                     { 
@@ -210,19 +261,19 @@ class SankeyControlModule {
                 ]
             },
 
-            // **NEW: Dynamic layer controls section**
+            // Dynamic layer controls section
             dynamicLayers: {
                 title: "Advanced Layer Controls",
                 icon: "🔧",
                 collapsed: true,
                 description: "Fine-tune individual layer properties",
-                controls: [] // Will be populated dynamically based on actual data
+                controls: []
             }
         };
     }
 
     /**
-     * NEW: Initialize dynamic layer controls based on chart data
+     * Initialize dynamic layer controls based on chart data
      */
     initializeDynamicControls(chart) {
         if (!chart || !chart.getLayerInfo) {
@@ -235,16 +286,13 @@ class SankeyControlModule {
         
         console.log(`🔧 Initializing dynamic controls for ${this.currentLayerCount} layers`);
         
-        // Clear existing dynamic controls
         this.capabilities.dynamicLayers.controls = [];
         this.dynamicControls.clear();
 
-        // Create controls for each layer
         for (let depth = 0; depth <= layerInfo.maxDepth; depth++) {
             const layerType = this.getLayerTypeName(depth, layerInfo);
             const nodeCount = layerInfo.nodeDistribution[depth]?.count || 0;
             
-            // Skip if no nodes at this depth
             if (nodeCount === 0) continue;
 
             const control = {
@@ -265,7 +313,6 @@ class SankeyControlModule {
             this.dynamicControls.set(depth, control);
         }
 
-        // Add layer information display
         this.capabilities.dynamicLayers.controls.push({
             id: "layerInfo",
             type: "info",
@@ -278,9 +325,6 @@ class SankeyControlModule {
         console.log(`✅ Created ${this.dynamicControls.size} dynamic layer controls`);
     }
 
-    /**
-     * NEW: Get human-readable layer type name
-     */
     getLayerTypeName(depth, layerInfo) {
         if (depth === layerInfo.layerInfo.leftmost) {
             return "Leftmost";
@@ -291,9 +335,6 @@ class SankeyControlModule {
         }
     }
 
-    /**
-     * NEW: Format layer information for display
-     */
     formatLayerInfo(layerInfo) {
         const lines = [];
         lines.push(`Total Layers: ${layerInfo.totalLayers}`);
@@ -304,7 +345,7 @@ class SankeyControlModule {
             lines.push(`Middle: Layers ${layerInfo.layerInfo.middle.join(', ')}`);
         }
         
-        lines.push(''); // Empty line
+        lines.push('');
         lines.push('Node Distribution:');
         
         Object.entries(layerInfo.nodeDistribution).forEach(([depth, info]) => {
@@ -315,12 +356,19 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Control change handler with dynamic layer support
+     * ENHANCED: Control change handler with color support
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
-        // **NEW: Handle dynamic layer spacing controls**
+        // **NEW: Handle color controls**
+        if (controlId.endsWith('Color')) {
+            const category = controlId.replace('Color', '').toLowerCase();
+            this.updateChartColor(chart, category, value);
+            return;
+        }
+
+        // Handle dynamic layer spacing controls
         if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
             const depth = parseInt(controlId.split('_')[1]);
             if (!isNaN(depth) && chart.setLayerSpacing) {
@@ -329,10 +377,8 @@ class SankeyControlModule {
             }
         }
 
-        // **SPECIAL HANDLING FOR MIDDLE LAYER SPACING CONTROL**
+        // Handle middle layer spacing control
         if (controlId === 'nodePadding') {
-            // This control should only affect middle layers
-            // The chart's positionNodesAtDepth method will handle the layer categorization
             chart.updateConfig({ nodePadding: value });
             return;
         }
@@ -355,7 +401,6 @@ class SankeyControlModule {
         if (controlId === 'valueDistanceMiddle') {
             const valueDistance = chart.config.valueDistance || {};
             if (typeof valueDistance === 'number') {
-                // Convert from single value to object
                 chart.config.valueDistance = {
                     general: valueDistance,
                     middle: value
@@ -367,7 +412,6 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle general value distance (leftmost/rightmost only)
         if (controlId === 'valueDistance') {
             const currentValueDistance = chart.config.valueDistance || {};
             if (typeof currentValueDistance === 'object') {
@@ -377,7 +421,7 @@ class SankeyControlModule {
                 chart.updateConfig({ 
                     valueDistance: {
                         general: value,
-                        middle: currentValueDistance // Preserve existing middle value
+                        middle: currentValueDistance
                     }
                 });
             }
@@ -391,18 +435,15 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle Flow Width Scale specifically to ensure it works
         if (controlId === 'linkWidthScale') {
             chart.updateConfig({ linkWidthScale: value });
-            // Also call the specific method if it exists
             if (chart.setLinkWidth) {
                 chart.setLinkWidth(value);
             }
             return;
         }
 
-        // **LAYER SPACING MULTIPLIERS**
-        // These controls affect the multipliers applied to the base spacing
+        // Layer spacing multipliers
         if (controlId === 'leftmostSpacing') {
             chart.updateConfig({ leftmostSpacing: value });
             return;
@@ -423,12 +464,29 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Get default configuration for Sankey charts with dynamic layer support
+     * NEW: Update chart color for a specific category
+     */
+    updateChartColor(chart, category, color) {
+        if (!chart.customColors) {
+            chart.customColors = {};
+        }
+        
+        chart.customColors[category] = color;
+        
+        // Re-render chart with new colors
+        if (chart.data) {
+            chart.render(chart.data);
+        }
+        
+        console.log(`🎨 Updated ${category} color to ${color}`);
+    }
+
+    /**
+     * Get default configuration matching chart initialization
      */
     getDefaultConfig() {
         const defaults = {};
         
-        // Get defaults from static controls
         Object.values(this.capabilities).forEach(section => {
             if (section.controls && Array.isArray(section.controls)) {
                 section.controls.forEach(control => {
@@ -439,46 +497,140 @@ class SankeyControlModule {
             }
         });
 
-        // **SET UP PROPER LABEL DISTANCE DEFAULTS**
+        // **CRITICAL: Properly structured defaults that match chart config**
         defaults.labelDistance = {
             leftmost: 15,
             middle: 12,
             rightmost: 15
         };
 
-        // **SET UP VALUE DISTANCE DEFAULTS**
         defaults.valueDistance = {
             general: 8,
             middle: 8
         };
 
+        defaults.layerSpacing = {
+            0: 0.8,
+            1: 1.0,
+            2: 1.0,
+            3: 0.9,
+            4: 0.7
+        };
+
+        console.log('📋 Control module defaults generated:', defaults);
         return defaults;
     }
 
     /**
-     * ENHANCED: Validate Sankey-specific configuration with dynamic layer support
+     * Get current colors from chart
      */
+    getCurrentColors(chart) {
+        return chart.customColors || {};
+    }
+
+    /**
+     * Reset chart colors to defaults
+     */
+    resetColors(chart) {
+        if (chart.resetColors) {
+            chart.resetColors();
+        } else {
+            chart.customColors = {};
+            if (chart.data) {
+                chart.render(chart.data);
+            }
+        }
+        console.log('🔄 Reset colors to defaults');
+    }
+
+    /**
+     * Apply color preset to chart
+     */
+    applyColorPreset(chart, presetName) {
+        const presets = {
+            default: {
+                revenue: '#3498db',
+                cost: '#e74c3c',
+                profit: '#27ae60',
+                expense: '#e67e22',
+                income: '#9b59b6',
+                tax: '#c0392b'
+            },
+            vibrant: {
+                revenue: '#ff6b6b',
+                cost: '#4ecdc4',
+                profit: '#45b7d1',
+                expense: '#f9ca24',
+                income: '#6c5ce7',
+                tax: '#fd79a8'
+            },
+            professional: {
+                revenue: '#2c3e50',
+                cost: '#95a5a6',
+                profit: '#27ae60',
+                expense: '#e67e22',
+                income: '#3498db',
+                tax: '#e74c3c'
+            },
+            monochrome: {
+                revenue: '#2c3e50',
+                cost: '#7f8c8d',
+                profit: '#34495e',
+                expense: '#95a5a6',
+                income: '#2c3e50',
+                tax: '#34495e'
+            }
+        };
+
+        const preset = presets[presetName];
+        if (preset && chart.setCustomColors) {
+            chart.setCustomColors(preset);
+            console.log(`🎨 Applied ${presetName} color preset`);
+        }
+    }
+
+    /**
+     * Generate random colors for all categories
+     */
+    randomizeColors(chart) {
+        const categories = ['revenue', 'cost', 'profit', 'expense', 'income', 'tax'];
+        const randomColors = {};
+        
+        categories.forEach(category => {
+            randomColors[category] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        });
+        
+        if (chart.setCustomColors) {
+            chart.setCustomColors(randomColors);
+        }
+        
+        console.log('🎲 Randomized all colors');
+    }
+
     validateConfig(config) {
         const errors = [];
         const warnings = [];
 
-        // Validate static controls
         Object.values(this.capabilities).forEach(section => {
             if (section.controls && Array.isArray(section.controls)) {
                 section.controls.forEach(control => {
-                    if (control.isDynamic) return; // Skip dynamic controls
+                    if (control.isDynamic) return;
                     
                     const value = config[control.id];
                     
                     if (value !== undefined) {
-                        // Check range for sliders
                         if (control.type === 'slider') {
                             if (value < control.min || value > control.max) {
                                 errors.push(`${control.label} must be between ${control.min} and ${control.max}`);
                             }
                         }
                         
-                        // Check dropdown options
+                        if (control.type === 'color') {
+                            if (!/^#[0-9A-F]{6}$/i.test(value)) {
+                                errors.push(`${control.label} must be a valid hex color`);
+                            }
+                        }
+                        
                         if (control.type === 'dropdown' && control.options) {
                             const validValues = control.options.map(opt => opt.value);
                             if (!validValues.includes(value)) {
@@ -490,7 +642,6 @@ class SankeyControlModule {
             }
         });
 
-        // **VALIDATE DYNAMIC LAYER SPACING**
         if (config.layerSpacing && typeof config.layerSpacing === 'object') {
             Object.entries(config.layerSpacing).forEach(([depth, spacing]) => {
                 const depthNum = parseInt(depth);
@@ -502,7 +653,6 @@ class SankeyControlModule {
             });
         }
 
-        // **VALIDATE SPACING LOGIC CONSISTENCY**
         if (config.nodePadding && config.nodePadding < 20) {
             warnings.push('Very low middle layer spacing may cause overlapping labels');
         }
@@ -517,27 +667,21 @@ class SankeyControlModule {
         return { errors, warnings, valid: errors.length === 0 };
     }
 
-    /**
-     * ENHANCED: Reset all controls to defaults (including dynamic ones)
-     */
     resetToDefaults() {
         const defaults = this.getDefaultConfig();
         
-        // Reset dynamic controls to their defaults
         this.dynamicControls.forEach((control, depth) => {
             defaults[control.id] = control.default;
         });
         
+        console.log('🔄 Reset to defaults:', defaults);
         return defaults;
     }
 
-    /**
-     * ENHANCED: Export configuration as JSON with dynamic layer info
-     */
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '2.0',  // Updated version for dynamic layer support
+            version: '2.1',  // Updated for color support
             config: config,
             timestamp: new Date().toISOString(),
             features: {
@@ -545,6 +689,7 @@ class SankeyControlModule {
                 layerSpecificSpacing: true,
                 middleLayerTargetedControls: true,
                 dynamicLayerSupport: true,
+                colorCustomization: true,
                 totalLayers: this.currentLayerCount
             },
             dynamicControls: Array.from(this.dynamicControls.entries()).map(([depth, control]) => ({
@@ -556,9 +701,6 @@ class SankeyControlModule {
         }, null, 2);
     }
 
-    /**
-     * ENHANCED: Import configuration from JSON with dynamic layer support
-     */
     importConfig(jsonString) {
         try {
             const imported = JSON.parse(jsonString);
@@ -567,18 +709,16 @@ class SankeyControlModule {
                 throw new Error('Configuration is not for Sankey charts');
             }
             
-            // Handle both v1.x and v2.x configurations
-            if (imported.version && imported.version.startsWith('2.') && imported.dynamicControls) {
-                console.log(`📊 Importing v${imported.version} configuration with dynamic layer support`);
+            if (imported.version && (imported.version.startsWith('2.') || imported.version.startsWith('1.'))) {
+                console.log(`📊 Importing v${imported.version} configuration`);
                 
-                // Restore dynamic controls if they exist
-                imported.dynamicControls.forEach(dynControl => {
-                    if (this.dynamicControls.has(dynControl.depth)) {
-                        imported.config[dynControl.controlId] = dynControl.value;
-                    }
-                });
-            } else {
-                console.log(`📊 Importing legacy configuration (v${imported.version || '1.x'})`);
+                if (imported.dynamicControls) {
+                    imported.dynamicControls.forEach(dynControl => {
+                        if (this.dynamicControls.has(dynControl.depth)) {
+                            imported.config[dynControl.controlId] = dynControl.value;
+                        }
+                    });
+                }
             }
             
             const validation = this.validateConfig(imported.config);
@@ -593,9 +733,6 @@ class SankeyControlModule {
         }
     }
 
-    /**
-     * ENHANCED: Get control information for documentation including dynamic layer info
-     */
     getControlInfo() {
         return {
             layerLogic: {
@@ -619,25 +756,18 @@ class SankeyControlModule {
                 labelPositioning: "Middle layer labels automatically positioned to avoid overlap",
                 spacingControl: "nodePadding control specifically targets middle layers only",
                 layerAwareness: "All spacing controls respect dynamic layer categorization",
-                dynamicSupport: "Automatically adapts to any number of layers in the data"
+                dynamicSupport: "Automatically adapts to any number of layers in the data",
+                colorCustomization: "Full color customization with presets and randomization"
             },
-            dynamicFeatures: {
-                layerDetection: "Automatically detects number of layers from data",
-                individualLayerControls: "Individual spacing controls for each layer",
-                layerTypeClassification: "Dynamic leftmost/middle/rightmost categorization",
-                scalableArchitecture: "Supports 2 to 20+ layers seamlessly"
-            },
-            compatibilityInfo: {
-                backwardCompatible: "Existing 4-layer charts work without modification",
-                configVersioning: "Supports both legacy and enhanced configurations",
-                gracefulDegradation: "Falls back to basic controls if dynamic features unavailable"
+            colorFeatures: {
+                categoryColors: "Individual color controls for each node category",
+                colorPresets: "Professional, vibrant, and monochrome color schemes",
+                randomization: "Generate random color combinations",
+                realTimePreview: "Colors update immediately in chart view"
             }
         };
     }
 
-    /**
-     * NEW: Update capabilities when chart changes (for re-initialization)
-     */
     updateCapabilities(chart) {
         if (chart && chart.getLayerInfo) {
             this.initializeDynamicControls(chart);
@@ -645,23 +775,14 @@ class SankeyControlModule {
         }
     }
 
-    /**
-     * NEW: Get dynamic control by layer depth
-     */
     getDynamicControl(depth) {
         return this.dynamicControls.get(depth);
     }
 
-    /**
-     * NEW: Check if the module supports dynamic layers
-     */
     supportsDynamicLayers() {
         return true;
     }
 
-    /**
-     * NEW: Get current layer count
-     */
     getCurrentLayerCount() {
         return this.currentLayerCount;
     }
@@ -672,7 +793,6 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = SankeyControlModule;
 }
 
-// Global export for browser usage
 if (typeof window !== 'undefined') {
     window.SankeyControlModule = SankeyControlModule;
 }
