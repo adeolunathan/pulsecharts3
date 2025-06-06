@@ -1,1 +1,0 @@
-// Placeholder for ChartRegistry.js
