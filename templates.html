@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editable Data Templates - Fixed</title>
+    <title>Enhanced Templates - Flexible Link Management</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -13,7 +13,7 @@
         }
 
         .template-container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 8px;
@@ -35,8 +35,46 @@
             text-align: center;
         }
 
+        .feature-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 8px;
+            display: inline-block;
+        }
+
         .template-content {
             padding: 30px;
+        }
+
+        .layer-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .layer-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .layer-stat {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .layer-stat-value {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
         }
 
         .data-section {
@@ -59,6 +97,18 @@
             font-weight: 600;
             color: #2c3e50;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layer-badge {
+            background: #667eea;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
         }
 
         .add-item-btn {
@@ -69,6 +119,12 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+        }
+
+        .section-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
 
         .section-content {
@@ -90,9 +146,60 @@
 
         .item-fields {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 3fr;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 3fr;
             gap: 12px;
             align-items: center;
+        }
+
+        /* Link Management Styles */
+        .link-item {
+            background: #fff8f0;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .link-fields {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr 1fr 2fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .link-visual {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .link-arrow {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .node-selector {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .auto-calc-indicator {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
         }
 
         .field-group {
@@ -123,6 +230,12 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
+        .depth-input {
+            background: #e7f3ff;
+            border-color: #667eea;
+            font-weight: 600;
+        }
+
         .remove-item {
             position: absolute;
             top: 8px;
@@ -146,6 +259,83 @@
             gap: 15px;
         }
 
+        /* Link Builder */
+        .link-builder {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .link-builder-controls {
+            display: grid;
+            grid-template-columns: 2fr 80px 2fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 10px;
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-link-btn {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .quick-link-btn:hover {
+            background: #0284c7;
+        }
+
+        /* Layer Management */
+        .layer-management {
+            background: #fff8f0;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .layer-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .layer-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .layer-btn:hover {
+            background: #d97706;
+        }
+
+        .layer-btn.secondary {
+            background: #6b7280;
+        }
+
+        .layer-btn.secondary:hover {
+            background: #4b5563;
+        }
+
         /* Live Preview Panel */
         .preview-panel {
             background: #1f2937;
@@ -163,6 +353,28 @@
             border-bottom: 1px solid #4b5563;
             color: white;
             font-weight: 600;
+        }
+
+        .preview-tabs {
+            display: flex;
+            background: #4b5563;
+        }
+
+        .preview-tab {
+            flex: 1;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .preview-tab.active {
+            color: white;
+            border-bottom-color: #667eea;
+            background: #374151;
         }
 
         .preview-content {
@@ -185,6 +397,26 @@
             width: 100%;
             height: 100%;
             min-height: 400px;
+        }
+
+        .layer-preview {
+            color: #e5e7eb;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .layer-preview h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .layer-item {
+            background: #374151;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
         }
 
         .json-stats {
@@ -231,6 +463,37 @@
             background: #e5e7eb;
         }
 
+        /* Validation indicators */
+        .validation-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .validation-warning {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            color: #d97706;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .validation-success {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
         @media (max-width: 1200px) {
             .template-container {
                 grid-template-columns: 1fr;
@@ -241,7 +504,7 @@
                 order: -1;
             }
             
-            .item-fields {
+            .item-fields, .link-fields {
                 grid-template-columns: 1fr;
                 gap: 8px;
             }
@@ -256,11 +519,48 @@
     <div class="template-container">
         <div class="template-main">
             <div class="template-header">
-                <h1>📊 Editable Sample Data Template</h1>
-                <p>Modify the sample data below to match your company's financial structure</p>
+                <h1>📊 Advanced Financial Flow Builder</h1>
+                <span class="feature-badge">✨ Multi-Layer Link Management</span>
+                <p>Create complex financial flows with unlimited connections between any nodes</p>
             </div>
 
             <div class="template-content">
+                <!-- Layer Information Display -->
+                <div class="layer-info">
+                    <h3 style="margin: 0 0 10px 0; color: #1e40af;">🔧 Current Structure</h3>
+                    <div class="layer-stats">
+                        <div class="layer-stat">
+                            <div class="layer-stat-value" id="total-layers">4</div>
+                            <div>Total Layers</div>
+                        </div>
+                        <div class="layer-stat">
+                            <div class="layer-stat-value" id="total-nodes">15</div>
+                            <div>Total Nodes</div>
+                        </div>
+                        <div class="layer-stat">
+                            <div class="layer-stat-value" id="total-links">14</div>
+                            <div>Total Links</div>
+                        </div>
+                        <div class="layer-stat">
+                            <div class="layer-stat-value" id="balance-score">95%</div>
+                            <div>Balance Score</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adobe Example Template -->
+                <div class="layer-management">
+                    <h3 style="margin: 0 0 10px 0; color: #92400e;">🏢 Industry Templates</h3>
+                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #6b7280;">Start with real-world financial structures</p>
+                    <div class="layer-controls">
+                        <button class="layer-btn" onclick="loadAdobeTemplate()">Adobe Revenue Model</button>
+                        <button class="layer-btn" onclick="loadSaaSTemplate()">SaaS Company</button>
+                        <button class="layer-btn" onclick="loadManufacturingTemplate()">Manufacturing</button>
+                        <button class="layer-btn" onclick="loadRetailTemplate()">Retail Chain</button>
+                        <button class="layer-btn secondary" onclick="loadBlankTemplate()">Blank Template</button>
+                    </div>
+                </div>
+
                 <!-- Metadata Section -->
                 <div class="data-section">
                     <div class="section-header">
@@ -270,7 +570,7 @@
                         <div class="metadata-grid">
                             <div class="field-group">
                                 <label class="field-label">Company Name</label>
-                                <input type="text" class="field-input" id="company-name" value="TechFlow SaaS Corp">
+                                <input type="text" class="field-input" id="company-name" value="Adobe Inc.">
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Period</label>
@@ -279,139 +579,260 @@
                             <div class="field-group">
                                 <label class="field-label">Currency</label>
                                 <select class="field-input" id="currency">
-                                    <option value="USD">USD ($)</option>
+                                    <option value="USD" selected>USD ($)</option>
                                     <option value="EUR">EUR (€)</option>
                                     <option value="GBP">GBP (£)</option>
-                                    <option value="JPY">JPY (¥)</option>
-                                    <option value="CAD">CAD (C$)</option>
-                                    <option value="AUD">AUD (A$)</option>
-                                    <option value="CHF">CHF</option>
-                                    <option value="CNY">CNY (¥)</option>
                                 </select>
                             </div>
                             <div class="field-group">
                                 <label class="field-label">Units</label>
                                 <select class="field-input" id="units">
-                                    <option value="thousands">Thousands</option>
                                     <option value="millions" selected>Millions</option>
                                     <option value="billions">Billions</option>
                                 </select>
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Chart Title</label>
-                                <input type="text" class="field-input" id="chart-title" value="SaaS Company Financial Flow">
-                            </div>
-                            <div class="field-group">
-                                <label class="field-label">Subtitle</label>
-                                <input type="text" class="field-input" id="subtitle" value="Q3 2025 Financial Performance">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Revenue Sources -->
+                <!-- Node Editor -->
                 <div class="data-section">
                     <div class="section-header">
-                        <h3 class="section-title">💰 Revenue Sources (Depth 0)</h3>
-                        <button class="add-item-btn" onclick="addRevenueSource()">+ Add Revenue Source</button>
+                        <h3 class="section-title">
+                            🎯 Nodes
+                            <span class="layer-badge">Multi-Layer</span>
+                        </h3>
+                        <div class="section-controls">
+                            <select id="layer-filter" class="field-input" style="margin-right: 8px;" onchange="filterByLayer()">
+                                <option value="all">All Layers</option>
+                            </select>
+                            <button class="add-item-btn" onclick="addNode()">+ Add Node</button>
+                        </div>
                     </div>
-                    <div class="section-content" id="revenue-sources">
-                        <!-- Revenue items will be dynamically generated -->
+                    <div class="section-content">
+                        <div id="nodes-container">
+                            <!-- Nodes will be dynamically generated -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- Intermediate Flows -->
+                <!-- Link Management Section -->
                 <div class="data-section">
                     <div class="section-header">
-                        <h3 class="section-title">🔄 Intermediate Flows (Depths 1-3)</h3>
-                        <button class="add-item-btn" onclick="addIntermediateFlow()">+ Add Flow</button>
+                        <h3 class="section-title">
+                            🔗 Flow Connections
+                            <span class="layer-badge">Flexible Links</span>
+                        </h3>
+                        <div class="section-controls">
+                            <button class="add-item-btn" onclick="addCustomLink()">+ Add Connection</button>
+                        </div>
                     </div>
-                    <div class="section-content" id="intermediate-flows">
-                        <!-- Intermediate flow items will be dynamically generated -->
-                    </div>
-                </div>
+                    <div class="section-content">
+                        <!-- Link Builder -->
+                        <div class="link-builder">
+                            <h4 style="margin: 0 0 10px 0; color: #0369a1;">⚡ Quick Link Builder</h4>
+                            <div class="link-builder-controls">
+                                <div class="field-group">
+                                    <label class="field-label">Source Node</label>
+                                    <select id="source-selector" class="node-selector">
+                                        <option value="">Select source...</option>
+                                    </select>
+                                </div>
+                                <div style="text-align: center; padding-top: 20px;">
+                                    <span class="link-arrow">→</span>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label">Target Node</label>
+                                    <select id="target-selector" class="node-selector">
+                                        <option value="">Select target...</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label">Value</label>
+                                    <input type="number" id="link-value" class="field-input" placeholder="Auto" title="Leave blank for auto-calculation">
+                                </div>
+                                <div style="padding-top: 20px;">
+                                    <button class="add-item-btn" onclick="createQuickLink()">Add Link</button>
+                                </div>
+                            </div>
+                            <div class="quick-links">
+                                <button class="quick-link-btn" onclick="autoLinkLayer(0, 1)">Connect Layer 0→1</button>
+                                <button class="quick-link-btn" onclick="autoLinkLayer(1, 2)">Connect Layer 1→2</button>
+                                <button class="quick-link-btn" onclick="autoLinkSiblings()">Link Siblings</button>
+                                <button class="quick-link-btn" onclick="balanceAllLinks()">Auto-Balance</button>
+                            </div>
+                        </div>
 
-                <!-- Final Results -->
-                <div class="data-section">
-                    <div class="section-header">
-                        <h3 class="section-title">🎯 Final Results (Depth 4)</h3>
-                        <button class="add-item-btn" onclick="addFinalResult()">+ Add Final Item</button>
-                    </div>
-                    <div class="section-content" id="final-results">
-                        <!-- Final result items will be dynamically generated -->
+                        <!-- Existing Links -->
+                        <div id="links-container">
+                            <!-- Links will be dynamically generated -->
+                        </div>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="generateChart()">🚀 Generate Chart</button>
+                    <button class="btn btn-secondary" onclick="validateStructure()">✅ Validate Structure</button>
                     <button class="btn btn-secondary" onclick="exportData()">📁 Export Data</button>
-                    <button class="btn btn-secondary" onclick="loadTemplate()">📋 Load Different Template</button>
+                    <button class="btn btn-secondary" onclick="importData()">📂 Import Data</button>
                 </div>
             </div>
         </div>
 
-        <!-- Live Preview Panel -->
+        <!-- Enhanced Live Preview Panel -->
         <div class="preview-panel">
             <div class="preview-header">
-                📊 Live Data Preview
+                📊 Live Preview & Validation
+            </div>
+            <div class="preview-tabs">
+                <button class="preview-tab active" onclick="switchTab('structure')">Structure</button>
+                <button class="preview-tab" onclick="switchTab('json')">JSON Data</button>
+                <button class="preview-tab" onclick="switchTab('validation')">Validation</button>
             </div>
             <div class="preview-content">
-                <textarea class="json-preview" id="json-preview" readonly></textarea>
+                <div id="structure-tab" class="tab-content">
+                    <div class="layer-preview" id="structure-preview">
+                        <!-- Structure analysis will be populated here -->
+                    </div>
+                </div>
+                <div id="json-tab" class="tab-content" style="display: none;">
+                    <textarea class="json-preview" id="json-preview" readonly></textarea>
+                </div>
+                <div id="validation-tab" class="tab-content" style="display: none;">
+                    <div class="layer-preview" id="validation-preview">
+                        <!-- Validation results will be populated here -->
+                    </div>
+                </div>
             </div>
             <div class="json-stats" id="json-stats">
-                Nodes: 0 | Links: 0 | Total Value: $0M
+                Nodes: 0 | Links: 0 | Layers: 0 | Balance: 0%
             </div>
         </div>
     </div>
 
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" style="display: none;" accept=".json" onchange="handleFileImport(event)">
+
     <script>
-        // Sample data structure (preserves existing format)
+        // Initialize template data structure
         let templateData = {
             metadata: {
-                title: "SaaS Company Financial Flow",
-                subtitle: "Q3 2025 Financial Performance",
+                title: "Adobe Revenue Structure",
+                subtitle: "Multi-Layer Subscription Model",
                 currency: "USD",
                 unit: "millions",
-                company: "TechFlow SaaS Corp",
+                company: "Adobe Inc.",
                 period: "Q3 2025"
             },
-            nodes: [
-                {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue", group: "revenue_sources", sort_order: 1},
-                {id: "Professional Services", depth: 0, value: 60, category: "revenue", group: "revenue_sources", sort_order: 2},
-                {id: "Platform & Other", depth: 0, value: 135, category: "revenue", group: "revenue_sources", sort_order: 3},
-                {id: "Total Revenue", depth: 1, value: 495, category: "revenue", group: "aggregated_revenue", sort_order: 1},
-                {id: "Gross Profit", depth: 2, value: 440, category: "profit", group: "gross_metrics", sort_order: 1},
-                {id: "Cost of Revenue", depth: 2, value: 55, category: "cost", group: "gross_metrics", sort_order: 2},
-                {id: "Operating Profit", depth: 3, value: 65, category: "profit", group: "operating_metrics", sort_order: 1},
-                {id: "Operating Expenses", depth: 3, value: 375, category: "expense", group: "operating_metrics", sort_order: 2},
-                {id: "Net Income", depth: 4, value: 50, category: "income", group: "final_results", sort_order: 1},
-                {id: "Sales & Marketing", depth: 4, value: 200, category: "expense", group: "operating_expenses", sort_order: 1},
-                {id: "R&D", depth: 4, value: 125, category: "expense", group: "operating_expenses", sort_order: 2},
-                {id: "G&A", depth: 4, value: 50, category: "expense", group: "operating_expenses", sort_order: 3},
-                {id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1},
-                {id: "Other Expense", depth: 4, value: 3, category: "expense", group: "final_adjustments", sort_order: 2}
-            ],
-            links: [
-                {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
-                {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
-                {source: "Platform & Other", target: "Total Revenue", value: 135, type: "revenue_flow"},
-                {source: "Total Revenue", target: "Gross Profit", value: 440, type: "profit_flow"},
-                {source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost_flow"},
-                {source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit_flow"},
-                {source: "Gross Profit", target: "Operating Expenses", value: 375, type: "expense_flow"},
-                {source: "Operating Expenses", target: "Sales & Marketing", value: 200, type: "expense_breakdown"},
-                {source: "Operating Expenses", target: "R&D", value: 125, type: "expense_breakdown"},
-                {source: "Operating Expenses", target: "G&A", value: 50, type: "expense_breakdown"},
-                {source: "Operating Profit", target: "Net Income", value: 50, type: "final_income"},
-                {source: "Operating Profit", target: "Tax Expense", value: 12, type: "tax_flow"},
-                {source: "Operating Profit", target: "Other Expense", value: 3, type: "other_flow"}
-            ]
+            nodes: [],
+            links: []
         };
 
-        // Store current form state to persist across re-renders
-        let formState = {};
-        let nodeUUIDs = new Map(); // Stable IDs that don't change when node properties change
+        let nodeUUIDs = new Map();
+        let currentTab = 'structure';
+        let linkIdCounter = 0;
+
+        // Initialize with corrected Adobe template
+        function loadAdobeTemplate() {
+            templateData.nodes = [
+                // Layer 0: Disaggregated Services
+                {id: "Creative Cloud", depth: 0, value: 2800, category: "revenue", description: "Photoshop, Illustrator, etc."},
+                {id: "Document Cloud", depth: 0, value: 600, category: "revenue", description: "Acrobat, Sign, etc."},
+                {id: "Experience Cloud", depth: 0, value: 1200, category: "revenue", description: "Analytics, Commerce, etc."},
+                {id: "Other Subscriptions", depth: 0, value: 200, category: "revenue", description: "Additional subscription services"},
+                
+                // Layer 1: Subscription Revenue Total + Other Revenue Streams
+                {id: "Subscription Revenue Total", depth: 1, value: 4800, category: "revenue", description: "Sum of all subscription services"},
+                {id: "Product Sales", depth: 1, value: 150, category: "revenue", description: "Perpetual licenses"},
+                {id: "Services & Support", depth: 1, value: 250, category: "revenue", description: "Professional services and support"},
+                
+                // Layer 2: Total Revenue
+                {id: "Total Revenue", depth: 2, value: 5200, category: "revenue", description: "All revenue combined"},
+                
+                // Layer 3: Cost Structure
+                {id: "Cost of Revenue", depth: 3, value: 800, category: "cost", description: "Direct service costs"},
+                {id: "Gross Profit", depth: 3, value: 4400, category: "profit", description: "Revenue minus direct costs"},
+
+                {id: "Operating Profit", depth: 4, value: 800, category: "profit", description: "Profit from operations"},
+                {id: "Operating Expenses", depth: 4, value: 3600, category: "expense", description: "Total operating expenses"},
+                
+                // Layer 5: Other Items
+                {id: "Taxes & Other", depth: 5, value: 200, category: "expense", description: "Income taxes and other expenses"},
+                {id: "Net Income", depth: 5, value: 600, category: "income", description: "Final net income"},
+
+                // Layer 4: Operating Expense Components
+                {id: "R&D", depth: 5, value: 1800, category: "expense", description: "Research and development"},
+                {id: "Sales & Marketing", depth: 5, value: 1400, category: "expense", description: "Customer acquisition"},
+                {id: "General & Admin", depth: 5, value: 400, category: "expense", description: "Administrative costs"}
+            ];
+
+            templateData.links = [
+                // Layer 0 to Layer 1: Individual services to subscription total
+                {source: "Creative Cloud", target: "Subscription Revenue Total", value: 2800, type: "revenue_flow", auto: false},
+                {source: "Document Cloud", target: "Subscription Revenue Total", value: 600, type: "revenue_flow", auto: false},
+                {source: "Experience Cloud", target: "Subscription Revenue Total", value: 1200, type: "revenue_flow", auto: false},
+                {source: "Other Subscriptions", target: "Subscription Revenue Total", value: 200, type: "revenue_flow", auto: false},
+                
+                // Layer 1 to Layer 2: All revenue streams to total
+                {source: "Subscription Revenue Total", target: "Total Revenue", value: 4800, type: "revenue_flow", auto: false},
+                {source: "Product Sales", target: "Total Revenue", value: 150, type: "revenue_flow", auto: false},
+                {source: "Services & Support", target: "Total Revenue", value: 250, type: "revenue_flow", auto: false},
+                
+                // Layer 2 to Layer 3: Revenue breakdown into costs and gross profit
+                {source: "Total Revenue", target: "Cost of Revenue", value: 800, type: "cost_flow", auto: false},
+                {source: "Total Revenue", target: "Gross Profit", value: 4400, type: "profit_flow", auto: false},
+                
+                // Layer 5: Gross Profit breakdown
+                {source: "Gross Profit", target: "Operating Profit", value: 800, type: "profit_flow", auto: false},
+                {source: "Gross Profit", target: "Operating Expenses", value: 3600, type: "expense_flow", auto: false},
+                
+                // Layer 6 to Layer 7: Operating Profit breakdown
+                {source: "Operating Profit", target: "Taxes & Other", value: 200, type: "expense_flow", auto: false},
+                {source: "Operating Profit", target: "Net Income", value: 600, type: "final_flow", auto: false},
+
+                // Layer 4: Individual expenses to aggregate
+                {source: "Operating Expenses", target: "R&D", value: 1800, type: "expense_flow", auto: false},
+                {source: "Operating Expenses", target: "Sales & Marketing", value: 1400, type: "expense_flow", auto: false},
+                {source: "Operating Expenses", target: "General & Admin", value: 400, type: "expense_flow", auto: false}
+            ];
+
+            renderAllData();
+            updateAllPreviews();
+        }
+
+        function loadSaaSTemplate() {
+            templateData.nodes = [
+                {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue"},
+                {id: "Professional Services", depth: 0, value: 60, category: "revenue"},
+                {id: "Total Revenue", depth: 1, value: 360, category: "revenue"},
+                {id: "Gross Profit", depth: 2, value: 300, category: "profit"},
+                {id: "Operating Profit", depth: 3, value: 100, category: "profit"},
+                {id: "Net Income", depth: 4, value: 75, category: "income"}
+            ];
+            
+            templateData.links = [
+                {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
+                {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
+                {source: "Total Revenue", target: "Gross Profit", value: 300, type: "profit_flow"},
+                {source: "Gross Profit", target: "Operating Profit", value: 100, type: "profit_flow"},
+                {source: "Operating Profit", target: "Net Income", value: 75, type: "final_flow"}
+            ];
+            
+            renderAllData();
+            updateAllPreviews();
+        }
+
+        function loadBlankTemplate() {
+            if (confirm('This will clear all current data. Continue?')) {
+                templateData.nodes = [
+                    {id: "Revenue Source", depth: 0, value: 100, category: "revenue", description: "Start building your structure here"}
+                ];
+                templateData.links = [];
+                renderAllData();
+                updateAllPreviews();
+            }
+        }
 
         function getNodeUUID(nodeId) {
             if (!nodeUUIDs.has(nodeId)) {
@@ -420,37 +841,199 @@
             return nodeUUIDs.get(nodeId);
         }
 
-        function captureFormState() {
-            const forms = document.querySelectorAll('.field-input');
-            forms.forEach(input => {
-                const stableKey = input.dataset.stableKey;
-                if (stableKey) {
-                    formState[stableKey] = input.value;
-                }
+        function renderAllData() {
+            renderNodes();
+            renderLinks();
+            updateNodeSelectors();
+            updateLayerFilter();
+            setupMetadataListeners();
+        }
+
+        function renderNodes() {
+            const container = document.getElementById('nodes-container');
+            container.innerHTML = '';
+            
+            const sortedNodes = [...templateData.nodes].sort((a, b) => {
+                if (a.depth !== b.depth) return a.depth - b.depth;
+                return (a.sort_order || 0) - (b.sort_order || 0);
+            });
+            
+            sortedNodes.forEach((node, index) => {
+                container.appendChild(createNodeEditor(node, index));
             });
         }
 
-        function restoreFormState() {
-            // Wait for DOM to be ready
-            setTimeout(() => {
-                Object.entries(formState).forEach(([stableKey, value]) => {
-                    const input = document.querySelector(`[data-stable-key="${stableKey}"]`);
-                    if (input && input.value !== value) {
-                        input.value = value;
-                        // Trigger the update to sync with data
-                        if (input.dataset.nodeUuid && input.dataset.field) {
-                            const nodeId = findNodeIdByUUID(input.dataset.nodeUuid);
-                            if (nodeId) {
-                                if (input.dataset.field === 'value') {
-                                    updateNodeValue(nodeId, parseFloat(value) || 0);
-                                } else {
-                                    updateNodeField(nodeId, input.dataset.field, value);
-                                }
-                            }
-                        }
+        function renderLinks() {
+            const container = document.getElementById('links-container');
+            container.innerHTML = '';
+            
+            if (templateData.links.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">No connections defined. Use the Link Builder above to create flows.</p>';
+                return;
+            }
+            
+            templateData.links.forEach((link, index) => {
+                container.appendChild(createLinkEditor(link, index));
+            });
+        }
+
+        function createNodeEditor(node, index) {
+            const div = document.createElement('div');
+            div.className = 'data-item';
+            div.setAttribute('data-layer', node.depth);
+            
+            const nodeUUID = getNodeUUID(node.id);
+            
+            div.innerHTML = `
+                <button class="remove-item" onclick="removeNode('${node.id}')" title="Remove Node">×</button>
+                <div class="item-fields">
+                    <div class="field-group">
+                        <label class="field-label">Name</label>
+                        <input type="text" class="field-input" value="${node.id}" 
+                               data-node-uuid="${nodeUUID}" data-field="id"
+                               oninput="updateNodeField(this, 'id', this.value)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Value</label>
+                        <input type="number" class="field-input" value="${node.value}" 
+                               data-node-uuid="${nodeUUID}" data-field="value"
+                               oninput="updateNodeField(this, 'value', parseFloat(this.value) || 0)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Layer</label>
+                        <input type="number" class="field-input depth-input" value="${node.depth}" 
+                               min="0" max="20"
+                               data-node-uuid="${nodeUUID}" data-field="depth"
+                               oninput="updateNodeField(this, 'depth', parseInt(this.value) || 0)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Order</label>
+                        <input type="number" class="field-input" value="${node.sort_order || 1}" 
+                               min="1"
+                               data-node-uuid="${nodeUUID}" data-field="sort_order"
+                               oninput="updateNodeField(this, 'sort_order', parseInt(this.value) || 1)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Category</label>
+                        <select class="field-input" 
+                                data-node-uuid="${nodeUUID}" data-field="category"
+                                onchange="updateNodeField(this, 'category', this.value)">
+                            <option value="revenue" ${node.category === 'revenue' ? 'selected' : ''}>Revenue</option>
+                            <option value="cost" ${node.category === 'cost' ? 'selected' : ''}>Cost</option>
+                            <option value="profit" ${node.category === 'profit' ? 'selected' : ''}>Profit</option>
+                            <option value="expense" ${node.category === 'expense' ? 'selected' : ''}>Expense</option>
+                            <option value="income" ${node.category === 'income' ? 'selected' : ''}>Income</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Description</label>
+                        <input type="text" class="field-input" value="${node.description || ''}" 
+                               data-node-uuid="${nodeUUID}" data-field="description"
+                               oninput="updateNodeField(this, 'description', this.value)">
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function createLinkEditor(link, index) {
+            const div = document.createElement('div');
+            div.className = 'link-item';
+            div.setAttribute('data-link-id', index);
+            
+            // Find source and target depths for validation
+            const sourceNode = templateData.nodes.find(n => n.id === link.source);
+            const targetNode = templateData.nodes.find(n => n.id === link.target);
+            const isValidConnection = sourceNode && targetNode && sourceNode.depth < targetNode.depth;
+            
+            div.innerHTML = `
+                <button class="remove-item" onclick="removeLink(${index})" title="Remove Link">×</button>
+                <div class="link-fields">
+                    <div class="field-group">
+                        <label class="field-label">Source</label>
+                        <select class="node-selector" onchange="updateLinkField(${index}, 'source', this.value)">
+                            ${templateData.nodes.map(node => 
+                                `<option value="${node.id}" ${node.id === link.source ? 'selected' : ''}>${node.id} (L${node.depth})</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Target</label>
+                        <select class="node-selector" onchange="updateLinkField(${index}, 'target', this.value)">
+                            ${templateData.nodes.map(node => 
+                                `<option value="${node.id}" ${node.id === link.target ? 'selected' : ''}>${node.id} (L${node.depth})</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Value</label>
+                        <input type="number" class="field-input" value="${link.value}" 
+                               onchange="updateLinkField(${index}, 'value', parseFloat(this.value) || 0)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Type</label>
+                        <select class="field-input" onchange="updateLinkField(${index}, 'type', this.value)">
+                            <option value="revenue_flow" ${link.type === 'revenue_flow' ? 'selected' : ''}>Revenue Flow</option>
+                            <option value="cost_flow" ${link.type === 'cost_flow' ? 'selected' : ''}>Cost Flow</option>
+                            <option value="profit_flow" ${link.type === 'profit_flow' ? 'selected' : ''}>Profit Flow</option>
+                            <option value="expense_flow" ${link.type === 'expense_flow' ? 'selected' : ''}>Expense Flow</option>
+                            <option value="final_flow" ${link.type === 'final_flow' ? 'selected' : ''}>Final Flow</option>
+                        </select>
+                    </div>
+                    <div class="link-visual">
+                        ${link.source} <span class="link-arrow">→</span> ${link.target}
+                        ${link.auto ? '<span class="auto-calc-indicator">AUTO</span>' : ''}
+                        ${!isValidConnection ? '<span style="color: #dc2626; font-size: 10px;">⚠️ Invalid</span>' : ''}
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function updateNodeField(inputElement, field, value) {
+            const nodeUUID = inputElement.dataset.nodeUuid;
+            const nodeId = findNodeIdByUUID(nodeUUID);
+            
+            if (!nodeId) return;
+            
+            const node = templateData.nodes.find(n => n.id === nodeId);
+            if (node) {
+                if (field === 'id' && value !== nodeId) {
+                    // Update links that reference this node
+                    templateData.links.forEach(link => {
+                        if (link.source === nodeId) link.source = value;
+                        if (link.target === nodeId) link.target = value;
+                    });
+                    
+                    // Update UUID mapping
+                    if (nodeUUIDs.has(nodeId)) {
+                        const uuid = nodeUUIDs.get(nodeId);
+                        nodeUUIDs.delete(nodeId);
+                        nodeUUIDs.set(value, uuid);
                     }
-                });
-            }, 10);
+                }
+                
+                node[field] = value;
+                
+                if (field === 'depth') {
+                    const itemElement = inputElement.closest('.data-item');
+                    itemElement.setAttribute('data-layer', value);
+                    updateLayerFilter();
+                    updateNodeSelectors();
+                }
+                
+                updateAllPreviews();
+            }
+        }
+
+        function updateLinkField(linkIndex, field, value) {
+            if (templateData.links[linkIndex]) {
+                templateData.links[linkIndex][field] = value;
+                renderLinks(); // Re-render to update validation
+                updateAllPreviews();
+            }
         }
 
         function findNodeIdByUUID(uuid) {
@@ -462,218 +1045,458 @@
             return null;
         }
 
-        function renderEditableData() {
-            captureFormState(); // Capture current state before re-rendering
+        function addNode() {
+            const maxDepth = templateData.nodes.length > 0 ? Math.max(...templateData.nodes.map(n => n.depth)) : 0;
+            const newId = `New Node ${Date.now()}`;
+            const newNode = {
+                id: newId,
+                depth: maxDepth + 1,
+                value: 100,
+                category: "revenue",
+                description: `Node at layer ${maxDepth + 1}`,
+                sort_order: 1
+            };
             
-            renderRevenueSource();
-            renderIntermediateFlows();
-            renderFinalResults();
-            setupMetadataListeners();
-            
-            restoreFormState(); // Restore state after re-rendering
-            updateLivePreview();
+            templateData.nodes.push(newNode);
+            renderAllData();
+            updateAllPreviews();
         }
 
-        function renderRevenueSource() {
-            const container = document.getElementById('revenue-sources');
-            const revenueNodes = templateData.nodes.filter(n => n.depth === 0);
-            
-            container.innerHTML = '';
-            revenueNodes.forEach((node, index) => {
-                container.appendChild(createNodeEditor(node, 'revenue', index));
-            });
+        function removeNode(nodeId) {
+            // Remove node
+            templateData.nodes = templateData.nodes.filter(n => n.id !== nodeId);
+            // Remove associated links
+            templateData.links = templateData.links.filter(l => l.source !== nodeId && l.target !== nodeId);
+            nodeUUIDs.delete(nodeId);
+            renderAllData();
+            updateAllPreviews();
         }
 
-        function renderIntermediateFlows() {
-            const container = document.getElementById('intermediate-flows');
-            const intermediateNodes = templateData.nodes.filter(n => n.depth >= 1 && n.depth <= 3);
+        function addCustomLink() {
+            const newLink = {
+                source: templateData.nodes[0]?.id || '',
+                target: templateData.nodes[1]?.id || '',
+                value: 100,
+                type: 'revenue_flow',
+                auto: false
+            };
             
-            container.innerHTML = '';
-            intermediateNodes.forEach((node, index) => {
-                container.appendChild(createNodeEditor(node, 'intermediate', index));
-            });
+            templateData.links.push(newLink);
+            renderLinks();
+            updateAllPreviews();
         }
 
-        function renderFinalResults() {
-            const container = document.getElementById('final-results');
-            const finalNodes = templateData.nodes.filter(n => n.depth === 4);
-            
-            container.innerHTML = '';
-            finalNodes.forEach((node, index) => {
-                container.appendChild(createNodeEditor(node, 'final', index));
-            });
+        function removeLink(linkIndex) {
+            templateData.links.splice(linkIndex, 1);
+            renderLinks();
+            updateAllPreviews();
         }
 
-        function createNodeEditor(node, type, index) {
-            const div = document.createElement('div');
-            div.className = 'data-item';
+        function createQuickLink() {
+            const sourceId = document.getElementById('source-selector').value;
+            const targetId = document.getElementById('target-selector').value;
+            const value = document.getElementById('link-value').value;
             
-            const nodeUUID = getNodeUUID(node.id);
-            
-            div.innerHTML = `
-                <button class="remove-item" onclick="removeNode('${node.id}', '${type}')" title="Remove">×</button>
-                <div class="item-fields">
-                    <div class="field-group">
-                        <label class="field-label">Name</label>
-                        <input type="text" class="field-input" value="${node.id}" 
-                               data-stable-key="${nodeUUID}-id"
-                               data-node-uuid="${nodeUUID}" data-field="id"
-                               oninput="updateNodeFieldStable(this, 'id', this.value)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Value</label>
-                        <input type="number" class="field-input" value="${node.value}" 
-                               data-stable-key="${nodeUUID}-value"
-                               data-node-uuid="${nodeUUID}" data-field="value"
-                               oninput="updateNodeFieldStable(this, 'value', parseFloat(this.value) || 0)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Depth</label>
-                        <select class="field-input" 
-                                data-stable-key="${nodeUUID}-depth"
-                                data-node-uuid="${nodeUUID}" data-field="depth"
-                                onchange="updateNodeFieldStable(this, 'depth', parseInt(this.value))">
-                            <option value="0" ${node.depth === 0 ? 'selected' : ''}>0</option>
-                            <option value="1" ${node.depth === 1 ? 'selected' : ''}>1</option>
-                            <option value="2" ${node.depth === 2 ? 'selected' : ''}>2</option>
-                            <option value="3" ${node.depth === 3 ? 'selected' : ''}>3</option>
-                            <option value="4" ${node.depth === 4 ? 'selected' : ''}>4</option>
-                        </select>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Category</label>
-                        <select class="field-input" 
-                                data-stable-key="${nodeUUID}-category"
-                                data-node-uuid="${nodeUUID}" data-field="category"
-                                onchange="updateNodeFieldStable(this, 'category', this.value)">
-                            <option value="revenue" ${node.category === 'revenue' ? 'selected' : ''}>Revenue</option>
-                            <option value="cost" ${node.category === 'cost' ? 'selected' : ''}>Cost</option>
-                            <option value="profit" ${node.category === 'profit' ? 'selected' : ''}>Profit</option>
-                            <option value="expense" ${node.category === 'expense' ? 'selected' : ''}>Expense</option>
-                            <option value="income" ${node.category === 'income' ? 'selected' : ''}>Income</option>
-                        </select>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Description</label>
-                        <input type="text" class="field-input" value="${node.description || ''}" 
-                               data-stable-key="${nodeUUID}-description"
-                               data-node-uuid="${nodeUUID}" data-field="description"
-                               oninput="updateNodeFieldStable(this, 'description', this.value)">
-                    </div>
-                </div>
-            `;
-            
-            return div;
-        }
-
-        // New function that uses stable UUID to find the correct node
-        function updateNodeFieldStable(inputElement, field, value) {
-            const nodeUUID = inputElement.dataset.nodeUuid;
-            const currentNodeId = findNodeIdByUUID(nodeUUID);
-            
-            if (!currentNodeId) return;
-            
-            if (field === 'value') {
-                updateNodeValue(currentNodeId, value);
-            } else {
-                updateNodeField(currentNodeId, field, value);
+            if (!sourceId || !targetId) {
+                alert('Please select both source and target nodes');
+                return;
             }
-        }
-
-        // Immediate update without re-rendering
-        function updateNodeValue(nodeId, value) {
-            const node = templateData.nodes.find(n => n.id === nodeId);
-            if (node) {
-                node.value = value;
-                updateLinksForNode(nodeId, value);
-                
-                if (node.depth === 0) {
-                    recalculateTotals();
-                }
-                
-                updateLivePreview(); // Only update preview, not form
+            
+            if (sourceId === targetId) {
+                alert('Source and target cannot be the same node');
+                return;
             }
+            
+            // Check if link already exists
+            const existingLink = templateData.links.find(l => l.source === sourceId && l.target === targetId);
+            if (existingLink) {
+                alert('A link between these nodes already exists');
+                return;
+            }
+            
+            // Validate depth ordering
+            const sourceNode = templateData.nodes.find(n => n.id === sourceId);
+            const targetNode = templateData.nodes.find(n => n.id === targetId);
+            
+            if (sourceNode.depth >= targetNode.depth) {
+                alert('Source node must be at a lower depth (earlier layer) than target node');
+                return;
+            }
+            
+            const newLink = {
+                source: sourceId,
+                target: targetId,
+                value: value ? parseFloat(value) : sourceNode.value, // Auto-use source value if not specified
+                type: 'revenue_flow',
+                auto: !value // Mark as auto-calculated if no value specified
+            };
+            
+            templateData.links.push(newLink);
+            
+            // Clear the form
+            document.getElementById('source-selector').value = '';
+            document.getElementById('target-selector').value = '';
+            document.getElementById('link-value').value = '';
+            
+            renderLinks();
+            updateAllPreviews();
         }
 
-        function updateNodeField(oldId, field, value) {
-            const node = templateData.nodes.find(n => n.id === oldId);
-            if (node) {
-                if (field === 'id' && value !== oldId) {
-                    // Update all links that reference this node
-                    templateData.links.forEach(link => {
-                        if (link.source === oldId) link.source = value;
-                        if (link.target === oldId) link.target = value;
-                    });
-                    
-                    // Update the UUID mapping
-                    if (nodeUUIDs.has(oldId)) {
-                        const uuid = nodeUUIDs.get(oldId);
-                        nodeUUIDs.delete(oldId);
-                        nodeUUIDs.set(value, uuid);
+        function autoLinkLayer(sourceDepth, targetDepth) {
+            const sourceNodes = templateData.nodes.filter(n => n.depth === sourceDepth);
+            const targetNodes = templateData.nodes.filter(n => n.depth === targetDepth);
+            
+            if (sourceNodes.length === 0 || targetNodes.length === 0) {
+                alert(`No nodes found at the specified layers (${sourceDepth} → ${targetDepth})`);
+                return;
+            }
+            
+            // Simple strategy: if one target, connect all sources to it
+            // If multiple targets, connect proportionally
+            if (targetNodes.length === 1) {
+                const target = targetNodes[0];
+                sourceNodes.forEach(source => {
+                    // Check if link already exists
+                    const existingLink = templateData.links.find(l => l.source === source.id && l.target === target.id);
+                    if (!existingLink) {
+                        templateData.links.push({
+                            source: source.id,
+                            target: target.id,
+                            value: source.value,
+                            type: 'revenue_flow',
+                            auto: true
+                        });
+                    }
+                });
+            }
+            
+            renderLinks();
+            updateAllPreviews();
+        }
+
+        function balanceAllLinks() {
+            // Recalculate link values to ensure balance
+            const nodeBalances = new Map();
+            
+            // Initialize balances
+            templateData.nodes.forEach(node => {
+                nodeBalances.set(node.id, {
+                    inflow: 0,
+                    outflow: 0,
+                    nodeValue: node.value
+                });
+            });
+            
+            // Calculate current flows
+            templateData.links.forEach(link => {
+                const sourceBalance = nodeBalances.get(link.source);
+                const targetBalance = nodeBalances.get(link.target);
+                
+                if (sourceBalance) sourceBalance.outflow += link.value;
+                if (targetBalance) targetBalance.inflow += link.value;
+            });
+            
+            // Update node values based on flows
+            templateData.nodes.forEach(node => {
+                const balance = nodeBalances.get(node.id);
+                if (balance.inflow > 0) {
+                    // Node receives flows - its value should equal inflow
+                    node.value = balance.inflow;
+                } else if (balance.outflow > 0) {
+                    // Source node - keep current value
+                    // But ensure outflows don't exceed node value
+                    if (balance.outflow > node.value) {
+                        // Scale down outgoing links proportionally
+                        const scaleFactor = node.value / balance.outflow;
+                        templateData.links.forEach(link => {
+                            if (link.source === node.id) {
+                                link.value *= scaleFactor;
+                            }
+                        });
                     }
                 }
-                node[field] = value;
-                updateLivePreview();
-            }
+            });
+            
+            renderAllData();
+            updateAllPreviews();
         }
 
-        function updateLinksForNode(nodeId, newValue) {
-            // Update outgoing links from this node
-            templateData.links.forEach(link => {
-                if (link.source === nodeId) {
-                    link.value = newValue;
+        function updateNodeSelectors() {
+            const sourceSelector = document.getElementById('source-selector');
+            const targetSelector = document.getElementById('target-selector');
+            
+            const nodeOptions = templateData.nodes.map(node => 
+                `<option value="${node.id}">${node.id} (Layer ${node.depth})</option>`
+            ).join('');
+            
+            sourceSelector.innerHTML = '<option value="">Select source...</option>' + nodeOptions;
+            targetSelector.innerHTML = '<option value="">Select target...</option>' + nodeOptions;
+        }
+
+        function updateLayerFilter() {
+            const select = document.getElementById('layer-filter');
+            const layers = [...new Set(templateData.nodes.map(n => n.depth))].sort((a, b) => a - b);
+            
+            select.innerHTML = '<option value="all">All Layers</option>';
+            layers.forEach(layer => {
+                const count = templateData.nodes.filter(n => n.depth === layer).length;
+                const option = document.createElement('option');
+                option.value = layer;
+                option.textContent = `Layer ${layer} (${count} nodes)`;
+                select.appendChild(option);
+            });
+        }
+
+        function filterByLayer() {
+            const filterValue = document.getElementById('layer-filter').value;
+            const items = document.querySelectorAll('.data-item');
+            
+            items.forEach(item => {
+                if (filterValue === 'all' || item.getAttribute('data-layer') === filterValue) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
                 }
             });
         }
 
-        function recalculateTotals() {
-            // Recalculate Total Revenue
-            const revenueNodes = templateData.nodes.filter(n => n.depth === 0);
-            const totalRevenue = revenueNodes.reduce((sum, node) => sum + (node.value || 0), 0);
+        function switchTab(tabName) {
+            currentTab = tabName;
             
-            const totalRevenueNode = templateData.nodes.find(n => n.id === "Total Revenue");
-            if (totalRevenueNode) {
-                totalRevenueNode.value = totalRevenue;
-                updateLinksForNode("Total Revenue", totalRevenue);
-            }
-
-            // Recalculate Operating Expenses
-            const operatingExpenseNodes = templateData.nodes.filter(n => 
-                n.depth === 4 && (n.group === "operating_expenses" || 
-                ["Sales & Marketing", "R&D", "G&A"].includes(n.id))
-            );
-            const totalOperatingExpenses = operatingExpenseNodes.reduce((sum, node) => sum + (node.value || 0), 0);
+            document.querySelectorAll('.preview-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
             
-            const operatingExpensesNode = templateData.nodes.find(n => n.id === "Operating Expenses");
-            if (operatingExpensesNode) {
-                operatingExpensesNode.value = totalOperatingExpenses;
-                updateLinksForNode("Operating Expenses", totalOperatingExpenses);
-            }
-
-            // Recalculate Gross Profit (Total Revenue - Cost of Revenue)
-            const costOfRevenueNode = templateData.nodes.find(n => n.id === "Cost of Revenue");
-            const grossProfitNode = templateData.nodes.find(n => n.id === "Gross Profit");
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(`${tabName}-tab`).style.display = 'block';
             
-            if (totalRevenueNode && costOfRevenueNode && grossProfitNode) {
-                const grossProfit = totalRevenueNode.value - costOfRevenueNode.value;
-                grossProfitNode.value = grossProfit;
-                updateLinksForNode("Gross Profit", grossProfit);
-            }
+            updateTabContent(tabName);
+        }
 
-            // Recalculate Operating Profit (Gross Profit - Operating Expenses)
-            const operatingProfitNode = templateData.nodes.find(n => n.id === "Operating Profit");
-            if (grossProfitNode && operatingExpensesNode && operatingProfitNode) {
-                const operatingProfit = grossProfitNode.value - operatingExpensesNode.value;
-                operatingProfitNode.value = operatingProfit;
-                updateLinksForNode("Operating Profit", operatingProfit);
+        function updateTabContent(tabName) {
+            switch (tabName) {
+                case 'structure':
+                    updateStructurePreview();
+                    break;
+                case 'json':
+                    updateJsonPreview();
+                    break;
+                case 'validation':
+                    updateValidationPreview();
+                    break;
             }
         }
 
-        function removeNode(nodeId, type) {
-            templateData.nodes = templateData.nodes.filter(n => n.id !== nodeId);
-            templateData.links = templateData.links.filter(l => l.source !== nodeId && l.target !== nodeId);
-            recalculateTotals();
-            renderEditableData();
+        function updateStructurePreview() {
+            const preview = document.getElementById('structure-preview');
+            const layerMap = new Map();
+            
+            templateData.nodes.forEach(node => {
+                if (!layerMap.has(node.depth)) {
+                    layerMap.set(node.depth, []);
+                }
+                layerMap.get(node.depth).push(node);
+            });
+            
+            let html = '<h4>📊 Multi-Layer Structure</h4>';
+            
+            const sortedLayers = Array.from(layerMap.entries()).sort((a, b) => a[0] - b[0]);
+            
+            sortedLayers.forEach(([depth, nodes]) => {
+                const totalValue = nodes.reduce((sum, n) => sum + (n.value || 0), 0);
+                const categories = [...new Set(nodes.map(n => n.category))];
+                
+                html += `
+                    <div class="layer-item">
+                        <strong>Layer ${depth}</strong> (${nodes.length} nodes, $${totalValue}M)<br>
+                        Categories: ${categories.join(', ')}<br>
+                        Nodes: ${nodes.map(n => n.id).join(', ')}
+                    </div>
+                `;
+            });
+            
+            // Show link structure
+            html += '<h4 style="margin-top: 20px;">🔗 Flow Connections</h4>';
+            if (templateData.links.length === 0) {
+                html += '<div style="color: #f59e0b;">No connections defined</div>';
+            } else {
+                templateData.links.forEach(link => {
+                    const sourceNode = templateData.nodes.find(n => n.id === link.source);
+                    const targetNode = templateData.nodes.find(n => n.id === link.target);
+                    const isValid = sourceNode && targetNode && sourceNode.depth < targetNode.depth;
+                    
+                    html += `
+                        <div style="margin: 4px 0; padding: 4px 8px; background: ${isValid ? '#374151' : '#7f1d1d'}; border-radius: 4px;">
+                            ${link.source} → ${link.target} ($${link.value}M)
+                            ${link.auto ? ' <span style="color: #10b981;">[AUTO]</span>' : ''}
+                            ${!isValid ? ' <span style="color: #ef4444;">[INVALID]</span>' : ''}
+                        </div>
+                    `;
+                });
+            }
+            
+            preview.innerHTML = html;
+        }
+
+        function updateJsonPreview() {
+            const preview = document.getElementById('json-preview');
+            preview.textContent = JSON.stringify(templateData, null, 2);
+        }
+
+        function updateValidationPreview() {
+            const preview = document.getElementById('validation-preview');
+            const validation = validateStructure(false);
+            
+            let html = '<h4>✅ Structure Validation</h4>';
+            
+            if (validation.errors.length > 0) {
+                html += '<div class="validation-error">❌ <strong>Errors:</strong><ul>';
+                validation.errors.forEach(error => {
+                    html += `<li>${error}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (validation.warnings.length > 0) {
+                html += '<div class="validation-warning">⚠️ <strong>Warnings:</strong><ul>';
+                validation.warnings.forEach(warning => {
+                    html += `<li>${warning}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (validation.errors.length === 0 && validation.warnings.length === 0) {
+                html += '<div class="validation-success">✅ All validations passed!</div>';
+            }
+            
+            html += `<h4 style="margin-top: 20px;">📈 Balance Analysis</h4>`;
+            html += `<div>Balance Score: ${validation.balanceScore}%</div>`;
+            html += `<div>Unbalanced Nodes: ${validation.unbalancedNodes}</div>`;
+            
+            preview.innerHTML = html;
+        }
+
+        function updateAllPreviews() {
+            updateTabContent(currentTab);
+            updateStats();
+        }
+
+        function updateStats() {
+            const stats = document.getElementById('json-stats');
+            const validation = validateStructure(false);
+            
+            const nodeCount = templateData.nodes.length;
+            const linkCount = templateData.links.length;
+            const layerCount = new Set(templateData.nodes.map(n => n.depth)).size;
+            
+            stats.textContent = `Nodes: ${nodeCount} | Links: ${linkCount} | Layers: ${layerCount} | Balance: ${validation.balanceScore}%`;
+            
+            // Update layer stats
+            document.getElementById('total-layers').textContent = layerCount;
+            document.getElementById('total-nodes').textContent = nodeCount;
+            document.getElementById('total-links').textContent = linkCount;
+            document.getElementById('balance-score').textContent = validation.balanceScore + '%';
+        }
+
+        function validateStructure(showAlert = true) {
+            const errors = [];
+            const warnings = [];
+            
+            // Basic structure validation
+            if (templateData.nodes.length === 0) {
+                errors.push('No nodes defined');
+            }
+            
+            if (templateData.links.length === 0) {
+                warnings.push('No links defined - chart will show isolated nodes');
+            }
+            
+            // Link validation
+            let validLinks = 0;
+            templateData.links.forEach((link, index) => {
+                const sourceNode = templateData.nodes.find(n => n.id === link.source);
+                const targetNode = templateData.nodes.find(n => n.id === link.target);
+                
+                if (!sourceNode) {
+                    errors.push(`Link ${index + 1}: Source node "${link.source}" not found`);
+                } else if (!targetNode) {
+                    errors.push(`Link ${index + 1}: Target node "${link.target}" not found`);
+                } else if (sourceNode.depth >= targetNode.depth) {
+                    errors.push(`Link ${index + 1}: Source depth (${sourceNode.depth}) must be less than target depth (${targetNode.depth})`);
+                } else {
+                    validLinks++;
+                }
+            });
+            
+            // Balance validation
+            const nodeBalances = new Map();
+            templateData.nodes.forEach(node => {
+                nodeBalances.set(node.id, { inflow: 0, outflow: 0, nodeValue: node.value });
+            });
+            
+            templateData.links.forEach(link => {
+                const sourceBalance = nodeBalances.get(link.source);
+                const targetBalance = nodeBalances.get(link.target);
+                
+                if (sourceBalance) sourceBalance.outflow += link.value;
+                if (targetBalance) targetBalance.inflow += link.value;
+            });
+            
+            let balancedNodes = 0;
+            let totalNodes = templateData.nodes.length;
+            
+            nodeBalances.forEach((balance, nodeId) => {
+                const node = templateData.nodes.find(n => n.id === nodeId);
+                const tolerance = 0.01; // Allow small rounding differences
+                
+                if (balance.inflow === 0 && balance.outflow === 0) {
+                    // Isolated node
+                    warnings.push(`Node "${nodeId}" has no connections`);
+                } else if (balance.inflow > 0 && Math.abs(balance.inflow - balance.nodeValue) > tolerance) {
+                    // Node receives flows but value doesn't match
+                    warnings.push(`Node "${nodeId}" value (${balance.nodeValue}) doesn't match inflow (${balance.inflow})`);
+                } else if (balance.outflow > 0 && balance.outflow > balance.nodeValue + tolerance) {
+                    // Node sends more than it has
+                    errors.push(`Node "${nodeId}" outflow (${balance.outflow}) exceeds node value (${balance.nodeValue})`);
+                } else {
+                    balancedNodes++;
+                }
+            });
+            
+            const balanceScore = totalNodes > 0 ? Math.round((balancedNodes / totalNodes) * 100) : 0;
+            
+            const result = {
+                errors,
+                warnings,
+                balanceScore,
+                unbalancedNodes: totalNodes - balancedNodes,
+                isValid: errors.length === 0
+            };
+            
+            if (showAlert) {
+                let message = '✅ Structure Validation Results\n\n';
+                
+                if (errors.length > 0) {
+                    message += '❌ Errors:\n' + errors.map(e => `• ${e}`).join('\n') + '\n\n';
+                }
+                
+                if (warnings.length > 0) {
+                    message += '⚠️ Warnings:\n' + warnings.map(w => `• ${w}`).join('\n') + '\n\n';
+                }
+                
+                if (errors.length === 0 && warnings.length === 0) {
+                    message += 'Perfect! All validations passed.\n\n';
+                }
+                
+                message += `📊 Summary:\n• ${templateData.nodes.length} nodes\n• ${templateData.links.length} links\n• Balance Score: ${balanceScore}%`;
+                
+                alert(message);
+            }
+            
+            return result;
         }
 
         function setupMetadataListeners() {
@@ -681,145 +1504,34 @@
                 { id: 'company-name', field: 'company' },
                 { id: 'period', field: 'period' },
                 { id: 'currency', field: 'currency' },
-                { id: 'units', field: 'unit' },
-                { id: 'chart-title', field: 'title' },
-                { id: 'subtitle', field: 'subtitle' }
+                { id: 'units', field: 'unit' }
             ];
 
             metadataFields.forEach(({ id, field }) => {
                 const element = document.getElementById(id);
                 if (element) {
-                    // Listen to both 'input' and 'change' events to catch all updates
                     const updateHandler = (e) => {
                         templateData.metadata[field] = e.target.value;
-                        updateLivePreview();
-                        
-                        // Log metadata changes for debugging
-                        console.log(`Metadata updated: ${field} = ${e.target.value}`);
+                        updateAllPreviews();
                     };
                     
+                    element.removeEventListener('input', updateHandler);
+                    element.removeEventListener('change', updateHandler);
                     element.addEventListener('input', updateHandler);
                     element.addEventListener('change', updateHandler);
                 }
             });
         }
 
-        function updateLivePreview() {
-            const preview = document.getElementById('json-preview');
-            const stats = document.getElementById('json-stats');
-            
-            if (preview) {
-                preview.textContent = JSON.stringify(templateData, null, 2);
-            }
-            
-            if (stats) {
-                const nodeCount = templateData.nodes.length;
-                const linkCount = templateData.links.length;
-                const totalValue = templateData.nodes
-                    .filter(n => n.depth === 0)
-                    .reduce((sum, node) => sum + (node.value || 0), 0);
-                
-                // Use the formatted currency display in stats
-                const formattedTotal = formatValueForStats(totalValue, templateData.metadata.currency, templateData.metadata.unit);
-                stats.textContent = `Nodes: ${nodeCount} | Links: ${linkCount} | Total Revenue: ${formattedTotal}`;
-            }
-        }
-
-        // Helper function to format values in the stats display
-        function formatValueForStats(value, currency = 'USD', unit = 'millions') {
-            const symbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CAD': 'C$', 'AUD': 'A$', 'CHF': 'CHF ', 'CNY': '¥' };
-            const symbol = symbols[currency] || '$';
-            
-            switch (unit.toLowerCase()) {
-                case 'thousands':
-                    return `${symbol}${value}K`;
-                case 'millions':
-                    return `${symbol}${value}M`;
-                case 'billions':
-                    return `${symbol}${value}B`;
-                default:
-                    return `${symbol}${value}M`;
-            }
-        }
-
-        function addRevenueSource() {
-            const newId = `New Revenue Source ${Date.now()}`;
-            const newNode = {
-                id: newId,
-                depth: 0,
-                value: 100,
-                category: "revenue",
-                group: "revenue_sources",
-                sort_order: templateData.nodes.filter(n => n.depth === 0).length + 1
-            };
-            templateData.nodes.push(newNode);
-            
-            // Auto-create link to Total Revenue
-            templateData.links.push({
-                source: newId,
-                target: "Total Revenue",
-                value: 100,
-                type: "revenue_flow"
-            });
-            
-            // Instead of re-rendering, just append the new item
-            const container = document.getElementById('revenue-sources');
-            const newEditor = createNodeEditor(newNode, 'revenue', templateData.nodes.filter(n => n.depth === 0).length - 1);
-            container.appendChild(newEditor);
-            
-            recalculateTotals();
-            updateLivePreview();
-        }
-
-        function addIntermediateFlow() {
-            const newId = `New Flow ${Date.now()}`;
-            const newNode = {
-                id: newId,
-                depth: 2,
-                value: 50,
-                category: "profit",
-                group: "gross_metrics",
-                sort_order: 1
-            };
-            templateData.nodes.push(newNode);
-            
-            // Append without re-rendering
-            const container = document.getElementById('intermediate-flows');
-            const newEditor = createNodeEditor(newNode, 'intermediate', templateData.nodes.filter(n => n.depth >= 1 && n.depth <= 3).length - 1);
-            container.appendChild(newEditor);
-            
-            updateLivePreview();
-        }
-
-        function addFinalResult() {
-            const newId = `New Final Item ${Date.now()}`;
-            const newNode = {
-                id: newId,
-                depth: 4,
-                value: 25,
-                category: "expense",
-                group: "final_adjustments",
-                sort_order: 1
-            };
-            templateData.nodes.push(newNode);
-            
-            // Auto-create link from Operating Profit
-            templateData.links.push({
-                source: "Operating Profit",
-                target: newId,
-                value: 25,
-                type: "expense_breakdown"
-            });
-            
-            // Append without re-rendering
-            const container = document.getElementById('final-results');
-            const newEditor = createNodeEditor(newNode, 'final', templateData.nodes.filter(n => n.depth === 4).length - 1);
-            container.appendChild(newEditor);
-            
-            updateLivePreview();
-        }
-
         function generateChart() {
+            const validation = validateStructure(false);
+            
+            if (!validation.isValid) {
+                if (!confirm('Structure has validation errors. Generate chart anyway?')) {
+                    return;
+                }
+            }
+            
             const urlParams = new URLSearchParams(window.location.search);
             const chartType = urlParams.get('chartType') || 'sankey';
             const returnTo = urlParams.get('returnTo');
@@ -839,20 +1551,47 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'financial-data.json';
+            
+            const layers = new Set(templateData.nodes.map(n => n.depth)).size;
+            const company = templateData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            link.download = `${company}-${layers}layers-${Date.now()}.json`;
             link.click();
             URL.revokeObjectURL(url);
         }
 
-        function loadTemplate() {
-            alert('Template selection would open here');
+        function importData() {
+            document.getElementById('file-input').click();
         }
 
-        // Initialize the interface
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.nodes && Array.isArray(data.nodes)) {
+                        templateData = data;
+                        renderAllData();
+                        updateAllPreviews();
+                        
+                        const validation = validateStructure(false);
+                        alert(`✅ Successfully imported!\n• ${data.nodes.length} nodes\n• ${data.links?.length || 0} links\n• Balance Score: ${validation.balanceScore}%`);
+                    } else {
+                        alert('❌ Invalid file format. Please upload a valid JSON file with nodes array.');
+                    }
+                } catch (error) {
+                    alert('❌ Failed to parse JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Initialize with Adobe template
         document.addEventListener('DOMContentLoaded', function() {
-            renderEditableData();
-            recalculateTotals();
-            updateLivePreview();
+            loadAdobeTemplate();
         });
     </script>
 </body>

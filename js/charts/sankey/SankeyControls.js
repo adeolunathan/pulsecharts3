@@ -1,9 +1,11 @@
-/* ===== SANKEY CHART CONTROLS - FIXED SPACING LOGIC ===== */
-/* All Sankey-specific control logic with corrected descriptions */
+/* ===== SANKEY CHART CONTROLS - ENHANCED DYNAMIC LAYER SUPPORT ===== */
+/* All Sankey-specific control logic with dynamic layer capabilities */
 
 class SankeyControlModule {
     constructor() {
         this.capabilities = this.defineCapabilities();
+        this.currentLayerCount = 0;
+        this.dynamicControls = new Map();
     }
 
     defineCapabilities() {
@@ -33,40 +35,40 @@ class SankeyControlModule {
                         default: 40, 
                         step: 5, 
                         unit: "px", 
-                        description: "Foundational vertical spacing between all nodes" 
+                        description: "Foundational vertical spacing for middle layers" 
                     },
                     { 
                         id: "leftmostSpacing", 
                         type: "slider", 
-                        label: "Left Layer Spacing", 
+                        label: "Leftmost Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
                         default: 0.8, 
                         step: 0.1, 
                         unit: "×", 
-                        description: "Spacing multiplier for leftmost layer" 
+                        description: "Spacing multiplier for leftmost layer (depth 0)" 
                     },
                     { 
                         id: "middleSpacing", 
                         type: "slider", 
-                        label: "Middle Layer Spacing", 
+                        label: "Middle Layers Spacing", 
                         min: 0.5, 
                         max: 1.5, 
                         default: 0.9, 
                         step: 0.1, 
                         unit: "×", 
-                        description: "Spacing multiplier for middle layers" 
+                        description: "Spacing multiplier for all middle layers" 
                     },
                     { 
                         id: "rightmostSpacing", 
                         type: "slider", 
-                        label: "Right Layer Spacing", 
+                        label: "Rightmost Layer Spacing", 
                         min: 0.5, 
                         max: 1.5, 
                         default: 0.7, 
                         step: 0.1, 
                         unit: "×", 
-                        description: "Spacing multiplier for rightmost layer" 
+                        description: "Spacing multiplier for rightmost layer (final depth)" 
                     }
                 ]
             },
@@ -79,7 +81,7 @@ class SankeyControlModule {
                     { 
                         id: "curveIntensity", 
                         type: "slider", 
-                        label: "Curve Intensity", 
+                        label: "Global Curve Intensity", 
                         min: 0.1, 
                         max: 0.8, 
                         default: 0.4, 
@@ -161,10 +163,10 @@ class SankeyControlModule {
                         id: "nodeHeightScale", 
                         type: "slider", 
                         label: "Node Height Scale", 
-                        min: 0.1, 
+                        min: 0, 
                         max: 1.0, 
                         default: 0.65, 
-                        step: 0.05, 
+                        step: 0.005, 
                         description: "Scale factor for node heights" 
                     },
                     { 
@@ -206,13 +208,126 @@ class SankeyControlModule {
                         description: "Transparency of flow connections" 
                     }
                 ]
+            },
+
+            // **NEW: Dynamic layer controls section**
+            dynamicLayers: {
+                title: "Advanced Layer Controls",
+                icon: "🔧",
+                collapsed: true,
+                description: "Fine-tune individual layer properties",
+                controls: [] // Will be populated dynamically based on actual data
             }
         };
     }
 
-    // Enhanced control change handler with proper layer targeting
+    /**
+     * NEW: Initialize dynamic layer controls based on chart data
+     */
+    initializeDynamicControls(chart) {
+        if (!chart || !chart.getLayerInfo) {
+            console.warn('Chart does not support dynamic layer information');
+            return;
+        }
+
+        const layerInfo = chart.getLayerInfo();
+        this.currentLayerCount = layerInfo.totalLayers;
+        
+        console.log(`🔧 Initializing dynamic controls for ${this.currentLayerCount} layers`);
+        
+        // Clear existing dynamic controls
+        this.capabilities.dynamicLayers.controls = [];
+        this.dynamicControls.clear();
+
+        // Create controls for each layer
+        for (let depth = 0; depth <= layerInfo.maxDepth; depth++) {
+            const layerType = this.getLayerTypeName(depth, layerInfo);
+            const nodeCount = layerInfo.nodeDistribution[depth]?.count || 0;
+            
+            // Skip if no nodes at this depth
+            if (nodeCount === 0) continue;
+
+            const control = {
+                id: `layer_${depth}_spacing`,
+                type: "slider",
+                label: `Layer ${depth} Spacing (${layerType})`,
+                min: 0.3,
+                max: 2.0,
+                default: layerInfo.layerSpacing[depth] || 1.0,
+                step: 0.1,
+                unit: "×",
+                description: `Individual spacing control for layer ${depth} (${nodeCount} nodes)`,
+                layerDepth: depth,
+                isDynamic: true
+            };
+
+            this.capabilities.dynamicLayers.controls.push(control);
+            this.dynamicControls.set(depth, control);
+        }
+
+        // Add layer information display
+        this.capabilities.dynamicLayers.controls.push({
+            id: "layerInfo",
+            type: "info",
+            label: "Layer Structure",
+            description: this.formatLayerInfo(layerInfo),
+            isDynamic: true,
+            readonly: true
+        });
+
+        console.log(`✅ Created ${this.dynamicControls.size} dynamic layer controls`);
+    }
+
+    /**
+     * NEW: Get human-readable layer type name
+     */
+    getLayerTypeName(depth, layerInfo) {
+        if (depth === layerInfo.layerInfo.leftmost) {
+            return "Leftmost";
+        } else if (depth === layerInfo.layerInfo.rightmost) {
+            return "Rightmost";
+        } else {
+            return "Middle";
+        }
+    }
+
+    /**
+     * NEW: Format layer information for display
+     */
+    formatLayerInfo(layerInfo) {
+        const lines = [];
+        lines.push(`Total Layers: ${layerInfo.totalLayers}`);
+        lines.push(`Leftmost: Layer ${layerInfo.layerInfo.leftmost}`);
+        lines.push(`Rightmost: Layer ${layerInfo.layerInfo.rightmost}`);
+        
+        if (layerInfo.layerInfo.middle.length > 0) {
+            lines.push(`Middle: Layers ${layerInfo.layerInfo.middle.join(', ')}`);
+        }
+        
+        lines.push(''); // Empty line
+        lines.push('Node Distribution:');
+        
+        Object.entries(layerInfo.nodeDistribution).forEach(([depth, info]) => {
+            lines.push(`Layer ${depth}: ${info.count} nodes (${info.layerType})`);
+        });
+        
+        return lines.join('\n');
+    }
+
+    /**
+     * ENHANCED: Control change handler with dynamic layer support
+     */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
+
+        // **NEW: Handle dynamic layer spacing controls**
+        if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
+            const depth = parseInt(controlId.split('_')[1]);
+            if (!isNaN(depth) && chart.setLayerSpacing) {
+                chart.setLayerSpacing(depth, value);
+                return;
+            }
+        }
 
         // **SPECIAL HANDLING FOR MIDDLE LAYER SPACING CONTROL**
         if (controlId === 'nodePadding') {
@@ -307,14 +422,21 @@ class SankeyControlModule {
         chart.updateConfig({ [controlId]: value });
     }
 
-    // Get default configuration for Sankey charts
+    /**
+     * ENHANCED: Get default configuration for Sankey charts with dynamic layer support
+     */
     getDefaultConfig() {
         const defaults = {};
         
+        // Get defaults from static controls
         Object.values(this.capabilities).forEach(section => {
-            section.controls.forEach(control => {
-                defaults[control.id] = control.default;
-            });
+            if (section.controls && Array.isArray(section.controls)) {
+                section.controls.forEach(control => {
+                    if (!control.isDynamic) {
+                        defaults[control.id] = control.default;
+                    }
+                });
+            }
         });
 
         // **SET UP PROPER LABEL DISTANCE DEFAULTS**
@@ -333,34 +455,52 @@ class SankeyControlModule {
         return defaults;
     }
 
-    // Validate Sankey-specific configuration
+    /**
+     * ENHANCED: Validate Sankey-specific configuration with dynamic layer support
+     */
     validateConfig(config) {
         const errors = [];
         const warnings = [];
 
-        // Validate required controls
+        // Validate static controls
         Object.values(this.capabilities).forEach(section => {
-            section.controls.forEach(control => {
-                const value = config[control.id];
-                
-                if (value !== undefined) {
-                    // Check range for sliders
-                    if (control.type === 'slider') {
-                        if (value < control.min || value > control.max) {
-                            errors.push(`${control.label} must be between ${control.min} and ${control.max}`);
-                        }
-                    }
+            if (section.controls && Array.isArray(section.controls)) {
+                section.controls.forEach(control => {
+                    if (control.isDynamic) return; // Skip dynamic controls
                     
-                    // Check dropdown options
-                    if (control.type === 'dropdown' && control.options) {
-                        const validValues = control.options.map(opt => opt.value);
-                        if (!validValues.includes(value)) {
-                            warnings.push(`${control.label} has invalid value: ${value}`);
+                    const value = config[control.id];
+                    
+                    if (value !== undefined) {
+                        // Check range for sliders
+                        if (control.type === 'slider') {
+                            if (value < control.min || value > control.max) {
+                                errors.push(`${control.label} must be between ${control.min} and ${control.max}`);
+                            }
+                        }
+                        
+                        // Check dropdown options
+                        if (control.type === 'dropdown' && control.options) {
+                            const validValues = control.options.map(opt => opt.value);
+                            if (!validValues.includes(value)) {
+                                warnings.push(`${control.label} has invalid value: ${value}`);
+                            }
                         }
                     }
+                });
+            }
+        });
+
+        // **VALIDATE DYNAMIC LAYER SPACING**
+        if (config.layerSpacing && typeof config.layerSpacing === 'object') {
+            Object.entries(config.layerSpacing).forEach(([depth, spacing]) => {
+                const depthNum = parseInt(depth);
+                if (isNaN(depthNum)) {
+                    errors.push(`Invalid layer depth: ${depth}`);
+                } else if (spacing < 0.1 || spacing > 3.0) {
+                    warnings.push(`Layer ${depth} spacing (${spacing}) is outside recommended range (0.1-3.0)`);
                 }
             });
-        });
+        }
 
         // **VALIDATE SPACING LOGIC CONSISTENCY**
         if (config.nodePadding && config.nodePadding < 20) {
@@ -377,33 +517,68 @@ class SankeyControlModule {
         return { errors, warnings, valid: errors.length === 0 };
     }
 
-    // Reset all controls to defaults
+    /**
+     * ENHANCED: Reset all controls to defaults (including dynamic ones)
+     */
     resetToDefaults() {
-        return this.getDefaultConfig();
+        const defaults = this.getDefaultConfig();
+        
+        // Reset dynamic controls to their defaults
+        this.dynamicControls.forEach((control, depth) => {
+            defaults[control.id] = control.default;
+        });
+        
+        return defaults;
     }
 
-    // Export configuration as JSON
+    /**
+     * ENHANCED: Export configuration as JSON with dynamic layer info
+     */
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '1.1',  // Updated version for new spacing logic
+            version: '2.0',  // Updated version for dynamic layer support
             config: config,
             timestamp: new Date().toISOString(),
             features: {
                 smartLabelPositioning: true,
                 layerSpecificSpacing: true,
-                middleLayerTargetedControls: true
-            }
+                middleLayerTargetedControls: true,
+                dynamicLayerSupport: true,
+                totalLayers: this.currentLayerCount
+            },
+            dynamicControls: Array.from(this.dynamicControls.entries()).map(([depth, control]) => ({
+                depth,
+                controlId: control.id,
+                label: control.label,
+                value: config[control.id] || control.default
+            }))
         }, null, 2);
     }
 
-    // Import configuration from JSON
+    /**
+     * ENHANCED: Import configuration from JSON with dynamic layer support
+     */
     importConfig(jsonString) {
         try {
             const imported = JSON.parse(jsonString);
             
             if (imported.chartType !== 'sankey') {
                 throw new Error('Configuration is not for Sankey charts');
+            }
+            
+            // Handle both v1.x and v2.x configurations
+            if (imported.version && imported.version.startsWith('2.') && imported.dynamicControls) {
+                console.log(`📊 Importing v${imported.version} configuration with dynamic layer support`);
+                
+                // Restore dynamic controls if they exist
+                imported.dynamicControls.forEach(dynControl => {
+                    if (this.dynamicControls.has(dynControl.depth)) {
+                        imported.config[dynControl.controlId] = dynControl.value;
+                    }
+                });
+            } else {
+                console.log(`📊 Importing legacy configuration (v${imported.version || '1.x'})`);
             }
             
             const validation = this.validateConfig(imported.config);
@@ -418,7 +593,9 @@ class SankeyControlModule {
         }
     }
 
-    // **NEW: Get control information for documentation**
+    /**
+     * ENHANCED: Get control information for documentation including dynamic layer info
+     */
     getControlInfo() {
         return {
             layerLogic: {
@@ -441,9 +618,52 @@ class SankeyControlModule {
             smartFeatures: {
                 labelPositioning: "Middle layer labels automatically positioned to avoid overlap",
                 spacingControl: "nodePadding control specifically targets middle layers only",
-                layerAwareness: "All spacing controls respect the three-layer categorization"
+                layerAwareness: "All spacing controls respect dynamic layer categorization",
+                dynamicSupport: "Automatically adapts to any number of layers in the data"
+            },
+            dynamicFeatures: {
+                layerDetection: "Automatically detects number of layers from data",
+                individualLayerControls: "Individual spacing controls for each layer",
+                layerTypeClassification: "Dynamic leftmost/middle/rightmost categorization",
+                scalableArchitecture: "Supports 2 to 20+ layers seamlessly"
+            },
+            compatibilityInfo: {
+                backwardCompatible: "Existing 4-layer charts work without modification",
+                configVersioning: "Supports both legacy and enhanced configurations",
+                gracefulDegradation: "Falls back to basic controls if dynamic features unavailable"
             }
         };
+    }
+
+    /**
+     * NEW: Update capabilities when chart changes (for re-initialization)
+     */
+    updateCapabilities(chart) {
+        if (chart && chart.getLayerInfo) {
+            this.initializeDynamicControls(chart);
+            console.log(`🔄 Updated capabilities for chart with ${this.currentLayerCount} layers`);
+        }
+    }
+
+    /**
+     * NEW: Get dynamic control by layer depth
+     */
+    getDynamicControl(depth) {
+        return this.dynamicControls.get(depth);
+    }
+
+    /**
+     * NEW: Check if the module supports dynamic layers
+     */
+    supportsDynamicLayers() {
+        return true;
+    }
+
+    /**
+     * NEW: Get current layer count
+     */
+    getCurrentLayerCount() {
+        return this.currentLayerCount;
     }
 }
 
