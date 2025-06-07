@@ -52,33 +52,6 @@
             display: block;
         }
 
-        .data-builder-status {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 6px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            font-size: 13px;
-        }
-
-        .status-connected {
-            background: #d1fae5;
-            border-color: #a7f3d0;
-            color: #065f46;
-        }
-
-        .status-loading {
-            background: #fef3c7;
-            border-color: #fde68a;
-            color: #92400e;
-        }
-
-        .status-error {
-            background: #fee2e2;
-            border-color: #fca5a5;
-            color: #991b1b;
-        }
-
         .realtime-controls {
             background: #f0f9ff;
             border: 1px solid #0ea5e9;
@@ -150,29 +123,23 @@
 
         <!-- Data Builder Tab -->
         <div id="data-builder" class="tab-content" style="background: #f8f9fa;">
-            <div class="template-container">
-                <div class="template-main">
-                    <div class="template-header">
+            <div style="display: flex; justify-content: center; min-height: calc(100vh - 140px); padding: 20px;">
+                <div style="max-width: 1200px; width: 100%;">
+                    <div class="template-header" style="text-align: center; margin-bottom: 30px;">
                         <h1>📊 Real-time Data Builder</h1>
                         <span class="feature-badge">⚡ Live Updates</span>
                         <p>Edit chart data with instant live preview synchronization</p>
                     </div>
 
-                    <!-- Data Bridge Status -->
-                    <div id="data-bridge-status" class="data-builder-status status-loading">
-                        <strong>🔄 Connecting to Chart Data...</strong>
-                        <div>Establishing connection with Chart View data</div>
-                    </div>
-
                     <!-- Real-time Controls -->
                     <div class="realtime-controls">
                         <h4 style="margin: 0 0 10px 0; color: #0369a1;">
-                            <span id="realtime-indicator" class="realtime-indicator manual"></span>
+                            <span id="realtime-indicator" class="realtime-indicator live"></span>
                             Live Update Mode
                         </h4>
                         <div style="display: flex; gap: 12px; align-items: center;">
-                            <button id="realtime-toggle" class="btn btn-primary" onclick="toggleRealTimeMode()">
-                                🔴 Enable Live Updates
+                            <button id="realtime-toggle" class="btn btn-secondary" onclick="toggleRealTimeMode()">
+                                ⚪ Disable Live Updates
                             </button>
                             <div style="font-size: 12px; color: #6b7280;">
                                 <strong>Manual:</strong> Changes apply when you click "Apply Changes"<br>
@@ -187,9 +154,7 @@
                             <h3 style="margin: 0 0 10px 0; color: #92400e;">⚡ Quick Actions</h3>
                             <div class="layer-controls">
                                 <button class="layer-btn" onclick="loadCurrentChartData()">📊 Load Chart Data</button>
-                                <button class="layer-btn" onclick="loadSaaSTemplate()">SaaS Template</button>
-                                <button class="layer-btn" onclick="loadManufacturingTemplate()">Manufacturing</button>
-                                <button class="layer-btn" onclick="loadRetailTemplate()">Retail Chain</button>
+                                <button class="layer-btn" onclick="loadAdobeTemplate()">Adobe Template</button>
                                 <button class="layer-btn secondary" onclick="loadBlankTemplate()">Blank Template</button>
                             </div>
                         </div>
@@ -200,10 +165,14 @@
                                 <h3 class="section-title">📋 Company Information</h3>
                             </div>
                             <div class="section-content">
-                                <div class="metadata-grid">
+                                <div class="metadata-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
                                     <div class="field-group">
                                         <label class="field-label">Company Name</label>
                                         <input type="text" class="field-input" id="company-name" value="" placeholder="Your Company Name">
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label">Subtitle</label>
+                                        <input type="text" class="field-input" id="subtitle" value="" placeholder="Multi-Layer Subscription Model">
                                     </div>
                                     <div class="field-group">
                                         <label class="field-label">Period</label>
@@ -329,12 +298,12 @@
     
     <!-- FIXED: Data Bridge Integration with proper timing -->
     <script>
-        // Enhanced Data Bridge with FIXED timing
+        // Enhanced Data Bridge with FIXED timing and DEFAULT LIVE UPDATES
         window.PulseDataBridge = {
             currentData: null,
             chartInstance: null,
             isInitialized: false,
-            realTimeMode: false,
+            realTimeMode: true, // DEFAULT: Start with live updates enabled
             appReadyCallbacks: [],
             
             init() {
@@ -388,7 +357,6 @@
             setRealTimeMode(enabled) {
                 this.realTimeMode = enabled;
                 console.log(`🔄 Real-time mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
-                this.updateDataBuilderStatus();
                 this.updateRealTimeIndicator();
             },
             
@@ -411,14 +379,14 @@
                 window.dispatchEvent(new CustomEvent('pulseDataChanged', {
                     detail: { data: this.currentData, source }
                 }));
-                
-                this.updateDataBuilderStatus();
             },
             
             refreshDataBuilder() {
+                console.log('🔧 Refreshing Data Builder...');
+                
                 const data = this.getData();
-                if (data) {
-                    console.log('🔧 Refreshing Data Builder with data:', data);
+                if (data && data.nodes && data.links) {
+                    console.log('✅ Found data for Data Builder refresh:', data);
                     window.templateData = {
                         metadata: data.metadata || {},
                         nodes: JSON.parse(JSON.stringify(data.nodes || [])),
@@ -427,44 +395,10 @@
                     
                     if (typeof renderTemplateData === 'function') {
                         renderTemplateData();
-                        this.updateDataBuilderStatus('connected');
+                        console.log('✅ Data Builder refreshed successfully');
                     }
                 } else {
-                    console.warn('⚠️ No data available for Data Builder');
-                    this.updateDataBuilderStatus('no-data');
-                }
-            },
-            
-            updateDataBuilderStatus(status = 'loading') {
-                const statusEl = document.getElementById('data-bridge-status');
-                if (!statusEl) return;
-                
-                statusEl.className = 'data-builder-status';
-                
-                switch (status) {
-                    case 'connected':
-                        statusEl.classList.add('status-connected');
-                        const nodeCount = this.currentData?.nodes?.length || 0;
-                        const linkCount = this.currentData?.links?.length || 0;
-                        const realTimeStatus = this.realTimeMode ? '🔴 LIVE' : '⚪ Manual';
-                        statusEl.innerHTML = `
-                            <strong>✅ Connected to Chart Data ${realTimeStatus}</strong>
-                            <div>Editing live data with ${nodeCount} nodes and ${linkCount} connections</div>
-                        `;
-                        break;
-                    case 'no-data':
-                        statusEl.classList.add('status-error');
-                        statusEl.innerHTML = `
-                            <strong>❌ No Chart Data Available</strong>
-                            <div>Load a dataset in Chart View first, then return here to edit</div>
-                        `;
-                        break;
-                    default:
-                        statusEl.classList.add('status-loading');
-                        statusEl.innerHTML = `
-                            <strong>🔄 Connecting to Chart Data...</strong>
-                            <div>Establishing connection with Chart View data</div>
-                        `;
+                    console.warn('⚠️ No data available for Data Builder refresh');
                 }
             },
             
@@ -575,13 +509,20 @@
                 console.log(`🔄 Tab switched to: ${tabName}`);
                 
                 if (tabName === 'data-builder') {
+                    // Ensure data is available when switching to data builder
+                    if (!this.currentData && window.pulseApp) {
+                        const appData = window.pulseApp.getCurrentData();
+                        if (appData) {
+                            this.currentData = appData;
+                            console.log('📊 Retrieved data from app for data builder');
+                        }
+                    }
+                    
+                    // Short delay to ensure tab switch is complete, then refresh
                     setTimeout(() => {
                         this.refreshDataBuilder();
-                        this.setRealTimeMode(true);
-                    }, 100);
+                    }, 50);
                 } else if (tabName === 'chart-view') {
-                    this.setRealTimeMode(false);
-                    
                     const data = this.getData();
                     if (data && this.chartInstance) {
                         this.chartInstance.render(data);
@@ -634,7 +575,26 @@
         // Toggle real-time mode
         function toggleRealTimeMode() {
             const currentMode = window.PulseDataBridge.realTimeMode;
-            window.PulseDataBridge.setRealTimeMode(!currentMode);
+            const newMode = !currentMode;
+            window.PulseDataBridge.setRealTimeMode(newMode);
+            
+            // Update UI to reflect current state
+            const indicator = document.getElementById('realtime-indicator');
+            const button = document.getElementById('realtime-toggle');
+            
+            if (indicator && button) {
+                if (newMode) {
+                    indicator.className = 'realtime-indicator live';
+                    button.textContent = '⚪ Disable Live Updates';
+                    button.className = 'btn btn-secondary';
+                } else {
+                    indicator.className = 'realtime-indicator manual';
+                    button.textContent = '🔴 Enable Live Updates';
+                    button.className = 'btn btn-primary';
+                }
+            }
+            
+            console.log(`🔄 Real-time mode ${newMode ? 'ENABLED' : 'DISABLED'}`);
         }
 
         // Enhanced tab switching
@@ -664,20 +624,47 @@
             }));
             
             if (tabName === 'data-builder') {
-                // Use callback to ensure app is ready
-                window.PulseDataBridge.onAppReady(() => {
+                // Immediately try to initialize, with better error handling
+                setTimeout(() => {
                     initializeDataBuilder();
-                });
+                }, 100); // Small delay to ensure tab is fully switched
             }
         }
 
         function initializeDataBuilder() {
             console.log('🔧 Initializing Data Builder...');
             
-            const data = window.PulseDataBridge.getData();
+            // Try multiple methods to get data with better debugging
+            let data = null;
             
-            if (data) {
-                console.log('✅ Found data for Data Builder:', data);
+            // Method 1: Direct from Data Bridge
+            if (window.PulseDataBridge && window.PulseDataBridge.currentData) {
+                data = window.PulseDataBridge.currentData;
+                console.log('📊 Found data from Data Bridge currentData:', data);
+            }
+            
+            // Method 2: From main app
+            else if (window.pulseApp && window.pulseApp.getCurrentData()) {
+                data = window.pulseApp.getCurrentData();
+                console.log('📊 Found data from pulseApp.getCurrentData():', data);
+                // Store in bridge for future use
+                if (window.PulseDataBridge) {
+                    window.PulseDataBridge.currentData = data;
+                }
+            }
+            
+            // Method 3: From chart instance
+            else if (window.pulseApp && window.pulseApp.getCurrentChart() && window.pulseApp.getCurrentChart().data) {
+                data = window.pulseApp.getCurrentChart().data;
+                console.log('📊 Found data from chart instance:', data);
+                // Store in bridge for future use
+                if (window.PulseDataBridge) {
+                    window.PulseDataBridge.currentData = data;
+                }
+            }
+            
+            if (data && data.nodes && data.links) {
+                console.log('✅ Successfully found data for Data Builder');
                 
                 templateData = {
                     metadata: {
@@ -694,12 +681,33 @@
                 
                 updateMetadataInputs();
                 renderTemplateData();
-                window.PulseDataBridge.updateDataBuilderStatus('connected');
                 
-                console.log('✅ Data Builder initialized with live data');
+                // Turn on live updates by default
+                if (!window.PulseDataBridge.realTimeMode) {
+                    toggleRealTimeMode();
+                }
+                
+                console.log('✅ Data Builder initialized with live data and live updates enabled');
             } else {
-                console.log('📝 No data found, showing placeholder');
-                window.PulseDataBridge.updateDataBuilderStatus('no-data');
+                console.log('⚠️ No data found - checking if app is still loading...');
+                
+                // If app exists but no data, it might still be loading
+                if (window.pulseApp) {
+                    console.log('📱 App exists but no data - will retry in 500ms');
+                    
+                    // Retry once after a short delay
+                    setTimeout(() => {
+                        const retryData = window.pulseApp.getCurrentData();
+                        if (retryData) {
+                            console.log('✅ Found data on retry!');
+                            initializeDataBuilder(); // Recursive call with data now available
+                        } else {
+                            console.log('📝 Still no data after retry - Data Builder ready for manual input');
+                        }
+                    }, 500);
+                } else {
+                    console.log('📝 No app found - Data Builder ready for manual input');
+                }
             }
         }
 
@@ -721,7 +729,12 @@
                 
                 updateMetadataInputs();
                 renderTemplateData();
-                window.PulseDataBridge.updateDataBuilderStatus('connected');
+                
+                // Hide the load button since data is now loaded
+                const loadButton = document.querySelector('[onclick="loadCurrentChartData()"]');
+                if (loadButton) {
+                    loadButton.style.display = 'none';
+                }
                 
                 alert('✅ Successfully loaded current chart data for editing!');
             } else {
@@ -739,6 +752,7 @@
         function updateMetadataInputs() {
             const fields = [
                 { id: 'company-name', value: templateData.metadata.company },
+                { id: 'subtitle', value: templateData.metadata.subtitle },
                 { id: 'period', value: templateData.metadata.period },
                 { id: 'currency', value: templateData.metadata.currency },
                 { id: 'units', value: templateData.metadata.unit }
@@ -756,6 +770,7 @@
             console.log('🚀 Applying Data Builder changes...');
             
             templateData.metadata.company = document.getElementById('company-name').value;
+            templateData.metadata.subtitle = document.getElementById('subtitle').value;
             templateData.metadata.period = document.getElementById('period').value;
             templateData.metadata.currency = document.getElementById('currency').value;
             templateData.metadata.unit = document.getElementById('units').value;
@@ -769,116 +784,104 @@
         }
 
         // Template functions
-        function loadSaaSTemplate() {
+        function loadAdobeTemplate() {
             templateData = {
                 metadata: {
-                    title: "SaaS Company Financial Flow",
-                    subtitle: "Q3 2025 Financial Performance",
+                    title: "Adobe Financial Flow",
+                    subtitle: "Multi-Layer Subscription Model",
                     currency: "USD",
                     unit: "millions",
-                    company: "TechFlow SaaS Corp",
+                    company: "Adobe Inc.",
                     period: "Q3 2025"
                 },
                 nodes: [
-                    {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue"},
-                    {id: "Professional Services", depth: 0, value: 60, category: "revenue"},
-                    {id: "Total Revenue", depth: 1, value: 360, category: "revenue"},
-                    {id: "Gross Profit", depth: 2, value: 300, category: "profit"},
-                    {id: "Operating Profit", depth: 3, value: 100, category: "profit"},
-                    {id: "Net Income", depth: 4, value: 75, category: "income"}
+                    // Layer 0: Revenue Sources
+                    {id: "Creative Cloud", depth: 0, value: 2800, category: "revenue", description: "Photoshop, Illustrator, etc."},
+                    {id: "Document Cloud", depth: 0, value: 600, category: "revenue", description: "Acrobat, Sign, etc."},
+                    {id: "Experience Cloud", depth: 0, value: 1200, category: "revenue", description: "Analytics, Commerce, etc."},
+                    
+                    // Layer 1: Total Revenue
+                    {id: "Total Revenue", depth: 1, value: 4600, category: "revenue", description: "All revenue combined"},
+                    
+                    // Layer 2: Profit/Cost Split
+                    {id: "Gross Profit", depth: 2, value: 3800, category: "profit", description: "Revenue minus direct costs"},
+                    {id: "Cost of Revenue", depth: 2, value: 800, category: "cost", description: "Direct service costs"},
+                    
+                    // Layer 3: Operating Results
+                    {id: "Operating Profit", depth: 3, value: 1400, category: "profit", description: "Profit from operations"},
+                    {id: "Operating Expenses", depth: 3, value: 2400, category: "expense", description: "Total operating expenses"},
+                    
+                    // Layer 4: Final Results & Expense Breakdown
+                    {id: "Net Income", depth: 4, value: 1100, category: "income", description: "Final net income"},
+                    {id: "Taxes & Other", depth: 4, value: 300, category: "expense", description: "Taxes and other expenses"},
+                    {id: "R&D", depth: 4, value: 1200, category: "expense", description: "Research and development"},
+                    {id: "Sales & Marketing", depth: 4, value: 800, category: "expense", description: "Customer acquisition"},
+                    {id: "General & Admin", depth: 4, value: 400, category: "expense", description: "Administrative costs"}
                 ],
                 links: [
-                    {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
-                    {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
-                    {source: "Total Revenue", target: "Gross Profit", value: 300, type: "profit_flow"},
-                    {source: "Gross Profit", target: "Operating Profit", value: 100, type: "profit_flow"},
-                    {source: "Operating Profit", target: "Net Income", value: 75, type: "final_flow"}
+                    // Revenue to Total
+                    {source: "Creative Cloud", target: "Total Revenue", value: 2800, type: "revenue_flow"},
+                    {source: "Document Cloud", target: "Total Revenue", value: 600, type: "revenue_flow"},
+                    {source: "Experience Cloud", target: "Total Revenue", value: 1200, type: "revenue_flow"},
+                    
+                    // Total Revenue split
+                    {source: "Total Revenue", target: "Gross Profit", value: 3800, type: "profit_flow"},
+                    {source: "Total Revenue", target: "Cost of Revenue", value: 800, type: "cost_flow"},
+                    
+                    // Gross Profit split
+                    {source: "Gross Profit", target: "Operating Profit", value: 1400, type: "profit_flow"},
+                    {source: "Gross Profit", target: "Operating Expenses", value: 2400, type: "expense_flow"},
+                    
+                    // Operating Profit split
+                    {source: "Operating Profit", target: "Net Income", value: 1100, type: "final_flow"},
+                    {source: "Operating Profit", target: "Taxes & Other", value: 300, type: "expense_flow"},
+                    
+                    // Operating Expenses breakdown
+                    {source: "Operating Expenses", target: "R&D", value: 1200, type: "expense_flow"},
+                    {source: "Operating Expenses", target: "Sales & Marketing", value: 800, type: "expense_flow"},
+                    {source: "Operating Expenses", target: "General & Admin", value: 400, type: "expense_flow"}
                 ]
             };
+            
             updateMetadataInputs();
             renderTemplateData();
-        }
-
-        function loadManufacturingTemplate() {
-            templateData = {
-                metadata: {
-                    title: "Manufacturing Corp Financial Flow",
-                    subtitle: "Q3 2025 Operations",
-                    currency: "USD", 
-                    unit: "millions",
-                    company: "Manufacturing Corp",
-                    period: "Q3 2025"
-                },
-                nodes: [
-                    {id: "Product Sales", depth: 0, value: 400, category: "revenue"},
-                    {id: "Total Revenue", depth: 1, value: 400, category: "revenue"},
-                    {id: "Gross Profit", depth: 2, value: 280, category: "profit"},
-                    {id: "Operating Profit", depth: 3, value: 120, category: "profit"},
-                    {id: "Net Income", depth: 4, value: 90, category: "income"}
-                ],
-                links: [
-                    {source: "Product Sales", target: "Total Revenue", value: 400, type: "revenue_flow"},
-                    {source: "Total Revenue", target: "Gross Profit", value: 280, type: "profit_flow"},
-                    {source: "Gross Profit", target: "Operating Profit", value: 120, type: "profit_flow"},
-                    {source: "Operating Profit", target: "Net Income", value: 90, type: "final_flow"}
-                ]
-            };
-            updateMetadataInputs();
-            renderTemplateData();
-        }
-
-        function loadRetailTemplate() {
-            templateData = {
-                metadata: {
-                    title: "Retail Chain Financial Flow",
-                    subtitle: "Q3 2025 Performance",
-                    currency: "USD",
-                    unit: "millions", 
-                    company: "Retail Chain Corp",
-                    period: "Q3 2025"
-                },
-                nodes: [
-                    {id: "Store Sales", depth: 0, value: 250, category: "revenue"},
-                    {id: "Online Sales", depth: 0, value: 150, category: "revenue"},
-                    {id: "Total Revenue", depth: 1, value: 400, category: "revenue"},
-                    {id: "Gross Profit", depth: 2, value: 200, category: "profit"},
-                    {id: "Operating Profit", depth: 3, value: 80, category: "profit"},
-                    {id: "Net Income", depth: 4, value: 60, category: "income"}
-                ],
-                links: [
-                    {source: "Store Sales", target: "Total Revenue", value: 250, type: "revenue_flow"},
-                    {source: "Online Sales", target: "Total Revenue", value: 150, type: "revenue_flow"},
-                    {source: "Total Revenue", target: "Gross Profit", value: 200, type: "profit_flow"},
-                    {source: "Gross Profit", target: "Operating Profit", value: 80, type: "profit_flow"},
-                    {source: "Operating Profit", target: "Net Income", value: 60, type: "final_flow"}
-                ]
-            };
-            updateMetadataInputs();
-            renderTemplateData();
+            console.log('✅ Loaded Adobe template');
         }
 
         function loadBlankTemplate() {
-            templateData = {
-                metadata: {
-                    title: "Your Company Financial Flow",
-                    subtitle: "Financial Performance",
-                    currency: "USD",
-                    unit: "millions",
-                    company: "Your Company",
-                    period: "Q3 2025"
-                },
-                nodes: [
-                    {id: "Revenue Source", depth: 0, value: 100, category: "revenue"}
-                ],
-                links: []
-            };
-            updateMetadataInputs();
-            renderTemplateData();
+            if (confirm('This will clear all current data and start fresh. Continue?')) {
+                templateData = {
+                    metadata: {
+                        title: "Your Company Financial Flow",
+                        subtitle: "Financial Performance",
+                        currency: "USD",
+                        unit: "millions",
+                        company: "Your Company",
+                        period: "Q3 2025"
+                    },
+                    nodes: [
+                        {id: "Revenue Source", depth: 0, value: 100, category: "revenue", description: "Start building your structure here"}
+                    ],
+                    links: []
+                };
+                
+                updateMetadataInputs();
+                renderTemplateData();
+                console.log('✅ Loaded blank template');
+            }
         }
 
         function renderTemplateData() {
             renderNodes();
             renderLinks();
+            
+            // Hide the manual load button since data loaded automatically
+            const loadButton = document.querySelector('[onclick="loadCurrentChartData()"]');
+            if (loadButton && templateData.nodes.length > 0) {
+                loadButton.style.display = 'none';
+            } else if (loadButton) {
+                loadButton.style.display = 'block';
+            }
         }
 
         function renderNodes() {
@@ -1082,9 +1085,10 @@
 
         // Setup metadata change listeners with real-time support
         document.addEventListener('DOMContentLoaded', function() {
-            const metadataFields = ['company-name', 'period', 'currency', 'units'];
+            const metadataFields = ['company-name', 'subtitle', 'period', 'currency', 'units'];
             const fieldMapping = {
                 'company-name': 'company',
+                'subtitle': 'subtitle',
                 'period': 'period', 
                 'currency': 'currency',
                 'units': 'unit'
