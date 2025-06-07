@@ -1,5 +1,5 @@
-/* ===== SANKEY CHART CONTROLS - WITH COLOR CUSTOMIZATION ===== */
-/* Enhanced Sankey controls with color picker support and dynamic layers */
+/* ===== SANKEY CHART CONTROLS - WITH FIXED COLOR CUSTOMIZATION ===== */
+/* Enhanced Sankey controls with proper tax/expense color grouping and dynamic layers */
 
 class SankeyControlModule {
     constructor() {
@@ -91,7 +91,7 @@ class SankeyControlModule {
                 ]
             },
 
-            // **NEW: Color Customization Section**
+            // **FIXED: Color Customization Section with proper tax grouping**
             colors: {
                 title: "Color Customization",
                 icon: "🎨",
@@ -121,9 +121,9 @@ class SankeyControlModule {
                     {
                         id: "expenseColor",
                         type: "color",
-                        label: "Expense Color",
+                        label: "Expense & Tax Color",
                         default: "#e67e22",
-                        description: "Color for expense category nodes"
+                        description: "Color for expense and tax category nodes (taxes grouped with expenses)"
                     },
                     {
                         id: "incomeColor",
@@ -131,13 +131,6 @@ class SankeyControlModule {
                         label: "Income Color",
                         default: "#9b59b6",
                         description: "Color for income category nodes"
-                    },
-                    {
-                        id: "taxColor",
-                        type: "color",
-                        label: "Tax Color",
-                        default: "#c0392b",
-                        description: "Color for tax category nodes"
                     }
                 ]
             },
@@ -356,12 +349,12 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Control change handler with color support
+     * ENHANCED: Control change handler with proper tax/expense color grouping
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
-        // **NEW: Handle color controls**
+        // **FIXED: Handle color controls with proper tax grouping**
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
             this.updateChartColor(chart, category, value);
@@ -464,21 +457,27 @@ class SankeyControlModule {
     }
 
     /**
-     * NEW: Update chart color for a specific category
+     * FIXED: Update chart color with proper tax/expense grouping
      */
     updateChartColor(chart, category, color) {
         if (!chart.customColors) {
             chart.customColors = {};
         }
         
-        chart.customColors[category] = color;
+        // **CRITICAL FIX: Map tax to expense color**
+        if (category === 'expense') {
+            chart.customColors['expense'] = color;
+            chart.customColors['tax'] = color; // Tax nodes use same color as expenses
+        } else {
+            chart.customColors[category] = color;
+        }
         
         // Re-render chart with new colors
         if (chart.data) {
             chart.render(chart.data);
         }
         
-        console.log(`🎨 Updated ${category} color to ${color}`);
+        console.log(`🎨 Updated ${category} color to ${color}${category === 'expense' ? ' (also applied to tax)' : ''}`);
     }
 
     /**
@@ -544,7 +543,7 @@ class SankeyControlModule {
     }
 
     /**
-     * Apply color preset to chart
+     * FIXED: Apply color preset with proper tax grouping
      */
     applyColorPreset(chart, presetName) {
         const presets = {
@@ -553,58 +552,62 @@ class SankeyControlModule {
                 cost: '#e74c3c',
                 profit: '#27ae60',
                 expense: '#e67e22',
-                income: '#9b59b6',
-                tax: '#c0392b'
+                income: '#9b59b6'
+                // Note: tax is intentionally omitted - it will use expense color
             },
             vibrant: {
                 revenue: '#ff6b6b',
                 cost: '#4ecdc4',
                 profit: '#45b7d1',
                 expense: '#f9ca24',
-                income: '#6c5ce7',
-                tax: '#fd79a8'
+                income: '#6c5ce7'
             },
             professional: {
                 revenue: '#2c3e50',
                 cost: '#95a5a6',
                 profit: '#27ae60',
                 expense: '#e67e22',
-                income: '#3498db',
-                tax: '#e74c3c'
+                income: '#3498db'
             },
             monochrome: {
                 revenue: '#2c3e50',
                 cost: '#7f8c8d',
                 profit: '#34495e',
                 expense: '#95a5a6',
-                income: '#2c3e50',
-                tax: '#34495e'
+                income: '#2c3e50'
             }
         };
 
         const preset = presets[presetName];
         if (preset && chart.setCustomColors) {
-            chart.setCustomColors(preset);
-            console.log(`🎨 Applied ${presetName} color preset`);
+            // **CRITICAL: Ensure tax uses expense color**
+            const colorsWithTax = { ...preset };
+            colorsWithTax.tax = preset.expense;
+            
+            chart.setCustomColors(colorsWithTax);
+            console.log(`🎨 Applied ${presetName} color preset (tax grouped with expense)`);
         }
     }
 
     /**
-     * Generate random colors for all categories
+     * FIXED: Generate random colors with proper tax grouping
      */
     randomizeColors(chart) {
-        const categories = ['revenue', 'cost', 'profit', 'expense', 'income', 'tax'];
+        const categories = ['revenue', 'cost', 'profit', 'expense', 'income'];
         const randomColors = {};
         
         categories.forEach(category => {
             randomColors[category] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
         });
         
+        // **CRITICAL: Tax uses same color as expense**
+        randomColors.tax = randomColors.expense;
+        
         if (chart.setCustomColors) {
             chart.setCustomColors(randomColors);
         }
         
-        console.log('🎲 Randomized all colors');
+        console.log('🎲 Randomized all colors (tax grouped with expense)');
     }
 
     validateConfig(config) {
@@ -681,7 +684,7 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '2.1',  // Updated for color support
+            version: '2.2',  // Updated version for tax grouping fix
             config: config,
             timestamp: new Date().toISOString(),
             features: {
@@ -690,6 +693,7 @@ class SankeyControlModule {
                 middleLayerTargetedControls: true,
                 dynamicLayerSupport: true,
                 colorCustomization: true,
+                taxExpenseGrouping: true, // New feature flag
                 totalLayers: this.currentLayerCount
             },
             dynamicControls: Array.from(this.dynamicControls.entries()).map(([depth, control]) => ({
@@ -761,6 +765,7 @@ class SankeyControlModule {
             },
             colorFeatures: {
                 categoryColors: "Individual color controls for each node category",
+                taxExpenseGrouping: "Tax nodes automatically use expense color for visual coherence",
                 colorPresets: "Professional, vibrant, and monochrome color schemes",
                 randomization: "Generate random color combinations",
                 realTimePreview: "Colors update immediately in chart view"

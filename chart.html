@@ -51,6 +51,65 @@
         .tab-content.active {
             display: block;
         }
+
+        .data-builder-status {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .status-connected {
+            background: #d1fae5;
+            border-color: #a7f3d0;
+            color: #065f46;
+        }
+
+        .status-loading {
+            background: #fef3c7;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .realtime-controls {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .realtime-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .realtime-indicator.live {
+            background-color: #ef4444;
+        }
+
+        .realtime-indicator.manual {
+            background-color: #6b7280;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -89,22 +148,46 @@
             </button>
         </div>
 
-        <!-- Data Builder Tab (Templates View) -->
+        <!-- Data Builder Tab -->
         <div id="data-builder" class="tab-content" style="background: #f8f9fa;">
             <div class="template-container">
                 <div class="template-main">
                     <div class="template-header">
-                        <h1>📊 Financial Flow Builder</h1>
-                        <span class="feature-badge">✨ Multi-Layer Management</span>
-                        <p>Build and customize your financial flow data structure</p>
+                        <h1>📊 Real-time Data Builder</h1>
+                        <span class="feature-badge">⚡ Live Updates</span>
+                        <p>Edit chart data with instant live preview synchronization</p>
+                    </div>
+
+                    <!-- Data Bridge Status -->
+                    <div id="data-bridge-status" class="data-builder-status status-loading">
+                        <strong>🔄 Connecting to Chart Data...</strong>
+                        <div>Establishing connection with Chart View data</div>
+                    </div>
+
+                    <!-- Real-time Controls -->
+                    <div class="realtime-controls">
+                        <h4 style="margin: 0 0 10px 0; color: #0369a1;">
+                            <span id="realtime-indicator" class="realtime-indicator manual"></span>
+                            Live Update Mode
+                        </h4>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <button id="realtime-toggle" class="btn btn-primary" onclick="toggleRealTimeMode()">
+                                🔴 Enable Live Updates
+                            </button>
+                            <div style="font-size: 12px; color: #6b7280;">
+                                <strong>Manual:</strong> Changes apply when you click "Apply Changes"<br>
+                                <strong>Live:</strong> Changes apply automatically as you type (500ms delay)
+                            </div>
+                        </div>
                     </div>
 
                     <div class="template-content">
-                        <!-- Industry Templates -->
+                        <!-- Quick Actions -->
                         <div class="layer-management">
-                            <h3 style="margin: 0 0 10px 0; color: #92400e;">🏢 Quick Start Templates</h3>
+                            <h3 style="margin: 0 0 10px 0; color: #92400e;">⚡ Quick Actions</h3>
                             <div class="layer-controls">
-                                <button class="layer-btn" onclick="loadSaaSTemplate()">SaaS Company</button>
+                                <button class="layer-btn" onclick="loadCurrentChartData()">📊 Load Chart Data</button>
+                                <button class="layer-btn" onclick="loadSaaSTemplate()">SaaS Template</button>
                                 <button class="layer-btn" onclick="loadManufacturingTemplate()">Manufacturing</button>
                                 <button class="layer-btn" onclick="loadRetailTemplate()">Retail Chain</button>
                                 <button class="layer-btn secondary" onclick="loadBlankTemplate()">Blank Template</button>
@@ -120,16 +203,16 @@
                                 <div class="metadata-grid">
                                     <div class="field-group">
                                         <label class="field-label">Company Name</label>
-                                        <input type="text" class="field-input" id="company-name" value="TechFlow SaaS Corp">
+                                        <input type="text" class="field-input" id="company-name" value="" placeholder="Your Company Name">
                                     </div>
                                     <div class="field-group">
                                         <label class="field-label">Period</label>
-                                        <input type="text" class="field-input" id="period" value="Q3 2025">
+                                        <input type="text" class="field-input" id="period" value="" placeholder="Q3 2025">
                                     </div>
                                     <div class="field-group">
                                         <label class="field-label">Currency</label>
                                         <select class="field-input" id="currency">
-                                            <option value="USD" selected>USD ($)</option>
+                                            <option value="USD">USD ($)</option>
                                             <option value="EUR">EUR (€)</option>
                                             <option value="GBP">GBP (£)</option>
                                         </select>
@@ -137,7 +220,7 @@
                                     <div class="field-group">
                                         <label class="field-label">Units</label>
                                         <select class="field-input" id="units">
-                                            <option value="millions" selected>Millions</option>
+                                            <option value="millions">Millions</option>
                                             <option value="billions">Billions</option>
                                         </select>
                                     </div>
@@ -153,7 +236,9 @@
                             </div>
                             <div class="section-content">
                                 <div id="nodes-container">
-                                    <!-- Nodes dynamically generated -->
+                                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                                        📊 No chart data loaded. Switch to Chart View first, then come back here to edit.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -166,16 +251,19 @@
                             </div>
                             <div class="section-content">
                                 <div id="links-container">
-                                    <!-- Links dynamically generated -->
+                                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                                        🔗 No connections available. Load chart data first.
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="applyDataAndSwitchToChart()">🚀 Generate Chart</button>
+                            <button class="btn btn-primary" onclick="applyDataAndSwitchToChart()">🚀 Apply Changes</button>
                             <button class="btn btn-secondary" onclick="validateStructure()">✅ Validate</button>
                             <button class="btn btn-secondary" onclick="exportCurrentData()">💾 Export</button>
+                            <button class="btn btn-secondary" onclick="resetToChartData()">🔄 Reset to Chart</button>
                         </div>
                     </div>
                 </div>
@@ -235,55 +323,452 @@
     <script src="js/core/ControlPanel.js"></script>
     <script src="js/charts/sankey/SankeyChart.js"></script>
     <script src="js/charts/sankey/SankeyControls.js"></script>
+    
+    <!-- Enhanced app.js with Data Bridge support -->
     <script src="js/app.js"></script>
     
-    <!-- Template Builder Integration Script -->
+    <!-- FIXED: Data Bridge Integration with proper timing -->
+    <script>
+        // Enhanced Data Bridge with FIXED timing
+        window.PulseDataBridge = {
+            currentData: null,
+            chartInstance: null,
+            isInitialized: false,
+            realTimeMode: false,
+            appReadyCallbacks: [],
+            
+            init() {
+                this.isInitialized = true;
+                console.log('🌉 Real-time Data Bridge initialized');
+                
+                // Wait for app to be ready before setting up listeners
+                this.waitForAppReady().then(() => {
+                    this.setupEventListeners();
+                });
+            },
+            
+            // NEW: Register callback for when app is ready
+            onAppReady(callback) {
+                if (window.pulseApp) {
+                    callback();
+                } else {
+                    this.appReadyCallbacks.push(callback);
+                }
+            },
+            
+            setData(data, source = 'unknown') {
+                this.currentData = data;
+                console.log(`📊 Data updated from ${source}:`, data);
+                this.notifyDataChanged(source);
+            },
+            
+            getData() {
+                if (this.currentData) {
+                    return this.currentData;
+                }
+                
+                if (window.pulseApp?.getCurrentData()) {
+                    this.currentData = window.pulseApp.getCurrentData();
+                    return this.currentData;
+                }
+                
+                if (window.pulseApp?.getCurrentChart()?.data) {
+                    this.currentData = window.pulseApp.getCurrentChart().data;
+                    return this.currentData;
+                }
+                
+                return null;
+            },
+            
+            setChartInstance(chart) {
+                this.chartInstance = chart;
+                console.log('📈 Chart instance registered');
+            },
+            
+            setRealTimeMode(enabled) {
+                this.realTimeMode = enabled;
+                console.log(`🔄 Real-time mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
+                this.updateDataBuilderStatus();
+                this.updateRealTimeIndicator();
+            },
+            
+            notifyDataChanged(source) {
+                console.log(`🔄 Broadcasting data change from ${source}`);
+                
+                if (this.chartInstance && this.currentData && source !== 'chart-update') {
+                    console.log('🎨 Updating chart with new data');
+                    this.chartInstance.render(this.currentData);
+                }
+                
+                if (window.currentMainTab === 'data-builder') {
+                    this.refreshDataBuilder();
+                }
+                
+                if (window.pulseApp && source !== 'app' && source !== 'app-initial') {
+                    window.pulseApp.currentData = this.currentData;
+                }
+                
+                window.dispatchEvent(new CustomEvent('pulseDataChanged', {
+                    detail: { data: this.currentData, source }
+                }));
+                
+                this.updateDataBuilderStatus();
+            },
+            
+            refreshDataBuilder() {
+                const data = this.getData();
+                if (data) {
+                    console.log('🔧 Refreshing Data Builder with data:', data);
+                    window.templateData = {
+                        metadata: data.metadata || {},
+                        nodes: JSON.parse(JSON.stringify(data.nodes || [])),
+                        links: JSON.parse(JSON.stringify(data.links || []))
+                    };
+                    
+                    if (typeof renderTemplateData === 'function') {
+                        renderTemplateData();
+                        this.updateDataBuilderStatus('connected');
+                    }
+                } else {
+                    console.warn('⚠️ No data available for Data Builder');
+                    this.updateDataBuilderStatus('no-data');
+                }
+            },
+            
+            updateDataBuilderStatus(status = 'loading') {
+                const statusEl = document.getElementById('data-bridge-status');
+                if (!statusEl) return;
+                
+                statusEl.className = 'data-builder-status';
+                
+                switch (status) {
+                    case 'connected':
+                        statusEl.classList.add('status-connected');
+                        const nodeCount = this.currentData?.nodes?.length || 0;
+                        const linkCount = this.currentData?.links?.length || 0;
+                        const realTimeStatus = this.realTimeMode ? '🔴 LIVE' : '⚪ Manual';
+                        statusEl.innerHTML = `
+                            <strong>✅ Connected to Chart Data ${realTimeStatus}</strong>
+                            <div>Editing live data with ${nodeCount} nodes and ${linkCount} connections</div>
+                        `;
+                        break;
+                    case 'no-data':
+                        statusEl.classList.add('status-error');
+                        statusEl.innerHTML = `
+                            <strong>❌ No Chart Data Available</strong>
+                            <div>Load a dataset in Chart View first, then return here to edit</div>
+                        `;
+                        break;
+                    default:
+                        statusEl.classList.add('status-loading');
+                        statusEl.innerHTML = `
+                            <strong>🔄 Connecting to Chart Data...</strong>
+                            <div>Establishing connection with Chart View data</div>
+                        `;
+                }
+            },
+            
+            updateRealTimeIndicator() {
+                const indicator = document.getElementById('realtime-indicator');
+                const button = document.getElementById('realtime-toggle');
+                
+                if (indicator && button) {
+                    if (this.realTimeMode) {
+                        indicator.className = 'realtime-indicator live';
+                        button.textContent = '⚪ Disable Live Updates';
+                        button.className = 'btn btn-secondary';
+                    } else {
+                        indicator.className = 'realtime-indicator manual';
+                        button.textContent = '🔴 Enable Live Updates';
+                        button.className = 'btn btn-primary';
+                    }
+                }
+            },
+            
+            applyImmediateChange(newData) {
+                if (this.realTimeMode) {
+                    console.log('⚡ Applying immediate change in real-time mode');
+                    this.setData(newData, 'data-builder-realtime');
+                }
+            },
+            
+            applyDataBuilderChanges(newData) {
+                console.log('✅ Applying Data Builder changes:', newData);
+                this.setData(newData, 'data-builder');
+            },
+            
+            setupEventListeners() {
+                window.addEventListener('pulseTabSwitch', (e) => {
+                    this.handleTabSwitch(e.detail.tabName);
+                });
+                
+                // Listen for data changes from main app
+                window.addEventListener('pulseDataChanged', (event) => {
+                    // Already handled in notifyDataChanged
+                });
+            },
+            
+            // FIXED: Improved app waiting with better error handling
+            async waitForAppReady() {
+                const maxAttempts = 100; // Increased attempts
+                const checkInterval = 100; // Check every 100ms
+                let attempts = 0;
+                
+                return new Promise((resolve, reject) => {
+                    const checkApp = () => {
+                        attempts++;
+                        
+                        if (window.pulseApp && window.pulseApp.chart) {
+                            console.log('✅ Main app found and ready, hooking into data flow');
+                            this.hookIntoApp();
+                            
+                            // Execute any pending callbacks
+                            this.appReadyCallbacks.forEach(callback => callback());
+                            this.appReadyCallbacks = [];
+                            
+                            resolve();
+                            return;
+                        }
+                        
+                        if (attempts >= maxAttempts) {
+                            console.warn('⚠️ Main app not found after maximum attempts');
+                            // Don't reject, just continue without app connection
+                            resolve();
+                            return;
+                        }
+                        
+                        // Continue checking
+                        setTimeout(checkApp, checkInterval);
+                    };
+                    
+                    checkApp();
+                });
+            },
+            
+            hookIntoApp() {
+                const app = window.pulseApp;
+                if (!app) return;
+                
+                // Hook into dataset loading
+                const originalLoadDataset = app.loadDataset.bind(app);
+                app.loadDataset = async function(datasetKey) {
+                    const result = await originalLoadDataset(datasetKey);
+                    window.PulseDataBridge.setData(result, `dataset-${datasetKey}`);
+                    return result;
+                };
+                
+                // Register chart instance
+                if (app.chart) {
+                    this.setChartInstance(app.chart);
+                }
+                
+                // Get initial data if available
+                const initialData = app.getCurrentData();
+                if (initialData) {
+                    this.setData(initialData, 'app-initial');
+                }
+                
+                console.log('🔗 Successfully hooked into main app');
+            },
+            
+            handleTabSwitch(tabName) {
+                console.log(`🔄 Tab switched to: ${tabName}`);
+                
+                if (tabName === 'data-builder') {
+                    setTimeout(() => {
+                        this.refreshDataBuilder();
+                        this.setRealTimeMode(true);
+                    }, 100);
+                } else if (tabName === 'chart-view') {
+                    this.setRealTimeMode(false);
+                    
+                    const data = this.getData();
+                    if (data && this.chartInstance) {
+                        this.chartInstance.render(data);
+                    }
+                }
+            }
+        };
+
+        // Initialize Data Bridge immediately
+        window.PulseDataBridge.init();
+    </script>
+    
+    <!-- Real-time Data Builder Functions -->
     <script>
         let currentMainTab = 'chart-view';
         let templateData = {
             metadata: {
-                title: "SaaS Company Financial Flow",
-                subtitle: "Q3 2025 Financial Performance", 
+                title: "Financial Flow",
+                subtitle: "Current Data", 
                 currency: "USD",
                 unit: "millions",
-                company: "TechFlow SaaS Corp",
-                period: "Q3 2025"
+                company: "Your Company",
+                period: "Current Period"
             },
             nodes: [],
             links: []
         };
-        
+
+        // Debounce function for real-time updates
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Debounced real-time update function
+        const debouncedRealTimeUpdate = debounce(() => {
+            if (window.PulseDataBridge.realTimeMode) {
+                console.log('⚡ Triggering debounced real-time update');
+                window.PulseDataBridge.applyImmediateChange(templateData);
+            }
+        }, 500);
+
+        // Toggle real-time mode
+        function toggleRealTimeMode() {
+            const currentMode = window.PulseDataBridge.realTimeMode;
+            window.PulseDataBridge.setRealTimeMode(!currentMode);
+        }
+
+        // Enhanced tab switching
         function switchMainTab(tabName) {
-            // Update tab buttons
+            console.log(`🎯 Switching to tab: ${tabName}`);
+            
             document.querySelectorAll('.main-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            document.querySelector(`[onclick="switchMainTab('${tabName}')"]`).classList.add('active');
+            const targetTab = document.querySelector(`[onclick="switchMainTab('${tabName}')"]`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
             
-            // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            document.getElementById(tabName).classList.add('active');
+            const targetContent = document.getElementById(tabName);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
             
             currentMainTab = tabName;
             
-            // Initialize tab content
+            window.dispatchEvent(new CustomEvent('pulseTabSwitch', {
+                detail: { tabName }
+            }));
+            
             if (tabName === 'data-builder') {
-                initializeDataBuilder();
+                // Use callback to ensure app is ready
+                window.PulseDataBridge.onAppReady(() => {
+                    initializeDataBuilder();
+                });
             }
         }
-        
+
         function initializeDataBuilder() {
-            // Load current chart data into builder if available
-            if (window.pulseApp && window.pulseApp.getCurrentData()) {
-                templateData = window.pulseApp.getCurrentData();
+            console.log('🔧 Initializing Data Builder...');
+            
+            const data = window.PulseDataBridge.getData();
+            
+            if (data) {
+                console.log('✅ Found data for Data Builder:', data);
+                
+                templateData = {
+                    metadata: {
+                        title: data.metadata?.title || "Financial Flow",
+                        subtitle: data.metadata?.subtitle || "Live Chart Data",
+                        currency: data.metadata?.currency || "USD",
+                        unit: data.metadata?.unit || "millions",
+                        company: data.metadata?.company || "Your Company",
+                        period: data.metadata?.period || "Current Period"
+                    },
+                    nodes: JSON.parse(JSON.stringify(data.nodes || [])),
+                    links: JSON.parse(JSON.stringify(data.links || []))
+                };
+                
+                updateMetadataInputs();
                 renderTemplateData();
+                window.PulseDataBridge.updateDataBuilderStatus('connected');
+                
+                console.log('✅ Data Builder initialized with live data');
             } else {
-                loadSaaSTemplate();
+                console.log('📝 No data found, showing placeholder');
+                window.PulseDataBridge.updateDataBuilderStatus('no-data');
             }
         }
-        
+
+        function loadCurrentChartData() {
+            const data = window.PulseDataBridge.getData();
+            if (data) {
+                templateData = {
+                    metadata: {
+                        title: data.metadata?.title || "Financial Flow",
+                        subtitle: data.metadata?.subtitle || "From Chart View",
+                        currency: data.metadata?.currency || "USD",
+                        unit: data.metadata?.unit || "millions",
+                        company: data.metadata?.company || "Your Company",
+                        period: data.metadata?.period || "Current Period"
+                    },
+                    nodes: JSON.parse(JSON.stringify(data.nodes || [])),
+                    links: JSON.parse(JSON.stringify(data.links || []))
+                };
+                
+                updateMetadataInputs();
+                renderTemplateData();
+                window.PulseDataBridge.updateDataBuilderStatus('connected');
+                
+                alert('✅ Successfully loaded current chart data for editing!');
+            } else {
+                alert('❌ No chart data available. Please load a dataset in Chart View first.');
+            }
+        }
+
+        function resetToChartData() {
+            const proceed = confirm('This will reset all your changes to match the current chart data. Continue?');
+            if (proceed) {
+                loadCurrentChartData();
+            }
+        }
+
+        function updateMetadataInputs() {
+            const fields = [
+                { id: 'company-name', value: templateData.metadata.company },
+                { id: 'period', value: templateData.metadata.period },
+                { id: 'currency', value: templateData.metadata.currency },
+                { id: 'units', value: templateData.metadata.unit }
+            ];
+            
+            fields.forEach(({ id, value }) => {
+                const element = document.getElementById(id);
+                if (element && value) {
+                    element.value = value;
+                }
+            });
+        }
+
+        function applyDataAndSwitchToChart() {
+            console.log('🚀 Applying Data Builder changes...');
+            
+            templateData.metadata.company = document.getElementById('company-name').value;
+            templateData.metadata.period = document.getElementById('period').value;
+            templateData.metadata.currency = document.getElementById('currency').value;
+            templateData.metadata.unit = document.getElementById('units').value;
+            templateData.metadata.title = `${templateData.metadata.company} Financial Flow`;
+            
+            window.PulseDataBridge.applyDataBuilderChanges(templateData);
+            
+            switchMainTab('chart-view');
+            
+            console.log('✅ Changes applied and switched to Chart View');
+        }
+
+        // Template functions
         function loadSaaSTemplate() {
             templateData = {
                 metadata: {
@@ -310,9 +795,10 @@
                     {source: "Operating Profit", target: "Net Income", value: 75, type: "final_flow"}
                 ]
             };
+            updateMetadataInputs();
             renderTemplateData();
         }
-        
+
         function loadManufacturingTemplate() {
             templateData = {
                 metadata: {
@@ -337,9 +823,10 @@
                     {source: "Operating Profit", target: "Net Income", value: 90, type: "final_flow"}
                 ]
             };
+            updateMetadataInputs();
             renderTemplateData();
         }
-        
+
         function loadRetailTemplate() {
             templateData = {
                 metadata: {
@@ -366,9 +853,10 @@
                     {source: "Operating Profit", target: "Net Income", value: 60, type: "final_flow"}
                 ]
             };
+            updateMetadataInputs();
             renderTemplateData();
         }
-        
+
         function loadBlankTemplate() {
             templateData = {
                 metadata: {
@@ -384,33 +872,45 @@
                 ],
                 links: []
             };
+            updateMetadataInputs();
             renderTemplateData();
         }
-        
+
         function renderTemplateData() {
-            // Update metadata inputs
-            document.getElementById('company-name').value = templateData.metadata.company || '';
-            document.getElementById('period').value = templateData.metadata.period || '';
-            document.getElementById('currency').value = templateData.metadata.currency || 'USD';
-            document.getElementById('units').value = templateData.metadata.unit || 'millions';
+            renderNodes();
+            renderLinks();
+        }
+
+        function renderNodes() {
+            const container = document.getElementById('nodes-container');
+            container.innerHTML = '';
             
-            // Render nodes
-            const nodesContainer = document.getElementById('nodes-container');
-            nodesContainer.innerHTML = '';
+            if (templateData.nodes.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">No nodes available. Load template or chart data first.</div>';
+                return;
+            }
+            
             templateData.nodes.forEach((node, index) => {
                 const nodeDiv = createNodeEditor(node, index);
-                nodesContainer.appendChild(nodeDiv);
-            });
-            
-            // Render links
-            const linksContainer = document.getElementById('links-container');
-            linksContainer.innerHTML = '';
-            templateData.links.forEach((link, index) => {
-                const linkDiv = createLinkEditor(link, index);
-                linksContainer.appendChild(linkDiv);
+                container.appendChild(nodeDiv);
             });
         }
-        
+
+        function renderLinks() {
+            const container = document.getElementById('links-container');
+            container.innerHTML = '';
+            
+            if (templateData.links.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">No connections available. Add nodes first, then create connections.</div>';
+                return;
+            }
+            
+            templateData.links.forEach((link, index) => {
+                const linkDiv = createLinkEditor(link, index);
+                container.appendChild(linkDiv);
+            });
+        }
+
         function createNodeEditor(node, index) {
             const div = document.createElement('div');
             div.className = 'data-item';
@@ -447,7 +947,7 @@
             `;
             return div;
         }
-        
+
         function createLinkEditor(link, index) {
             const div = document.createElement('div');
             div.className = 'link-item';
@@ -479,35 +979,51 @@
             `;
             return div;
         }
-        
+
         function updateNode(index, field, value) {
             if (templateData.nodes[index]) {
                 templateData.nodes[index][field] = value;
+                
+                if (field === 'id') {
+                    const oldId = templateData.nodes[index].id;
+                    templateData.links.forEach(link => {
+                        if (link.source === oldId) link.source = value;
+                        if (link.target === oldId) link.target = value;
+                    });
+                    renderLinks();
+                }
+                
+                debouncedRealTimeUpdate();
             }
         }
-        
+
         function updateLink(index, field, value) {
             if (templateData.links[index]) {
                 templateData.links[index][field] = value;
+                debouncedRealTimeUpdate();
             }
         }
-        
+
         function addNode() {
             const newNode = {
                 id: `New Node ${Date.now()}`,
-                depth: Math.max(...templateData.nodes.map(n => n.depth)) + 1,
+                depth: Math.max(...templateData.nodes.map(n => n.depth), -1) + 1,
                 value: 100,
                 category: "revenue"
             };
             templateData.nodes.push(newNode);
             renderTemplateData();
+            debouncedRealTimeUpdate();
         }
-        
+
         function removeNode(index) {
+            const nodeId = templateData.nodes[index].id;
             templateData.nodes.splice(index, 1);
+            templateData.links = templateData.links.filter(l => l.source !== nodeId && l.target !== nodeId);
             renderTemplateData();
+            debouncedRealTimeUpdate();
         }
-        
+
         function addCustomLink() {
             if (templateData.nodes.length >= 2) {
                 const newLink = {
@@ -518,18 +1034,33 @@
                 };
                 templateData.links.push(newLink);
                 renderTemplateData();
+                debouncedRealTimeUpdate();
+            } else {
+                alert('Need at least 2 nodes to create a connection');
             }
         }
-        
+
         function removeLink(index) {
             templateData.links.splice(index, 1);
             renderTemplateData();
+            debouncedRealTimeUpdate();
         }
-        
+
         function validateStructure() {
             const errors = [];
             if (templateData.nodes.length === 0) errors.push('No nodes defined');
             if (templateData.links.length === 0) errors.push('No links defined');
+            
+            const linkedNodes = new Set();
+            templateData.links.forEach(link => {
+                linkedNodes.add(link.source);
+                linkedNodes.add(link.target);
+            });
+            
+            const orphans = templateData.nodes.filter(node => !linkedNodes.has(node.id));
+            if (orphans.length > 0) {
+                errors.push(`Orphaned nodes: ${orphans.map(n => n.id).join(', ')}`);
+            }
             
             if (errors.length > 0) {
                 alert('❌ Validation errors:\n' + errors.join('\n'));
@@ -537,7 +1068,7 @@
                 alert('✅ Structure validation passed!');
             }
         }
-        
+
         function exportCurrentData() {
             const dataStr = JSON.stringify(templateData, null, 2);
             const blob = new Blob([dataStr], {type: 'application/json'});
@@ -548,30 +1079,29 @@
             link.click();
             URL.revokeObjectURL(url);
         }
-        
-        function applyDataAndSwitchToChart() {
-            // Update metadata from inputs
-            templateData.metadata.company = document.getElementById('company-name').value;
-            templateData.metadata.period = document.getElementById('period').value;
-            templateData.metadata.currency = document.getElementById('currency').value;
-            templateData.metadata.unit = document.getElementById('units').value;
-            templateData.metadata.title = `${templateData.metadata.company} Financial Flow`;
-            
-            // Apply to main app
-            if (window.pulseApp) {
-                window.pulseApp.currentData = templateData;
-                if (window.pulseApp.getCurrentChart()) {
-                    window.pulseApp.getCurrentChart().render(templateData);
-                }
-            }
-            
-            // Switch to chart view
-            switchMainTab('chart-view');
-        }
-        
-        // Initialize with SaaS template on load
+
+        // Setup metadata change listeners with real-time support
         document.addEventListener('DOMContentLoaded', function() {
-            loadSaaSTemplate();
+            const metadataFields = ['company-name', 'period', 'currency', 'units'];
+            const fieldMapping = {
+                'company-name': 'company',
+                'period': 'period', 
+                'currency': 'currency',
+                'units': 'unit'
+            };
+            
+            metadataFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        templateData.metadata[fieldMapping[fieldId]] = this.value;
+                        if (fieldId === 'company-name') {
+                            templateData.metadata.title = `${this.value} Financial Flow`;
+                        }
+                        debouncedRealTimeUpdate();
+                    });
+                }
+            });
         });
     </script>
 </body>

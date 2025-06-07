@@ -885,28 +885,34 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Get node color with custom color support
+     * ENHANCED: Get node color with custom color support and proper tax grouping
      */
     getNodeColor(node) {
-        // **NEW: Check for custom colors first**
-        if (this.customColors && this.customColors[node.category]) {
-            return this.customColors[node.category];
+        // **CRITICAL FIX: Handle tax category by using expense color**
+        let effectiveCategory = node.category;
+        if (node.category === 'tax') {
+            effectiveCategory = 'expense'; // Tax nodes use expense color
         }
         
-        // **FALLBACK: Use default colors**
+        // **Check for custom colors first**
+        if (this.customColors && this.customColors[effectiveCategory]) {
+            return this.customColors[effectiveCategory];
+        }
+        
+        // **FALLBACK: Use default colors with tax mapped to expense**
         const defaultColors = {
             revenue: '#3498db',
             cost: '#e74c3c',
             profit: '#27ae60',
             expense: '#e67e22',
             income: '#9b59b6',
-            tax: '#c0392b'
+            tax: '#e67e22'  // Same as expense
         };
         return defaultColors[node.category] || '#95a5a6';
     }
 
     /**
-     * ENHANCED: Get link color with custom color support
+     * ENHANCED: Get link color with custom color support and proper tax grouping
      */
     getLinkColor(link) {
         const baseColor = this.getNodeColor(link.source);

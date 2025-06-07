@@ -1,5 +1,5 @@
-/* ===== PULSE ANALYTICS - MAIN APPLICATION (UPDATED) ===== */
-/* Updated to handle URL data parameters from guided flow and fix default settings persistence */
+/* ===== PULSE ANALYTICS - ENHANCED MAIN APPLICATION (COMPLETE) ===== */
+/* Enhanced with Data Bridge integration for seamless tab communication */
 
 class PulseApplication {
     constructor() {
@@ -11,7 +11,9 @@ class PulseApplication {
         this.currentDataset = 'saas';
         this.currentChartType = 'sankey';
         
-        // Registry of available chart types and their control modules
+        // Data Bridge integration
+        this.dataBridge = null;
+        
         this.chartRegistry = {
             sankey: {
                 name: 'Sankey Flow Chart',
@@ -21,16 +23,19 @@ class PulseApplication {
             }
         };
         
-        console.log('🚀 Starting Pulse Analytics Platform');
+        console.log('🚀 Starting Enhanced Pulse Analytics Platform');
     }
 
     async initialize() {
         try {
-            console.log('🔧 Initializing Pulse Analytics Platform');
+            console.log('🔧 Initializing Enhanced Pulse Analytics Platform');
             this.setStatus('Initializing...', 'loading');
             
             // Initialize data manager
             this.dataManager = new PulseDataManager();
+            
+            // Initialize data bridge connection
+            this.initializeDataBridge();
             
             // Initialize with default chart type
             await this.initializeChartType('sankey');
@@ -49,7 +54,7 @@ class PulseApplication {
             // Hide loading indicator
             this.hideLoadingIndicator();
             
-            console.log('✅ Platform initialized successfully');
+            console.log('✅ Enhanced Platform initialized successfully');
             
         } catch (error) {
             console.error('❌ Initialization failed:', error);
@@ -57,7 +62,62 @@ class PulseApplication {
         }
     }
 
-    // NEW: Handle URL parameters from guided flow
+    // Initialize Data Bridge connection
+    initializeDataBridge() {
+        if (window.PulseDataBridge) {
+            this.dataBridge = window.PulseDataBridge;
+            
+            // Register this app with the bridge
+            if (this.chart) {
+                this.dataBridge.setChartInstance(this.chart);
+            }
+            
+            // Listen for data changes from other tabs
+            window.addEventListener('pulseDataChanged', (event) => {
+                this.handleDataBridgeUpdate(event.detail);
+            });
+            
+            console.log('🌉 Connected to Data Bridge');
+        } else {
+            console.warn('⚠️ Data Bridge not available');
+        }
+    }
+
+    // Handle data updates from Data Bridge
+    handleDataBridgeUpdate(detail) {
+        const { data, source } = detail;
+        
+        console.log(`🔄 Received data update from ${source}`);
+        
+        // Only update if the source is not this app (avoid loops)
+        if (source !== 'app' && source !== 'app-initial') {
+            this.currentData = data;
+            
+            // Re-render chart if available
+            if (this.chart && data) {
+                console.log('🎨 Re-rendering chart with updated data');
+                this.chart.render(data);
+                
+                // Update dynamic controls if needed
+                if (this.controlModule?.supportsDynamicLayers && this.chart.getLayerInfo) {
+                    this.controlModule.initializeDynamicControls(this.chart);
+                    this.controlPanel?.generateControls();
+                }
+                
+                // Update status
+                const title = data.metadata?.title || 'Updated Data';
+                this.setStatus(`Updated: ${title}`, 'ready');
+            }
+        }
+    }
+
+    // Notify Data Bridge when data changes
+    notifyDataBridgeUpdate(source = 'app') {
+        if (this.dataBridge && this.currentData) {
+            this.dataBridge.setData(this.currentData, source);
+        }
+    }
+
     handleURLParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -66,13 +126,11 @@ class PulseApplication {
                 const data = JSON.parse(decodeURIComponent(urlParams.get('data')));
                 console.log('📊 Loading data from URL parameters:', data);
                 
-                // Validate the data structure
                 const validation = this.dataManager.validateData(data);
                 if (!validation.valid) {
                     throw new Error(`Data validation failed: ${validation.errors.join(', ')}`);
                 }
                 
-                // Set the data and render
                 this.currentData = data;
                 this.currentDataset = 'url-data';
                 
@@ -80,14 +138,15 @@ class PulseApplication {
                     this.chart.render(data);
                 }
                 
-                // Update status
+                // Notify Data Bridge
+                this.notifyDataBridgeUpdate('url-data');
+                
                 const title = data.metadata?.title || 'Custom Data';
                 this.setStatus(`Loaded: ${title}`, 'ready');
                 
-                // Clean up URL (optional - removes parameters from browser bar)
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
-                return true; // Indicate that URL data was loaded
+                return true;
                 
             } catch (error) {
                 console.error('❌ Error parsing URL data:', error);
@@ -96,7 +155,7 @@ class PulseApplication {
             }
         }
         
-        return false; // No URL data found
+        return false;
     }
 
     async initializeChartType(chartType) {
@@ -107,31 +166,27 @@ class PulseApplication {
 
         console.log(`🎯 Initializing ${chartType} chart with controls`);
 
-        // **STEP 1: Create control module first**
         this.controlModule = new chartDefinition.controlModuleClass();
-        
-        // **STEP 2: Create chart instance**
         this.chart = new chartDefinition.chartClass('main-chart');
-        
-        // **STEP 3: Apply control module defaults to chart config**
         this.chart.applyControlDefaults(this.controlModule);
         
-        // **STEP 4: Initialize dynamic controls if supported**
+        // Register chart with Data Bridge
+        if (this.dataBridge) {
+            this.dataBridge.setChartInstance(this.chart);
+        }
+        
         if (this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
-            // Wait for data to be available before initializing dynamic controls
             if (this.currentData) {
                 this.chart.processData(this.currentData);
                 this.controlModule.initializeDynamicControls(this.chart);
             }
         }
         
-        // **STEP 5: Create control panel with properly synchronized chart and controls**
         this.controlPanel = new PulseControlPanel('dynamic-controls');
         this.controlPanel.init(this.chart, this.controlModule);
         
         this.currentChartType = chartType;
         console.log(`✅ ${chartType} chart and controls initialized with proper defaults`);
-        console.log('📋 Current chart config:', this.chart.config);
     }
 
     async switchChartType(newChartType) {
@@ -142,7 +197,6 @@ class PulseApplication {
         console.log(`🔄 Switching from ${this.currentChartType} to ${newChartType}`);
         
         try {
-            // Clean up current chart and controls
             if (this.controlPanel) {
                 this.controlPanel.destroy();
             }
@@ -153,17 +207,13 @@ class PulseApplication {
                 }
             }
 
-            // Initialize new chart type
             await this.initializeChartType(newChartType);
             
-            // Re-render with current data if available
             if (this.currentData) {
                 this.chart.render(this.currentData);
                 
-                // **CRITICAL: Initialize dynamic controls after data is rendered**
                 if (this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
                     this.controlModule.initializeDynamicControls(this.chart);
-                    // Regenerate control panel to include dynamic controls
                     this.controlPanel.generateControls();
                 }
                 
@@ -179,7 +229,6 @@ class PulseApplication {
     }
 
     setupEventListeners() {
-        // Chart type selector
         const chartTypeSelect = document.getElementById('chart-type-select');
         if (chartTypeSelect) {
             chartTypeSelect.addEventListener('change', async (e) => {
@@ -187,7 +236,6 @@ class PulseApplication {
             });
         }
 
-        // Data selector
         const dataSelect = document.getElementById('data-select');
         if (dataSelect) {
             dataSelect.addEventListener('change', async (e) => {
@@ -199,7 +247,6 @@ class PulseApplication {
             });
         }
 
-        // Export buttons
         const exportPng = document.getElementById('export-png');
         if (exportPng) {
             exportPng.addEventListener('click', () => {
@@ -223,7 +270,6 @@ class PulseApplication {
             });
         }
         
-        // Reset button
         const resetDefaults = document.getElementById('reset-defaults');
         if (resetDefaults) {
             resetDefaults.addEventListener('click', () => {
@@ -231,7 +277,6 @@ class PulseApplication {
             });
         }
 
-        // File input for custom data
         const fileInput = document.getElementById('file-input');
         if (fileInput) {
             fileInput.addEventListener('change', (event) => {
@@ -240,9 +285,6 @@ class PulseApplication {
         }
     }
 
-    /**
-     * ENHANCED: Reset to defaults with proper synchronization
-     */
     resetToDefaults() {
         if (!this.controlPanel || !this.controlModule) {
             console.warn('Cannot reset - control panel or module not available');
@@ -251,20 +293,16 @@ class PulseApplication {
         
         console.log('🔄 Resetting all controls to defaults');
         
-        // Get defaults from control module
         const defaults = this.controlModule.resetToDefaults();
         
-        // Apply defaults to chart
         if (this.chart) {
             this.chart.config = { ...this.chart.getInitialConfig(), ...defaults };
             
-            // Re-render chart with defaults
             if (this.currentData) {
                 this.chart.render(this.currentData);
             }
         }
         
-        // Regenerate control panel to reflect defaults
         this.controlPanel.applyConfig(defaults);
         
         console.log('✅ Reset to defaults complete');
@@ -278,7 +316,6 @@ class PulseApplication {
             this.currentData = await this.dataManager.loadDataset(datasetKey);
             this.currentDataset = datasetKey;
             
-            // Validate data before rendering
             const validation = this.dataManager.validateData(this.currentData);
             if (!validation.valid) {
                 throw new Error(`Data validation failed: ${validation.errors.join(', ')}`);
@@ -287,15 +324,15 @@ class PulseApplication {
             if (this.chart) {
                 this.chart.render(this.currentData);
                 
-                // **CRITICAL: Initialize dynamic controls after data is rendered**
                 if (this.controlModule && this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
                     this.controlModule.initializeDynamicControls(this.chart);
-                    // Regenerate control panel to include dynamic controls
                     this.controlPanel.generateControls();
                 }
             }
 
-            // Show success with source information
+            // Notify Data Bridge of the update
+            this.notifyDataBridgeUpdate(`dataset-${datasetKey}`);
+
             const sourceInfo = this.currentData.metadata?.source || 'external file';
             this.setStatus(`Loaded: ${this.currentData.metadata.title} (${sourceInfo})`, 'ready');
             console.log(`✅ Successfully loaded and rendered dataset: ${datasetKey}`);
@@ -327,18 +364,15 @@ class PulseApplication {
             try {
                 const data = JSON.parse(e.target.result);
                 
-                // Check if it's a standard income statement format
                 if (data.revenue && data.operating_expenses && !data.nodes) {
                     console.log('Detected income statement format, transforming...');
                     this.currentData = this.dataManager.transformIncomeStatement(data);
                 } else if (data.nodes && data.links) {
-                    // Standard Sankey format
                     this.currentData = data;
                 } else {
                     throw new Error('Invalid data format. Please use either standard income statement format or Sankey nodes/links format.');
                 }
 
-                // Validate transformed/loaded data
                 const validation = this.dataManager.validateData(this.currentData);
                 if (!validation.valid) {
                     throw new Error(`Data validation failed: ${validation.errors.join(', ')}`);
@@ -349,13 +383,14 @@ class PulseApplication {
                 if (this.chart) {
                     this.chart.render(this.currentData);
                     
-                    // **CRITICAL: Initialize dynamic controls after data is rendered**
                     if (this.controlModule && this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
                         this.controlModule.initializeDynamicControls(this.chart);
-                        // Regenerate control panel to include dynamic controls
                         this.controlPanel.generateControls();
                     }
                 }
+
+                // Notify Data Bridge of the update
+                this.notifyDataBridgeUpdate('custom-file');
 
                 this.setStatus(`Custom: ${this.currentData.metadata?.title || 'Untitled'}`, 'ready');
                 console.log('📁 Loaded and processed custom data');
@@ -366,6 +401,40 @@ class PulseApplication {
             }
         };
         reader.readAsText(file);
+    }
+
+    // Method for Data Builder to update chart data
+    updateData(newData, source = 'manual') {
+        console.log(`🔄 Manually updating data from ${source}`);
+        
+        try {
+            const validation = this.dataManager.validateData(newData);
+            if (!validation.valid) {
+                console.warn('Validation warnings for manual update:', validation.errors);
+            }
+            
+            this.currentData = newData;
+            
+            if (this.chart) {
+                this.chart.render(newData);
+                
+                if (this.controlModule?.supportsDynamicLayers && this.chart.getLayerInfo) {
+                    this.controlModule.initializeDynamicControls(this.chart);
+                    this.controlPanel?.generateControls();
+                }
+            }
+            
+            this.notifyDataBridgeUpdate(source);
+            
+            const title = newData.metadata?.title || 'Updated Data';
+            this.setStatus(`Updated: ${title}`, 'ready');
+            
+            return true;
+        } catch (error) {
+            console.error('Failed to update data:', error);
+            this.showError(`Failed to update data: ${error.message}`);
+            return false;
+        }
     }
 
     // Register a new chart type
@@ -449,6 +518,11 @@ class PulseApplication {
         return this.controlPanel;
     }
 
+    // Get Data Bridge instance
+    getDataBridge() {
+        return this.dataBridge;
+    }
+
     // Resize handling
     handleResize() {
         if (this.chart && this.chart.config) {
@@ -464,7 +538,7 @@ class PulseApplication {
 // Global application instance
 let pulseApp = null;
 
-// Initialize application when DOM is ready
+// Initialize application with Data Bridge support
 function initializePulseApp() {
     try {
         pulseApp = new PulseApplication();
