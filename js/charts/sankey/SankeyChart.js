@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - WITH COLOR CUSTOMIZATION ===== */
-/* Professional Sankey chart with context-aware label positioning and custom colors */
+/* ===== PULSE SANKEY CHART - WITH ENHANCED COLOR SUPPORT ===== */
+/* Professional Sankey chart with automatic color transfer from flow builder */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -12,7 +12,7 @@ class PulseSankeyChart {
         this.nodes = [];
         this.links = [];
         
-        // **NEW: Custom color storage**
+        // **ENHANCED: Custom color storage with automatic detection**
         this.customColors = {};
         
         // Initialize with proper defaults that match control module
@@ -147,6 +147,10 @@ class PulseSankeyChart {
 
     render(data) {
         this.data = data;
+        
+        // **CRITICAL: Auto-detect and apply colors from metadata**
+        this.detectAndApplyColors(data);
+        
         this.processData(data);
         this.calculateLayout();
         
@@ -161,6 +165,26 @@ class PulseSankeyChart {
         this.renderBrandingFooter();
         
         return this;
+    }
+
+    /**
+     * NEW: Detect and apply colors from metadata (from flow builder)
+     */
+    detectAndApplyColors(data) {
+        if (data.metadata && data.metadata.colorPalette) {
+            console.log('🎨 Detected color palette from metadata:', data.metadata.colorPalette);
+            this.customColors = { ...data.metadata.colorPalette };
+            
+            // Ensure tax category uses expense color for consistency
+            if (this.customColors.expense && !this.customColors.tax) {
+                this.customColors.tax = this.customColors.expense;
+            }
+            
+            console.log('✅ Applied colors from flow builder:', this.customColors);
+        } else if (Object.keys(this.customColors).length === 0) {
+            // No colors set, use defaults
+            console.log('🎨 Using default color scheme');
+        }
     }
 
     processData(data) {
@@ -950,13 +974,26 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Set custom colors
+     * ENHANCED: Set custom colors with automatic data bridge sync
      */
     setCustomColors(colorMap) {
         this.customColors = { ...colorMap };
+        
+        // Ensure tax uses expense color for consistency
+        if (this.customColors.expense && !this.customColors.tax) {
+            this.customColors.tax = this.customColors.expense;
+        }
+        
+        // Update metadata to maintain consistency
+        if (this.data && this.data.metadata) {
+            this.data.metadata.colorPalette = { ...this.customColors };
+        }
+        
         if (this.data) {
             this.render(this.data);
         }
+        
+        console.log('🎨 Updated custom colors:', this.customColors);
     }
 
     /**
@@ -967,13 +1004,21 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Reset to default colors
+     * ENHANCED: Reset to default colors with data bridge sync
      */
     resetColors() {
         this.customColors = {};
+        
+        // Clear from metadata as well
+        if (this.data && this.data.metadata && this.data.metadata.colorPalette) {
+            delete this.data.metadata.colorPalette;
+        }
+        
         if (this.data) {
             this.render(this.data);
         }
+        
+        console.log('🔄 Reset to default colors');
     }
 
     // Tooltip methods

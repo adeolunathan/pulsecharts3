@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simplified Flow Builder - Business Flow Designer</title>
+    <title>Business Flow Designer - Pulse Analytics</title>
     
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
@@ -67,6 +67,125 @@
             background: #d97706;
             border-color: #d97706;
         }
+
+        /* Preview Toggle Button - Always Visible */
+        .preview-toggle-btn {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 80px;
+            border-radius: 20px 0 0 20px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 200;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .preview-toggle-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-50%) translateX(-2px);
+        }
+        
+        .template-container.preview-hidden .preview-toggle-btn {
+            right: 0;
+            border-radius: 0 20px 20px 0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Collapsible Sections */
+        .collapsible-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .collapsible-header {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e1e5e9;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+        
+        .collapsible-header:hover {
+            background: #e9ecef;
+        }
+        
+        .collapsible-header.collapsed {
+            border-bottom: none;
+        }
+        
+        .collapsible-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .collapsible-chevron {
+            transition: transform 0.2s ease;
+            color: #6b7280;
+        }
+        
+        .collapsible-header.collapsed .collapsible-chevron {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsible-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .collapsible-content.collapsed {
+            height: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Flow Management */
+        .flow-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .flow-control-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .flow-control-btn:hover {
+            background: #4b5563;
+            transform: scale(1.1);
+        }
+        
+        .flow-control-btn.up:hover { background: #059669; }
+        .flow-control-btn.down:hover { background: #dc2626; }
+        .flow-control-btn.duplicate:hover { background: #0369a1; }
+        .flow-control-btn.remove:hover { background: #dc2626; }
         
         /* Flow Table Styles */
         .flow-table-container {
@@ -150,24 +269,6 @@
             padding: 6px 8px;
             font-size: 12px;
             background: white;
-        }
-        
-        .remove-flow-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .remove-flow-btn:hover {
-            background: #dc2626;
         }
         
         .add-flow-btn {
@@ -263,138 +364,6 @@
             letter-spacing: 0.5px;
         }
         
-        /* CSV Import/Export */
-        .csv-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .csv-btn {
-            background: #f59e0b;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .csv-btn:hover {
-            background: #d97706;
-        }
-        
-        /* Preview Panel Toggle */
-        .preview-toggle-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: auto;
-        }
-        
-        .preview-toggle-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .preview-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .template-container.preview-hidden {
-            grid-template-columns: 1fr;
-        }
-        
-        .template-container.preview-hidden .preview-panel {
-            display: none;
-        }
-        
-        /* Color Palette Section */
-        .color-palette-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        
-        .color-palette-header {
-            background: #f8f9fa;
-            padding: 16px 20px;
-            border-bottom: 1px solid #e1e5e9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .color-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-            padding: 20px;
-        }
-        
-        .color-control {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .color-label {
-            font-size: 12px;
-            font-weight: 500;
-            color: #374151;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .color-input-container {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .color-picker {
-            width: 60px;
-            height: 32px;
-            border: 2px solid #d1d5db;
-            border-radius: 6px;
-            cursor: pointer;
-            background: none;
-            padding: 0;
-        }
-        
-        .color-picker:hover {
-            border-color: #667eea;
-        }
-        
-        .color-presets {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-        }
-        
-        .preset-btn {
-            padding: 6px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 4px;
-            background: white;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s ease;
-        }
-        
-        .preset-btn:hover {
-            background: #f3f4f6;
-            border-color: #667eea;
-        }
-        
         /* Responsive adjustments */
         @media (max-width: 1200px) {
             .flow-table {
@@ -410,10 +379,6 @@
             .flow-select {
                 font-size: 11px;
                 padding: 4px 6px;
-            }
-            
-            .color-grid {
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             }
         }
         
@@ -432,6 +397,10 @@
                 flex-direction: column;
                 gap: 12px;
             }
+            
+            .preview-toggle-btn {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -442,17 +411,22 @@
             <div>
                 <h1 class="action-title">💰 Business Flow Designer</h1>
                 <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">
-                    Think in flows: "From Revenue to Profit: $100M"
+                    Build financial flows: "From Revenue to Profit"
                 </div>
             </div>
             <div class="action-buttons">
                 <button class="action-btn" onclick="validateFlows()">✅ Validate</button>
-                <button class="action-btn" onclick="exportToCSV()">📄 Export CSV</button>
-                <button class="action-btn" onclick="importFromCSV()">📂 Import CSV</button>
+                <button class="action-btn" onclick="exportToCSV()">📄 Export</button>
+                <button class="action-btn" onclick="importFromCSV()">📂 Import</button>
                 <button class="action-btn primary" onclick="generateChart()">🚀 Generate Chart</button>
             </div>
         </div>
     </div>
+
+    <!-- Fixed Preview Toggle Button -->
+    <button class="preview-toggle-btn" onclick="togglePreviewPanel()" title="Toggle Preview Panel">
+        <span id="preview-toggle-icon">◀</span>
+    </button>
 
     <div class="template-container">
         <div class="template-main">
@@ -483,117 +457,78 @@
                     <button class="template-btn" onclick="loadBlankFlows()">📄 Blank Template</button>
                 </div>
 
-                <!-- Color Palette Controls -->
-                <div class="color-palette-container">
-                    <div class="color-palette-header">
-                        <h3 class="flow-table-title">🎨 Color Palette</h3>
-                        <div class="color-presets">
-                            <button class="preset-btn" onclick="applyColorPreset('professional')">Professional</button>
-                            <button class="preset-btn" onclick="applyColorPreset('vibrant')">Vibrant</button>
-                            <button class="preset-btn" onclick="applyColorPreset('monochrome')">Monochrome</button>
-                            <button class="preset-btn" onclick="resetColors()">Reset</button>
-                        </div>
+                <!-- Company Information Section -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection('company')">
+                        <h3 class="collapsible-title">🏢 Company Information</h3>
+                        <span class="collapsible-chevron">▼</span>
                     </div>
-                    <div class="color-grid">
-                        <div class="color-control">
-                            <label class="color-label">Revenue</label>
-                            <div class="color-input-container">
-                                <input type="color" class="color-picker" id="revenue-color" value="#3498db" onchange="updateColor('revenue', this.value)">
-                            </div>
-                        </div>
-                        <div class="color-control">
-                            <label class="color-label">Cost</label>
-                            <div class="color-input-container">
-                                <input type="color" class="color-picker" id="cost-color" value="#e74c3c" onchange="updateColor('cost', this.value)">
-                            </div>
-                        </div>
-                        <div class="color-control">
-                            <label class="color-label">Profit</label>
-                            <div class="color-input-container">
-                                <input type="color" class="color-picker" id="profit-color" value="#27ae60" onchange="updateColor('profit', this.value)">
-                            </div>
-                        </div>
-                        <div class="color-control">
-                            <label class="color-label">Expense</label>
-                            <div class="color-input-container">
-                                <input type="color" class="color-picker" id="expense-color" value="#e67e22" onchange="updateColor('expense', this.value)">
-                            </div>
-                        </div>
-                        <div class="color-control">
-                            <label class="color-label">Income</label>
-                            <div class="color-input-container">
-                                <input type="color" class="color-picker" id="income-color" value="#9b59b6" onchange="updateColor('income', this.value)">
+                    <div class="collapsible-content" id="company-content">
+                        <div style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
+                                    <input type="text" class="flow-input" id="company-name" value="TechFlow Corporation" onchange="updateMetadata()">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period</label>
+                                    <input type="text" class="flow-input" id="period" value="Q3 2025" onchange="updateMetadata()">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Currency</label>
+                                    <select class="flow-select" id="currency" onchange="updateMetadata()">
+                                        <option value="USD">USD ($)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="GBP">GBP (£)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Units</label>
+                                    <select class="flow-select" id="units" onchange="updateMetadata()">
+                                        <option value="millions">Millions</option>
+                                        <option value="billions">Billions</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Company Information -->
-                <div class="flow-table-container">
-                    <div class="flow-table-header">
-                        <h3 class="flow-table-title">🏢 Company Information</h3>
-                    </div>
-                    <div style="padding: 20px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
-                                <input type="text" class="flow-input" id="company-name" value="TechFlow Corporation" onchange="updateMetadata()">
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period</label>
-                                <input type="text" class="flow-input" id="period" value="Q3 2025" onchange="updateMetadata()">
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Currency</label>
-                                <select class="flow-select" id="currency" onchange="updateMetadata()">
-                                    <option value="USD">USD ($)</option>
-                                    <option value="EUR">EUR (€)</option>
-                                    <option value="GBP">GBP (£)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Units</label>
-                                <select class="flow-select" id="units" onchange="updateMetadata()">
-                                    <option value="millions">Millions</option>
-                                    <option value="billions">Billions</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Business Flows Table -->
-                <div class="flow-table-container">
-                    <div class="flow-table-header">
-                        <h3 class="flow-table-title">
+                <!-- Business Flows Section -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection('flows')">
+                        <h3 class="collapsible-title">
                             💰 Business Flows
-                            <span style="background: #e7f3ff; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Excel Compatible</span>
+                            <span style="background: #e7f3ff; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Dynamic</span>
                         </h3>
-                        <div class="csv-actions">
+                        <div style="display: flex; align-items: center; gap: 12px;">
                             <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
+                            <span class="collapsible-chevron">▼</span>
                         </div>
                     </div>
-                    <div style="overflow-x: auto;">
-                        <table class="flow-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 30px;"></th>
-                                    <th style="width: 180px;">From (Source)</th>
-                                    <th style="width: 180px;">To (Target)</th>
-                                    <th style="width: 80px;">Amount</th>
-                                    <th style="width: 70px;">Src Layer</th>
-                                    <th style="width: 70px;">Tgt Layer</th>
-                                    <th style="width: 100px;">Flow Type</th>
-                                    <th style="width: 90px;">Source Cat</th>
-                                    <th style="width: 90px;">Target Cat</th>
-                                    <th style="width: 200px;">Description</th>
-                                    <th style="width: 50px;">✓</th>
-                                </tr>
-                            </thead>
-                            <tbody id="flows-tbody">
-                                <!-- Flows will be dynamically generated -->
-                            </tbody>
-                        </table>
+                    <div class="collapsible-content" id="flows-content">
+                        <div style="overflow-x: auto;">
+                            <table class="flow-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">Actions</th>
+                                        <th style="width: 180px;">From (Source)</th>
+                                        <th style="width: 180px;">To (Target)</th>
+                                        <th style="width: 80px;">Amount</th>
+                                        <th style="width: 70px;">Src Layer</th>
+                                        <th style="width: 70px;">Tgt Layer</th>
+                                        <th style="width: 100px;">Flow Type</th>
+                                        <th style="width: 90px;">Source Cat</th>
+                                        <th style="width: 90px;">Target Cat</th>
+                                        <th style="width: 200px;">Description</th>
+                                        <th style="width: 50px;">✓</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="flows-tbody">
+                                    <!-- Flows will be dynamically generated -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -603,9 +538,6 @@
         <div class="preview-panel" id="preview-panel">
             <div class="preview-header">
                 📊 Live Preview & Validation
-                <button class="preview-toggle-btn" onclick="togglePreviewPanel()" title="Toggle Preview Panel">
-                    <span id="preview-toggle-icon">◀</span>
-                </button>
             </div>
             <div class="preview-tabs">
                 <button class="preview-tab active" onclick="switchTab('structure')">Structure</button>
@@ -653,15 +585,6 @@
         let currentTab = 'structure';
         let flowIdCounter = 0;
 
-        // Color palette functionality
-        let colorPalette = {
-            revenue: '#3498db',
-            cost: '#e74c3c',
-            profit: '#27ae60',
-            expense: '#e67e22',
-            income: '#9b59b6'
-        };
-
         // Flow structure definition
         class BusinessFlow {
             constructor(options = {}) {
@@ -677,6 +600,24 @@
                 this.sourceCategory = options.sourceCategory || 'revenue';
                 this.targetCategory = options.targetCategory || 'revenue';
                 this.description = options.description || '';
+            }
+        }
+
+        // Collapsible Section Management
+        function toggleSection(sectionName) {
+            const header = document.querySelector(`[onclick="toggleSection('${sectionName}')"]`);
+            const content = document.getElementById(`${sectionName}-content`);
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                content.style.height = 'auto';
+                header.classList.remove('collapsed');
+            } else {
+                content.style.height = content.scrollHeight + 'px';
+                setTimeout(() => {
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                }, 10);
             }
         }
 
@@ -728,7 +669,7 @@
                     targetLayer: 2,
                     sourceCategory: "revenue",
                     targetCategory: "revenue",
-                    description: "All subscription-based revenue"
+                    description: "Product-based revenue"
                 }),
                 new BusinessFlow({
                     source: "Subscription",
@@ -891,17 +832,20 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <button class="remove-flow-btn" onclick="removeFlow(${index})" title="Remove Flow">×</button>
+                    <div class="flow-controls">
+                        <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
+                        <button class="flow-control-btn down" onclick="moveFlowDown(${index})" title="Move Down" ${index === flowData.flows.length - 1 ? 'disabled' : ''}>↓</button>
+                        <button class="flow-control-btn duplicate" onclick="duplicateFlow(${index})" title="Duplicate">⧉</button>
+                        <button class="flow-control-btn remove" onclick="removeFlow(${index})" title="Remove">×</button>
+                    </div>
                 </td>
                 <td>
                     <input type="text" class="flow-input" value="${flow.source}" 
-                           onchange="updateFlow(${index}, 'source', this.value)"
-                           list="source-suggestions">
+                           onchange="updateFlow(${index}, 'source', this.value)">
                 </td>
                 <td>
                     <input type="text" class="flow-input" value="${flow.target}" 
-                           onchange="updateFlow(${index}, 'target', this.value)"
-                           list="target-suggestions">
+                           onchange="updateFlow(${index}, 'target', this.value)">
                 </td>
                 <td>
                     <input type="number" class="flow-input number" value="${flow.value}" 
@@ -959,6 +903,7 @@
             return `<div class="balance-indicator ${isValid ? 'balanced' : 'unbalanced'}">${isValid ? '✓' : '⚠'}</div>`;
         }
 
+        // Flow Management Functions
         function addFlow() {
             const newFlow = new BusinessFlow({
                 source: "New Source",
@@ -976,6 +921,42 @@
 
         function removeFlow(index) {
             flowData.flows.splice(index, 1);
+            renderFlowTable();
+            updateAllStats();
+            updateAllPreviews();
+        }
+
+        function moveFlowUp(index) {
+            if (index > 0) {
+                [flowData.flows[index], flowData.flows[index - 1]] = [flowData.flows[index - 1], flowData.flows[index]];
+                renderFlowTable();
+                updateAllPreviews();
+            }
+        }
+
+        function moveFlowDown(index) {
+            if (index < flowData.flows.length - 1) {
+                [flowData.flows[index], flowData.flows[index + 1]] = [flowData.flows[index + 1], flowData.flows[index]];
+                renderFlowTable();
+                updateAllPreviews();
+            }
+        }
+
+        function duplicateFlow(index) {
+            const originalFlow = flowData.flows[index];
+            const duplicatedFlow = new BusinessFlow({
+                source: originalFlow.source + " Copy",
+                target: originalFlow.target,
+                value: originalFlow.value,
+                flowType: originalFlow.flowType,
+                sourceLayer: originalFlow.sourceLayer,
+                targetLayer: originalFlow.targetLayer,
+                sourceCategory: originalFlow.sourceCategory,
+                targetCategory: originalFlow.targetCategory,
+                description: originalFlow.description + " (Copy)"
+            });
+            
+            flowData.flows.splice(index + 1, 0, duplicatedFlow);
             renderFlowTable();
             updateAllStats();
             updateAllPreviews();
@@ -1055,8 +1036,7 @@
             
             return {
                 metadata: {
-                    ...flowData.metadata,
-                    colorPalette: colorPalette
+                    ...flowData.metadata
                 },
                 nodes: Array.from(nodeMap.values()),
                 links: links
@@ -1274,6 +1254,20 @@
             }
         }
 
+        // Preview Panel Functions
+        function togglePreviewPanel() {
+            const container = document.querySelector('.template-container');
+            const icon = document.getElementById('preview-toggle-icon');
+            
+            container.classList.toggle('preview-hidden');
+            
+            if (container.classList.contains('preview-hidden')) {
+                icon.textContent = '▶';
+            } else {
+                icon.textContent = '◀';
+            }
+        }
+
         function switchTab(tabName) {
             currentTab = tabName;
             
@@ -1364,7 +1358,34 @@
 
         function updateValidationPreview() {
             const preview = document.getElementById('validation-preview');
-            preview.innerHTML = '<h4>✅ Validation Results</h4><div>Flow validation logic will be implemented here</div>';
+            
+            const errors = [];
+            const warnings = [];
+            
+            flowData.flows.forEach((flow, index) => {
+                if (!flow.source || !flow.target) {
+                    errors.push(`Flow ${index + 1}: Missing source or target`);
+                }
+                if (flow.value <= 0) {
+                    errors.push(`Flow ${index + 1}: Invalid value`);
+                }
+                if (flow.sourceLayer >= flow.targetLayer) {
+                    errors.push(`Flow ${index + 1}: Invalid layer sequence`);
+                }
+            });
+            
+            let html = '<h4>✅ Validation Results</h4>';
+            
+            if (errors.length === 0) {
+                html += '<div style="color: #059669; margin: 8px 0;">All flows are valid!</div>';
+            } else {
+                html += '<div style="color: #dc2626; margin: 8px 0;">Issues found:</div>';
+                errors.forEach(error => {
+                    html += `<div style="color: #dc2626; font-size: 12px; margin: 2px 0;">• ${error}</div>`;
+                });
+            }
+            
+            preview.innerHTML = html;
         }
 
         function updateAllPreviews() {
@@ -1384,80 +1405,9 @@
             stats.textContent = `Flows: ${flowCount} | Nodes: ${nodeCount} | Links: ${linkCount} | Layers: ${layerCount}`;
         }
 
-        function updateColor(category, color) {
-            colorPalette[category] = color;
-            updateAllPreviews();
-        }
-
-        function applyColorPreset(presetName) {
-            const presets = {
-                professional: {
-                    revenue: '#2c3e50',
-                    cost: '#95a5a6',
-                    profit: '#27ae60',
-                    expense: '#e67e22',
-                    income: '#3498db'
-                },
-                vibrant: {
-                    revenue: '#ff6b6b',
-                    cost: '#4ecdc4',
-                    profit: '#45b7d1',
-                    expense: '#f9ca24',
-                    income: '#6c5ce7'
-                },
-                monochrome: {
-                    revenue: '#2c3e50',
-                    cost: '#7f8c8d',
-                    profit: '#34495e',
-                    expense: '#95a5a6',
-                    income: '#2c3e50'
-                }
-            };
-
-            if (presets[presetName]) {
-                colorPalette = { ...presets[presetName] };
-                updateColorInputs();
-                updateAllPreviews();
-            }
-        }
-
-        function resetColors() {
-            colorPalette = {
-                revenue: '#3498db',
-                cost: '#e74c3c',
-                profit: '#27ae60',
-                expense: '#e67e22',
-                income: '#9b59b6'
-            };
-            updateColorInputs();
-            updateAllPreviews();
-        }
-
-        function updateColorInputs() {
-            Object.entries(colorPalette).forEach(([category, color]) => {
-                const colorInput = document.getElementById(`${category}-color`);
-                if (colorInput) {
-                    colorInput.value = color;
-                }
-            });
-        }
-
-        function togglePreviewPanel() {
-            const container = document.querySelector('.template-container');
-            const icon = document.getElementById('preview-toggle-icon');
-            
-            container.classList.toggle('preview-hidden');
-            
-            if (container.classList.contains('preview-hidden')) {
-                icon.textContent = '▶';
-            } else {
-                icon.textContent = '◀';
-            }
-        }
-
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadCompleteTemplate();
-            updateColorInputs();
         });
     </script>
 </body>
