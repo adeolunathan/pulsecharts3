@@ -1,5 +1,5 @@
 /* ===== PULSE SANKEY CHART - WITH ENHANCED COLOR SUPPORT ===== */
-/* Professional Sankey chart with automatic color transfer from flow builder */
+/* Professional Sankey chart with target-based link coloring and automatic color transfer from flow builder */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -210,7 +210,10 @@ class PulseSankeyChart {
                     ...link,
                     source: sourceNode,
                     target: targetNode,
-                    value: link.value || 0
+                    value: link.value || 0,
+                    // **FIXED: Store target category for proper link coloring**
+                    targetCategory: targetNode.category,
+                    colorCategory: link.colorCategory || targetNode.category
                 };
                 
                 sourceNode.sourceLinks.push(processedLink);
@@ -936,27 +939,45 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Get link color with custom color support and proper tax grouping
+     * FIXED: Get link color based on TARGET node category, not source
      */
     getLinkColor(link) {
-        const baseColor = this.getNodeColor(link.source);
+        // **CRITICAL FIX: Use target node category for link color**
+        const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
         
-        // **NEW: If using custom colors, adjust link color accordingly**
-        if (this.customColors && this.customColors[link.source.category]) {
-            // Create a lighter version of the custom color
-            return this.lightenColor(baseColor, 20);
+        // Handle tax category
+        let effectiveCategory = targetCategory;
+        if (targetCategory === 'tax') {
+            effectiveCategory = 'expense'; // Tax links use expense color
         }
         
-        // **FALLBACK: Use predefined lighter colors**
-        const lighterColors = {
-            '#3498db': '#5dade2',
-            '#e74c3c': '#ec7063',
-            '#27ae60': '#52c785',
-            '#e67e22': '#f1975a',
-            '#9b59b6': '#bb8fce',
-            '#c0392b': '#e74c3c'
+        // Get the target node color
+        const targetColor = this.getColorByCategory(effectiveCategory);
+        
+        // Create a lighter/more transparent version for the link
+        return this.lightenColor(targetColor, 15);
+    }
+
+    /**
+     * NEW: Get color by category (helper method)
+     */
+    getColorByCategory(category) {
+        // Check custom colors first
+        if (this.customColors && this.customColors[category]) {
+            return this.customColors[category];
+        }
+        
+        // Fallback to default colors
+        const defaultColors = {
+            revenue: '#3498db',
+            cost: '#e74c3c',
+            profit: '#27ae60',
+            expense: '#e67e22',
+            income: '#9b59b6',
+            tax: '#e67e22'  // Same as expense
         };
-        return lighterColors[baseColor] || baseColor;
+        
+        return defaultColors[category] || '#95a5a6';
     }
 
     /**
@@ -1052,7 +1073,8 @@ class PulseSankeyChart {
                 ${this.formatCurrency(d.value)}
             </div>
             <div style="font-size: 11px; color: rgba(255,255,255,0.8);">
-                ${percentage}% of source flow
+                ${percentage}% of source flow<br>
+                <em>Colored by target: ${d.target.category}</em>
             </div>
         `;
         

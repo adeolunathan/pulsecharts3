@@ -25,7 +25,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
@@ -68,34 +68,21 @@
             border-color: #d97706;
         }
 
-        /* Preview Toggle Button - Always Visible */
-        .preview-toggle-btn {
-            position: fixed;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #667eea;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 80px;
-            border-radius: 20px 0 0 20px;
-            cursor: pointer;
-            font-size: 18px;
-            z-index: 200;
-            box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
+        /* Single Column Layout - Centered */
+        .template-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
         }
         
-        .preview-toggle-btn:hover {
-            background: #5a6fd8;
-            transform: translateY(-50%) translateX(-2px);
-        }
-        
-        .template-container.preview-hidden .preview-toggle-btn {
-            right: 0;
-            border-radius: 0 20px 20px 0;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        .template-main {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
         }
         
         /* Collapsible Sections */
@@ -153,6 +140,84 @@
         .collapsible-content.collapsed {
             height: 0 !important;
             padding: 0 !important;
+        }
+        
+        /* Color Picker Section */
+        .color-customization {
+            padding: 20px;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e1e5e9;
+        }
+        
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+            transition: all 0.2s ease;
+        }
+        
+        .color-picker:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+        
+        .color-info {
+            flex: 1;
+        }
+        
+        .color-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+        
+        .color-description {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .color-presets {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e1e5e9;
+        }
+        
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .preset-btn:hover {
+            background: #e5e7eb;
         }
         
         /* Flow Management */
@@ -398,8 +463,8 @@
                 gap: 12px;
             }
             
-            .preview-toggle-btn {
-                display: none;
+            .color-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -423,14 +488,9 @@
         </div>
     </div>
 
-    <!-- Fixed Preview Toggle Button -->
-    <button class="preview-toggle-btn" onclick="togglePreviewPanel()" title="Toggle Preview Panel">
-        <span id="preview-toggle-icon">◀</span>
-    </button>
-
     <div class="template-container">
         <div class="template-main">
-            <div class="template-content" style="padding-top: 20px;">
+            <div class="template-content" style="padding: 20px;">
                 <!-- Quick Stats -->
                 <div class="stats-bar">
                     <div class="stat-item">
@@ -494,6 +554,66 @@
                     </div>
                 </div>
 
+                <!-- Color Customization Section -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection('colors')">
+                        <h3 class="collapsible-title">🎨 Color Customization</h3>
+                        <span class="collapsible-chevron">▼</span>
+                    </div>
+                    <div class="collapsible-content" id="colors-content">
+                        <div class="color-customization">
+                            <div class="color-grid">
+                                <div class="color-item">
+                                    <input type="color" class="color-picker" id="revenue-color" value="#3498db" onchange="updateColor('revenue', this.value)">
+                                    <div class="color-info">
+                                        <div class="color-label">Revenue</div>
+                                        <div class="color-description">Revenue nodes and flows</div>
+                                    </div>
+                                </div>
+                                <div class="color-item">
+                                    <input type="color" class="color-picker" id="cost-color" value="#e74c3c" onchange="updateColor('cost', this.value)">
+                                    <div class="color-info">
+                                        <div class="color-label">Cost</div>
+                                        <div class="color-description">Cost of revenue nodes</div>
+                                    </div>
+                                </div>
+                                <div class="color-item">
+                                    <input type="color" class="color-picker" id="profit-color" value="#27ae60" onchange="updateColor('profit', this.value)">
+                                    <div class="color-info">
+                                        <div class="color-label">Profit</div>
+                                        <div class="color-description">Profit nodes and flows</div>
+                                    </div>
+                                </div>
+                                <div class="color-item">
+                                    <input type="color" class="color-picker" id="expense-color" value="#e67e22" onchange="updateColor('expense', this.value)">
+                                    <div class="color-info">
+                                        <div class="color-label">Expense & Tax</div>
+                                        <div class="color-description">Operating expenses and tax nodes</div>
+                                    </div>
+                                </div>
+                                <div class="color-item">
+                                    <input type="color" class="color-picker" id="income-color" value="#9b59b6" onchange="updateColor('income', this.value)">
+                                    <div class="color-info">
+                                        <div class="color-label">Income</div>
+                                        <div class="color-description">Final income nodes</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="color-presets">
+                                <div style="font-weight: 600; margin-bottom: 8px; color: #374151;">Color Presets:</div>
+                                <div class="preset-buttons">
+                                    <button class="preset-btn" onclick="applyColorPreset('default')">Default</button>
+                                    <button class="preset-btn" onclick="applyColorPreset('vibrant')">Vibrant</button>
+                                    <button class="preset-btn" onclick="applyColorPreset('professional')">Professional</button>
+                                    <button class="preset-btn" onclick="applyColorPreset('monochrome')">Monochrome</button>
+                                    <button class="preset-btn" onclick="randomizeColors()">🎲 Random</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Business Flows Section -->
                 <div class="collapsible-section">
                     <div class="collapsible-header" onclick="toggleSection('flows')">
@@ -511,17 +631,17 @@
                             <table class="flow-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 50px;">Actions</th>
-                                        <th style="width: 180px;">From (Source)</th>
-                                        <th style="width: 180px;">To (Target)</th>
-                                        <th style="width: 80px;">Amount</th>
-                                        <th style="width: 70px;">Src Layer</th>
-                                        <th style="width: 70px;">Tgt Layer</th>
-                                        <th style="width: 100px;">Flow Type</th>
-                                        <th style="width: 90px;">Source Cat</th>
-                                        <th style="width: 90px;">Target Cat</th>
-                                        <th style="width: 200px;">Description</th>
-                                        <th style="width: 50px;">✓</th>
+                                        <th style="width: 80px;">Actions</th>
+                                        <th style="width: 240px;">From (Source)</th>
+                                        <th style="width: 240px;">To (Target)</th>
+                                        <th style="width: 100px;">Amount</th>
+                                        <th style="width: 90px;">Src Layer</th>
+                                        <th style="width: 90px;">Tgt Layer</th>
+                                        <th style="width: 140px;">Flow Type</th>
+                                        <th style="width: 140px;">Source Cat</th>
+                                        <th style="width: 140px;">Target Cat</th>
+                                        <th style="width: 300px;">Description</th>
+                                        <th style="width: 60px;">✓</th>
                                     </tr>
                                 </thead>
                                 <tbody id="flows-tbody">
@@ -531,36 +651,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Preview Panel -->
-        <div class="preview-panel" id="preview-panel">
-            <div class="preview-header">
-                📊 Live Preview & Validation
-            </div>
-            <div class="preview-tabs">
-                <button class="preview-tab active" onclick="switchTab('structure')">Structure</button>
-                <button class="preview-tab" onclick="switchTab('json')">JSON Data</button>
-                <button class="preview-tab" onclick="switchTab('validation')">Validation</button>
-            </div>
-            <div class="preview-content">
-                <div id="structure-tab" class="tab-content">
-                    <div class="layer-preview" id="structure-preview">
-                        <!-- Structure analysis will be populated here -->
-                    </div>
-                </div>
-                <div id="json-tab" class="tab-content" style="display: none;">
-                    <textarea class="json-preview" id="json-preview" readonly></textarea>
-                </div>
-                <div id="validation-tab" class="tab-content" style="display: none;">
-                    <div class="layer-preview" id="validation-preview">
-                        <!-- Validation results will be populated here -->
-                    </div>
-                </div>
-            </div>
-            <div class="json-stats" id="json-stats">
-                Ready to build flows
             </div>
         </div>
     </div>
@@ -577,12 +667,19 @@
                 currency: "USD",
                 unit: "millions",
                 company: "TechFlow Corporation",
-                period: "Q3 2025"
+                period: "Q3 2025",
+                colorPalette: {
+                    revenue: "#3498db",
+                    cost: "#e74c3c",
+                    profit: "#27ae60",
+                    expense: "#e67e22",
+                    income: "#9b59b6",
+                    tax: "#e67e22"  // Tax uses expense color
+                }
             },
             flows: []
         };
 
-        let currentTab = 'structure';
         let flowIdCounter = 0;
 
         // Flow structure definition
@@ -601,6 +698,91 @@
                 this.targetCategory = options.targetCategory || 'revenue';
                 this.description = options.description || '';
             }
+        }
+
+        // Color Management Functions
+        function updateColor(category, color) {
+            flowData.metadata.colorPalette[category] = color;
+            
+            // Tax always uses expense color
+            if (category === 'expense') {
+                flowData.metadata.colorPalette.tax = color;
+            }
+            
+            console.log(`🎨 Updated ${category} color to ${color}`);
+        }
+
+        function applyColorPreset(presetName) {
+            const presets = {
+                default: {
+                    revenue: '#3498db',
+                    cost: '#e74c3c',
+                    profit: '#27ae60',
+                    expense: '#e67e22',
+                    income: '#9b59b6'
+                },
+                vibrant: {
+                    revenue: '#ff6b6b',
+                    cost: '#4ecdc4',
+                    profit: '#45b7d1',
+                    expense: '#f9ca24',
+                    income: '#6c5ce7'
+                },
+                professional: {
+                    revenue: '#2c3e50',
+                    cost: '#95a5a6',
+                    profit: '#27ae60',
+                    expense: '#e67e22',
+                    income: '#3498db'
+                },
+                monochrome: {
+                    revenue: '#2c3e50',
+                    cost: '#7f8c8d',
+                    profit: '#34495e',
+                    expense: '#95a5a6',
+                    income: '#2c3e50'
+                }
+            };
+
+            const preset = presets[presetName];
+            if (preset) {
+                // Apply colors to data
+                Object.entries(preset).forEach(([category, color]) => {
+                    flowData.metadata.colorPalette[category] = color;
+                });
+                
+                // Tax uses expense color
+                flowData.metadata.colorPalette.tax = preset.expense;
+                
+                // Update UI
+                Object.entries(preset).forEach(([category, color]) => {
+                    const picker = document.getElementById(`${category}-color`);
+                    if (picker) {
+                        picker.value = color;
+                    }
+                });
+                
+                console.log(`🎨 Applied ${presetName} color preset`);
+            }
+        }
+
+        function randomizeColors() {
+            const categories = ['revenue', 'cost', 'profit', 'expense', 'income'];
+            
+            categories.forEach(category => {
+                const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                flowData.metadata.colorPalette[category] = randomColor;
+                
+                const picker = document.getElementById(`${category}-color`);
+                if (picker) {
+                    picker.value = randomColor;
+                }
+            });
+            
+            // Tax uses expense color
+            flowData.metadata.colorPalette.tax = flowData.metadata.colorPalette.expense;
+            
+            console.log('🎲 Randomized all colors');
         }
 
         // Collapsible Section Management
@@ -778,7 +960,7 @@
                     sourceLayer: 4,
                     targetLayer: 5,
                     sourceCategory: "profit",
-                    targetCategory: "expense",
+                    targetCategory: "tax",
                     description: "Corporate income tax"
                 })
             ];
@@ -786,7 +968,6 @@
             document.getElementById('company-name').value = flowData.metadata.company;
             renderFlowTable();
             updateAllStats();
-            updateAllPreviews();
         }
 
         function loadBlankFlows() {
@@ -802,7 +983,6 @@
                 
                 renderFlowTable();
                 updateAllStats();
-                updateAllPreviews();
             }
         }
 
@@ -875,6 +1055,7 @@
                         <option value="profit" ${flow.sourceCategory === 'profit' ? 'selected' : ''}>Profit</option>
                         <option value="expense" ${flow.sourceCategory === 'expense' ? 'selected' : ''}>Expense</option>
                         <option value="income" ${flow.sourceCategory === 'income' ? 'selected' : ''}>Income</option>
+                        <option value="tax" ${flow.sourceCategory === 'tax' ? 'selected' : ''}>Tax</option>
                     </select>
                 </td>
                 <td>
@@ -884,6 +1065,7 @@
                         <option value="profit" ${flow.targetCategory === 'profit' ? 'selected' : ''}>Profit</option>
                         <option value="expense" ${flow.targetCategory === 'expense' ? 'selected' : ''}>Expense</option>
                         <option value="income" ${flow.targetCategory === 'income' ? 'selected' : ''}>Income</option>
+                        <option value="tax" ${flow.targetCategory === 'tax' ? 'selected' : ''}>Tax</option>
                     </select>
                 </td>
                 <td>
@@ -916,21 +1098,18 @@
             flowData.flows.push(newFlow);
             renderFlowTable();
             updateAllStats();
-            updateAllPreviews();
         }
 
         function removeFlow(index) {
             flowData.flows.splice(index, 1);
             renderFlowTable();
             updateAllStats();
-            updateAllPreviews();
         }
 
         function moveFlowUp(index) {
             if (index > 0) {
                 [flowData.flows[index], flowData.flows[index - 1]] = [flowData.flows[index - 1], flowData.flows[index]];
                 renderFlowTable();
-                updateAllPreviews();
             }
         }
 
@@ -938,7 +1117,6 @@
             if (index < flowData.flows.length - 1) {
                 [flowData.flows[index], flowData.flows[index + 1]] = [flowData.flows[index + 1], flowData.flows[index]];
                 renderFlowTable();
-                updateAllPreviews();
             }
         }
 
@@ -959,14 +1137,12 @@
             flowData.flows.splice(index + 1, 0, duplicatedFlow);
             renderFlowTable();
             updateAllStats();
-            updateAllPreviews();
         }
 
         function updateFlow(index, field, value) {
             if (flowData.flows[index]) {
                 flowData.flows[index][field] = value;
                 updateAllStats();
-                updateAllPreviews();
                 
                 const row = document.querySelectorAll('#flows-tbody tr')[index];
                 if (row) {
@@ -983,8 +1159,6 @@
             flowData.metadata.unit = document.getElementById('units').value;
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             flowData.metadata.subtitle = `${flowData.metadata.period} Business Model`;
-            
-            updateAllPreviews();
         }
 
         function generateNodesAndLinksFromFlows() {
@@ -1017,12 +1191,14 @@
                 const targetNode = nodeMap.get(flow.target);
                 targetNode.value += flow.value;
                 
+                // FIXED: Link color should reflect TARGET category, not source
                 links.push({
                     source: flow.source,
                     target: flow.target,
                     value: flow.value,
                     type: flow.flowType,
-                    description: flow.description
+                    description: flow.description,
+                    colorCategory: flow.targetCategory  // NEW: Use target category for coloring
                 });
             });
             
@@ -1162,7 +1338,6 @@
                         }
                         renderFlowTable();
                         updateAllStats();
-                        updateAllPreviews();
                         alert('✅ Successfully imported flows!');
                     } catch (error) {
                         alert('❌ Error parsing JSON: ' + error.message);
@@ -1204,7 +1379,6 @@
                 flowData.flows = flows;
                 renderFlowTable();
                 updateAllStats();
-                updateAllPreviews();
                 alert(`✅ Successfully imported ${flows.length} flows from CSV!`);
             } else {
                 alert('❌ No valid flows found in CSV file');
@@ -1252,157 +1426,6 @@
                 const dataString = encodeURIComponent(JSON.stringify(sankeyData));
                 window.location.href = `chart.html?chartType=${chartType}&data=${dataString}`;
             }
-        }
-
-        // Preview Panel Functions
-        function togglePreviewPanel() {
-            const container = document.querySelector('.template-container');
-            const icon = document.getElementById('preview-toggle-icon');
-            
-            container.classList.toggle('preview-hidden');
-            
-            if (container.classList.contains('preview-hidden')) {
-                icon.textContent = '▶';
-            } else {
-                icon.textContent = '◀';
-            }
-        }
-
-        function switchTab(tabName) {
-            currentTab = tabName;
-            
-            document.querySelectorAll('.preview-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            document.getElementById(`${tabName}-tab`).style.display = 'block';
-            
-            updateTabContent(tabName);
-        }
-
-        function updateTabContent(tabName) {
-            switch (tabName) {
-                case 'structure':
-                    updateStructurePreview();
-                    break;
-                case 'json':
-                    updateJsonPreview();
-                    break;
-                case 'validation':
-                    updateValidationPreview();
-                    break;
-            }
-        }
-
-        function updateStructurePreview() {
-            const preview = document.getElementById('structure-preview');
-            const sankeyData = generateNodesAndLinksFromFlows();
-            
-            let html = '<h4>📊 Generated Structure</h4>';
-            
-            const layerMap = new Map();
-            sankeyData.nodes.forEach(node => {
-                if (!layerMap.has(node.depth)) {
-                    layerMap.set(node.depth, []);
-                }
-                layerMap.get(node.depth).push(node);
-            });
-            
-            const sortedLayers = Array.from(layerMap.entries()).sort((a, b) => a[0] - b[0]);
-            
-            sortedLayers.forEach(([depth, nodes]) => {
-                const totalValue = nodes.reduce((sum, n) => sum + (n.value || 0), 0);
-                const categories = [...new Set(nodes.map(n => n.category))];
-                
-                html += `
-                    <div class="layer-item">
-                        <strong>Layer ${depth}</strong> (${nodes.length} nodes, $${totalValue}M)<br>
-                        Categories: ${categories.join(', ')}<br>
-                        Nodes: ${nodes.map(n => n.id).join(', ')}
-                    </div>
-                `;
-            });
-            
-            html += '<h4 style="margin-top: 20px;">💰 Business Flows</h4>';
-            if (flowData.flows.length === 0) {
-                html += '<div style="color: #f59e0b;">No flows defined</div>';
-            } else {
-                flowData.flows.slice(0, 10).forEach(flow => {
-                    const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
-                    
-                    html += `
-                        <div style="margin: 4px 0; padding: 4px 8px; background: ${isValid ? '#374151' : '#7f1d1d'}; border-radius: 4px;">
-                            ${flow.source} → ${flow.target} ($${flow.value}M)
-                            ${!isValid ? ' <span style="color: #ef4444;">[INVALID]</span>' : ''}
-                        </div>
-                    `;
-                });
-                
-                if (flowData.flows.length > 10) {
-                    html += `<div style="color: #6b7280; margin-top: 8px;">... and ${flowData.flows.length - 10} more flows</div>`;
-                }
-            }
-            
-            preview.innerHTML = html;
-        }
-
-        function updateJsonPreview() {
-            const preview = document.getElementById('json-preview');
-            const sankeyData = generateNodesAndLinksFromFlows();
-            preview.textContent = JSON.stringify(sankeyData, null, 2);
-        }
-
-        function updateValidationPreview() {
-            const preview = document.getElementById('validation-preview');
-            
-            const errors = [];
-            const warnings = [];
-            
-            flowData.flows.forEach((flow, index) => {
-                if (!flow.source || !flow.target) {
-                    errors.push(`Flow ${index + 1}: Missing source or target`);
-                }
-                if (flow.value <= 0) {
-                    errors.push(`Flow ${index + 1}: Invalid value`);
-                }
-                if (flow.sourceLayer >= flow.targetLayer) {
-                    errors.push(`Flow ${index + 1}: Invalid layer sequence`);
-                }
-            });
-            
-            let html = '<h4>✅ Validation Results</h4>';
-            
-            if (errors.length === 0) {
-                html += '<div style="color: #059669; margin: 8px 0;">All flows are valid!</div>';
-            } else {
-                html += '<div style="color: #dc2626; margin: 8px 0;">Issues found:</div>';
-                errors.forEach(error => {
-                    html += `<div style="color: #dc2626; font-size: 12px; margin: 2px 0;">• ${error}</div>`;
-                });
-            }
-            
-            preview.innerHTML = html;
-        }
-
-        function updateAllPreviews() {
-            updateTabContent(currentTab);
-            updateJsonStats();
-        }
-
-        function updateJsonStats() {
-            const stats = document.getElementById('json-stats');
-            const sankeyData = generateNodesAndLinksFromFlows();
-            
-            const flowCount = flowData.flows.length;
-            const nodeCount = sankeyData.nodes.length;
-            const linkCount = sankeyData.links.length;
-            const layerCount = new Set(sankeyData.nodes.map(n => n.depth)).size;
-            
-            stats.textContent = `Flows: ${flowCount} | Nodes: ${nodeCount} | Links: ${linkCount} | Layers: ${layerCount}`;
         }
 
         // Initialize
