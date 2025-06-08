@@ -1,5 +1,5 @@
-/* ===== GENERIC CONTROL PANEL ===== */
-/* Chart-agnostic control panel that renders any chart's controls */
+/* ===== GENERIC CONTROL PANEL - FIXED VERSION ===== */
+/* Chart-agnostic control panel with proper color persistence and opacity fixes */
 
 class PulseControlPanel {
     constructor(containerId) {
@@ -20,6 +20,7 @@ class PulseControlPanel {
         
         console.log('🎛️ Control panel initializing with config:', this.config);
         console.log('📊 Chart config:', chart.config);
+        console.log('🎨 Chart colors:', chart.customColors);
         
         this.generateControls();
     }
@@ -112,7 +113,7 @@ class PulseControlPanel {
     createSliderControl(container, config) {
         const sliderContainer = container.append('div').attr('class', 'slider-container');
         
-        // **ENHANCED: Get current value with better fallback logic**
+        // **ENHANCED: Get current value with proper chart synchronization**
         let currentValue = this.getCurrentValue(config);
         
         const slider = sliderContainer.append('input')
@@ -168,20 +169,24 @@ class PulseControlPanel {
         toggleContainer.append('span').attr('class', 'toggle-slider');
     }
 
-    // Create color control
+    // FIXED: Create color control with proper current value detection
     createColorControl(container, config) {
+        // **CRITICAL: Get current color from chart, not just config defaults**
         let currentValue = this.getCurrentValue(config);
+        
+        console.log(`🎨 Creating color control for ${config.id}, current value: ${currentValue}`);
         
         container.append('input')
             .attr('type', 'color')
             .attr('class', 'control-color')
             .attr('value', currentValue)
             .on('change', (event) => {
+                console.log(`🎨 Color changed for ${config.id}: ${event.target.value}`);
                 this.handleChange(config.id, event.target.value);
             });
     }
 
-    // NEW: Create info control (for displaying information)
+    // Create info control (for displaying information)
     createInfoControl(container, config) {
         const infoDiv = container.append('div')
             .attr('class', 'control-info')
@@ -207,9 +212,30 @@ class PulseControlPanel {
     }
 
     /**
-     * ENHANCED: Get current value with proper fallback logic for complex configs
+     * FIXED: Get current value with proper color detection and chart synchronization
      */
     getCurrentValue(config) {
+        // **CRITICAL: Handle color controls by getting from chart's custom colors**
+        if (config.type === 'color') {
+            if (this.controlModule && this.controlModule.getCurrentValue) {
+                const value = this.controlModule.getCurrentValue(config.id, this.chart);
+                console.log(`🎨 Got color value for ${config.id}: ${value}`);
+                return value;
+            }
+            
+            // Fallback: try to get from chart directly
+            if (this.chart && this.chart.customColors) {
+                const category = config.id.replace('Color', '').toLowerCase();
+                if (this.chart.customColors[category]) {
+                    console.log(`🎨 Found color in chart.customColors for ${category}: ${this.chart.customColors[category]}`);
+                    return this.chart.customColors[category];
+                }
+            }
+            
+            // Final fallback to default
+            return config.default || '#000000';
+        }
+
         // Handle special cases for complex configuration structures
         if (config.id.includes('Distance')) {
             // Handle labelDistance and valueDistance objects
@@ -237,6 +263,18 @@ class PulseControlPanel {
             }
         }
 
+        // **ENHANCED: Try control module's getCurrentValue method first**
+        if (this.controlModule && this.controlModule.getCurrentValue) {
+            try {
+                const value = this.controlModule.getCurrentValue(config.id, this.chart);
+                if (value !== undefined && value !== null) {
+                    return value;
+                }
+            } catch (error) {
+                console.warn(`Error getting current value for ${config.id}:`, error);
+            }
+        }
+
         // Standard config lookup
         const value = this.config[config.id];
         if (value !== undefined && value !== null) {
@@ -248,7 +286,7 @@ class PulseControlPanel {
     }
 
     /**
-     * NEW: Format value for display
+     * Format value for display
      */
     formatValue(value, config) {
         if (config.step && config.step < 1) {
@@ -257,12 +295,30 @@ class PulseControlPanel {
         return value;
     }
 
-    // Handle control value changes
+    // FIXED: Handle control value changes with proper opacity updates
     handleChange(controlId, value) {
         // Update local config
         this.updateLocalConfig(controlId, value);
 
-        // Debounce updates for smooth interaction
+        // **FIXED: Handle opacity controls with immediate visual feedback**
+        if (controlId === 'nodeOpacity' || controlId === 'linkOpacity') {
+            // Apply immediately without debounce for responsive feel
+            if (this.controlModule && this.controlModule.handleControlChange) {
+                this.controlModule.handleControlChange(controlId, value, this.chart);
+            }
+            return;
+        }
+
+        // **FIXED: Handle color controls with immediate update**
+        if (controlId.endsWith('Color')) {
+            // Apply immediately without debounce for responsive feel
+            if (this.controlModule && this.controlModule.handleControlChange) {
+                this.controlModule.handleControlChange(controlId, value, this.chart);
+            }
+            return;
+        }
+
+        // Debounce other updates for smooth interaction
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
             if (this.controlModule && this.controlModule.handleControlChange) {
@@ -278,7 +334,7 @@ class PulseControlPanel {
     }
 
     /**
-     * ENHANCED: Update local config handling complex structures
+     * Update local config handling complex structures
      */
     updateLocalConfig(controlId, value) {
         // Handle special cases for complex configuration structures
@@ -372,7 +428,7 @@ class PulseControlPanel {
         return { ...this.config };
     }
 
-    // Apply external configuration
+    // FIXED: Apply external configuration with proper color sync
     applyConfig(newConfig) {
         console.log('🔧 Applying new config to control panel:', newConfig);
         
@@ -382,6 +438,11 @@ class PulseControlPanel {
         // Apply to chart
         if (this.chart) {
             this.chart.updateConfig(this.config);
+        }
+        
+        // **CRITICAL: Also apply colors if they exist in the config**
+        if (newConfig.customColors && this.chart && this.chart.setCustomColors) {
+            this.chart.setCustomColors(newConfig.customColors);
         }
         
         // Regenerate controls to reflect new values

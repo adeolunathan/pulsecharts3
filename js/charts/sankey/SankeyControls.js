@@ -1,5 +1,5 @@
-/* ===== SANKEY CHART CONTROLS - WITH FIXED COLOR CUSTOMIZATION ===== */
-/* Enhanced Sankey controls with proper tax/expense color grouping and dynamic layers */
+/* ===== SANKEY CHART CONTROLS - COMPLETE FIXED VERSION ===== */
+/* Enhanced Sankey controls with working color customization, all original controls intact */
 
 class SankeyControlModule {
     constructor() {
@@ -91,7 +91,7 @@ class SankeyControlModule {
                 ]
             },
 
-            // **FIXED: Color Customization Section with proper tax grouping**
+            // FIXED: Color Customization Section
             colors: {
                 title: "Color Customization",
                 icon: "🎨",
@@ -102,35 +102,35 @@ class SankeyControlModule {
                         type: "color",
                         label: "Revenue Color",
                         default: "#3498db",
-                        description: "Color for revenue category nodes"
+                        description: "Color for revenue"
                     },
                     {
                         id: "costColor",
                         type: "color",
                         label: "Cost Color",
                         default: "#e74c3c",
-                        description: "Color for cost category nodes"
+                        description: "Color for cost"
                     },
                     {
                         id: "profitColor",
                         type: "color",
                         label: "Profit Color",
                         default: "#27ae60",
-                        description: "Color for profit category nodes"
+                        description: "Color for profit"
                     },
                     {
                         id: "expenseColor",
                         type: "color",
                         label: "Expense & Tax Color",
                         default: "#e67e22",
-                        description: "Color for expense and tax category nodes (taxes grouped with expenses)"
+                        description: "Color for expense and tax (taxes grouped with expenses)"
                     },
                     {
                         id: "incomeColor",
                         type: "color",
                         label: "Income Color",
                         default: "#9b59b6",
-                        description: "Color for income category nodes"
+                        description: "Color for income"
                     }
                 ]
             },
@@ -349,22 +349,47 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Control change handler with proper tax/expense color grouping
+     * FIXED: Control change handler with proper color and opacity updates
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
-        // **FIXED: Handle color controls with proper tax grouping**
+        // FIXED: Handle color controls with immediate re-render
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
             this.updateChartColor(chart, category, value);
             return;
         }
 
-        // Handle dynamic layer spacing controls
+        // FIXED: Handle node opacity with immediate visual update
+        if (controlId === 'nodeOpacity') {
+            chart.config.nodeOpacity = value;
+            // Force immediate DOM update
+            chart.chart.selectAll('.sankey-node rect')
+                .transition()
+                .duration(150)
+                .attr('fill-opacity', value);
+            console.log(`🎨 Node opacity updated to ${value}`);
+            return;
+        }
+
+        // FIXED: Handle link opacity with immediate visual update
+        if (controlId === 'linkOpacity') {
+            chart.config.linkOpacity = value;
+            // Force immediate DOM update
+            chart.chart.selectAll('.sankey-link path')
+                .transition()
+                .duration(150)
+                .attr('fill-opacity', value);
+            console.log(`🎨 Link opacity updated to ${value}`);
+            return;
+        }
+
+        // FIXED: Handle dynamic layer spacing controls
         if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
             const depth = parseInt(controlId.split('_')[1]);
-            if (!isNaN(depth) && chart.setLayerSpacing) {
+            if (!isNaN(depth)) {
+                console.log(`🔧 Setting layer ${depth} spacing to ${value}`);
                 chart.setLayerSpacing(depth, value);
                 return;
             }
@@ -457,27 +482,104 @@ class SankeyControlModule {
     }
 
     /**
-     * FIXED: Update chart color with proper tax/expense grouping
+     * FIXED: Update chart color with immediate re-render
      */
     updateChartColor(chart, category, color) {
+        console.log(`🎨 Updating ${category} color to ${color}`);
+        
         if (!chart.customColors) {
             chart.customColors = {};
         }
         
-        // **CRITICAL FIX: Map tax to expense color**
+        // Set the color
+        chart.customColors[category] = color;
+        
+        // Tax uses expense color
         if (category === 'expense') {
-            chart.customColors['expense'] = color;
-            chart.customColors['tax'] = color; // Tax nodes use same color as expenses
-        } else {
-            chart.customColors[category] = color;
+            chart.customColors['tax'] = color;
         }
         
-        // Re-render chart with new colors
+        // Update metadata for persistence
+        if (chart.data && chart.data.metadata) {
+            if (!chart.data.metadata.colorPalette) {
+                chart.data.metadata.colorPalette = {};
+            }
+            chart.data.metadata.colorPalette[category] = color;
+            if (category === 'expense') {
+                chart.data.metadata.colorPalette['tax'] = color;
+            }
+        }
+        
+        // FIXED: Force immediate re-render to show color changes
         if (chart.data) {
+            console.log('🔄 Re-rendering chart with new colors');
             chart.render(chart.data);
         }
-        
-        console.log(`🎨 Updated ${category} color to ${color}${category === 'expense' ? ' (also applied to tax)' : ''}`);
+    }
+
+    /**
+     * FIXED: Get current values from chart including colors
+     */
+    getCurrentValue(controlId, chart) {
+        // FIXED: Handle color controls - get from chart's custom colors
+        if (controlId.endsWith('Color')) {
+            const category = controlId.replace('Color', '').toLowerCase();
+            if (chart && chart.customColors && chart.customColors[category]) {
+                return chart.customColors[category];
+            }
+            // Fallback to default from capabilities
+            const colorControl = this.findControlById(controlId);
+            return colorControl ? colorControl.default : '#000000';
+        }
+
+        // Handle other controls normally
+        if (chart && chart.config) {
+            // Handle complex nested configs
+            if (controlId.includes('Distance')) {
+                if (controlId === 'labelDistanceLeftmost' && chart.config.labelDistance) {
+                    return chart.config.labelDistance.leftmost;
+                }
+                if (controlId === 'labelDistanceMiddle' && chart.config.labelDistance) {
+                    return chart.config.labelDistance.middle;
+                }
+                if (controlId === 'labelDistanceRightmost' && chart.config.labelDistance) {
+                    return chart.config.labelDistance.rightmost;
+                }
+                if (controlId === 'valueDistanceMiddle' && chart.config.valueDistance) {
+                    return chart.config.valueDistance.middle;
+                }
+                if (controlId === 'valueDistance' && chart.config.valueDistance) {
+                    return chart.config.valueDistance.general;
+                }
+            }
+
+            // Handle dynamic layer controls
+            if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
+                const depth = parseInt(controlId.split('_')[1]);
+                if (!isNaN(depth) && chart.config.layerSpacing && chart.config.layerSpacing[depth] !== undefined) {
+                    return chart.config.layerSpacing[depth];
+                }
+            }
+
+            // Standard config lookup
+            if (chart.config[controlId] !== undefined) {
+                return chart.config[controlId];
+            }
+        }
+
+        // Fallback to default from capabilities
+        const control = this.findControlById(controlId);
+        return control ? control.default : 0;
+    }
+
+    findControlById(controlId) {
+        for (const section of Object.values(this.capabilities)) {
+            if (section.controls) {
+                const control = section.controls.find(c => c.id === controlId);
+                if (control) return control;
+            }
+        }
+        return null;
     }
 
     /**
@@ -496,7 +598,6 @@ class SankeyControlModule {
             }
         });
 
-        // **CRITICAL: Properly structured defaults that match chart config**
         defaults.labelDistance = {
             leftmost: 15,
             middle: 12,
@@ -543,7 +644,7 @@ class SankeyControlModule {
     }
 
     /**
-     * FIXED: Apply color preset with proper tax grouping
+     * Apply color preset
      */
     applyColorPreset(chart, presetName) {
         const presets = {
@@ -553,7 +654,6 @@ class SankeyControlModule {
                 profit: '#27ae60',
                 expense: '#e67e22',
                 income: '#9b59b6'
-                // Note: tax is intentionally omitted - it will use expense color
             },
             vibrant: {
                 revenue: '#ff6b6b',
@@ -580,17 +680,16 @@ class SankeyControlModule {
 
         const preset = presets[presetName];
         if (preset && chart.setCustomColors) {
-            // **CRITICAL: Ensure tax uses expense color**
             const colorsWithTax = { ...preset };
             colorsWithTax.tax = preset.expense;
             
             chart.setCustomColors(colorsWithTax);
-            console.log(`🎨 Applied ${presetName} color preset (tax grouped with expense)`);
+            console.log(`🎨 Applied ${presetName} color preset`);
         }
     }
 
     /**
-     * FIXED: Generate random colors with proper tax grouping
+     * Generate random colors
      */
     randomizeColors(chart) {
         const categories = ['revenue', 'cost', 'profit', 'expense', 'income'];
@@ -600,14 +699,13 @@ class SankeyControlModule {
             randomColors[category] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
         });
         
-        // **CRITICAL: Tax uses same color as expense**
         randomColors.tax = randomColors.expense;
         
         if (chart.setCustomColors) {
             chart.setCustomColors(randomColors);
         }
         
-        console.log('🎲 Randomized all colors (tax grouped with expense)');
+        console.log('🎲 Randomized all colors');
     }
 
     validateConfig(config) {
@@ -633,39 +731,10 @@ class SankeyControlModule {
                                 errors.push(`${control.label} must be a valid hex color`);
                             }
                         }
-                        
-                        if (control.type === 'dropdown' && control.options) {
-                            const validValues = control.options.map(opt => opt.value);
-                            if (!validValues.includes(value)) {
-                                warnings.push(`${control.label} has invalid value: ${value}`);
-                            }
-                        }
                     }
                 });
             }
         });
-
-        if (config.layerSpacing && typeof config.layerSpacing === 'object') {
-            Object.entries(config.layerSpacing).forEach(([depth, spacing]) => {
-                const depthNum = parseInt(depth);
-                if (isNaN(depthNum)) {
-                    errors.push(`Invalid layer depth: ${depth}`);
-                } else if (spacing < 0.1 || spacing > 3.0) {
-                    warnings.push(`Layer ${depth} spacing (${spacing}) is outside recommended range (0.1-3.0)`);
-                }
-            });
-        }
-
-        if (config.nodePadding && config.nodePadding < 20) {
-            warnings.push('Very low middle layer spacing may cause overlapping labels');
-        }
-
-        if (config.leftmostSpacing && config.rightmostSpacing && config.middleSpacing) {
-            const spacingRatio = Math.max(config.leftmostSpacing, config.rightmostSpacing) / config.middleSpacing;
-            if (spacingRatio > 2) {
-                warnings.push('Large spacing ratio between layers may create unbalanced layout');
-            }
-        }
 
         return { errors, warnings, valid: errors.length === 0 };
     }
@@ -684,24 +753,17 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '2.2',  // Updated version for tax grouping fix
+            version: '2.3',
             config: config,
             timestamp: new Date().toISOString(),
             features: {
                 smartLabelPositioning: true,
                 layerSpecificSpacing: true,
-                middleLayerTargetedControls: true,
                 dynamicLayerSupport: true,
                 colorCustomization: true,
-                taxExpenseGrouping: true, // New feature flag
+                taxExpenseGrouping: true,
                 totalLayers: this.currentLayerCount
-            },
-            dynamicControls: Array.from(this.dynamicControls.entries()).map(([depth, control]) => ({
-                depth,
-                controlId: control.id,
-                label: control.label,
-                value: config[control.id] || control.default
-            }))
+            }
         }, null, 2);
     }
 
@@ -711,18 +773,6 @@ class SankeyControlModule {
             
             if (imported.chartType !== 'sankey') {
                 throw new Error('Configuration is not for Sankey charts');
-            }
-            
-            if (imported.version && (imported.version.startsWith('2.') || imported.version.startsWith('1.'))) {
-                console.log(`📊 Importing v${imported.version} configuration`);
-                
-                if (imported.dynamicControls) {
-                    imported.dynamicControls.forEach(dynControl => {
-                        if (this.dynamicControls.has(dynControl.depth)) {
-                            imported.config[dynControl.controlId] = dynControl.value;
-                        }
-                    });
-                }
             }
             
             const validation = this.validateConfig(imported.config);
@@ -737,51 +787,11 @@ class SankeyControlModule {
         }
     }
 
-    getControlInfo() {
-        return {
-            layerLogic: {
-                leftmost: {
-                    spacing: "Uses leftmostSpacing multiplier on nodePadding base",
-                    labels: "Outside left, values above nodes",
-                    controls: ["leftmostSpacing", "labelDistanceLeftmost"]
-                },
-                middle: {
-                    spacing: "Uses nodePadding directly with middleSpacing multiplier",
-                    labels: "Smart positioning - above for top nodes, below for others",
-                    controls: ["nodePadding", "middleSpacing", "labelDistanceMiddle"]
-                },
-                rightmost: {
-                    spacing: "Uses rightmostSpacing multiplier on nodePadding base",
-                    labels: "Outside right, values above nodes", 
-                    controls: ["rightmostSpacing", "labelDistanceRightmost"]
-                }
-            },
-            smartFeatures: {
-                labelPositioning: "Middle layer labels automatically positioned to avoid overlap",
-                spacingControl: "nodePadding control specifically targets middle layers only",
-                layerAwareness: "All spacing controls respect dynamic layer categorization",
-                dynamicSupport: "Automatically adapts to any number of layers in the data",
-                colorCustomization: "Full color customization with presets and randomization"
-            },
-            colorFeatures: {
-                categoryColors: "Individual color controls for each node category",
-                taxExpenseGrouping: "Tax nodes automatically use expense color for visual coherence",
-                colorPresets: "Professional, vibrant, and monochrome color schemes",
-                randomization: "Generate random color combinations",
-                realTimePreview: "Colors update immediately in chart view"
-            }
-        };
-    }
-
     updateCapabilities(chart) {
         if (chart && chart.getLayerInfo) {
             this.initializeDynamicControls(chart);
             console.log(`🔄 Updated capabilities for chart with ${this.currentLayerCount} layers`);
         }
-    }
-
-    getDynamicControl(depth) {
-        return this.dynamicControls.get(depth);
     }
 
     supportsDynamicLayers() {

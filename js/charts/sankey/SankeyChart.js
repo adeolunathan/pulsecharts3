@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - WITH ENHANCED COLOR SUPPORT ===== */
-/* Professional Sankey chart with target-based link coloring and automatic color transfer from flow builder */
+/* ===== PULSE SANKEY CHART - FIXED VERSION ===== */
+/* Enhanced with working controls and proper financial calculations */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -12,16 +12,15 @@ class PulseSankeyChart {
         this.nodes = [];
         this.links = [];
         
-        // **ENHANCED: Custom color storage with automatic detection**
+        // Custom color storage
         this.customColors = {};
         
-        // Initialize with proper defaults that match control module
+        // Initialize with proper defaults
         this.config = this.getInitialConfig();
         
         this.initializeChart();
     }
 
-    // Get initial configuration that matches control module defaults
     getInitialConfig() {
         return {
             width: 1200,
@@ -50,16 +49,15 @@ class PulseSankeyChart {
                 middle: 8
             },
             layerSpacing: {
-                0: 0.8,  // Leftmost
-                1: 1.0,  // Middle layers
+                0: 0.8,
+                1: 1.0,
                 2: 1.0,
                 3: 0.9,
-                4: 0.7   // Rightmost
+                4: 0.7
             }
         };
     }
 
-    // Apply control module defaults if available
     applyControlDefaults(controlModule) {
         if (controlModule && controlModule.getDefaultConfig) {
             const controlDefaults = controlModule.getDefaultConfig();
@@ -68,7 +66,6 @@ class PulseSankeyChart {
         }
     }
 
-    // Get layer information for dynamic controls
     getLayerInfo() {
         if (!this.nodes || this.nodes.length === 0) {
             return {
@@ -148,7 +145,7 @@ class PulseSankeyChart {
     render(data) {
         this.data = data;
         
-        // **CRITICAL: Auto-detect and apply colors from metadata**
+        // Auto-detect and apply colors from metadata
         this.detectAndApplyColors(data);
         
         this.processData(data);
@@ -168,21 +165,19 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Detect and apply colors from metadata (from flow builder)
+     * Detect and apply colors from metadata
      */
     detectAndApplyColors(data) {
         if (data.metadata && data.metadata.colorPalette) {
             console.log('🎨 Detected color palette from metadata:', data.metadata.colorPalette);
             this.customColors = { ...data.metadata.colorPalette };
             
-            // Ensure tax category uses expense color for consistency
             if (this.customColors.expense && !this.customColors.tax) {
                 this.customColors.tax = this.customColors.expense;
             }
             
-            console.log('✅ Applied colors from flow builder:', this.customColors);
+            console.log('✅ Applied colors from metadata:', this.customColors);
         } else if (Object.keys(this.customColors).length === 0) {
-            // No colors set, use defaults
             console.log('🎨 Using default color scheme');
         }
     }
@@ -199,7 +194,6 @@ class PulseSankeyChart {
             });
         });
         
-        // Process links and establish relationships
         const processedLinks = [];
         data.links.forEach(link => {
             const sourceNode = nodeMap.get(link.source);
@@ -211,7 +205,6 @@ class PulseSankeyChart {
                     source: sourceNode,
                     target: targetNode,
                     value: link.value || 0,
-                    // **FIXED: Store target category for proper link coloring**
                     targetCategory: targetNode.category,
                     colorCategory: link.colorCategory || targetNode.category
                 };
@@ -224,6 +217,53 @@ class PulseSankeyChart {
         
         this.nodes = Array.from(nodeMap.values());
         this.links = processedLinks;
+        
+        // NEW: Calculate financial metrics
+        this.calculateFinancialMetrics();
+    }
+
+    /**
+     * NEW: Calculate proper financial metrics and percentages
+     */
+    calculateFinancialMetrics() {
+        // Find total revenue for percentage calculations
+        const totalRevenueNode = this.nodes.find(n => 
+            n.id === 'Total Revenue' || 
+            n.category === 'revenue' && n.depth === 1
+        );
+        
+        const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
+        
+        // Calculate percentages and margins for each node
+        this.nodes.forEach(node => {
+            // Calculate percentage of revenue
+            if (totalRevenue > 0) {
+                node.percentageOfRevenue = (node.value / totalRevenue) * 100;
+            } else {
+                node.percentageOfRevenue = 0;
+            }
+            
+            // Calculate specific margins for profit items
+            if (node.category === 'profit') {
+                if (node.id.toLowerCase().includes('gross')) {
+                    node.marginType = 'Gross Margin';
+                    node.marginValue = node.percentageOfRevenue;
+                } else if (node.id.toLowerCase().includes('operating')) {
+                    node.marginType = 'Operating Margin';
+                    node.marginValue = node.percentageOfRevenue;
+                } else if (node.id.toLowerCase().includes('net') || node.category === 'income') {
+                    node.marginType = 'Net Margin';
+                    node.marginValue = node.percentageOfRevenue;
+                }
+            }
+            
+            // Mark expense and cost items for bracket formatting
+            node.isExpenseType = node.category === 'expense' || 
+                               node.category === 'cost' || 
+                               node.category === 'tax';
+        });
+        
+        console.log('📊 Financial metrics calculated');
     }
 
     calculateLayout() {
@@ -232,12 +272,10 @@ class PulseSankeyChart {
             height: this.config.height - this.config.margin.top - this.config.margin.bottom
         };
 
-        // Group by depth
         const nodesByDepth = d3.group(this.nodes, d => d.depth);
         const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
         const maxDepth = Math.max(...depths);
 
-        // X positioning
         const xScale = d3.scaleLinear()
             .domain([0, maxDepth])
             .range([0, dimensions.width - this.config.nodeWidth]);
@@ -246,20 +284,16 @@ class PulseSankeyChart {
             node.x = xScale(node.depth);
         });
 
-        // Node heights
         this.nodes.forEach(node => {
             node.height = Math.max(8, node.value * this.config.nodeHeightScale);
         });
 
-        // Y positioning with layer-specific spacing
         depths.forEach(depth => {
             const nodesAtDepth = nodesByDepth.get(depth);
             this.positionNodesAtDepth(nodesAtDepth, dimensions.height, maxDepth);
         });
 
-        // NEW: Minimize link crossings after initial positioning
         this.minimizeCrossings();
-
         this.calculateLinkPositions();
     }
 
@@ -269,7 +303,6 @@ class PulseSankeyChart {
         
         const isLeftmost = depth === 0;
         const isRightmost = depth === maxDepth;
-        const isMiddle = !isLeftmost && !isRightmost;
         
         let layerPadding;
         
@@ -295,21 +328,17 @@ class PulseSankeyChart {
         });
     }
 
-    // NEW: Minimize link crossings using barycenter method
     minimizeCrossings() {
         const nodesByDepth = d3.group(this.nodes, d => d.depth);
         const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
         
-        // Iterate multiple times to minimize crossings
         for (let iteration = 0; iteration < 4; iteration++) {
-            // Forward pass (left to right)
             for (let i = 1; i < depths.length; i++) {
                 const currentDepth = depths[i];
                 const nodes = nodesByDepth.get(currentDepth);
                 this.sortNodesByBarycenter(nodes, 'target');
             }
             
-            // Backward pass (right to left)  
             for (let i = depths.length - 2; i >= 0; i--) {
                 const currentDepth = depths[i];
                 const nodes = nodesByDepth.get(currentDepth);
@@ -317,14 +346,12 @@ class PulseSankeyChart {
             }
         }
         
-        // Recalculate Y positions after reordering
         depths.forEach(depth => {
             const nodesAtDepth = nodesByDepth.get(depth);
             this.recalculateYPositions(nodesAtDepth);
         });
     }
 
-    // Calculate barycenter (weighted average position) for crossing minimization
     sortNodesByBarycenter(nodes, direction) {
         nodes.forEach(node => {
             const links = direction === 'source' ? node.sourceLinks : node.targetLinks;
@@ -349,9 +376,7 @@ class PulseSankeyChart {
             node.barycenter = totalWeight > 0 ? weightedSum / totalWeight : node.y + node.height / 2;
         });
         
-        // Sort by barycenter, maintaining group stability
         nodes.sort((a, b) => {
-            // Preserve some group ordering while minimizing crossings
             const groupDiff = (a.group || 'z').localeCompare(b.group || 'z');
             if (Math.abs(a.barycenter - b.barycenter) < 20 && groupDiff !== 0) {
                 return groupDiff;
@@ -360,7 +385,6 @@ class PulseSankeyChart {
         });
     }
 
-    // Recalculate Y positions after node reordering
     recalculateYPositions(nodes) {
         if (nodes.length === 0) return;
         
@@ -812,7 +836,7 @@ class PulseSankeyChart {
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value));
+            .text(this.formatCurrency(node.value, node));
     }
 
     renderRightmostLabels(node) {
@@ -846,7 +870,7 @@ class PulseSankeyChart {
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value));
+            .text(this.formatCurrency(node.value, node));
     }
 
     renderMiddleLabels(node) {
@@ -892,7 +916,7 @@ class PulseSankeyChart {
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value));
+            .text(this.formatCurrency(node.value, node));
     }
 
     renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
@@ -909,7 +933,7 @@ class PulseSankeyChart {
             .attr('font-size', '11px')
             .attr('font-weight', '500')
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value));
+            .text(this.formatCurrency(node.value, node));
 
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -956,7 +980,10 @@ class PulseSankeyChart {
         return lines;
     }
 
-    formatCurrency(value) {
+    /**
+     * ENHANCED: Format currency with proper brackets for expenses and percentages/margins
+     */
+    formatCurrency(value, node) {
         const currency = this.data?.metadata?.currency || 'USD';
         const unit = this.data?.metadata?.unit || 'millions';
 
@@ -972,118 +999,124 @@ class PulseSankeyChart {
         };
 
         const symbol = currencySymbols[currency] || '$';
+        
+        let formattedValue;
 
         switch (unit.toLowerCase()) {
             case 'thousands':
                 if (value >= 1000) {
-                    return `${symbol}${(value/1000).toFixed(1)}M`;
+                    formattedValue = `${symbol}${(value/1000).toFixed(1)}M`;
                 } else if (value >= 1) {
-                    return `${symbol}${value.toFixed(0)}K`;
+                    formattedValue = `${symbol}${value.toFixed(0)}K`;
                 } else {
-                    return `${symbol}${(value * 1000).toFixed(0)}`;
+                    formattedValue = `${symbol}${(value * 1000).toFixed(0)}`;
                 }
+                break;
 
             case 'millions':
                 if (value >= 1000) {
-                    return `${symbol}${(value/1000).toFixed(1)}B`;
+                    formattedValue = `${symbol}${(value/1000).toFixed(1)}B`;
                 } else if (value >= 1) {
-                    return `${symbol}${value.toFixed(0)}M`;
+                    formattedValue = `${symbol}${value.toFixed(0)}M`;
                 } else {
-                    return `${symbol}${(value * 1000).toFixed(0)}K`;
+                    formattedValue = `${symbol}${(value * 1000).toFixed(0)}K`;
                 }
+                break;
 
             case 'billions':
                 if (value >= 1000) {
-                    return `${symbol}${(value/1000).toFixed(1)}T`;
+                    formattedValue = `${symbol}${(value/1000).toFixed(1)}T`;
                 } else if (value >= 1) {
-                    return `${symbol}${value.toFixed(1)}B`;
+                    formattedValue = `${symbol}${value.toFixed(1)}B`;
                 } else {
-                    return `${symbol}${(value * 1000).toFixed(0)}M`;
+                    formattedValue = `${symbol}${(value * 1000).toFixed(0)}M`;
                 }
+                break;
 
             default:
                 if (value >= 1000) {
-                    return `${symbol}${(value/1000).toFixed(1)}B`;
+                    formattedValue = `${symbol}${(value/1000).toFixed(1)}B`;
                 } else if (value >= 1) {
-                    return `${symbol}${value.toFixed(0)}M`;
+                    formattedValue = `${symbol}${value.toFixed(0)}M`;
                 } else {
-                    return `${symbol}${(value * 1000).toFixed(0)}K`;
+                    formattedValue = `${symbol}${(value * 1000).toFixed(0)}K`;
                 }
         }
+        
+        // NEW: Add brackets for expenses and costs
+        if (node && node.isExpenseType) {
+            formattedValue = `(${formattedValue})`;
+        }
+        
+        // NEW: Add percentage/margin display for relevant nodes
+        if (node) {
+            if (node.marginType && node.marginValue) {
+                formattedValue += ` | ${node.marginValue.toFixed(1)}%`;
+            } else if (node.percentageOfRevenue && node.percentageOfRevenue > 0 && 
+                      (node.category === 'revenue' || node.category === 'cost' || node.isExpenseType)) {
+                formattedValue += ` | ${node.percentageOfRevenue.toFixed(1)}%`;
+            }
+        }
+        
+        return formattedValue;
     }
 
     /**
-     * ENHANCED: Get node color with custom color support and proper tax grouping
+     * Get node color with custom color support
      */
     getNodeColor(node) {
-        // **CRITICAL FIX: Handle tax category by using expense color**
         let effectiveCategory = node.category;
         if (node.category === 'tax') {
-            effectiveCategory = 'expense'; // Tax nodes use expense color
+            effectiveCategory = 'expense';
         }
         
-        // **Check for custom colors first**
         if (this.customColors && this.customColors[effectiveCategory]) {
             return this.customColors[effectiveCategory];
         }
         
-        // **FALLBACK: Use default colors with tax mapped to expense**
         const defaultColors = {
             revenue: '#3498db',
             cost: '#e74c3c',
             profit: '#27ae60',
             expense: '#e67e22',
             income: '#9b59b6',
-            tax: '#e67e22'  // Same as expense
+            tax: '#e67e22'
         };
         return defaultColors[node.category] || '#95a5a6';
     }
 
     /**
-     * FIXED: Get link color based on TARGET node category, not source
+     * Get link color based on TARGET node category
      */
     getLinkColor(link) {
-        // **CRITICAL FIX: Use target node category for link color**
         const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
         
-        // Handle tax category
         let effectiveCategory = targetCategory;
         if (targetCategory === 'tax') {
-            effectiveCategory = 'expense'; // Tax links use expense color
+            effectiveCategory = 'expense';
         }
         
-        // Get the target node color
         const targetColor = this.getColorByCategory(effectiveCategory);
-        
-        // Create a lighter/more transparent version for the link
         return this.lightenColor(targetColor, 15);
     }
 
-    /**
-     * NEW: Get color by category (helper method)
-     */
     getColorByCategory(category) {
-        // Check custom colors first
         if (this.customColors && this.customColors[category]) {
             return this.customColors[category];
         }
         
-        // Fallback to default colors
         const defaultColors = {
             revenue: '#3498db',
             cost: '#e74c3c',
             profit: '#27ae60',
             expense: '#e67e22',
             income: '#9b59b6',
-            tax: '#e67e22'  // Same as expense
+            tax: '#e67e22'
         };
         
         return defaultColors[category] || '#95a5a6';
     }
 
-    /**
-     * NEW: Lighten a hex color by a percentage
-     */
     lightenColor(hex, percent) {
         const num = parseInt(hex.replace("#", ""), 16);
         const amt = Math.round(2.55 * percent);
@@ -1096,17 +1129,15 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Set custom colors with automatic data bridge sync
+     * FIXED: Set custom colors with immediate re-render
      */
     setCustomColors(colorMap) {
         this.customColors = { ...colorMap };
         
-        // Ensure tax uses expense color for consistency
         if (this.customColors.expense && !this.customColors.tax) {
             this.customColors.tax = this.customColors.expense;
         }
         
-        // Update metadata to maintain consistency
         if (this.data && this.data.metadata) {
             this.data.metadata.colorPalette = { ...this.customColors };
         }
@@ -1118,20 +1149,13 @@ class PulseSankeyChart {
         console.log('🎨 Updated custom colors:', this.customColors);
     }
 
-    /**
-     * NEW: Get current custom colors
-     */
     getCustomColors() {
         return { ...this.customColors };
     }
 
-    /**
-     * ENHANCED: Reset to default colors with data bridge sync
-     */
     resetColors() {
         this.customColors = {};
         
-        // Clear from metadata as well
         if (this.data && this.data.metadata && this.data.metadata.colorPalette) {
             delete this.data.metadata.colorPalette;
         }
@@ -1145,11 +1169,19 @@ class PulseSankeyChart {
 
     // Tooltip methods
     showNodeTooltip(event, d) {
+        const percentageText = d.percentageOfRevenue ? 
+            `${d.percentageOfRevenue.toFixed(1)}% of revenue` : '';
+        
+        const marginText = d.marginType && d.marginValue ? 
+            `${d.marginType}: ${d.marginValue.toFixed(1)}%` : '';
+        
         const content = `
             <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">${d.id}</div>
             <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
-                ${this.formatCurrency(d.value)}
+                ${this.formatCurrency(d.value, d)}
             </div>
+            ${percentageText ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9); margin-bottom: 4px;">${percentageText}</div>` : ''}
+            ${marginText ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9); margin-bottom: 4px;">${marginText}</div>` : ''}
             <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.4;">
                 ${d.description || 'Financial component'}
             </div>
@@ -1171,7 +1203,7 @@ class PulseSankeyChart {
                 ${d.source.id} → ${d.target.id}
             </div>
             <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
-                ${this.formatCurrency(d.value)}
+                ${this.formatCurrency(d.value, d.target)}
             </div>
             <div style="font-size: 11px; color: rgba(255,255,255,0.8);">
                 ${percentage}% of source flow<br>
@@ -1227,8 +1259,30 @@ class PulseSankeyChart {
         return this;
     }
 
+    /**
+     * FIXED: Set layer spacing with proper recalculation
+     */
     setLayerSpacing(depth, multiplier) {
+        console.log(`🔧 Setting layer ${depth} spacing to ${multiplier}`);
+        
+        if (!this.config.layerSpacing) {
+            this.config.layerSpacing = {};
+        }
+        
         this.config.layerSpacing[depth] = multiplier;
+        
+        // Apply the spacing based on layer type
+        const maxDepth = Math.max(...this.nodes.map(n => n.depth));
+        
+        if (depth === 0) {
+            this.config.leftmostSpacing = multiplier;
+        } else if (depth === maxDepth) {
+            this.config.rightmostSpacing = multiplier;
+        } else {
+            this.config.middleSpacing = multiplier;
+        }
+        
+        // Recalculate and re-render
         this.calculateLayout();
         this.render(this.data);
         return this;
@@ -1280,11 +1334,18 @@ class PulseSankeyChart {
             this.chart.selectAll('.node-label, .node-value').remove();
             this.renderLabels();
         } else {
+            // FIXED: Apply immediate opacity changes
             if (newConfig.nodeOpacity !== undefined) {
-                this.chart.selectAll('.sankey-node rect').attr('fill-opacity', newConfig.nodeOpacity);
+                this.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(200)
+                    .attr('fill-opacity', newConfig.nodeOpacity);
             }
             if (newConfig.linkOpacity !== undefined) {
-                this.chart.selectAll('.sankey-link path').attr('fill-opacity', newConfig.linkOpacity);
+                this.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('fill-opacity', newConfig.linkOpacity);
             }
         }
         
