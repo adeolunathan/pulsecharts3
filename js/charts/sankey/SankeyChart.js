@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - WITH GROUP SPACING ===== */
-/* Enhanced with group-to-group spacing logic for leftmost and rightmost layers */
+/* ===== PULSE SANKEY CHART - COMPLETE WITH ALL FIXES ===== */
+/* Enhanced with drag behavior, manual positioning, and opacity fixes */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -39,8 +39,8 @@ class PulseSankeyChart {
             linkWidthScale: 0.65,
             nodeOpacity: 1.0,
             linkOpacity: 1.0,
-            leftmostGroupGap: 40,  // NEW: Extra spacing between groups in leftmost layer
-            rightmostGroupGap: 40, // NEW: Extra spacing between groups in rightmost layer
+            leftmostGroupGap: 40,
+            rightmostGroupGap: 40,
             labelDistance: {
                 leftmost: 15,
                 middle: 12,
@@ -187,12 +187,30 @@ class PulseSankeyChart {
     processData(data) {
         const nodeMap = new Map();
         
+        // Store existing manual positioning info
+        const existingManualPositions = new Map();
+        if (this.nodes) {
+            this.nodes.forEach(node => {
+                if (node.manuallyPositioned) {
+                    existingManualPositions.set(node.id, {
+                        manuallyPositioned: true,
+                        y: node.y,
+                        preserveLabelsAbove: node.preserveLabelsAbove
+                    });
+                }
+            });
+        }
+        
         data.nodes.forEach(node => {
+            const existingInfo = existingManualPositions.get(node.id);
             nodeMap.set(node.id, {
                 ...node,
                 sourceLinks: [],
                 targetLinks: [],
-                value: node.value || 0
+                value: node.value || 0,
+                manuallyPositioned: existingInfo?.manuallyPositioned || false,
+                manualY: existingInfo?.y || null,
+                preserveLabelsAbove: existingInfo?.preserveLabelsAbove || null
             });
         });
         
@@ -220,7 +238,6 @@ class PulseSankeyChart {
         this.nodes = Array.from(nodeMap.values());
         this.links = processedLinks;
         
-        // Calculate financial metrics
         this.calculateFinancialMetrics();
     }
 
@@ -282,6 +299,7 @@ class PulseSankeyChart {
             .domain([0, maxDepth])
             .range([0, dimensions.width - this.config.nodeWidth]);
 
+        // Always calculate X positions from depth
         this.nodes.forEach(node => {
             node.x = xScale(node.depth);
         });
@@ -295,12 +313,28 @@ class PulseSankeyChart {
             this.positionNodesAtDepth(nodesAtDepth, dimensions.height, maxDepth);
         });
 
+        // Apply saved manual positions after automatic positioning
+        this.applyManualPositions();
+
         this.minimizeCrossings();
         this.calculateLinkPositions();
     }
 
+    // Apply saved manual positions after automatic positioning
+    applyManualPositions() {
+        this.nodes.forEach(node => {
+            if (node.manuallyPositioned && node.manualY !== null) {
+                node.y = node.manualY;
+                // Force preserve layerIndex to maintain label positioning
+                if (node.preserveLabelsAbove !== null) {
+                    node.originalLayerIndex = node.preserveLabelsAbove ? 0 : 1;
+                }
+            }
+        });
+    }
+
     /**
-     * NEW: Enhanced node positioning with group spacing
+     * Enhanced node positioning with group spacing - respects manual positions
      */
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
         const groupedNodes = this.groupAndSortNodes(nodes);
@@ -319,28 +353,37 @@ class PulseSankeyChart {
             layerPadding = this.config.nodePadding * this.config.middleSpacing;
         }
 
-        // NEW: Apply group spacing logic for leftmost and rightmost layers
+        // Apply group spacing for leftmost and rightmost layers with multiple groups
         if ((isLeftmost || isRightmost) && groupedNodes.length > 1) {
             this.positionNodesWithGroupSpacing(groupedNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
         } else {
-            // Standard positioning for middle layers or single-group layers
+            // Standard positioning for all layers - respects manual positions
             this.positionNodesStandard(groupedNodes, availableHeight, layerPadding);
         }
     }
 
     /**
-     * NEW: Position nodes with group-to-group spacing
+     * Position nodes with group-to-group spacing
      */
     positionNodesWithGroupSpacing(nodes, availableHeight, basePadding, isLeftmost, isRightmost) {
         console.log(`🔧 Applying group spacing for ${isLeftmost ? 'leftmost' : 'rightmost'} layer`);
         
+        // Separate manual and automatic nodes
+        const manualNodes = nodes.filter(node => node.manuallyPositioned);
+        const autoNodes = nodes.filter(node => !node.manuallyPositioned);
+        
+        if (autoNodes.length === 0) {
+            console.log('All nodes manually positioned, skipping automatic positioning');
+            return; 
+        }
+        
         // Detect distinct groups based on naming patterns and existing group property
-        const groups = this.detectNodeGroups(nodes);
+        const groups = this.detectNodeGroups(autoNodes);
         console.log(`📊 Detected ${groups.length} groups:`, groups.map(g => `${g.name} (${g.nodes.length} nodes)`));
         
-        // Calculate total height requirements
-        const totalNodeHeight = nodes.reduce((sum, node) => sum + node.height, 0);
-        const totalBasePadding = basePadding * (nodes.length - 1);
+        // Calculate total height requirements for auto nodes only
+        const totalNodeHeight = autoNodes.reduce((sum, node) => sum + node.height, 0);
+        const totalBasePadding = basePadding * (autoNodes.length - 1);
         
         // Get group gap setting
         const groupGap = isLeftmost ? this.config.leftmostGroupGap : this.config.rightmostGroupGap;
@@ -374,11 +417,16 @@ class PulseSankeyChart {
             }
         });
         
+        // Preserve manual node layer indices
+        manualNodes.forEach((node, index) => {
+            node.layerIndex = 1000 + index; // High layer index to keep them separate
+        });
+        
         console.log(`✅ Group spacing applied. Total height used: ${currentY - startY}px`);
     }
 
     /**
-     * NEW: Detect distinct groups within a layer based on naming patterns and properties
+     * Detect distinct groups within a layer based on naming patterns and properties
      */
     detectNodeGroups(nodes) {
         const groups = [];
@@ -429,7 +477,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Detect groups based on naming patterns (e.g., "mercado" prefix)
+     * Detect groups based on naming patterns (e.g., "mercado" prefix)
      */
     detectPatternGroups(nodes) {
         const groups = [];
@@ -500,17 +548,28 @@ class PulseSankeyChart {
      * Standard positioning for layers without group spacing
      */
     positionNodesStandard(nodes, availableHeight, layerPadding) {
-        const totalHeight = d3.sum(nodes, d => d.height);
-        const totalPadding = layerPadding * (nodes.length - 1);
+        // Skip manually positioned nodes
+        const nodesToPosition = nodes.filter(node => !node.manuallyPositioned);
+        const manualNodes = nodes.filter(node => node.manuallyPositioned);
+        
+        if (nodesToPosition.length === 0) return; // All nodes manually positioned
+        
+        const totalHeight = d3.sum(nodesToPosition, d => d.height);
+        const totalPadding = layerPadding * (nodesToPosition.length - 1);
         const totalRequired = totalHeight + totalPadding;
         
         const startY = Math.max(20, (availableHeight - totalRequired) / 2);
         let currentY = startY;
         
-        nodes.forEach((node, index) => {
+        nodesToPosition.forEach((node, index) => {
             node.y = currentY;
             node.layerIndex = index;
             currentY += node.height + layerPadding;
+        });
+        
+        // Preserve manual node layer indices
+        manualNodes.forEach((node, index) => {
+            node.layerIndex = nodesToPosition.length + index;
         });
     }
 
@@ -574,6 +633,15 @@ class PulseSankeyChart {
     recalculateYPositions(nodes) {
         if (nodes.length === 0) return;
         
+        // Skip recalculation if all nodes are manually positioned
+        const manualNodes = nodes.filter(node => node.manuallyPositioned);
+        const autoNodes = nodes.filter(node => !node.manuallyPositioned);
+        
+        if (autoNodes.length === 0) {
+            console.log('All nodes manually positioned, skipping recalculation');
+            return;
+        }
+        
         const depth = nodes[0].depth;
         const maxDepth = Math.max(...this.nodes.map(n => n.depth));
         const isLeftmost = depth === 0;
@@ -591,26 +659,31 @@ class PulseSankeyChart {
         const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
         
         // Re-apply group spacing if this is leftmost or rightmost layer
-        if ((isLeftmost || isRightmost) && nodes.length > 1) {
-            const groups = this.detectNodeGroups(nodes);
+        if ((isLeftmost || isRightmost) && autoNodes.length > 1) {
+            const groups = this.detectNodeGroups(autoNodes);
             if (groups.length > 1) {
-                this.positionNodesWithGroupSpacing(nodes, availableHeight, layerPadding, isLeftmost, isRightmost);
+                this.positionNodesWithGroupSpacing(autoNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
                 return;
             }
         }
         
-        // Standard repositioning
-        const totalHeight = d3.sum(nodes, d => d.height);
-        const totalPadding = layerPadding * (nodes.length - 1);
+        // Standard repositioning for auto nodes only
+        const totalHeight = d3.sum(autoNodes, d => d.height);
+        const totalPadding = layerPadding * (autoNodes.length - 1);
         const totalRequired = totalHeight + totalPadding;
         
         const startY = Math.max(20, (availableHeight - totalRequired) / 2);
         let currentY = startY;
         
-        nodes.forEach((node, index) => {
+        autoNodes.forEach((node, index) => {
             node.y = currentY;
             node.layerIndex = index;
             currentY += node.height + layerPadding;
+        });
+        
+        // Preserve manual node layer indices
+        manualNodes.forEach((node, index) => {
+            node.layerIndex = autoNodes.length + index;
         });
     }
 
@@ -989,13 +1062,18 @@ class PulseSankeyChart {
                 self.isDragging = true;
                 self.hideTooltip();
                 
-                // Highlight draggable area
+                // Mark node as manually positioned and preserve label positioning
+                d.manuallyPositioned = true;
+                // Store EXACT label positioning based on current layer position and depth
+                const maxDepth = Math.max(...self.nodes.map(n => n.depth));
+                const isMiddle = d.depth !== 0 && d.depth !== maxDepth;
+                d.preserveLabelsAbove = isMiddle ? (d.layerIndex === 0) : null;
+                
                 d3.select(this).select('rect')
                     .style('stroke', '#667eea')
                     .style('stroke-width', 3)
                     .style('filter', 'drop-shadow(0 6px 12px rgba(102, 126, 234, 0.3))');
                 
-                // Show drag hint
                 self.showDragHint(d);
             })
             .on('drag', function(event, d) {
@@ -1005,16 +1083,15 @@ class PulseSankeyChart {
                 ));
                 
                 d.y = newY;
+                d.manualY = newY;
                 d3.select(this).attr('transform', `translate(${d.x}, ${d.y})`);
                 
-                // Update connected links in real-time
                 self.updateNodeLinks(d);
                 self.updateDragHint(d, newY);
             })
             .on('end', function(event, d) {
                 self.isDragging = false;
                 
-                // Reset visual state
                 d3.select(this).select('rect')
                     .style('stroke', 'white')
                     .style('stroke-width', 2)
@@ -1022,7 +1099,6 @@ class PulseSankeyChart {
                 
                 self.hideDragHint();
                 
-                // Recalculate all link positions and re-render labels
                 self.calculateLinkPositions();
                 self.chart.selectAll('.node-label, .node-value').remove();
                 self.renderLabels();
@@ -1034,27 +1110,59 @@ class PulseSankeyChart {
         nodeGroups.call(drag);
     }
 
+    // Recalculate link positions for a single node during drag
+    recalculateSingleNodeLinkPositions(node) {
+        // Recalculate source links (outgoing from this node)
+        if (node.sourceLinks.length > 0) {
+            const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
+            const effectiveNodeHeight = node.height * this.config.linkWidthScale;
+            
+            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
+            
+            node.sourceLinks.forEach((link) => {
+                link.sourceY = currentY;
+                const proportionalHeight = (link.value / totalOutflow) * effectiveNodeHeight;
+                link.sourceHeight = proportionalHeight;
+                currentY += proportionalHeight;
+            });
+        }
+        
+        // Recalculate target links (incoming to this node)
+        if (node.targetLinks.length > 0) {
+            const totalInflow = d3.sum(node.targetLinks, d => d.value);
+            const effectiveNodeHeight = node.height * this.config.linkWidthScale;
+            
+            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
+            
+            node.targetLinks.forEach((link) => {
+                link.targetY = currentY;
+                const proportionalHeight = (link.value / totalInflow) * effectiveNodeHeight;
+                link.targetHeight = proportionalHeight;
+                currentY += proportionalHeight;
+            });
+        }
+    }
+
     updateNodeLinks(draggedNode) {
+        // Recalculate link positions for real-time updates
+        this.recalculateSingleNodeLinkPositions(draggedNode);
+        
         // Update source links
         draggedNode.sourceLinks.forEach(link => {
-            const linkElement = this.chart.selectAll('.sankey-link path')
-                .filter(d => d === link);
+            link.path = this.createSmoothPath(link);
             
-            if (!linkElement.empty()) {
-                link.path = this.createSmoothPath(link);
-                linkElement.attr('d', link.path);
-            }
+            this.chart.selectAll('.sankey-link path')
+                .filter(d => d.source.id === link.source.id && d.target.id === link.target.id)
+                .attr('d', link.path);
         });
 
         // Update target links  
         draggedNode.targetLinks.forEach(link => {
-            const linkElement = this.chart.selectAll('.sankey-link path')
-                .filter(d => d === link);
+            link.path = this.createSmoothPath(link);
             
-            if (!linkElement.empty()) {
-                link.path = this.createSmoothPath(link);
-                linkElement.attr('d', link.path);
-            }
+            this.chart.selectAll('.sankey-link path')
+                .filter(d => d.source.id === link.source.id && d.target.id === link.target.id)
+                .attr('d', link.path);
         });
     }
 
@@ -1204,7 +1312,15 @@ class PulseSankeyChart {
         const wrappedText = this.wrapText(node.id, 18);
         const nodeColor = this.getNodeColor(node);
         
-        const isTopNode = node.layerIndex === 0;
+        // More robust label positioning for manually positioned nodes
+        let isTopNode;
+        if (node.manuallyPositioned) {
+            // Always use preserved preference for manually positioned nodes
+            isTopNode = node.preserveLabelsAbove === true;
+        } else {
+            // Use layerIndex for automatically positioned nodes
+            isTopNode = node.layerIndex === 0;
+        }
         
         if (isTopNode) {
             this.renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor);
@@ -1570,10 +1686,13 @@ class PulseSankeyChart {
         this.config.nodeOpacity = nodeOpacity;
         this.config.linkOpacity = linkOpacity;
         
+        // Force immediate visual update
         this.chart.selectAll('.sankey-node rect')
-            .attr('fill-opacity', nodeOpacity);
+            .attr('fill-opacity', nodeOpacity)
+            .style('opacity', nodeOpacity);
         this.chart.selectAll('.sankey-link path')
-            .attr('fill-opacity', linkOpacity);
+            .attr('fill-opacity', linkOpacity)
+            .style('opacity', linkOpacity);
         return this;
     }
 
@@ -1640,12 +1759,7 @@ class PulseSankeyChart {
             this.config.layerSpacing[maxDepth] = newConfig.rightmostSpacing;
         }
         
-        // Check if group spacing changed
-        const groupSpacingChanged = 
-            newConfig.leftmostGroupGap !== undefined && newConfig.leftmostGroupGap !== oldConfig.leftmostGroupGap ||
-            newConfig.rightmostGroupGap !== undefined && newConfig.rightmostGroupGap !== oldConfig.rightmostGroupGap;
-        
-        const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig) || groupSpacingChanged;
+        const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig);
         const needsLayoutRecalc = this.configRequiresLayoutRecalc(oldConfig, newConfig);
         const needsLabelsUpdate = this.configRequiresLabelsUpdate(oldConfig, newConfig);
         

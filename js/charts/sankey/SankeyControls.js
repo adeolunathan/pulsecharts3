@@ -33,18 +33,7 @@ class SankeyControlModule {
                         default: 50, 
                         step: 5, 
                         unit: "px", 
-                        description: "Foundational vertical spacing for middle layers" 
-                    },
-                    { 
-                        id: "leftmostSpacing", 
-                        type: "slider", 
-                        label: "Leftmost Layer Spacing", 
-                        min: 0.5, 
-                        max: 1.5, 
-                        default: 0.5, 
-                        step: 0.1, 
-                        unit: "×", 
-                        description: "Spacing multiplier for leftmost layer (depth 0)" 
+                        description: "Foundational vertical spacing between nodes" 
                     },
                     { 
                         id: "middleSpacing", 
@@ -55,18 +44,7 @@ class SankeyControlModule {
                         default: 0.5, 
                         step: 0.1, 
                         unit: "×", 
-                        description: "Spacing multiplier for all middle layers" 
-                    },
-                    { 
-                        id: "rightmostSpacing", 
-                        type: "slider", 
-                        label: "Rightmost Layer Spacing", 
-                        min: 0.5, 
-                        max: 1.5, 
-                        default: 0.5, 
-                        step: 0.1, 
-                        unit: "×", 
-                        description: "Spacing multiplier for rightmost layer (final depth)" 
+                        description: "Spacing multiplier for middle layers (leftmost/rightmost use manual positioning)" 
                     }
                 ]
             },
