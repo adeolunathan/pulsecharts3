@@ -3,84 +3,558 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Templates - Flexible Link Management</title>
+    <title>Simplified Flow Builder - Business Flow Designer</title>
     
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
+    
+    <style>
+        /* Sticky Action Bar */
+        .action-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .action-bar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .action-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        .action-btn.primary {
+            background: #f59e0b;
+            border-color: #f59e0b;
+        }
+        
+        .action-btn.primary:hover {
+            background: #d97706;
+            border-color: #d97706;
+        }
+        
+        /* Flow Table Styles */
+        .flow-table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .flow-table-header {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .flow-table-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .flow-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .flow-table th {
+            background: #f8f9fa;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e1e5e9;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .flow-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f1f3f4;
+            vertical-align: middle;
+        }
+        
+        .flow-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .flow-input {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+            background: white;
+        }
+        
+        .flow-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        
+        .flow-input.number {
+            text-align: right;
+        }
+        
+        .flow-select {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+            background: white;
+        }
+        
+        .remove-flow-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .remove-flow-btn:hover {
+            background: #dc2626;
+        }
+        
+        .add-flow-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .add-flow-btn:hover {
+            background: #059669;
+        }
+        
+        /* Balance Indicator */
+        .balance-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .balance-indicator.balanced {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .balance-indicator.unbalanced {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        /* Template Quick Actions */
+        .template-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .template-btn {
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .template-btn:hover {
+            background: #e5e7eb;
+        }
+        
+        /* Stats Display */
+        .stats-bar {
+            background: #e7f3ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0369a1;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* CSV Import/Export */
+        .csv-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .csv-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .csv-btn:hover {
+            background: #d97706;
+        }
+        
+        /* Preview Panel Toggle */
+        .preview-toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: auto;
+        }
+        
+        .preview-toggle-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .template-container.preview-hidden {
+            grid-template-columns: 1fr;
+        }
+        
+        .template-container.preview-hidden .preview-panel {
+            display: none;
+        }
+        
+        /* Color Palette Section */
+        .color-palette-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .color-palette-header {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            padding: 20px;
+        }
+        
+        .color-control {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .color-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .color-input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .color-picker {
+            width: 60px;
+            height: 32px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        
+        .color-picker:hover {
+            border-color: #667eea;
+        }
+        
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .preset-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .preset-btn:hover {
+            background: #f3f4f6;
+            border-color: #667eea;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .flow-table {
+                font-size: 12px;
+            }
+            
+            .flow-table th,
+            .flow-table td {
+                padding: 6px 4px;
+            }
+            
+            .flow-input,
+            .flow-select {
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+            
+            .color-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .action-bar-content {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .action-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .stats-bar {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
 </head>
 <body style="background: #f8f9fa;">
+    <!-- Sticky Action Bar -->
+    <div class="action-bar">
+        <div class="action-bar-content">
+            <div>
+                <h1 class="action-title">💰 Business Flow Designer</h1>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">
+                    Think in flows: "From Revenue to Profit: $100M"
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" onclick="validateFlows()">✅ Validate</button>
+                <button class="action-btn" onclick="exportToCSV()">📄 Export CSV</button>
+                <button class="action-btn" onclick="importFromCSV()">📂 Import CSV</button>
+                <button class="action-btn primary" onclick="generateChart()">🚀 Generate Chart</button>
+            </div>
+        </div>
+    </div>
+
     <div class="template-container">
         <div class="template-main">
-            <div class="template-header">
-                <h1>📊 Advanced Financial Flow Builder</h1>
-                <span class="feature-badge">✨ Multi-Layer Link Management</span>
-                <p>Create complex financial flows with unlimited connections between any nodes</p>
-            </div>
+            <div class="template-content" style="padding-top: 20px;">
+                <!-- Quick Stats -->
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-value" id="flow-count">0</div>
+                        <div class="stat-label">Business Flows</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="node-count">0</div>
+                        <div class="stat-label">Generated Nodes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="layer-count">0</div>
+                        <div class="stat-label">Layers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="balance-score">0%</div>
+                        <div class="stat-label">Balance Score</div>
+                    </div>
+                </div>
 
-            <div class="template-content">
-                <!-- Layer Information Display -->
-                <div class="layer-info">
-                    <h3 style="margin: 0 0 10px 0; color: #1e40af;">🔧 Current Structure</h3>
-                    <div class="layer-stats">
-                        <div class="layer-stat">
-                            <div class="layer-stat-value" id="total-layers">4</div>
-                            <div>Total Layers</div>
+                <!-- Template Quick Actions -->
+                <div class="template-actions">
+                    <button class="template-btn" onclick="loadCompleteTemplate()">📊 Complete Template</button>
+                    <button class="template-btn" onclick="loadBlankFlows()">📄 Blank Template</button>
+                </div>
+
+                <!-- Color Palette Controls -->
+                <div class="color-palette-container">
+                    <div class="color-palette-header">
+                        <h3 class="flow-table-title">🎨 Color Palette</h3>
+                        <div class="color-presets">
+                            <button class="preset-btn" onclick="applyColorPreset('professional')">Professional</button>
+                            <button class="preset-btn" onclick="applyColorPreset('vibrant')">Vibrant</button>
+                            <button class="preset-btn" onclick="applyColorPreset('monochrome')">Monochrome</button>
+                            <button class="preset-btn" onclick="resetColors()">Reset</button>
                         </div>
-                        <div class="layer-stat">
-                            <div class="layer-stat-value" id="total-nodes">15</div>
-                            <div>Total Nodes</div>
+                    </div>
+                    <div class="color-grid">
+                        <div class="color-control">
+                            <label class="color-label">Revenue</label>
+                            <div class="color-input-container">
+                                <input type="color" class="color-picker" id="revenue-color" value="#3498db" onchange="updateColor('revenue', this.value)">
+                            </div>
                         </div>
-                        <div class="layer-stat">
-                            <div class="layer-stat-value" id="total-links">14</div>
-                            <div>Total Links</div>
+                        <div class="color-control">
+                            <label class="color-label">Cost</label>
+                            <div class="color-input-container">
+                                <input type="color" class="color-picker" id="cost-color" value="#e74c3c" onchange="updateColor('cost', this.value)">
+                            </div>
                         </div>
-                        <div class="layer-stat">
-                            <div class="layer-stat-value" id="balance-score">95%</div>
-                            <div>Balance Score</div>
+                        <div class="color-control">
+                            <label class="color-label">Profit</label>
+                            <div class="color-input-container">
+                                <input type="color" class="color-picker" id="profit-color" value="#27ae60" onchange="updateColor('profit', this.value)">
+                            </div>
+                        </div>
+                        <div class="color-control">
+                            <label class="color-label">Expense</label>
+                            <div class="color-input-container">
+                                <input type="color" class="color-picker" id="expense-color" value="#e67e22" onchange="updateColor('expense', this.value)">
+                            </div>
+                        </div>
+                        <div class="color-control">
+                            <label class="color-label">Income</label>
+                            <div class="color-input-container">
+                                <input type="color" class="color-picker" id="income-color" value="#9b59b6" onchange="updateColor('income', this.value)">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Adobe Example Template -->
-                <div class="layer-management">
-                    <h3 style="margin: 0 0 10px 0; color: #92400e;">🏢 Industry Templates</h3>
-                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #6b7280;">Start with real-world financial structures</p>
-                    <div class="layer-controls">
-                        <button class="layer-btn" onclick="loadAdobeTemplate()">Adobe Revenue Model</button>
-                        <button class="layer-btn" onclick="loadSaaSTemplate()">SaaS Company</button>
-                        <button class="layer-btn" onclick="loadManufacturingTemplate()">Manufacturing</button>
-                        <button class="layer-btn" onclick="loadRetailTemplate()">Retail Chain</button>
-                        <button class="layer-btn secondary" onclick="loadBlankTemplate()">Blank Template</button>
+                <!-- Company Information -->
+                <div class="flow-table-container">
+                    <div class="flow-table-header">
+                        <h3 class="flow-table-title">🏢 Company Information</h3>
                     </div>
-                </div>
-
-                <!-- Metadata Section -->
-                <div class="data-section">
-                    <div class="section-header">
-                        <h3 class="section-title">📋 Company Information</h3>
-                    </div>
-                    <div class="section-content">
-                        <div class="metadata-grid">
-                            <div class="field-group">
-                                <label class="field-label">Company Name</label>
-                                <input type="text" class="field-input" id="company-name" value="Adobe Inc.">
+                    <div style="padding: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
+                                <input type="text" class="flow-input" id="company-name" value="TechFlow Corporation" onchange="updateMetadata()">
                             </div>
-                            <div class="field-group">
-                                <label class="field-label">Period</label>
-                                <input type="text" class="field-input" id="period" value="Q3 2025">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period</label>
+                                <input type="text" class="flow-input" id="period" value="Q3 2025" onchange="updateMetadata()">
                             </div>
-                            <div class="field-group">
-                                <label class="field-label">Currency</label>
-                                <select class="field-input" id="currency">
-                                    <option value="USD" selected>USD ($)</option>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Currency</label>
+                                <select class="flow-select" id="currency" onchange="updateMetadata()">
+                                    <option value="USD">USD ($)</option>
                                     <option value="EUR">EUR (€)</option>
                                     <option value="GBP">GBP (£)</option>
                                 </select>
                             </div>
-                            <div class="field-group">
-                                <label class="field-label">Units</label>
-                                <select class="field-input" id="units">
-                                    <option value="millions" selected>Millions</option>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Units</label>
+                                <select class="flow-select" id="units" onchange="updateMetadata()">
+                                    <option value="millions">Millions</option>
                                     <option value="billions">Billions</option>
                                 </select>
                             </div>
@@ -88,95 +562,50 @@
                     </div>
                 </div>
 
-                <!-- Node Editor -->
-                <div class="data-section">
-                    <div class="section-header">
-                        <h3 class="section-title">
-                            🎯 Nodes
-                            <span class="layer-badge">Multi-Layer</span>
+                <!-- Business Flows Table -->
+                <div class="flow-table-container">
+                    <div class="flow-table-header">
+                        <h3 class="flow-table-title">
+                            💰 Business Flows
+                            <span style="background: #e7f3ff; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Excel Compatible</span>
                         </h3>
-                        <div class="section-controls">
-                            <select id="layer-filter" class="field-input" style="margin-right: 8px;" onchange="filterByLayer()">
-                                <option value="all">All Layers</option>
-                            </select>
-                            <button class="add-item-btn" onclick="addNode()">+ Add Node</button>
+                        <div class="csv-actions">
+                            <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
                         </div>
                     </div>
-                    <div class="section-content">
-                        <div id="nodes-container">
-                            <!-- Nodes will be dynamically generated -->
-                        </div>
+                    <div style="overflow-x: auto;">
+                        <table class="flow-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30px;"></th>
+                                    <th style="width: 180px;">From (Source)</th>
+                                    <th style="width: 180px;">To (Target)</th>
+                                    <th style="width: 80px;">Amount</th>
+                                    <th style="width: 70px;">Src Layer</th>
+                                    <th style="width: 70px;">Tgt Layer</th>
+                                    <th style="width: 100px;">Flow Type</th>
+                                    <th style="width: 90px;">Source Cat</th>
+                                    <th style="width: 90px;">Target Cat</th>
+                                    <th style="width: 200px;">Description</th>
+                                    <th style="width: 50px;">✓</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flows-tbody">
+                                <!-- Flows will be dynamically generated -->
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-
-                <!-- Link Management Section -->
-                <div class="data-section">
-                    <div class="section-header">
-                        <h3 class="section-title">
-                            🔗 Flow Connections
-                            <span class="layer-badge">Flexible Links</span>
-                        </h3>
-                        <div class="section-controls">
-                            <button class="add-item-btn" onclick="addCustomLink()">+ Add Connection</button>
-                        </div>
-                    </div>
-                    <div class="section-content">
-                        <!-- Link Builder -->
-                        <div class="link-builder">
-                            <h4 style="margin: 0 0 10px 0; color: #0369a1;">⚡ Quick Link Builder</h4>
-                            <div class="link-builder-controls">
-                                <div class="field-group">
-                                    <label class="field-label">Source Node</label>
-                                    <select id="source-selector" class="node-selector">
-                                        <option value="">Select source...</option>
-                                    </select>
-                                </div>
-                                <div style="text-align: center; padding-top: 20px;">
-                                    <span class="link-arrow">→</span>
-                                </div>
-                                <div class="field-group">
-                                    <label class="field-label">Target Node</label>
-                                    <select id="target-selector" class="node-selector">
-                                        <option value="">Select target...</option>
-                                    </select>
-                                </div>
-                                <div class="field-group">
-                                    <label class="field-label">Value</label>
-                                    <input type="number" id="link-value" class="field-input" placeholder="Auto" title="Leave blank for auto-calculation">
-                                </div>
-                                <div style="padding-top: 20px;">
-                                    <button class="add-item-btn" onclick="createQuickLink()">Add Link</button>
-                                </div>
-                            </div>
-                            <div class="quick-links">
-                                <button class="quick-link-btn" onclick="autoLinkLayer(0, 1)">Connect Layer 0→1</button>
-                                <button class="quick-link-btn" onclick="autoLinkLayer(1, 2)">Connect Layer 1→2</button>
-                                <button class="quick-link-btn" onclick="autoLinkSiblings()">Link Siblings</button>
-                                <button class="quick-link-btn" onclick="balanceAllLinks()">Auto-Balance</button>
-                            </div>
-                        </div>
-
-                        <!-- Existing Links -->
-                        <div id="links-container">
-                            <!-- Links will be dynamically generated -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="generateChart()">🚀 Generate Chart</button>
-                    <button class="btn btn-secondary" onclick="validateStructure()">✅ Validate Structure</button>
-                    <button class="btn btn-secondary" onclick="exportData()">📁 Export Data</button>
-                    <button class="btn btn-secondary" onclick="importData()">📂 Import Data</button>
                 </div>
             </div>
         </div>
 
-        <!-- Enhanced Live Preview Panel -->
-        <div class="preview-panel">
+        <!-- Preview Panel -->
+        <div class="preview-panel" id="preview-panel">
             <div class="preview-header">
                 📊 Live Preview & Validation
+                <button class="preview-toggle-btn" onclick="togglePreviewPanel()" title="Toggle Preview Panel">
+                    <span id="preview-toggle-icon">◀</span>
+                </button>
             </div>
             <div class="preview-tabs">
                 <button class="preview-tab active" onclick="switchTab('structure')">Structure</button>
@@ -199,558 +628,650 @@
                 </div>
             </div>
             <div class="json-stats" id="json-stats">
-                Nodes: 0 | Links: 0 | Layers: 0 | Balance: 0%
+                Ready to build flows
             </div>
         </div>
     </div>
 
     <!-- Hidden file input -->
-    <input type="file" id="file-input" style="display: none;" accept=".json" onchange="handleFileImport(event)">
+    <input type="file" id="csv-file-input" style="display: none;" accept=".csv,.json" onchange="handleFileImport(event)">
 
     <script>
-        // Initialize template data structure
-        let templateData = {
+        // Global data structure
+        let flowData = {
             metadata: {
-                title: "Adobe Revenue Structure",
-                subtitle: "Multi-Layer Subscription Model",
+                title: "TechFlow Financial Flow",
+                subtitle: "Multi-Layer Business Model",
                 currency: "USD",
                 unit: "millions",
-                company: "Adobe Inc.",
+                company: "TechFlow Corporation",
                 period: "Q3 2025"
             },
-            nodes: [],
-            links: []
+            flows: []
         };
 
-        let nodeUUIDs = new Map();
         let currentTab = 'structure';
-        let linkIdCounter = 0;
+        let flowIdCounter = 0;
 
-        // Initialize with corrected Adobe template
-        function loadAdobeTemplate() {
-            templateData.nodes = [
-                // Layer 0: Disaggregated Services
-                {id: "Creative Cloud", depth: 0, value: 2800, category: "revenue", description: "Photoshop, Illustrator, etc."},
-                {id: "Document Cloud", depth: 0, value: 600, category: "revenue", description: "Acrobat, Sign, etc."},
-                {id: "Experience Cloud", depth: 0, value: 1200, category: "revenue", description: "Analytics, Commerce, etc."},
-                {id: "Other Subscriptions", depth: 0, value: 200, category: "revenue", description: "Additional subscription services"},
-                
-                // Layer 1: Subscription Revenue Total + Other Revenue Streams
-                {id: "Subscription Revenue Total", depth: 1, value: 4800, category: "revenue", description: "Sum of all subscription services"},
-                {id: "Product Sales", depth: 1, value: 150, category: "revenue", description: "Perpetual licenses"},
-                {id: "Services & Support", depth: 1, value: 250, category: "revenue", description: "Professional services and support"},
-                
-                // Layer 2: Total Revenue
-                {id: "Total Revenue", depth: 2, value: 5200, category: "revenue", description: "All revenue combined"},
-                
-                // Layer 3: Cost Structure
-                {id: "Cost of Revenue", depth: 3, value: 800, category: "cost", description: "Direct service costs"},
-                {id: "Gross Profit", depth: 3, value: 4400, category: "profit", description: "Revenue minus direct costs"},
+        // Color palette functionality
+        let colorPalette = {
+            revenue: '#3498db',
+            cost: '#e74c3c',
+            profit: '#27ae60',
+            expense: '#e67e22',
+            income: '#9b59b6'
+        };
 
-                {id: "Operating Profit", depth: 4, value: 800, category: "profit", description: "Profit from operations"},
-                {id: "Operating Expenses", depth: 4, value: 3600, category: "expense", description: "Total operating expenses"},
-                
-                // Layer 5: Other Items
-                {id: "Taxes & Other", depth: 5, value: 200, category: "expense", description: "Income taxes and other expenses"},
-                {id: "Net Income", depth: 5, value: 600, category: "income", description: "Final net income"},
+        // Flow structure definition
+        class BusinessFlow {
+            constructor(options = {}) {
+                this.id = options.id || `flow_${++flowIdCounter}`;
+                this.source = options.source || '';
+                this.target = options.target || '';
+                this.value = options.value || 0;
+                this.flowType = options.flowType || 'revenue_flow';
+                this.sourceLayer = options.sourceLayer || 0;
+                this.targetLayer = options.targetLayer || 1;
+                this.sourceOrder = options.sourceOrder || 1;
+                this.targetOrder = options.targetOrder || 1;
+                this.sourceCategory = options.sourceCategory || 'revenue';
+                this.targetCategory = options.targetCategory || 'revenue';
+                this.description = options.description || '';
+            }
+        }
 
-                // Layer 4: Operating Expense Components
-                {id: "R&D", depth: 5, value: 1800, category: "expense", description: "Research and development"},
-                {id: "Sales & Marketing", depth: 5, value: 1400, category: "expense", description: "Customer acquisition"},
-                {id: "General & Admin", depth: 5, value: 400, category: "expense", description: "Administrative costs"}
+        function loadCompleteTemplate() {
+            flowData.metadata.company = "TechFlow Corporation";
+            flowData.metadata.title = "TechFlow Financial Flow";
+            flowData.metadata.subtitle = "Multi-Layer Business Model";
+            
+            flowData.flows = [
+                new BusinessFlow({
+                    source: "Creative Cloud",
+                    target: "Subscription",
+                    value: 2800,
+                    flowType: "revenue_flow",
+                    sourceLayer: 0,
+                    targetLayer: 1,
+                    sourceCategory: "revenue",
+                    targetCategory: "revenue",
+                    description: "Photoshop, Illustrator, and creative tools"
+                }),
+                new BusinessFlow({
+                    source: "Document Cloud",
+                    target: "Subscription",
+                    value: 600,
+                    flowType: "revenue_flow",
+                    sourceLayer: 0,
+                    targetLayer: 1,
+                    sourceCategory: "revenue",
+                    targetCategory: "revenue",
+                    description: "Acrobat, Sign, and document services"
+                }),
+                new BusinessFlow({
+                    source: "Experience Cloud",
+                    target: "Subscription",
+                    value: 1200,
+                    flowType: "revenue_flow",
+                    sourceLayer: 0,
+                    targetLayer: 1,
+                    sourceCategory: "revenue",
+                    targetCategory: "revenue",
+                    description: "Analytics, Commerce, and marketing tools"
+                }),
+                new BusinessFlow({
+                    source: "Products",
+                    target: "Total Revenue",
+                    value: 900,
+                    flowType: "revenue_flow",
+                    sourceLayer: 1,
+                    targetLayer: 2,
+                    sourceCategory: "revenue",
+                    targetCategory: "revenue",
+                    description: "All subscription-based revenue"
+                }),
+                new BusinessFlow({
+                    source: "Subscription",
+                    target: "Total Revenue",
+                    value: 4600,
+                    flowType: "revenue_flow",
+                    sourceLayer: 1,
+                    targetLayer: 2,
+                    sourceCategory: "revenue",
+                    targetCategory: "revenue",
+                    description: "All subscription-based revenue"
+                }),
+                new BusinessFlow({
+                    source: "Total Revenue",
+                    target: "Gross Profit",
+                    value: 3800,
+                    flowType: "profit_flow",
+                    sourceLayer: 2,
+                    targetLayer: 3,
+                    sourceCategory: "revenue",
+                    targetCategory: "profit",
+                    description: "Revenue after cost of revenue"
+                }),
+                new BusinessFlow({
+                    source: "Total Revenue",
+                    target: "Cost of Revenue",
+                    value: 800,
+                    flowType: "cost_flow",
+                    sourceLayer: 2,
+                    targetLayer: 3,
+                    sourceCategory: "revenue",
+                    targetCategory: "cost",
+                    description: "Direct costs to deliver services"
+                }),
+                new BusinessFlow({
+                    source: "Gross Profit",
+                    target: "Operating Profit",
+                    value: 1400,
+                    flowType: "profit_flow",
+                    sourceLayer: 3,
+                    targetLayer: 4,
+                    sourceCategory: "profit",
+                    targetCategory: "profit",
+                    description: "Profit from core operations"
+                }),
+                new BusinessFlow({
+                    source: "Gross Profit",
+                    target: "Operating Expenses",
+                    value: 2400,
+                    flowType: "expense_flow",
+                    sourceLayer: 3,
+                    targetLayer: 4,
+                    sourceCategory: "profit",
+                    targetCategory: "expense",
+                    description: "Total operating expenses"
+                }),
+                new BusinessFlow({
+                    source: "Operating Expenses",
+                    target: "R&D",
+                    value: 1200,
+                    flowType: "expense_flow",
+                    sourceLayer: 4,
+                    targetLayer: 5,
+                    sourceCategory: "expense",
+                    targetCategory: "expense",
+                    description: "Research and development investment"
+                }),
+                new BusinessFlow({
+                    source: "Operating Expenses",
+                    target: "Sales & Marketing",
+                    value: 800,
+                    flowType: "expense_flow",
+                    sourceLayer: 4,
+                    targetLayer: 5,
+                    sourceCategory: "expense",
+                    targetCategory: "expense",
+                    description: "Customer acquisition and marketing"
+                }),
+                new BusinessFlow({
+                    source: "Operating Expenses",
+                    target: "General & Admin",
+                    value: 400,
+                    flowType: "expense_flow",
+                    sourceLayer: 4,
+                    targetLayer: 5,
+                    sourceCategory: "expense",
+                    targetCategory: "expense",
+                    description: "Administrative and overhead costs"
+                }),
+                new BusinessFlow({
+                    source: "Operating Profit",
+                    target: "Net Income",
+                    value: 1100,
+                    flowType: "final_flow",
+                    sourceLayer: 4,
+                    targetLayer: 5,
+                    sourceCategory: "profit",
+                    targetCategory: "income",
+                    description: "Final net income after all expenses"
+                }),
+                new BusinessFlow({
+                    source: "Operating Profit",
+                    target: "Tax Expense",
+                    value: 300,
+                    flowType: "expense_flow",
+                    sourceLayer: 4,
+                    targetLayer: 5,
+                    sourceCategory: "profit",
+                    targetCategory: "expense",
+                    description: "Corporate income tax"
+                })
             ];
-
-            templateData.links = [
-                // Layer 0 to Layer 1: Individual services to subscription total
-                {source: "Creative Cloud", target: "Subscription Revenue Total", value: 2800, type: "revenue_flow", auto: false},
-                {source: "Document Cloud", target: "Subscription Revenue Total", value: 600, type: "revenue_flow", auto: false},
-                {source: "Experience Cloud", target: "Subscription Revenue Total", value: 1200, type: "revenue_flow", auto: false},
-                {source: "Other Subscriptions", target: "Subscription Revenue Total", value: 200, type: "revenue_flow", auto: false},
-                
-                // Layer 1 to Layer 2: All revenue streams to total
-                {source: "Subscription Revenue Total", target: "Total Revenue", value: 4800, type: "revenue_flow", auto: false},
-                {source: "Product Sales", target: "Total Revenue", value: 150, type: "revenue_flow", auto: false},
-                {source: "Services & Support", target: "Total Revenue", value: 250, type: "revenue_flow", auto: false},
-                
-                // Layer 2 to Layer 3: Revenue breakdown into costs and gross profit
-                {source: "Total Revenue", target: "Cost of Revenue", value: 800, type: "cost_flow", auto: false},
-                {source: "Total Revenue", target: "Gross Profit", value: 4400, type: "profit_flow", auto: false},
-                
-                // Layer 5: Gross Profit breakdown
-                {source: "Gross Profit", target: "Operating Profit", value: 800, type: "profit_flow", auto: false},
-                {source: "Gross Profit", target: "Operating Expenses", value: 3600, type: "expense_flow", auto: false},
-                
-                // Layer 6 to Layer 7: Operating Profit breakdown
-                {source: "Operating Profit", target: "Taxes & Other", value: 200, type: "expense_flow", auto: false},
-                {source: "Operating Profit", target: "Net Income", value: 600, type: "final_flow", auto: false},
-
-                // Layer 4: Individual expenses to aggregate
-                {source: "Operating Expenses", target: "R&D", value: 1800, type: "expense_flow", auto: false},
-                {source: "Operating Expenses", target: "Sales & Marketing", value: 1400, type: "expense_flow", auto: false},
-                {source: "Operating Expenses", target: "General & Admin", value: 400, type: "expense_flow", auto: false}
-            ];
-
-            renderAllData();
+            
+            document.getElementById('company-name').value = flowData.metadata.company;
+            renderFlowTable();
+            updateAllStats();
             updateAllPreviews();
         }
 
-        function loadSaaSTemplate() {
-            templateData.nodes = [
-                {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue"},
-                {id: "Professional Services", depth: 0, value: 60, category: "revenue"},
-                {id: "Total Revenue", depth: 1, value: 360, category: "revenue"},
-                {id: "Gross Profit", depth: 2, value: 300, category: "profit"},
-                {id: "Operating Profit", depth: 3, value: 100, category: "profit"},
-                {id: "Net Income", depth: 4, value: 75, category: "income"}
-            ];
-            
-            templateData.links = [
-                {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
-                {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
-                {source: "Total Revenue", target: "Gross Profit", value: 300, type: "profit_flow"},
-                {source: "Gross Profit", target: "Operating Profit", value: 100, type: "profit_flow"},
-                {source: "Operating Profit", target: "Net Income", value: 75, type: "final_flow"}
-            ];
-            
-            renderAllData();
-            updateAllPreviews();
-        }
-
-        function loadBlankTemplate() {
-            if (confirm('This will clear all current data. Continue?')) {
-                templateData.nodes = [
-                    {id: "Revenue Source", depth: 0, value: 100, category: "revenue", description: "Start building your structure here"}
+        function loadBlankFlows() {
+            if (confirm('This will clear all current flows. Continue?')) {
+                flowData.flows = [
+                    new BusinessFlow({
+                        source: "Revenue Source",
+                        target: "Total Revenue",
+                        value: 100,
+                        description: "Start building your flow here"
+                    })
                 ];
-                templateData.links = [];
-                renderAllData();
+                
+                renderFlowTable();
+                updateAllStats();
                 updateAllPreviews();
             }
         }
 
-        function getNodeUUID(nodeId) {
-            if (!nodeUUIDs.has(nodeId)) {
-                nodeUUIDs.set(nodeId, 'node_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
-            }
-            return nodeUUIDs.get(nodeId);
-        }
-
-        function renderAllData() {
-            renderNodes();
-            renderLinks();
-            updateNodeSelectors();
-            updateLayerFilter();
-            setupMetadataListeners();
-        }
-
-        function renderNodes() {
-            const container = document.getElementById('nodes-container');
-            container.innerHTML = '';
+        function renderFlowTable() {
+            const tbody = document.getElementById('flows-tbody');
+            tbody.innerHTML = '';
             
-            const sortedNodes = [...templateData.nodes].sort((a, b) => {
-                if (a.depth !== b.depth) return a.depth - b.depth;
-                return (a.sort_order || 0) - (b.sort_order || 0);
-            });
-            
-            sortedNodes.forEach((node, index) => {
-                container.appendChild(createNodeEditor(node, index));
-            });
-        }
-
-        function renderLinks() {
-            const container = document.getElementById('links-container');
-            container.innerHTML = '';
-            
-            if (templateData.links.length === 0) {
-                container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">No connections defined. Use the Link Builder above to create flows.</p>';
+            if (flowData.flows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" style="text-align: center; padding: 40px; color: #6b7280;">
+                            <div style="font-size: 16px; margin-bottom: 8px;">💡</div>
+                            <div>No flows defined. Click "Add Flow" to start building your financial structure.</div>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
             
-            templateData.links.forEach((link, index) => {
-                container.appendChild(createLinkEditor(link, index));
+            flowData.flows.forEach((flow, index) => {
+                const row = createFlowRow(flow, index);
+                tbody.appendChild(row);
             });
         }
 
-        function createNodeEditor(node, index) {
-            const div = document.createElement('div');
-            div.className = 'data-item';
-            div.setAttribute('data-layer', node.depth);
-            
-            const nodeUUID = getNodeUUID(node.id);
-            
-            div.innerHTML = `
-                <button class="remove-item" onclick="removeNode('${node.id}')" title="Remove Node">×</button>
-                <div class="item-fields">
-                    <div class="field-group">
-                        <label class="field-label">Name</label>
-                        <input type="text" class="field-input" value="${node.id}" 
-                               data-node-uuid="${nodeUUID}" data-field="id"
-                               oninput="updateNodeField(this, 'id', this.value)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Value</label>
-                        <input type="number" class="field-input" value="${node.value}" 
-                               data-node-uuid="${nodeUUID}" data-field="value"
-                               oninput="updateNodeField(this, 'value', parseFloat(this.value) || 0)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Layer</label>
-                        <input type="number" class="field-input depth-input" value="${node.depth}" 
-                               min="0" max="20"
-                               data-node-uuid="${nodeUUID}" data-field="depth"
-                               oninput="updateNodeField(this, 'depth', parseInt(this.value) || 0)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Order</label>
-                        <input type="number" class="field-input" value="${node.sort_order || 1}" 
-                               min="1"
-                               data-node-uuid="${nodeUUID}" data-field="sort_order"
-                               oninput="updateNodeField(this, 'sort_order', parseInt(this.value) || 1)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Category</label>
-                        <select class="field-input" 
-                                data-node-uuid="${nodeUUID}" data-field="category"
-                                onchange="updateNodeField(this, 'category', this.value)">
-                            <option value="revenue" ${node.category === 'revenue' ? 'selected' : ''}>Revenue</option>
-                            <option value="cost" ${node.category === 'cost' ? 'selected' : ''}>Cost</option>
-                            <option value="profit" ${node.category === 'profit' ? 'selected' : ''}>Profit</option>
-                            <option value="expense" ${node.category === 'expense' ? 'selected' : ''}>Expense</option>
-                            <option value="income" ${node.category === 'income' ? 'selected' : ''}>Income</option>
-                        </select>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Description</label>
-                        <input type="text" class="field-input" value="${node.description || ''}" 
-                               data-node-uuid="${nodeUUID}" data-field="description"
-                               oninput="updateNodeField(this, 'description', this.value)">
-                    </div>
-                </div>
+        function createFlowRow(flow, index) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <button class="remove-flow-btn" onclick="removeFlow(${index})" title="Remove Flow">×</button>
+                </td>
+                <td>
+                    <input type="text" class="flow-input" value="${flow.source}" 
+                           onchange="updateFlow(${index}, 'source', this.value)"
+                           list="source-suggestions">
+                </td>
+                <td>
+                    <input type="text" class="flow-input" value="${flow.target}" 
+                           onchange="updateFlow(${index}, 'target', this.value)"
+                           list="target-suggestions">
+                </td>
+                <td>
+                    <input type="number" class="flow-input number" value="${flow.value}" 
+                           onchange="updateFlow(${index}, 'value', parseFloat(this.value) || 0)">
+                </td>
+                <td>
+                    <input type="number" class="flow-input number" value="${flow.sourceLayer}" min="0" max="20"
+                           onchange="updateFlow(${index}, 'sourceLayer', parseInt(this.value) || 0)">
+                </td>
+                <td>
+                    <input type="number" class="flow-input number" value="${flow.targetLayer}" min="0" max="20"
+                           onchange="updateFlow(${index}, 'targetLayer', parseInt(this.value) || 0)">
+                </td>
+                <td>
+                    <select class="flow-select" onchange="updateFlow(${index}, 'flowType', this.value)">
+                        <option value="revenue_flow" ${flow.flowType === 'revenue_flow' ? 'selected' : ''}>Revenue</option>
+                        <option value="cost_flow" ${flow.flowType === 'cost_flow' ? 'selected' : ''}>Cost</option>
+                        <option value="profit_flow" ${flow.flowType === 'profit_flow' ? 'selected' : ''}>Profit</option>
+                        <option value="expense_flow" ${flow.flowType === 'expense_flow' ? 'selected' : ''}>Expense</option>
+                        <option value="final_flow" ${flow.flowType === 'final_flow' ? 'selected' : ''}>Final</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="flow-select" onchange="updateFlow(${index}, 'sourceCategory', this.value)">
+                        <option value="revenue" ${flow.sourceCategory === 'revenue' ? 'selected' : ''}>Revenue</option>
+                        <option value="cost" ${flow.sourceCategory === 'cost' ? 'selected' : ''}>Cost</option>
+                        <option value="profit" ${flow.sourceCategory === 'profit' ? 'selected' : ''}>Profit</option>
+                        <option value="expense" ${flow.sourceCategory === 'expense' ? 'selected' : ''}>Expense</option>
+                        <option value="income" ${flow.sourceCategory === 'income' ? 'selected' : ''}>Income</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="flow-select" onchange="updateFlow(${index}, 'targetCategory', this.value)">
+                        <option value="revenue" ${flow.targetCategory === 'revenue' ? 'selected' : ''}>Revenue</option>
+                        <option value="cost" ${flow.targetCategory === 'cost' ? 'selected' : ''}>Cost</option>
+                        <option value="profit" ${flow.targetCategory === 'profit' ? 'selected' : ''}>Profit</option>
+                        <option value="expense" ${flow.targetCategory === 'expense' ? 'selected' : ''}>Expense</option>
+                        <option value="income" ${flow.targetCategory === 'income' ? 'selected' : ''}>Income</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="flow-input" value="${flow.description}" 
+                           onchange="updateFlow(${index}, 'description', this.value)"
+                           placeholder="Flow description">
+                </td>
+                <td>
+                    ${getFlowBalanceIndicator(flow)}
+                </td>
             `;
-            
-            return div;
+            return tr;
         }
 
-        function createLinkEditor(link, index) {
-            const div = document.createElement('div');
-            div.className = 'link-item';
-            div.setAttribute('data-link-id', index);
-            
-            // Find source and target depths for validation
-            const sourceNode = templateData.nodes.find(n => n.id === link.source);
-            const targetNode = templateData.nodes.find(n => n.id === link.target);
-            const isValidConnection = sourceNode && targetNode && sourceNode.depth < targetNode.depth;
-            
-            div.innerHTML = `
-                <button class="remove-item" onclick="removeLink(${index})" title="Remove Link">×</button>
-                <div class="link-fields">
-                    <div class="field-group">
-                        <label class="field-label">Source</label>
-                        <select class="node-selector" onchange="updateLinkField(${index}, 'source', this.value)">
-                            ${templateData.nodes.map(node => 
-                                `<option value="${node.id}" ${node.id === link.source ? 'selected' : ''}>${node.id} (L${node.depth})</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Target</label>
-                        <select class="node-selector" onchange="updateLinkField(${index}, 'target', this.value)">
-                            ${templateData.nodes.map(node => 
-                                `<option value="${node.id}" ${node.id === link.target ? 'selected' : ''}>${node.id} (L${node.depth})</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Value</label>
-                        <input type="number" class="field-input" value="${link.value}" 
-                               onchange="updateLinkField(${index}, 'value', parseFloat(this.value) || 0)">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Type</label>
-                        <select class="field-input" onchange="updateLinkField(${index}, 'type', this.value)">
-                            <option value="revenue_flow" ${link.type === 'revenue_flow' ? 'selected' : ''}>Revenue Flow</option>
-                            <option value="cost_flow" ${link.type === 'cost_flow' ? 'selected' : ''}>Cost Flow</option>
-                            <option value="profit_flow" ${link.type === 'profit_flow' ? 'selected' : ''}>Profit Flow</option>
-                            <option value="expense_flow" ${link.type === 'expense_flow' ? 'selected' : ''}>Expense Flow</option>
-                            <option value="final_flow" ${link.type === 'final_flow' ? 'selected' : ''}>Final Flow</option>
-                        </select>
-                    </div>
-                    <div class="link-visual">
-                        ${link.source} <span class="link-arrow">→</span> ${link.target}
-                        ${link.auto ? '<span class="auto-calc-indicator">AUTO</span>' : ''}
-                        ${!isValidConnection ? '<span style="color: #dc2626; font-size: 10px;">⚠️ Invalid</span>' : ''}
-                    </div>
-                </div>
-            `;
-            
-            return div;
+        function getFlowBalanceIndicator(flow) {
+            const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
+            return `<div class="balance-indicator ${isValid ? 'balanced' : 'unbalanced'}">${isValid ? '✓' : '⚠'}</div>`;
         }
 
-        function updateNodeField(inputElement, field, value) {
-            const nodeUUID = inputElement.dataset.nodeUuid;
-            const nodeId = findNodeIdByUUID(nodeUUID);
+        function addFlow() {
+            const newFlow = new BusinessFlow({
+                source: "New Source",
+                target: "New Target",
+                value: 100,
+                sourceLayer: 0,
+                targetLayer: 1
+            });
             
-            if (!nodeId) return;
+            flowData.flows.push(newFlow);
+            renderFlowTable();
+            updateAllStats();
+            updateAllPreviews();
+        }
+
+        function removeFlow(index) {
+            flowData.flows.splice(index, 1);
+            renderFlowTable();
+            updateAllStats();
+            updateAllPreviews();
+        }
+
+        function updateFlow(index, field, value) {
+            if (flowData.flows[index]) {
+                flowData.flows[index][field] = value;
+                updateAllStats();
+                updateAllPreviews();
+                
+                const row = document.querySelectorAll('#flows-tbody tr')[index];
+                if (row) {
+                    const balanceCell = row.lastElementChild;
+                    balanceCell.innerHTML = getFlowBalanceIndicator(flowData.flows[index]);
+                }
+            }
+        }
+
+        function updateMetadata() {
+            flowData.metadata.company = document.getElementById('company-name').value;
+            flowData.metadata.period = document.getElementById('period').value;
+            flowData.metadata.currency = document.getElementById('currency').value;
+            flowData.metadata.unit = document.getElementById('units').value;
+            flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
+            flowData.metadata.subtitle = `${flowData.metadata.period} Business Model`;
             
-            const node = templateData.nodes.find(n => n.id === nodeId);
-            if (node) {
-                if (field === 'id' && value !== nodeId) {
-                    // Update links that reference this node
-                    templateData.links.forEach(link => {
-                        if (link.source === nodeId) link.source = value;
-                        if (link.target === nodeId) link.target = value;
+            updateAllPreviews();
+        }
+
+        function generateNodesAndLinksFromFlows() {
+            const nodeMap = new Map();
+            const links = [];
+            
+            flowData.flows.forEach(flow => {
+                if (!nodeMap.has(flow.source)) {
+                    nodeMap.set(flow.source, {
+                        id: flow.source,
+                        depth: flow.sourceLayer,
+                        value: 0,
+                        category: flow.sourceCategory,
+                        description: `Source: ${flow.description}`,
+                        sort_order: flow.sourceOrder || 1
                     });
-                    
-                    // Update UUID mapping
-                    if (nodeUUIDs.has(nodeId)) {
-                        const uuid = nodeUUIDs.get(nodeId);
-                        nodeUUIDs.delete(nodeId);
-                        nodeUUIDs.set(value, uuid);
-                    }
                 }
                 
-                node[field] = value;
-                
-                if (field === 'depth') {
-                    const itemElement = inputElement.closest('.data-item');
-                    itemElement.setAttribute('data-layer', value);
-                    updateLayerFilter();
-                    updateNodeSelectors();
+                if (!nodeMap.has(flow.target)) {
+                    nodeMap.set(flow.target, {
+                        id: flow.target,
+                        depth: flow.targetLayer,
+                        value: 0,
+                        category: flow.targetCategory,
+                        description: `Target: ${flow.description}`,
+                        sort_order: flow.targetOrder || 1
+                    });
                 }
                 
-                updateAllPreviews();
-            }
-        }
-
-        function updateLinkField(linkIndex, field, value) {
-            if (templateData.links[linkIndex]) {
-                templateData.links[linkIndex][field] = value;
-                renderLinks(); // Re-render to update validation
-                updateAllPreviews();
-            }
-        }
-
-        function findNodeIdByUUID(uuid) {
-            for (let [nodeId, nodeUuid] of nodeUUIDs.entries()) {
-                if (nodeUuid === uuid) {
-                    return nodeId;
-                }
-            }
-            return null;
-        }
-
-        function addNode() {
-            const maxDepth = templateData.nodes.length > 0 ? Math.max(...templateData.nodes.map(n => n.depth)) : 0;
-            const newId = `New Node ${Date.now()}`;
-            const newNode = {
-                id: newId,
-                depth: maxDepth + 1,
-                value: 100,
-                category: "revenue",
-                description: `Node at layer ${maxDepth + 1}`,
-                sort_order: 1
-            };
-            
-            templateData.nodes.push(newNode);
-            renderAllData();
-            updateAllPreviews();
-        }
-
-        function removeNode(nodeId) {
-            // Remove node
-            templateData.nodes = templateData.nodes.filter(n => n.id !== nodeId);
-            // Remove associated links
-            templateData.links = templateData.links.filter(l => l.source !== nodeId && l.target !== nodeId);
-            nodeUUIDs.delete(nodeId);
-            renderAllData();
-            updateAllPreviews();
-        }
-
-        function addCustomLink() {
-            const newLink = {
-                source: templateData.nodes[0]?.id || '',
-                target: templateData.nodes[1]?.id || '',
-                value: 100,
-                type: 'revenue_flow',
-                auto: false
-            };
-            
-            templateData.links.push(newLink);
-            renderLinks();
-            updateAllPreviews();
-        }
-
-        function removeLink(linkIndex) {
-            templateData.links.splice(linkIndex, 1);
-            renderLinks();
-            updateAllPreviews();
-        }
-
-        function createQuickLink() {
-            const sourceId = document.getElementById('source-selector').value;
-            const targetId = document.getElementById('target-selector').value;
-            const value = document.getElementById('link-value').value;
-            
-            if (!sourceId || !targetId) {
-                alert('Please select both source and target nodes');
-                return;
-            }
-            
-            if (sourceId === targetId) {
-                alert('Source and target cannot be the same node');
-                return;
-            }
-            
-            // Check if link already exists
-            const existingLink = templateData.links.find(l => l.source === sourceId && l.target === targetId);
-            if (existingLink) {
-                alert('A link between these nodes already exists');
-                return;
-            }
-            
-            // Validate depth ordering
-            const sourceNode = templateData.nodes.find(n => n.id === sourceId);
-            const targetNode = templateData.nodes.find(n => n.id === targetId);
-            
-            if (sourceNode.depth >= targetNode.depth) {
-                alert('Source node must be at a lower depth (earlier layer) than target node');
-                return;
-            }
-            
-            const newLink = {
-                source: sourceId,
-                target: targetId,
-                value: value ? parseFloat(value) : sourceNode.value, // Auto-use source value if not specified
-                type: 'revenue_flow',
-                auto: !value // Mark as auto-calculated if no value specified
-            };
-            
-            templateData.links.push(newLink);
-            
-            // Clear the form
-            document.getElementById('source-selector').value = '';
-            document.getElementById('target-selector').value = '';
-            document.getElementById('link-value').value = '';
-            
-            renderLinks();
-            updateAllPreviews();
-        }
-
-        function autoLinkLayer(sourceDepth, targetDepth) {
-            const sourceNodes = templateData.nodes.filter(n => n.depth === sourceDepth);
-            const targetNodes = templateData.nodes.filter(n => n.depth === targetDepth);
-            
-            if (sourceNodes.length === 0 || targetNodes.length === 0) {
-                alert(`No nodes found at the specified layers (${sourceDepth} → ${targetDepth})`);
-                return;
-            }
-            
-            // Simple strategy: if one target, connect all sources to it
-            // If multiple targets, connect proportionally
-            if (targetNodes.length === 1) {
-                const target = targetNodes[0];
-                sourceNodes.forEach(source => {
-                    // Check if link already exists
-                    const existingLink = templateData.links.find(l => l.source === source.id && l.target === target.id);
-                    if (!existingLink) {
-                        templateData.links.push({
-                            source: source.id,
-                            target: target.id,
-                            value: source.value,
-                            type: 'revenue_flow',
-                            auto: true
-                        });
-                    }
-                });
-            }
-            
-            renderLinks();
-            updateAllPreviews();
-        }
-
-        function balanceAllLinks() {
-            // Recalculate link values to ensure balance
-            const nodeBalances = new Map();
-            
-            // Initialize balances
-            templateData.nodes.forEach(node => {
-                nodeBalances.set(node.id, {
-                    inflow: 0,
-                    outflow: 0,
-                    nodeValue: node.value
+                const targetNode = nodeMap.get(flow.target);
+                targetNode.value += flow.value;
+                
+                links.push({
+                    source: flow.source,
+                    target: flow.target,
+                    value: flow.value,
+                    type: flow.flowType,
+                    description: flow.description
                 });
             });
             
-            // Calculate current flows
-            templateData.links.forEach(link => {
-                const sourceBalance = nodeBalances.get(link.source);
-                const targetBalance = nodeBalances.get(link.target);
-                
-                if (sourceBalance) sourceBalance.outflow += link.value;
-                if (targetBalance) targetBalance.inflow += link.value;
-            });
-            
-            // Update node values based on flows
-            templateData.nodes.forEach(node => {
-                const balance = nodeBalances.get(node.id);
-                if (balance.inflow > 0) {
-                    // Node receives flows - its value should equal inflow
-                    node.value = balance.inflow;
-                } else if (balance.outflow > 0) {
-                    // Source node - keep current value
-                    // But ensure outflows don't exceed node value
-                    if (balance.outflow > node.value) {
-                        // Scale down outgoing links proportionally
-                        const scaleFactor = node.value / balance.outflow;
-                        templateData.links.forEach(link => {
-                            if (link.source === node.id) {
-                                link.value *= scaleFactor;
-                            }
-                        });
-                    }
+            flowData.flows.forEach(flow => {
+                const sourceNode = nodeMap.get(flow.source);
+                if (sourceNode.value === 0) {
+                    const outflows = flowData.flows.filter(f => f.source === flow.source);
+                    sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
                 }
             });
             
-            renderAllData();
-            updateAllPreviews();
+            return {
+                metadata: {
+                    ...flowData.metadata,
+                    colorPalette: colorPalette
+                },
+                nodes: Array.from(nodeMap.values()),
+                links: links
+            };
         }
 
-        function updateNodeSelectors() {
-            const sourceSelector = document.getElementById('source-selector');
-            const targetSelector = document.getElementById('target-selector');
+        function updateAllStats() {
+            const nodeMap = new Map();
             
-            const nodeOptions = templateData.nodes.map(node => 
-                `<option value="${node.id}">${node.id} (Layer ${node.depth})</option>`
-            ).join('');
-            
-            sourceSelector.innerHTML = '<option value="">Select source...</option>' + nodeOptions;
-            targetSelector.innerHTML = '<option value="">Select target...</option>' + nodeOptions;
-        }
-
-        function updateLayerFilter() {
-            const select = document.getElementById('layer-filter');
-            const layers = [...new Set(templateData.nodes.map(n => n.depth))].sort((a, b) => a - b);
-            
-            select.innerHTML = '<option value="all">All Layers</option>';
-            layers.forEach(layer => {
-                const count = templateData.nodes.filter(n => n.depth === layer).length;
-                const option = document.createElement('option');
-                option.value = layer;
-                option.textContent = `Layer ${layer} (${count} nodes)`;
-                select.appendChild(option);
+            flowData.flows.forEach(flow => {
+                nodeMap.set(flow.source, flow.sourceLayer);
+                nodeMap.set(flow.target, flow.targetLayer);
             });
+            
+            const flowCount = flowData.flows.length;
+            const nodeCount = nodeMap.size;
+            const layerCount = new Set(Array.from(nodeMap.values())).size;
+            
+            let balancedFlows = 0;
+            flowData.flows.forEach(flow => {
+                const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
+                if (isValid) balancedFlows++;
+            });
+            
+            const balanceScore = flowCount > 0 ? Math.round((balancedFlows / flowCount) * 100) : 0;
+            
+            document.getElementById('flow-count').textContent = flowCount;
+            document.getElementById('node-count').textContent = nodeCount;
+            document.getElementById('layer-count').textContent = layerCount;
+            document.getElementById('balance-score').textContent = balanceScore + '%';
         }
 
-        function filterByLayer() {
-            const filterValue = document.getElementById('layer-filter').value;
-            const items = document.querySelectorAll('.data-item');
+        function validateFlows() {
+            const errors = [];
+            const warnings = [];
             
-            items.forEach(item => {
-                if (filterValue === 'all' || item.getAttribute('data-layer') === filterValue) {
-                    item.style.display = 'block';
+            if (flowData.flows.length === 0) {
+                errors.push('No flows defined');
+            }
+            
+            flowData.flows.forEach((flow, index) => {
+                if (!flow.source || !flow.target) {
+                    errors.push(`Flow ${index + 1}: Missing source or target`);
+                }
+                
+                if (flow.value <= 0) {
+                    errors.push(`Flow ${index + 1}: Invalid value (${flow.value})`);
+                }
+                
+                if (flow.sourceLayer >= flow.targetLayer) {
+                    errors.push(`Flow ${index + 1}: Source layer (${flow.sourceLayer}) must be less than target layer (${flow.targetLayer})`);
+                }
+                
+                if (flow.source === flow.target) {
+                    errors.push(`Flow ${index + 1}: Source and target cannot be the same`);
+                }
+            });
+            
+            const flowSignatures = new Set();
+            flowData.flows.forEach((flow, index) => {
+                const signature = `${flow.source}->${flow.target}`;
+                if (flowSignatures.has(signature)) {
+                    warnings.push(`Flow ${index + 1}: Duplicate flow from ${flow.source} to ${flow.target}`);
+                }
+                flowSignatures.add(signature);
+            });
+            
+            let message = '✅ Flow Validation Results\n\n';
+            
+            if (errors.length > 0) {
+                message += '❌ Errors:\n' + errors.map(e => `• ${e}`).join('\n') + '\n\n';
+            }
+            
+            if (warnings.length > 0) {
+                message += '⚠️ Warnings:\n' + warnings.map(w => `• ${w}`).join('\n') + '\n\n';
+            }
+            
+            if (errors.length === 0 && warnings.length === 0) {
+                message += 'Perfect! All flows are valid.\n\n';
+            }
+            
+            const balanceScore = document.getElementById('balance-score').textContent;
+            message += `📊 Summary:\n• ${flowData.flows.length} flows\n• Balance Score: ${balanceScore}`;
+            
+            alert(message);
+        }
+
+        function exportToCSV() {
+            let csv = 'Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            
+            flowData.flows.forEach(flow => {
+                csv += `"${flow.source}","${flow.target}",${flow.value},"${flow.flowType}",${flow.sourceLayer},${flow.targetLayer},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${flowData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}-flows.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importFromCSV() {
+            document.getElementById('csv-file-input').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                
+                if (file.name.endsWith('.json')) {
+                    try {
+                        const data = JSON.parse(content);
+                        if (data.flows) {
+                            flowData = data;
+                        } else if (data.nodes && data.links) {
+                            flowData.flows = convertFromNodesLinks(data);
+                        }
+                        renderFlowTable();
+                        updateAllStats();
+                        updateAllPreviews();
+                        alert('✅ Successfully imported flows!');
+                    } catch (error) {
+                        alert('❌ Error parsing JSON: ' + error.message);
+                    }
+                } else if (file.name.endsWith('.csv')) {
+                    parseCSVFlows(content);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSVFlows(csvContent) {
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            if (lines.length < 2) {
+                alert('❌ CSV file must have header and at least one data row');
+                return;
+            }
+            
+            const flows = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length >= 9) {
+                    flows.push(new BusinessFlow({
+                        source: values[0],
+                        target: values[1],
+                        value: parseFloat(values[2]) || 0,
+                        flowType: values[3] || 'revenue_flow',
+                        sourceLayer: parseInt(values[4]) || 0,
+                        targetLayer: parseInt(values[5]) || 1,
+                        sourceCategory: values[6] || 'revenue',
+                        targetCategory: values[7] || 'revenue',
+                        description: values[8] || ''
+                    }));
+                }
+            }
+            
+            if (flows.length > 0) {
+                flowData.flows = flows;
+                renderFlowTable();
+                updateAllStats();
+                updateAllPreviews();
+                alert(`✅ Successfully imported ${flows.length} flows from CSV!`);
+            } else {
+                alert('❌ No valid flows found in CSV file');
+            }
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
                 } else {
-                    item.style.display = 'none';
+                    current += char;
                 }
-            });
+            }
+            
+            result.push(current.trim());
+            return result.map(field => field.replace(/^"|"$/g, ''));
+        }
+
+        function generateChart() {
+            const sankeyData = generateNodesAndLinksFromFlows();
+            
+            if (sankeyData.nodes.length === 0) {
+                alert('❌ No nodes generated. Please add flows first.');
+                return;
+            }
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const chartType = urlParams.get('chartType') || 'sankey';
+            const returnTo = urlParams.get('returnTo');
+            
+            if (returnTo === 'guided') {
+                const dataString = encodeURIComponent(JSON.stringify(sankeyData));
+                window.location.href = `guided.html?step=3&chartType=${chartType}&data=${dataString}&dataInput=template`;
+            } else {
+                const dataString = encodeURIComponent(JSON.stringify(sankeyData));
+                window.location.href = `chart.html?chartType=${chartType}&data=${dataString}`;
+            }
         }
 
         function switchTab(tabName) {
@@ -785,16 +1306,17 @@
 
         function updateStructurePreview() {
             const preview = document.getElementById('structure-preview');
-            const layerMap = new Map();
+            const sankeyData = generateNodesAndLinksFromFlows();
             
-            templateData.nodes.forEach(node => {
+            let html = '<h4>📊 Generated Structure</h4>';
+            
+            const layerMap = new Map();
+            sankeyData.nodes.forEach(node => {
                 if (!layerMap.has(node.depth)) {
                     layerMap.set(node.depth, []);
                 }
                 layerMap.get(node.depth).push(node);
             });
-            
-            let html = '<h4>📊 Multi-Layer Structure</h4>';
             
             const sortedLayers = Array.from(layerMap.entries()).sort((a, b) => a[0] - b[0]);
             
@@ -811,24 +1333,24 @@
                 `;
             });
             
-            // Show link structure
-            html += '<h4 style="margin-top: 20px;">🔗 Flow Connections</h4>';
-            if (templateData.links.length === 0) {
-                html += '<div style="color: #f59e0b;">No connections defined</div>';
+            html += '<h4 style="margin-top: 20px;">💰 Business Flows</h4>';
+            if (flowData.flows.length === 0) {
+                html += '<div style="color: #f59e0b;">No flows defined</div>';
             } else {
-                templateData.links.forEach(link => {
-                    const sourceNode = templateData.nodes.find(n => n.id === link.source);
-                    const targetNode = templateData.nodes.find(n => n.id === link.target);
-                    const isValid = sourceNode && targetNode && sourceNode.depth < targetNode.depth;
+                flowData.flows.slice(0, 10).forEach(flow => {
+                    const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
                     
                     html += `
                         <div style="margin: 4px 0; padding: 4px 8px; background: ${isValid ? '#374151' : '#7f1d1d'}; border-radius: 4px;">
-                            ${link.source} → ${link.target} ($${link.value}M)
-                            ${link.auto ? ' <span style="color: #10b981;">[AUTO]</span>' : ''}
+                            ${flow.source} → ${flow.target} ($${flow.value}M)
                             ${!isValid ? ' <span style="color: #ef4444;">[INVALID]</span>' : ''}
                         </div>
                     `;
                 });
+                
+                if (flowData.flows.length > 10) {
+                    html += `<div style="color: #6b7280; margin-top: 8px;">... and ${flowData.flows.length - 10} more flows</div>`;
+                }
             }
             
             preview.innerHTML = html;
@@ -836,255 +1358,106 @@
 
         function updateJsonPreview() {
             const preview = document.getElementById('json-preview');
-            preview.textContent = JSON.stringify(templateData, null, 2);
+            const sankeyData = generateNodesAndLinksFromFlows();
+            preview.textContent = JSON.stringify(sankeyData, null, 2);
         }
 
         function updateValidationPreview() {
             const preview = document.getElementById('validation-preview');
-            const validation = validateStructure(false);
-            
-            let html = '<h4>✅ Structure Validation</h4>';
-            
-            if (validation.errors.length > 0) {
-                html += '<div class="validation-error">❌ <strong>Errors:</strong><ul>';
-                validation.errors.forEach(error => {
-                    html += `<li>${error}</li>`;
-                });
-                html += '</ul></div>';
-            }
-            
-            if (validation.warnings.length > 0) {
-                html += '<div class="validation-warning">⚠️ <strong>Warnings:</strong><ul>';
-                validation.warnings.forEach(warning => {
-                    html += `<li>${warning}</li>`;
-                });
-                html += '</ul></div>';
-            }
-            
-            if (validation.errors.length === 0 && validation.warnings.length === 0) {
-                html += '<div class="validation-success">✅ All validations passed!</div>';
-            }
-            
-            html += `<h4 style="margin-top: 20px;">📈 Balance Analysis</h4>`;
-            html += `<div>Balance Score: ${validation.balanceScore}%</div>`;
-            html += `<div>Unbalanced Nodes: ${validation.unbalancedNodes}</div>`;
-            
-            preview.innerHTML = html;
+            preview.innerHTML = '<h4>✅ Validation Results</h4><div>Flow validation logic will be implemented here</div>';
         }
 
         function updateAllPreviews() {
             updateTabContent(currentTab);
-            updateStats();
+            updateJsonStats();
         }
 
-        function updateStats() {
+        function updateJsonStats() {
             const stats = document.getElementById('json-stats');
-            const validation = validateStructure(false);
+            const sankeyData = generateNodesAndLinksFromFlows();
             
-            const nodeCount = templateData.nodes.length;
-            const linkCount = templateData.links.length;
-            const layerCount = new Set(templateData.nodes.map(n => n.depth)).size;
+            const flowCount = flowData.flows.length;
+            const nodeCount = sankeyData.nodes.length;
+            const linkCount = sankeyData.links.length;
+            const layerCount = new Set(sankeyData.nodes.map(n => n.depth)).size;
             
-            stats.textContent = `Nodes: ${nodeCount} | Links: ${linkCount} | Layers: ${layerCount} | Balance: ${validation.balanceScore}%`;
-            
-            // Update layer stats
-            document.getElementById('total-layers').textContent = layerCount;
-            document.getElementById('total-nodes').textContent = nodeCount;
-            document.getElementById('total-links').textContent = linkCount;
-            document.getElementById('balance-score').textContent = validation.balanceScore + '%';
+            stats.textContent = `Flows: ${flowCount} | Nodes: ${nodeCount} | Links: ${linkCount} | Layers: ${layerCount}`;
         }
 
-        function validateStructure(showAlert = true) {
-            const errors = [];
-            const warnings = [];
-            
-            // Basic structure validation
-            if (templateData.nodes.length === 0) {
-                errors.push('No nodes defined');
-            }
-            
-            if (templateData.links.length === 0) {
-                warnings.push('No links defined - chart will show isolated nodes');
-            }
-            
-            // Link validation
-            let validLinks = 0;
-            templateData.links.forEach((link, index) => {
-                const sourceNode = templateData.nodes.find(n => n.id === link.source);
-                const targetNode = templateData.nodes.find(n => n.id === link.target);
-                
-                if (!sourceNode) {
-                    errors.push(`Link ${index + 1}: Source node "${link.source}" not found`);
-                } else if (!targetNode) {
-                    errors.push(`Link ${index + 1}: Target node "${link.target}" not found`);
-                } else if (sourceNode.depth >= targetNode.depth) {
-                    errors.push(`Link ${index + 1}: Source depth (${sourceNode.depth}) must be less than target depth (${targetNode.depth})`);
-                } else {
-                    validLinks++;
+        function updateColor(category, color) {
+            colorPalette[category] = color;
+            updateAllPreviews();
+        }
+
+        function applyColorPreset(presetName) {
+            const presets = {
+                professional: {
+                    revenue: '#2c3e50',
+                    cost: '#95a5a6',
+                    profit: '#27ae60',
+                    expense: '#e67e22',
+                    income: '#3498db'
+                },
+                vibrant: {
+                    revenue: '#ff6b6b',
+                    cost: '#4ecdc4',
+                    profit: '#45b7d1',
+                    expense: '#f9ca24',
+                    income: '#6c5ce7'
+                },
+                monochrome: {
+                    revenue: '#2c3e50',
+                    cost: '#7f8c8d',
+                    profit: '#34495e',
+                    expense: '#95a5a6',
+                    income: '#2c3e50'
                 }
-            });
-            
-            // Balance validation
-            const nodeBalances = new Map();
-            templateData.nodes.forEach(node => {
-                nodeBalances.set(node.id, { inflow: 0, outflow: 0, nodeValue: node.value });
-            });
-            
-            templateData.links.forEach(link => {
-                const sourceBalance = nodeBalances.get(link.source);
-                const targetBalance = nodeBalances.get(link.target);
-                
-                if (sourceBalance) sourceBalance.outflow += link.value;
-                if (targetBalance) targetBalance.inflow += link.value;
-            });
-            
-            let balancedNodes = 0;
-            let totalNodes = templateData.nodes.length;
-            
-            nodeBalances.forEach((balance, nodeId) => {
-                const node = templateData.nodes.find(n => n.id === nodeId);
-                const tolerance = 0.01; // Allow small rounding differences
-                
-                if (balance.inflow === 0 && balance.outflow === 0) {
-                    // Isolated node
-                    warnings.push(`Node "${nodeId}" has no connections`);
-                } else if (balance.inflow > 0 && Math.abs(balance.inflow - balance.nodeValue) > tolerance) {
-                    // Node receives flows but value doesn't match
-                    warnings.push(`Node "${nodeId}" value (${balance.nodeValue}) doesn't match inflow (${balance.inflow})`);
-                } else if (balance.outflow > 0 && balance.outflow > balance.nodeValue + tolerance) {
-                    // Node sends more than it has
-                    errors.push(`Node "${nodeId}" outflow (${balance.outflow}) exceeds node value (${balance.nodeValue})`);
-                } else {
-                    balancedNodes++;
-                }
-            });
-            
-            const balanceScore = totalNodes > 0 ? Math.round((balancedNodes / totalNodes) * 100) : 0;
-            
-            const result = {
-                errors,
-                warnings,
-                balanceScore,
-                unbalancedNodes: totalNodes - balancedNodes,
-                isValid: errors.length === 0
             };
-            
-            if (showAlert) {
-                let message = '✅ Structure Validation Results\n\n';
-                
-                if (errors.length > 0) {
-                    message += '❌ Errors:\n' + errors.map(e => `• ${e}`).join('\n') + '\n\n';
-                }
-                
-                if (warnings.length > 0) {
-                    message += '⚠️ Warnings:\n' + warnings.map(w => `• ${w}`).join('\n') + '\n\n';
-                }
-                
-                if (errors.length === 0 && warnings.length === 0) {
-                    message += 'Perfect! All validations passed.\n\n';
-                }
-                
-                message += `📊 Summary:\n• ${templateData.nodes.length} nodes\n• ${templateData.links.length} links\n• Balance Score: ${balanceScore}%`;
-                
-                alert(message);
+
+            if (presets[presetName]) {
+                colorPalette = { ...presets[presetName] };
+                updateColorInputs();
+                updateAllPreviews();
             }
-            
-            return result;
         }
 
-        function setupMetadataListeners() {
-            const metadataFields = [
-                { id: 'company-name', field: 'company' },
-                { id: 'period', field: 'period' },
-                { id: 'currency', field: 'currency' },
-                { id: 'units', field: 'unit' }
-            ];
+        function resetColors() {
+            colorPalette = {
+                revenue: '#3498db',
+                cost: '#e74c3c',
+                profit: '#27ae60',
+                expense: '#e67e22',
+                income: '#9b59b6'
+            };
+            updateColorInputs();
+            updateAllPreviews();
+        }
 
-            metadataFields.forEach(({ id, field }) => {
-                const element = document.getElementById(id);
-                if (element) {
-                    const updateHandler = (e) => {
-                        templateData.metadata[field] = e.target.value;
-                        updateAllPreviews();
-                    };
-                    
-                    element.removeEventListener('input', updateHandler);
-                    element.removeEventListener('change', updateHandler);
-                    element.addEventListener('input', updateHandler);
-                    element.addEventListener('change', updateHandler);
+        function updateColorInputs() {
+            Object.entries(colorPalette).forEach(([category, color]) => {
+                const colorInput = document.getElementById(`${category}-color`);
+                if (colorInput) {
+                    colorInput.value = color;
                 }
             });
         }
 
-        function generateChart() {
-            const validation = validateStructure(false);
+        function togglePreviewPanel() {
+            const container = document.querySelector('.template-container');
+            const icon = document.getElementById('preview-toggle-icon');
             
-            if (!validation.isValid) {
-                if (!confirm('Structure has validation errors. Generate chart anyway?')) {
-                    return;
-                }
-            }
+            container.classList.toggle('preview-hidden');
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const chartType = urlParams.get('chartType') || 'sankey';
-            const returnTo = urlParams.get('returnTo');
-            
-            if (returnTo === 'guided') {
-                const dataString = encodeURIComponent(JSON.stringify(templateData));
-                window.location.href = `guided.html?step=3&chartType=${chartType}&data=${dataString}&dataInput=template`;
+            if (container.classList.contains('preview-hidden')) {
+                icon.textContent = '▶';
             } else {
-                const dataString = encodeURIComponent(JSON.stringify(templateData));
-                window.location.href = `chart.html?chartType=${chartType}&data=${dataString}`;
+                icon.textContent = '◀';
             }
         }
 
-        function exportData() {
-            const dataStr = JSON.stringify(templateData, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            
-            const layers = new Set(templateData.nodes.map(n => n.depth)).size;
-            const company = templateData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-            link.download = `${company}-${layers}layers-${Date.now()}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importData() {
-            document.getElementById('file-input').click();
-        }
-
-        function handleFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    
-                    if (data.nodes && Array.isArray(data.nodes)) {
-                        templateData = data;
-                        renderAllData();
-                        updateAllPreviews();
-                        
-                        const validation = validateStructure(false);
-                        alert(`✅ Successfully imported!\n• ${data.nodes.length} nodes\n• ${data.links?.length || 0} links\n• Balance Score: ${validation.balanceScore}%`);
-                    } else {
-                        alert('❌ Invalid file format. Please upload a valid JSON file with nodes array.');
-                    }
-                } catch (error) {
-                    alert('❌ Failed to parse JSON file: ' + error.message);
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // Initialize with Adobe template
         document.addEventListener('DOMContentLoaded', function() {
-            loadAdobeTemplate();
+            loadCompleteTemplate();
+            updateColorInputs();
         });
     </script>
 </body>
