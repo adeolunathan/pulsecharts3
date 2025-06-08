@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - FIXED VERSION ===== */
-/* Enhanced with working controls and proper financial calculations */
+/* ===== PULSE SANKEY CHART - WITH GROUP SPACING ===== */
+/* Enhanced with group-to-group spacing logic for leftmost and rightmost layers */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -15,7 +15,7 @@ class PulseSankeyChart {
         // Custom color storage
         this.customColors = {};
         
-        // Initialize with proper defaults
+        // Initialize with proper defaults including group spacing
         this.config = this.getInitialConfig();
         
         this.initializeChart();
@@ -39,6 +39,8 @@ class PulseSankeyChart {
             linkWidthScale: 0.65,
             nodeOpacity: 1.0,
             linkOpacity: 1.0,
+            leftmostGroupGap: 40,  // NEW: Extra spacing between groups in leftmost layer
+            rightmostGroupGap: 40, // NEW: Extra spacing between groups in rightmost layer
             labelDistance: {
                 leftmost: 15,
                 middle: 12,
@@ -218,12 +220,12 @@ class PulseSankeyChart {
         this.nodes = Array.from(nodeMap.values());
         this.links = processedLinks;
         
-        // NEW: Calculate financial metrics
+        // Calculate financial metrics
         this.calculateFinancialMetrics();
     }
 
     /**
-     * NEW: Calculate proper financial metrics and percentages
+     * Calculate proper financial metrics and percentages
      */
     calculateFinancialMetrics() {
         // Find total revenue for percentage calculations
@@ -297,6 +299,9 @@ class PulseSankeyChart {
         this.calculateLinkPositions();
     }
 
+    /**
+     * NEW: Enhanced node positioning with group spacing
+     */
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
         const groupedNodes = this.groupAndSortNodes(nodes);
         const depth = nodes[0]?.depth ?? 0;
@@ -313,15 +318,196 @@ class PulseSankeyChart {
         } else {
             layerPadding = this.config.nodePadding * this.config.middleSpacing;
         }
+
+        // NEW: Apply group spacing logic for leftmost and rightmost layers
+        if ((isLeftmost || isRightmost) && groupedNodes.length > 1) {
+            this.positionNodesWithGroupSpacing(groupedNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
+        } else {
+            // Standard positioning for middle layers or single-group layers
+            this.positionNodesStandard(groupedNodes, availableHeight, layerPadding);
+        }
+    }
+
+    /**
+     * NEW: Position nodes with group-to-group spacing
+     */
+    positionNodesWithGroupSpacing(nodes, availableHeight, basePadding, isLeftmost, isRightmost) {
+        console.log(`🔧 Applying group spacing for ${isLeftmost ? 'leftmost' : 'rightmost'} layer`);
         
-        const totalHeight = d3.sum(groupedNodes, d => d.height);
-        const totalPadding = layerPadding * (groupedNodes.length - 1);
+        // Detect distinct groups based on naming patterns and existing group property
+        const groups = this.detectNodeGroups(nodes);
+        console.log(`📊 Detected ${groups.length} groups:`, groups.map(g => `${g.name} (${g.nodes.length} nodes)`));
+        
+        // Calculate total height requirements
+        const totalNodeHeight = nodes.reduce((sum, node) => sum + node.height, 0);
+        const totalBasePadding = basePadding * (nodes.length - 1);
+        
+        // Get group gap setting
+        const groupGap = isLeftmost ? this.config.leftmostGroupGap : this.config.rightmostGroupGap;
+        const totalGroupGaps = groupGap * (groups.length - 1);
+        
+        const totalRequired = totalNodeHeight + totalBasePadding + totalGroupGaps;
+        
+        // Start positioning
+        const startY = Math.max(20, (availableHeight - totalRequired) / 2);
+        let currentY = startY;
+        
+        groups.forEach((group, groupIndex) => {
+            console.log(`📍 Positioning group "${group.name}" at Y: ${currentY}`);
+            
+            // Position nodes within this group
+            group.nodes.forEach((node, nodeIndex) => {
+                node.y = currentY;
+                node.layerIndex = groupIndex * 100 + nodeIndex; // Ensure group separation in sorting
+                currentY += node.height;
+                
+                // Add base padding between nodes within the group (but not after last node in group)
+                if (nodeIndex < group.nodes.length - 1) {
+                    currentY += basePadding;
+                }
+            });
+            
+            // Add group gap after this group (but not after the last group)
+            if (groupIndex < groups.length - 1) {
+                currentY += groupGap;
+                console.log(`📏 Added ${groupGap}px group gap after "${group.name}"`);
+            }
+        });
+        
+        console.log(`✅ Group spacing applied. Total height used: ${currentY - startY}px`);
+    }
+
+    /**
+     * NEW: Detect distinct groups within a layer based on naming patterns and properties
+     */
+    detectNodeGroups(nodes) {
+        const groups = [];
+        const processedNodes = new Set();
+        
+        // First, group by explicit 'group' property if it exists
+        const explicitGroups = new Map();
+        nodes.forEach(node => {
+            if (node.group && !processedNodes.has(node.id)) {
+                if (!explicitGroups.has(node.group)) {
+                    explicitGroups.set(node.group, []);
+                }
+                explicitGroups.get(node.group).push(node);
+                processedNodes.add(node.id);
+            }
+        });
+        
+        // Add explicit groups
+        explicitGroups.forEach((groupNodes, groupName) => {
+            groups.push({
+                name: groupName,
+                nodes: groupNodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+            });
+        });
+        
+        // Then, detect groups by naming patterns for remaining nodes
+        const remainingNodes = nodes.filter(node => !processedNodes.has(node.id));
+        
+        if (remainingNodes.length > 0) {
+            const patternGroups = this.detectPatternGroups(remainingNodes);
+            groups.push(...patternGroups);
+            
+            patternGroups.forEach(group => {
+                group.nodes.forEach(node => processedNodes.add(node.id));
+            });
+        }
+        
+        // Add any remaining ungrouped nodes as individual groups
+        const ungroupedNodes = nodes.filter(node => !processedNodes.has(node.id));
+        ungroupedNodes.forEach(node => {
+            groups.push({
+                name: `Individual: ${node.id}`,
+                nodes: [node]
+            });
+        });
+        
+        return groups;
+    }
+
+    /**
+     * NEW: Detect groups based on naming patterns (e.g., "mercado" prefix)
+     */
+    detectPatternGroups(nodes) {
+        const groups = [];
+        const processedNodes = new Set();
+        
+        // Look for common prefixes (e.g., "mercado")
+        const prefixGroups = new Map();
+        
+        nodes.forEach(node => {
+            if (processedNodes.has(node.id)) return;
+            
+            const words = node.id.toLowerCase().split(/[\s\-_]+/);
+            const firstWord = words[0];
+            
+            // Only group if the first word appears in multiple nodes
+            if (firstWord.length > 3) { // Ignore very short words
+                const samePrefix = nodes.filter(n => 
+                    !processedNodes.has(n.id) && 
+                    n.id.toLowerCase().startsWith(firstWord)
+                );
+                
+                if (samePrefix.length > 1) {
+                    const groupName = firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
+                    prefixGroups.set(groupName, samePrefix);
+                    samePrefix.forEach(n => processedNodes.add(n.id));
+                }
+            }
+        });
+        
+        // Convert prefix groups to standard format
+        prefixGroups.forEach((groupNodes, groupName) => {
+            groups.push({
+                name: groupName,
+                nodes: groupNodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+            });
+        });
+        
+        // Group remaining nodes by category if they're similar
+        const remainingNodes = nodes.filter(node => !processedNodes.has(node.id));
+        
+        if (remainingNodes.length > 1) {
+            const categoryGroups = new Map();
+            
+            remainingNodes.forEach(node => {
+                const category = node.category || 'Other';
+                if (!categoryGroups.has(category)) {
+                    categoryGroups.set(category, []);
+                }
+                categoryGroups.get(category).push(node);
+            });
+            
+            // Only create category groups if there are multiple nodes in the category
+            categoryGroups.forEach((groupNodes, category) => {
+                if (groupNodes.length > 1) {
+                    groups.push({
+                        name: `${category.charAt(0).toUpperCase() + category.slice(1)} Group`,
+                        nodes: groupNodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                    });
+                    groupNodes.forEach(n => processedNodes.add(n.id));
+                }
+            });
+        }
+        
+        return groups;
+    }
+
+    /**
+     * Standard positioning for layers without group spacing
+     */
+    positionNodesStandard(nodes, availableHeight, layerPadding) {
+        const totalHeight = d3.sum(nodes, d => d.height);
+        const totalPadding = layerPadding * (nodes.length - 1);
         const totalRequired = totalHeight + totalPadding;
         
         const startY = Math.max(20, (availableHeight - totalRequired) / 2);
         let currentY = startY;
         
-        groupedNodes.forEach((node, index) => {
+        nodes.forEach((node, index) => {
             node.y = currentY;
             node.layerIndex = index;
             currentY += node.height + layerPadding;
@@ -403,6 +589,17 @@ class PulseSankeyChart {
         }
         
         const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        
+        // Re-apply group spacing if this is leftmost or rightmost layer
+        if ((isLeftmost || isRightmost) && nodes.length > 1) {
+            const groups = this.detectNodeGroups(nodes);
+            if (groups.length > 1) {
+                this.positionNodesWithGroupSpacing(nodes, availableHeight, layerPadding, isLeftmost, isRightmost);
+                return;
+            }
+        }
+        
+        // Standard repositioning
         const totalHeight = d3.sum(nodes, d => d.height);
         const totalPadding = layerPadding * (nodes.length - 1);
         const totalRequired = totalHeight + totalPadding;
@@ -759,21 +956,150 @@ class PulseSankeyChart {
             .attr('stroke', 'white')
             .attr('stroke-width', 2)
             .attr('rx', 1)
-            .style('cursor', 'pointer')
+            .style('cursor', 'move')
             .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
             .style('transition', 'all 0.2s ease')
             .on('mouseover', (event, d) => {
-                d3.select(event.currentTarget)
-                    .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))')
-                    .style('transform', 'scale(1.02)');
-                this.showNodeTooltip(event, d);
+                if (!this.isDragging) {
+                    d3.select(event.currentTarget)
+                        .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))')
+                        .style('transform', 'scale(1.02)');
+                    this.showNodeTooltip(event, d);
+                }
             })
             .on('mouseout', (event, d) => {
-                d3.select(event.currentTarget)
-                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
-                    .style('transform', 'scale(1)');
-                this.hideTooltip();
+                if (!this.isDragging) {
+                    d3.select(event.currentTarget)
+                        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
+                        .style('transform', 'scale(1)');
+                    this.hideTooltip();
+                }
             });
+
+        // Add drag behavior
+        this.addDragBehavior(nodeGroups);
+    }
+
+    addDragBehavior(nodeGroups) {
+        const self = this;
+        this.isDragging = false;
+        
+        const drag = d3.drag()
+            .on('start', function(event, d) {
+                self.isDragging = true;
+                self.hideTooltip();
+                
+                // Highlight draggable area
+                d3.select(this).select('rect')
+                    .style('stroke', '#667eea')
+                    .style('stroke-width', 3)
+                    .style('filter', 'drop-shadow(0 6px 12px rgba(102, 126, 234, 0.3))');
+                
+                // Show drag hint
+                self.showDragHint(d);
+            })
+            .on('drag', function(event, d) {
+                const newY = Math.max(20, Math.min(
+                    self.config.height - self.config.margin.top - self.config.margin.bottom - d.height - 20,
+                    event.y
+                ));
+                
+                d.y = newY;
+                d3.select(this).attr('transform', `translate(${d.x}, ${d.y})`);
+                
+                // Update connected links in real-time
+                self.updateNodeLinks(d);
+                self.updateDragHint(d, newY);
+            })
+            .on('end', function(event, d) {
+                self.isDragging = false;
+                
+                // Reset visual state
+                d3.select(this).select('rect')
+                    .style('stroke', 'white')
+                    .style('stroke-width', 2)
+                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+                
+                self.hideDragHint();
+                
+                // Recalculate all link positions and re-render labels
+                self.calculateLinkPositions();
+                self.chart.selectAll('.node-label, .node-value').remove();
+                self.renderLabels();
+                self.renderLinks();
+                
+                console.log(`📍 Node "${d.id}" repositioned to Y: ${d.y.toFixed(1)}`);
+            });
+
+        nodeGroups.call(drag);
+    }
+
+    updateNodeLinks(draggedNode) {
+        // Update source links
+        draggedNode.sourceLinks.forEach(link => {
+            const linkElement = this.chart.selectAll('.sankey-link path')
+                .filter(d => d === link);
+            
+            if (!linkElement.empty()) {
+                link.path = this.createSmoothPath(link);
+                linkElement.attr('d', link.path);
+            }
+        });
+
+        // Update target links  
+        draggedNode.targetLinks.forEach(link => {
+            const linkElement = this.chart.selectAll('.sankey-link path')
+                .filter(d => d === link);
+            
+            if (!linkElement.empty()) {
+                link.path = this.createSmoothPath(link);
+                linkElement.attr('d', link.path);
+            }
+        });
+    }
+
+    showDragHint(node) {
+        this.dragHint = this.chart.append('g')
+            .attr('class', 'drag-hint')
+            .style('pointer-events', 'none');
+
+        // Vertical guide line
+        const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        
+        this.dragHint.append('line')
+            .attr('x1', node.x + this.config.nodeWidth / 2)
+            .attr('y1', 20)
+            .attr('x2', node.x + this.config.nodeWidth / 2)  
+            .attr('y2', availableHeight - 20)
+            .attr('stroke', '#667eea')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '5,5')
+            .attr('opacity', 0.5);
+
+        // Position indicator
+        this.dragHint.append('text')
+            .attr('class', 'drag-position')
+            .attr('x', node.x + this.config.nodeWidth + 10)
+            .attr('y', node.y + node.height / 2)
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', '#667eea')
+            .text(`Y: ${node.y.toFixed(0)}px`);
+    }
+
+    updateDragHint(node, newY) {
+        if (this.dragHint) {
+            this.dragHint.select('.drag-position')
+                .attr('y', newY + node.height / 2)
+                .text(`Y: ${newY.toFixed(0)}px`);
+        }
+    }
+
+    hideDragHint() {
+        if (this.dragHint) {
+            this.dragHint.remove();
+            this.dragHint = null;
+        }
     }
 
     renderLabels() {
@@ -981,7 +1307,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Format currency with proper brackets for expenses and percentages/margins
+     * Format currency with proper brackets for expenses and percentages/margins
      */
     formatCurrency(value, node) {
         const currency = this.data?.metadata?.currency || 'USD';
@@ -1043,12 +1369,12 @@ class PulseSankeyChart {
                 }
         }
         
-        // NEW: Add brackets for expenses and costs
+        // Add brackets for expenses and costs
         if (node && node.isExpenseType) {
             formattedValue = `(${formattedValue})`;
         }
         
-        // NEW: Add percentage/margin display for relevant nodes
+        // Add percentage/margin display for relevant nodes
         if (node) {
             if (node.marginType && node.marginValue) {
                 formattedValue += ` | ${node.marginValue.toFixed(1)}%`;
@@ -1129,7 +1455,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * FIXED: Set custom colors with immediate re-render
+     * Set custom colors with immediate re-render
      */
     setCustomColors(colorMap) {
         this.customColors = { ...colorMap };
@@ -1259,9 +1585,6 @@ class PulseSankeyChart {
         return this;
     }
 
-    /**
-     * FIXED: Set layer spacing with proper recalculation
-     */
     setLayerSpacing(depth, multiplier) {
         console.log(`🔧 Setting layer ${depth} spacing to ${multiplier}`);
         
@@ -1271,7 +1594,6 @@ class PulseSankeyChart {
         
         this.config.layerSpacing[depth] = multiplier;
         
-        // Apply the spacing based on layer type
         const maxDepth = Math.max(...this.nodes.map(n => n.depth));
         
         if (depth === 0) {
@@ -1282,7 +1604,6 @@ class PulseSankeyChart {
             this.config.middleSpacing = multiplier;
         }
         
-        // Recalculate and re-render
         this.calculateLayout();
         this.render(this.data);
         return this;
@@ -1319,7 +1640,12 @@ class PulseSankeyChart {
             this.config.layerSpacing[maxDepth] = newConfig.rightmostSpacing;
         }
         
-        const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig);
+        // Check if group spacing changed
+        const groupSpacingChanged = 
+            newConfig.leftmostGroupGap !== undefined && newConfig.leftmostGroupGap !== oldConfig.leftmostGroupGap ||
+            newConfig.rightmostGroupGap !== undefined && newConfig.rightmostGroupGap !== oldConfig.rightmostGroupGap;
+        
+        const needsFullRender = this.configRequiresFullRender(oldConfig, newConfig) || groupSpacingChanged;
         const needsLayoutRecalc = this.configRequiresLayoutRecalc(oldConfig, newConfig);
         const needsLabelsUpdate = this.configRequiresLabelsUpdate(oldConfig, newConfig);
         
@@ -1334,7 +1660,6 @@ class PulseSankeyChart {
             this.chart.selectAll('.node-label, .node-value').remove();
             this.renderLabels();
         } else {
-            // FIXED: Apply immediate opacity changes
             if (newConfig.nodeOpacity !== undefined) {
                 this.chart.selectAll('.sankey-node rect')
                     .transition()
@@ -1353,7 +1678,7 @@ class PulseSankeyChart {
     }
 
     configRequiresFullRender(oldConfig, newConfig) {
-        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale', 'nodePadding', 'layerSpacing'];
+        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale', 'nodePadding', 'layerSpacing', 'leftmostGroupGap', 'rightmostGroupGap'];
         return fullRenderKeys.some(key => 
             JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
         );

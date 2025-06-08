@@ -1,11 +1,9 @@
-/* ===== SANKEY CHART CONTROLS - COMPLETE FIXED VERSION ===== */
-/* Enhanced Sankey controls with working color customization, all original controls intact */
+/* ===== SANKEY CHART CONTROLS - WITH GROUP SPACING ===== */
+/* Enhanced Sankey controls with group-to-group spacing and color customization */
 
 class SankeyControlModule {
     constructor() {
         this.capabilities = this.defineCapabilities();
-        this.currentLayerCount = 0;
-        this.dynamicControls = new Map();
     }
 
     defineCapabilities() {
@@ -72,6 +70,20 @@ class SankeyControlModule {
                     }
                 ]
             },
+
+            manual: {
+                title: "Manual Positioning",
+                icon: "🖱️",
+                collapsed: false,
+                controls: [
+                    {
+                        id: "dragInfo",
+                        type: "info",
+                        label: "Interactive Positioning",
+                        description: "💡 Drag nodes vertically to reposition them manually.\n\n🖱️ Click and drag any node up or down within its layer.\n📍 Dashed line shows drag constraints.\n🔗 Links update in real-time during dragging."
+                    }
+                ]
+            },
             
             curves: {
                 title: "Flow Curves",
@@ -91,7 +103,6 @@ class SankeyControlModule {
                 ]
             },
 
-            // FIXED: Color Customization Section
             colors: {
                 title: "Color Customization",
                 icon: "🎨",
@@ -252,147 +263,46 @@ class SankeyControlModule {
                         description: "Transparency of flow connections" 
                     }
                 ]
-            },
-
-            // Dynamic layer controls section
-            dynamicLayers: {
-                title: "Advanced Layer Controls",
-                icon: "🔧",
-                collapsed: true,
-                description: "Fine-tune individual layer properties",
-                controls: []
             }
         };
     }
 
     /**
-     * Initialize dynamic layer controls based on chart data
-     */
-    initializeDynamicControls(chart) {
-        if (!chart || !chart.getLayerInfo) {
-            console.warn('Chart does not support dynamic layer information');
-            return;
-        }
-
-        const layerInfo = chart.getLayerInfo();
-        this.currentLayerCount = layerInfo.totalLayers;
-        
-        console.log(`🔧 Initializing dynamic controls for ${this.currentLayerCount} layers`);
-        
-        this.capabilities.dynamicLayers.controls = [];
-        this.dynamicControls.clear();
-
-        for (let depth = 0; depth <= layerInfo.maxDepth; depth++) {
-            const layerType = this.getLayerTypeName(depth, layerInfo);
-            const nodeCount = layerInfo.nodeDistribution[depth]?.count || 0;
-            
-            if (nodeCount === 0) continue;
-
-            const control = {
-                id: `layer_${depth}_spacing`,
-                type: "slider",
-                label: `Layer ${depth} Spacing (${layerType})`,
-                min: 0.3,
-                max: 2.0,
-                default: layerInfo.layerSpacing[depth] || 1.0,
-                step: 0.1,
-                unit: "×",
-                description: `Individual spacing control for layer ${depth} (${nodeCount} nodes)`,
-                layerDepth: depth,
-                isDynamic: true
-            };
-
-            this.capabilities.dynamicLayers.controls.push(control);
-            this.dynamicControls.set(depth, control);
-        }
-
-        this.capabilities.dynamicLayers.controls.push({
-            id: "layerInfo",
-            type: "info",
-            label: "Layer Structure",
-            description: this.formatLayerInfo(layerInfo),
-            isDynamic: true,
-            readonly: true
-        });
-
-        console.log(`✅ Created ${this.dynamicControls.size} dynamic layer controls`);
-    }
-
-    getLayerTypeName(depth, layerInfo) {
-        if (depth === layerInfo.layerInfo.leftmost) {
-            return "Leftmost";
-        } else if (depth === layerInfo.layerInfo.rightmost) {
-            return "Rightmost";
-        } else {
-            return "Middle";
-        }
-    }
-
-    formatLayerInfo(layerInfo) {
-        const lines = [];
-        lines.push(`Total Layers: ${layerInfo.totalLayers}`);
-        lines.push(`Leftmost: Layer ${layerInfo.layerInfo.leftmost}`);
-        lines.push(`Rightmost: Layer ${layerInfo.layerInfo.rightmost}`);
-        
-        if (layerInfo.layerInfo.middle.length > 0) {
-            lines.push(`Middle: Layers ${layerInfo.layerInfo.middle.join(', ')}`);
-        }
-        
-        lines.push('');
-        lines.push('Node Distribution:');
-        
-        Object.entries(layerInfo.nodeDistribution).forEach(([depth, info]) => {
-            lines.push(`Layer ${depth}: ${info.count} nodes (${info.layerType})`);
-        });
-        
-        return lines.join('\n');
-    }
-
-    /**
-     * FIXED: Control change handler with proper color and opacity updates
+     * Control change handler with proper color and opacity updates + group spacing
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
-        // FIXED: Handle color controls with immediate re-render
+        // Handle color controls
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
             this.updateChartColor(chart, category, value);
             return;
         }
 
-        // FIXED: Handle node opacity with immediate visual update
+        // Handle opacity controls
         if (controlId === 'nodeOpacity') {
             chart.config.nodeOpacity = value;
-            // Force immediate DOM update
             chart.chart.selectAll('.sankey-node rect')
                 .transition()
                 .duration(150)
                 .attr('fill-opacity', value);
-            console.log(`🎨 Node opacity updated to ${value}`);
             return;
         }
 
-        // FIXED: Handle link opacity with immediate visual update
         if (controlId === 'linkOpacity') {
             chart.config.linkOpacity = value;
-            // Force immediate DOM update
             chart.chart.selectAll('.sankey-link path')
                 .transition()
                 .duration(150)
                 .attr('fill-opacity', value);
-            console.log(`🎨 Link opacity updated to ${value}`);
             return;
         }
 
-        // FIXED: Handle dynamic layer spacing controls
-        if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
-            const depth = parseInt(controlId.split('_')[1]);
-            if (!isNaN(depth)) {
-                console.log(`🔧 Setting layer ${depth} spacing to ${value}`);
-                chart.setLayerSpacing(depth, value);
-                return;
-            }
+        // Handle group spacing controls
+        if (controlId === 'leftmostGroupGap' || controlId === 'rightmostGroupGap') {
+            chart.updateConfig({ [controlId]: value });
+            return;
         }
 
         // Handle middle layer spacing control
@@ -482,7 +392,7 @@ class SankeyControlModule {
     }
 
     /**
-     * FIXED: Update chart color with immediate re-render
+     * Update chart color with immediate re-render
      */
     updateChartColor(chart, category, color) {
         console.log(`🎨 Updating ${category} color to ${color}`);
@@ -491,15 +401,12 @@ class SankeyControlModule {
             chart.customColors = {};
         }
         
-        // Set the color
         chart.customColors[category] = color;
         
-        // Tax uses expense color
         if (category === 'expense') {
             chart.customColors['tax'] = color;
         }
         
-        // Update metadata for persistence
         if (chart.data && chart.data.metadata) {
             if (!chart.data.metadata.colorPalette) {
                 chart.data.metadata.colorPalette = {};
@@ -510,29 +417,24 @@ class SankeyControlModule {
             }
         }
         
-        // FIXED: Force immediate re-render to show color changes
         if (chart.data) {
-            console.log('🔄 Re-rendering chart with new colors');
             chart.render(chart.data);
         }
     }
 
     /**
-     * FIXED: Get current values from chart including colors
+     * Get current values from chart including colors
      */
     getCurrentValue(controlId, chart) {
-        // FIXED: Handle color controls - get from chart's custom colors
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
             if (chart && chart.customColors && chart.customColors[category]) {
                 return chart.customColors[category];
             }
-            // Fallback to default from capabilities
             const colorControl = this.findControlById(controlId);
             return colorControl ? colorControl.default : '#000000';
         }
 
-        // Handle other controls normally
         if (chart && chart.config) {
             // Handle complex nested configs
             if (controlId.includes('Distance')) {
@@ -550,14 +452,6 @@ class SankeyControlModule {
                 }
                 if (controlId === 'valueDistance' && chart.config.valueDistance) {
                     return chart.config.valueDistance.general;
-                }
-            }
-
-            // Handle dynamic layer controls
-            if (controlId.startsWith('layer_') && controlId.endsWith('_spacing')) {
-                const depth = parseInt(controlId.split('_')[1]);
-                if (!isNaN(depth) && chart.config.layerSpacing && chart.config.layerSpacing[depth] !== undefined) {
-                    return chart.config.layerSpacing[depth];
                 }
             }
 
@@ -591,9 +485,7 @@ class SankeyControlModule {
         Object.values(this.capabilities).forEach(section => {
             if (section.controls && Array.isArray(section.controls)) {
                 section.controls.forEach(control => {
-                    if (!control.isDynamic) {
-                        defaults[control.id] = control.default;
-                    }
+                    defaults[control.id] = control.default;
                 });
             }
         });
@@ -616,6 +508,10 @@ class SankeyControlModule {
             3: 0.9,
             4: 0.7
         };
+
+        // Add group spacing defaults
+        defaults.leftmostGroupGap = 40;
+        defaults.rightmostGroupGap = 40;
 
         console.log('📋 Control module defaults generated:', defaults);
         return defaults;
@@ -710,13 +606,10 @@ class SankeyControlModule {
 
     validateConfig(config) {
         const errors = [];
-        const warnings = [];
-
+        
         Object.values(this.capabilities).forEach(section => {
             if (section.controls && Array.isArray(section.controls)) {
                 section.controls.forEach(control => {
-                    if (control.isDynamic) return;
-                    
                     const value = config[control.id];
                     
                     if (value !== undefined) {
@@ -736,16 +629,11 @@ class SankeyControlModule {
             }
         });
 
-        return { errors, warnings, valid: errors.length === 0 };
+        return { errors, warnings: [], valid: errors.length === 0 };
     }
 
     resetToDefaults() {
         const defaults = this.getDefaultConfig();
-        
-        this.dynamicControls.forEach((control, depth) => {
-            defaults[control.id] = control.default;
-        });
-        
         console.log('🔄 Reset to defaults:', defaults);
         return defaults;
     }
@@ -753,16 +641,15 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '2.3',
+            version: '2.4',
             config: config,
             timestamp: new Date().toISOString(),
             features: {
                 smartLabelPositioning: true,
                 layerSpecificSpacing: true,
-                dynamicLayerSupport: true,
                 colorCustomization: true,
                 taxExpenseGrouping: true,
-                totalLayers: this.currentLayerCount
+                groupSpacing: true
             }
         }, null, 2);
     }
@@ -787,19 +674,19 @@ class SankeyControlModule {
         }
     }
 
-    updateCapabilities(chart) {
-        if (chart && chart.getLayerInfo) {
-            this.initializeDynamicControls(chart);
-            console.log(`🔄 Updated capabilities for chart with ${this.currentLayerCount} layers`);
-        }
-    }
-
     supportsDynamicLayers() {
-        return true;
+        return false; // Removed advanced layer controls
     }
 
-    getCurrentLayerCount() {
-        return this.currentLayerCount;
+    // Stub method for backward compatibility
+    initializeDynamicControls(chart) {
+        // No-op - dynamic controls removed
+        console.log('🔧 Dynamic controls disabled in this version');
+    }
+
+    updateCapabilities(chart) {
+        // No-op - dynamic controls removed
+        console.log('🔄 Capability updates disabled in this version');
     }
 }
 
