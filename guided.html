@@ -85,7 +85,23 @@
                 <div class="input-option" onclick="selectDataInput('upload')">
                     <span class="option-icon">📁</span>
                     <h3 class="option-title">Upload Your Data</h3>
-                    <p class="option-description">Import your financial data from JSON, CSV, or standard income statement format</p>
+                    <p class="option-description">Import your financial data from JSON, CSV, or Excel exports</p>
+                </div>
+            </div>
+
+            <!-- Data Upload Preview Section (initially hidden) -->
+            <div id="upload-preview" style="display: none; margin-top: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+                <div style="background: #f8f9fa; padding: 16px 20px; border-bottom: 1px solid #e1e5e9;">
+                    <h3 style="margin: 0; color: #1f2937; font-size: 16px;">📊 Business Flows Preview</h3>
+                </div>
+                <div style="padding: 20px;">
+                    <div id="preview-content" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Preview content will be inserted here -->
+                    </div>
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e1e5e9; display: flex; gap: 12px; justify-content: end;">
+                        <button class="btn btn-secondary" onclick="clearUploadPreview()">🗑️ Clear</button>
+                        <button class="btn btn-primary" onclick="acceptUploadedData()">✅ Use This Data</button>
+                    </div>
                 </div>
             </div>
             
@@ -152,12 +168,91 @@
         let currentStep = 1;
         let selectedChartType = null;
         let selectedDataInput = null;
+        let uploadedFlowData = null; // Store uploaded data in flows format
+        let flowIdCounter = 0;
         let appState = {
             chartType: null,
             dataInput: null,
             data: null,
             config: {}
         };
+
+        // BusinessFlow class (reused from template)
+        class BusinessFlow {
+            constructor(options = {}) {
+                this.id = options.id || `flow_${++flowIdCounter}`;
+                this.source = options.source || '';
+                this.target = options.target || '';
+                this.value = options.value || 0;
+                this.flowType = options.flowType || 'revenue_flow';
+                this.sourceLayer = options.sourceLayer || 0;
+                this.targetLayer = options.targetLayer || 1;
+                this.sourceOrder = options.sourceOrder || 1;
+                this.targetOrder = options.targetOrder || 1;
+                this.sourceCategory = options.sourceCategory || 'revenue';
+                this.targetCategory = options.targetCategory || 'revenue';
+                this.description = options.description || '';
+            }
+        }
+
+        // Generate nodes and links from flows (reused from template)
+        function generateNodesAndLinksFromFlows(flowData) {
+            const nodeMap = new Map();
+            const links = [];
+            
+            flowData.flows.forEach(flow => {
+                if (!nodeMap.has(flow.source)) {
+                    nodeMap.set(flow.source, {
+                        id: flow.source,
+                        depth: flow.sourceLayer,
+                        value: 0,
+                        category: flow.sourceCategory,
+                        description: `Source: ${flow.description}`,
+                        sort_order: flow.sourceOrder || 1
+                    });
+                }
+                
+                if (!nodeMap.has(flow.target)) {
+                    nodeMap.set(flow.target, {
+                        id: flow.target,
+                        depth: flow.targetLayer,
+                        value: 0,
+                        category: flow.targetCategory,
+                        description: `Target: ${flow.description}`,
+                        sort_order: flow.targetOrder || 1
+                    });
+                }
+                
+                const targetNode = nodeMap.get(flow.target);
+                targetNode.value += flow.value;
+                
+                links.push({
+                    source: flow.source,
+                    target: flow.target,
+                    value: flow.value,
+                    type: flow.flowType,
+                    description: flow.description,
+                    colorCategory: flow.targetCategory
+                });
+            });
+            
+            // Calculate source node values
+            flowData.flows.forEach(flow => {
+                const sourceNode = nodeMap.get(flow.source);
+                if (sourceNode.value === 0) {
+                    const outflows = flowData.flows.filter(f => f.source === flow.source);
+                    sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
+                }
+            });
+            
+            return {
+                metadata: {
+                    ...flowData.metadata
+                },
+                nodes: Array.from(nodeMap.values()),
+                links: links
+            };
+        }
 
         // Step Management
         function updateStepProgress() {
@@ -209,7 +304,7 @@
                 case 1:
                     return selectedChartType !== null;
                 case 2:
-                    return selectedDataInput !== null;
+                    return selectedDataInput !== null && appState.data !== null;
                 case 3:
                     return true;
                 default:
@@ -219,7 +314,6 @@
 
         // Step 1: Chart Type Selection
         function selectChartType(chartType) {
-            // Only allow selection of available chart types
             if (chartType !== 'sankey') {
                 alert('This chart type is coming soon! Please select Sankey Flow Chart for now.');
                 return;
@@ -228,13 +322,11 @@
             selectedChartType = chartType;
             appState.chartType = chartType;
             
-            // Update UI
             document.querySelectorAll('.chart-type-card').forEach(card => {
                 card.classList.remove('selected');
             });
             document.querySelector(`[data-chart-type="${chartType}"]`).classList.add('selected');
             
-            // Enable next button
             document.getElementById('step1-next').disabled = false;
         }
 
@@ -243,15 +335,12 @@
             selectedDataInput = inputType;
             appState.dataInput = inputType;
             
-            // Update UI
             document.querySelectorAll('.input-option').forEach(option => {
                 option.style.background = '';
             });
             event.currentTarget.style.background = '#f0f3ff';
             
-            // Handle different input types
             if (inputType === 'template') {
-                // Redirect to template editing page
                 const params = new URLSearchParams({
                     chartType: selectedChartType,
                     returnTo: 'guided'
@@ -259,86 +348,400 @@
                 window.location.href = `templates.html?${params.toString()}`;
             } else if (inputType === 'upload') {
                 showUploadDialog();
-                // Enable next button after successful upload
-                document.getElementById('step2-next').disabled = false;
             }
-        }
-
-        function loadTemplateData() {
-            // Load sample SaaS data (matches your existing format)
-            appState.data = {
-                metadata: {
-                    title: "SaaS Company Financial Flow",
-                    subtitle: "Q3 2025 Financial Performance",
-                    currency: "USD",
-                    unit: "millions",
-                    company: "TechFlow SaaS Corp",
-                    period: "Q3 2025"
-                },
-                nodes: [
-                    {id: "Subscription Revenue", depth: 0, value: 300, category: "revenue", group: "revenue_sources", sort_order: 1},
-                    {id: "Professional Services", depth: 0, value: 60, category: "revenue", group: "revenue_sources", sort_order: 2},
-                    {id: "Platform & Other", depth: 0, value: 135, category: "revenue", group: "revenue_sources", sort_order: 3},
-                    {id: "Total Revenue", depth: 1, value: 395, category: "revenue", group: "aggregated_revenue", sort_order: 1},
-                    {id: "Gross Profit", depth: 2, value: 340, category: "profit", group: "gross_metrics", sort_order: 1},
-                    {id: "Cost of Revenue", depth: 2, value: 55, category: "cost", group: "gross_metrics", sort_order: 2},
-                    {id: "Operating Profit", depth: 3, value: 65, category: "profit", group: "operating_metrics", sort_order: 1},
-                    {id: "Operating Expenses", depth: 3, value: 155, category: "expense", group: "operating_metrics", sort_order: 2},
-                    {id: "Net Income", depth: 4, value: 50, category: "income", group: "final_results", sort_order: 1},
-                    {id: "Sales & Marketing", depth: 4, value: 85, category: "expense", group: "operating_expenses", sort_order: 1},
-                    {id: "R&D", depth: 4, value: 45, category: "expense", group: "operating_expenses", sort_order: 2},
-                    {id: "G&A", depth: 4, value: 20, category: "expense", group: "operating_expenses", sort_order: 3},
-                    {id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1}
-                ],
-                links: [
-                    {source: "Subscription Revenue", target: "Total Revenue", value: 300, type: "revenue_flow"},
-                    {source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue_flow"},
-                    {source: "Platform & Other", target: "Total Revenue", value: 135, type: "revenue_flow"},
-                    {source: "Total Revenue", target: "Gross Profit", value: 340, type: "profit_flow"},
-                    {source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost_flow"},
-                    {source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit_flow"},
-                    {source: "Gross Profit", target: "Operating Expenses", value: 155, type: "expense_flow"},
-                    {source: "Operating Expenses", target: "Sales & Marketing", value: 85, type: "expense_breakdown"},
-                    {source: "Operating Expenses", target: "R&D", value: 45, type: "expense_breakdown"},
-                    {source: "Operating Expenses", target: "G&A", value: 20, type: "expense_breakdown"},
-                    {source: "Operating Profit", target: "Net Income", value: 50, type: "final_income"},
-                    {source: "Operating Profit", target: "Tax Expense", value: 12, type: "tax_flow"}
-                ]
-            };
-            console.log('Template data loaded');
         }
 
         function showUploadDialog() {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.json,.csv';
+            input.accept = '.json,.csv,.txt';
             input.onchange = handleFileUpload;
             input.click();
         }
 
+        // Enhanced file upload handler with flows structure
         function handleFileUpload(event) {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        appState.data = data;
-                        console.log('Uploaded data:', data);
-                    } catch (error) {
-                        alert('Error parsing file: ' + error.message);
+            if (!file) return;
+
+            console.log(`📁 Processing uploaded file: ${file.name}`);
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    let flowData = null;
+                    let dataSource = `Uploaded: ${file.name}`;
+
+                    // Parse based on file type
+                    if (file.name.toLowerCase().endsWith('.json')) {
+                        const jsonData = JSON.parse(content);
+                        flowData = convertToFlowData(jsonData, dataSource);
+                    } else {
+                        flowData = parseCSVToFlowData(content, dataSource);
                     }
+
+                    // Validate the parsed data
+                    const validation = validateFlowData(flowData);
+                    if (!validation.valid) {
+                        throw new Error(`Data validation failed: ${validation.errors.join(', ')}`);
+                    }
+
+                    // Store the uploaded data
+                    uploadedFlowData = flowData;
+                    
+                    // Show preview
+                    showFlowDataPreview(flowData, dataSource);
+                    
+                    console.log('✅ File processed successfully:', flowData);
+
+                } catch (error) {
+                    console.error('❌ File processing error:', error);
+                    
+                    let errorMessage = `Failed to process "${file.name}":\n\n${error.message}\n\n`;
+                    
+                    if (error.message.includes('JSON')) {
+                        errorMessage += 'If this is a CSV file, make sure it has the correct format:\n';
+                        errorMessage += 'Source,Target,Amount,Flow Type,Source Layer,Target Layer,...';
+                    } else if (error.message.includes('CSV')) {
+                        errorMessage += 'CSV format should be:\n';
+                        errorMessage += '• Header row with column names\n';
+                        errorMessage += '• Each row represents a flow\n';
+                        errorMessage += '• Minimum columns: Source, Target, Amount';
+                    }
+                    
+                    alert(errorMessage);
+                }
+            };
+
+            reader.onerror = () => {
+                alert('❌ Failed to read file. Please try again.');
+            };
+
+            reader.readAsText(file);
+        }
+
+        // Convert various data formats to flowData structure
+        function convertToFlowData(data, source) {
+            console.log('🔧 Converting data to flowData structure');
+            
+            // If already in flows format
+            if (data.flows && Array.isArray(data.flows)) {
+                return {
+                    metadata: {
+                        title: data.metadata?.title || "Uploaded Financial Flow",
+                        subtitle: data.metadata?.subtitle || "From uploaded data",
+                        currency: data.metadata?.currency || "USD",
+                        unit: data.metadata?.unit || "millions",
+                        company: data.metadata?.company || "Your Company",
+                        period: data.metadata?.period || "Current Period",
+                        source: source,
+                        colorPalette: data.metadata?.colorPalette || {
+                            revenue: "#3498db",
+                            cost: "#e74c3c", 
+                            profit: "#27ae60",
+                            expense: "#e67e22",
+                            income: "#9b59b6",
+                            tax: "#e67e22"
+                        }
+                    },
+                    flows: data.flows.map(flow => new BusinessFlow(flow))
                 };
-                reader.readAsText(file);
             }
+            
+            // Convert from nodes/links format
+            if (data.nodes && data.links) {
+                const flows = data.links.map(link => {
+                    const sourceNode = data.nodes.find(n => n.id === link.source);
+                    const targetNode = data.nodes.find(n => n.id === link.target);
+                    
+                    return new BusinessFlow({
+                        source: link.source,
+                        target: link.target,
+                        value: link.value,
+                        flowType: link.type || 'revenue_flow',
+                        sourceLayer: sourceNode?.depth || 0,
+                        targetLayer: targetNode?.depth || 1,
+                        sourceCategory: sourceNode?.category || 'revenue',
+                        targetCategory: targetNode?.category || 'revenue',
+                        description: link.description || targetNode?.description || ''
+                    });
+                });
+
+                return {
+                    metadata: {
+                        title: data.metadata?.title || "Converted Financial Flow",
+                        subtitle: data.metadata?.subtitle || "Converted from nodes/links format",
+                        currency: data.metadata?.currency || "USD",
+                        unit: data.metadata?.unit || "millions",
+                        company: data.metadata?.company || "Your Company",
+                        period: data.metadata?.period || "Current Period",
+                        source: source,
+                        colorPalette: data.metadata?.colorPalette || {
+                            revenue: "#3498db",
+                            cost: "#e74c3c",
+                            profit: "#27ae60", 
+                            expense: "#e67e22",
+                            income: "#9b59b6",
+                            tax: "#e67e22"
+                        }
+                    },
+                    flows: flows
+                };
+            }
+
+            throw new Error('Unrecognized JSON format. Expected flows array or nodes/links structure.');
+        }
+
+        // Parse CSV content to flowData structure
+        function parseCSVToFlowData(csvContent, source) {
+            console.log('🔧 Parsing CSV content to flowData structure');
+            
+            const lines = csvContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+            if (lines.length < 2) {
+                throw new Error('CSV file must have a header row and at least one data row');
+            }
+
+            const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+            
+            // Find required columns
+            const requiredColumns = {
+                source: findColumnIndex(headers, ['source', 'from']),
+                target: findColumnIndex(headers, ['target', 'to']),
+                value: findColumnIndex(headers, ['value', 'amount', 'volume'])
+            };
+
+            const missingColumns = Object.entries(requiredColumns)
+                .filter(([key, index]) => index === -1)
+                .map(([key]) => key);
+
+            if (missingColumns.length > 0) {
+                throw new Error(`Missing required columns: ${missingColumns.join(', ')}. Found columns: ${headers.join(', ')}`);
+            }
+
+            // Optional columns
+            const optionalColumns = {
+                flowType: findColumnIndex(headers, ['flow type', 'type', 'flowtype']),
+                sourceLayer: findColumnIndex(headers, ['source layer', 'src layer', 'sourcelayer']),
+                targetLayer: findColumnIndex(headers, ['target layer', 'tgt layer', 'targetlayer']),
+                sourceCategory: findColumnIndex(headers, ['source category', 'source cat', 'sourcecategory']),
+                targetCategory: findColumnIndex(headers, ['target category', 'target cat', 'targetcategory']),
+                description: findColumnIndex(headers, ['description', 'desc', 'notes'])
+            };
+
+            // Parse data rows
+            const flows = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                try {
+                    const values = parseCSVLine(lines[i]);
+                    if (values.length < Math.max(...Object.values(requiredColumns)) + 1) {
+                        console.warn(`⚠️ Row ${i + 1} has insufficient columns, skipping`);
+                        continue;
+                    }
+
+                    const source = values[requiredColumns.source]?.trim();
+                    const target = values[requiredColumns.target]?.trim();
+                    const value = parseFloat(values[requiredColumns.value]) || 0;
+
+                    if (!source || !target || value <= 0) {
+                        console.warn(`⚠️ Row ${i + 1} has invalid data, skipping`);
+                        continue;
+                    }
+
+                    const flow = new BusinessFlow({
+                        source,
+                        target,
+                        value,
+                        flowType: optionalColumns.flowType >= 0 ? values[optionalColumns.flowType]?.trim() || 'revenue_flow' : 'revenue_flow',
+                        sourceLayer: optionalColumns.sourceLayer >= 0 ? parseInt(values[optionalColumns.sourceLayer]) || 0 : 0,
+                        targetLayer: optionalColumns.targetLayer >= 0 ? parseInt(values[optionalColumns.targetLayer]) || 1 : 1,
+                        sourceCategory: optionalColumns.sourceCategory >= 0 ? values[optionalColumns.sourceCategory]?.trim() || 'revenue' : 'revenue',
+                        targetCategory: optionalColumns.targetCategory >= 0 ? values[optionalColumns.targetCategory]?.trim() || 'revenue' : 'revenue',
+                        description: optionalColumns.description >= 0 ? values[optionalColumns.description]?.trim() || '' : ''
+                    });
+
+                    flows.push(flow);
+
+                } catch (rowError) {
+                    console.warn(`⚠️ Error parsing row ${i + 1}: ${rowError.message}`);
+                }
+            }
+
+            return {
+                metadata: {
+                    title: "Uploaded Financial Flow",
+                    subtitle: "Data from CSV upload",
+                    currency: "USD",
+                    unit: "millions",
+                    company: "Your Company",
+                    period: "Current Period",
+                    source: source,
+                    parsedRows: flows.length,
+                    colorPalette: {
+                        revenue: "#3498db",
+                        cost: "#e74c3c",
+                        profit: "#27ae60",
+                        expense: "#e67e22",
+                        income: "#9b59b6",
+                        tax: "#e67e22"
+                    }
+                },
+                flows: flows
+            };
+        }
+
+        // Helper functions
+        function findColumnIndex(headers, possibleNames) {
+            for (const name of possibleNames) {
+                const index = headers.indexOf(name);
+                if (index >= 0) return index;
+            }
+            return -1;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result.map(field => field.replace(/^"|"$/g, '').trim());
+        }
+
+        // Validate flowData structure
+        function validateFlowData(flowData) {
+            const errors = [];
+            
+            if (!flowData) {
+                errors.push('No data provided');
+                return { valid: false, errors };
+            }
+
+            if (!flowData.flows || !Array.isArray(flowData.flows)) {
+                errors.push('Missing or invalid flows array');
+            } else if (flowData.flows.length === 0) {
+                errors.push('No flows found in data');
+            }
+
+            if (flowData.flows) {
+                flowData.flows.forEach((flow, index) => {
+                    if (!flow.source) errors.push(`Flow ${index + 1} missing source`);
+                    if (!flow.target) errors.push(`Flow ${index + 1} missing target`);
+                    if (typeof flow.value !== 'number' || flow.value <= 0) errors.push(`Flow ${index + 1} missing valid value`);
+                });
+            }
+
+            return { valid: errors.length === 0, errors };
+        }
+
+        // Show flowData preview
+        function showFlowDataPreview(flowData, source) {
+            const previewDiv = document.getElementById('upload-preview');
+            const contentDiv = document.getElementById('preview-content');
+            
+            // Create summary
+            const summary = `
+                <div style="background: #f0f9ff; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; color: #0369a1; margin-bottom: 8px;">💰 Business Flows Summary</div>
+                    <div style="font-size: 13px; color: #374151;">
+                        <strong>Source:</strong> ${source}<br>
+                        <strong>Business Flows:</strong> ${flowData.flows?.length || 0}<br>
+                        <strong>Company:</strong> ${flowData.metadata?.company || 'Not specified'}<br>
+                        <strong>Currency:</strong> ${flowData.metadata?.currency || 'USD'} (${flowData.metadata?.unit || 'millions'})
+                    </div>
+                </div>
+            `;
+
+            // Create flows table
+            const flowsTable = `
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #1f2937;">Business Flows (${flowData.flows?.length || 0})</h4>
+                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e1e5e9; border-radius: 4px;">
+                        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e1e5e9;">From</th>
+                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e1e5e9;">To</th>
+                                    <th style="padding: 8px; text-align: right; border-bottom: 1px solid #e1e5e9;">Amount</th>
+                                    <th style="padding: 8px; text-align: center; border-bottom: 1px solid #e1e5e9;">Layers</th>
+                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e1e5e9;">Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${flowData.flows?.slice(0, 15).map(flow => `
+                                    <tr>
+                                        <td style="padding: 6px 8px; border-bottom: 1px solid #f1f3f4;">${flow.source}</td>
+                                        <td style="padding: 6px 8px; border-bottom: 1px solid #f1f3f4;">${flow.target}</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid #f1f3f4;">${flow.value?.toFixed(1) || 0}</td>
+                                        <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f1f3f4;">${flow.sourceLayer}→${flow.targetLayer}</td>
+                                        <td style="padding: 6px 8px; border-bottom: 1px solid #f1f3f4;">${flow.flowType || 'flow'}</td>
+                                    </tr>
+                                `).join('')}
+                                ${flowData.flows?.length > 15 ? `<tr><td colspan="5" style="padding: 8px; text-align: center; font-style: italic; color: #6b7280;">... and ${flowData.flows.length - 15} more flows</td></tr>` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            contentDiv.innerHTML = summary + flowsTable;
+            previewDiv.style.display = 'block';
+            
+            // Scroll to preview
+            previewDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Accept uploaded data and auto-advance
+        function acceptUploadedData() {
+            if (!uploadedFlowData) {
+                alert('❌ No data to accept');
+                return;
+            }
+
+            // Convert flowData to Sankey format for chart
+            const sankeyData = generateNodesAndLinksFromFlows(uploadedFlowData);
+            appState.data = sankeyData;
+            
+            // Hide preview
+            document.getElementById('upload-preview').style.display = 'none';
+            
+            // Enable next step button (though we'll auto-advance)
+            document.getElementById('step2-next').disabled = false;
+            
+            console.log('✅ Accepted uploaded data:', appState.data);
+            
+            // Auto-advance to next step (like template flow)
+            setTimeout(() => {
+                nextStep();
+            }, 200);
+        }
+
+        // Clear upload preview
+        function clearUploadPreview() {
+            uploadedFlowData = null;
+            document.getElementById('upload-preview').style.display = 'none';
+            document.getElementById('step2-next').disabled = true;
+            console.log('🗑️ Cleared upload preview');
         }
 
         // Step 3: Chart Display
         function initializeChartDisplay() {
             console.log('Initializing chart display with:', appState);
             
-            // This would integrate with your existing PulseSankeyChart
-            // For now, just update the placeholder
             const placeholder = document.querySelector('.chart-placeholder');
             placeholder.innerHTML = `
                 <span style="font-size: 4rem; margin-bottom: 16px;">🌊</span>
@@ -349,7 +752,6 @@
                 </button>
             `;
 
-            // Update controls section
             const controls = document.querySelector('.chart-controls');
             controls.innerHTML = `
                 <div class="controls-header">
@@ -370,7 +772,6 @@
         }
 
         function renderActualChart() {
-            // Navigate to chart page with data
             const dataString = encodeURIComponent(JSON.stringify(appState.data));
             window.location.href = `chart.html?chartType=${selectedChartType}&data=${dataString}`;
         }
@@ -385,7 +786,6 @@
             const newURL = `${window.location.pathname}?${params.toString()}`;
             window.history.replaceState(null, '', newURL);
             
-            // Update shareable URL display
             const shareableUrl = document.getElementById('shareable-url');
             if (shareableUrl) {
                 shareableUrl.textContent = window.location.href;
@@ -395,8 +795,9 @@
         function loadFromURL() {
             const params = new URLSearchParams(window.location.search);
             
-            if (params.has('chartType')) {
-                selectChartType(params.get('chartType'));
+            if (params.has('chartType') || params.has('type')) {
+                const chartType = params.get('chartType') || params.get('type');
+                selectChartType(chartType);
             }
             
             if (params.has('dataInput')) {
@@ -404,10 +805,10 @@
                 appState.dataInput = selectedDataInput;
             }
             
-            if (params.has('data')) {
+            if (params.has('data') && params.get('data') !== 'template' && params.get('data') !== 'upload') {
                 try {
                     appState.data = JSON.parse(decodeURIComponent(params.get('data')));
-                    console.log('Loaded data from URL:', appState.data);
+                    console.log('Loaded data from URL parameters:', appState.data);
                 } catch (error) {
                     console.error('Error parsing URL data:', error);
                 }
@@ -418,7 +819,6 @@
                 updateStepProgress();
                 
                 if (currentStep === 3 && appState.data) {
-                    // Coming back from template editing - render chart immediately
                     initializeChartDisplay();
                     setTimeout(renderActualChart, 500);
                 }
@@ -435,9 +835,9 @@
                 currentStep = 1;
                 selectedChartType = null;
                 selectedDataInput = null;
+                uploadedFlowData = null;
                 appState = { chartType: null, dataInput: null, data: null, config: {} };
                 
-                // Reset UI
                 document.querySelectorAll('.chart-type-card').forEach(card => {
                     card.classList.remove('selected');
                 });
@@ -446,6 +846,7 @@
                 });
                 document.getElementById('step1-next').disabled = true;
                 document.getElementById('step2-next').disabled = true;
+                document.getElementById('upload-preview').style.display = 'none';
                 
                 updateStepProgress();
             }
