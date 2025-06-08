@@ -257,6 +257,9 @@ class PulseSankeyChart {
             this.positionNodesAtDepth(nodesAtDepth, dimensions.height, maxDepth);
         });
 
+        // NEW: Minimize link crossings after initial positioning
+        this.minimizeCrossings();
+
         this.calculateLinkPositions();
     }
 
@@ -286,6 +289,104 @@ class PulseSankeyChart {
         let currentY = startY;
         
         groupedNodes.forEach((node, index) => {
+            node.y = currentY;
+            node.layerIndex = index;
+            currentY += node.height + layerPadding;
+        });
+    }
+
+    // NEW: Minimize link crossings using barycenter method
+    minimizeCrossings() {
+        const nodesByDepth = d3.group(this.nodes, d => d.depth);
+        const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
+        
+        // Iterate multiple times to minimize crossings
+        for (let iteration = 0; iteration < 4; iteration++) {
+            // Forward pass (left to right)
+            for (let i = 1; i < depths.length; i++) {
+                const currentDepth = depths[i];
+                const nodes = nodesByDepth.get(currentDepth);
+                this.sortNodesByBarycenter(nodes, 'target');
+            }
+            
+            // Backward pass (right to left)  
+            for (let i = depths.length - 2; i >= 0; i--) {
+                const currentDepth = depths[i];
+                const nodes = nodesByDepth.get(currentDepth);
+                this.sortNodesByBarycenter(nodes, 'source');
+            }
+        }
+        
+        // Recalculate Y positions after reordering
+        depths.forEach(depth => {
+            const nodesAtDepth = nodesByDepth.get(depth);
+            this.recalculateYPositions(nodesAtDepth);
+        });
+    }
+
+    // Calculate barycenter (weighted average position) for crossing minimization
+    sortNodesByBarycenter(nodes, direction) {
+        nodes.forEach(node => {
+            const links = direction === 'source' ? node.sourceLinks : node.targetLinks;
+            
+            if (links.length === 0) {
+                node.barycenter = node.y + node.height / 2;
+                return;
+            }
+            
+            let weightedSum = 0;
+            let totalWeight = 0;
+            
+            links.forEach(link => {
+                const connectedNode = direction === 'source' ? link.target : link.source;
+                const weight = link.value;
+                const position = connectedNode.y + connectedNode.height / 2;
+                
+                weightedSum += position * weight;
+                totalWeight += weight;
+            });
+            
+            node.barycenter = totalWeight > 0 ? weightedSum / totalWeight : node.y + node.height / 2;
+        });
+        
+        // Sort by barycenter, maintaining group stability
+        nodes.sort((a, b) => {
+            // Preserve some group ordering while minimizing crossings
+            const groupDiff = (a.group || 'z').localeCompare(b.group || 'z');
+            if (Math.abs(a.barycenter - b.barycenter) < 20 && groupDiff !== 0) {
+                return groupDiff;
+            }
+            return a.barycenter - b.barycenter;
+        });
+    }
+
+    // Recalculate Y positions after node reordering
+    recalculateYPositions(nodes) {
+        if (nodes.length === 0) return;
+        
+        const depth = nodes[0].depth;
+        const maxDepth = Math.max(...this.nodes.map(n => n.depth));
+        const isLeftmost = depth === 0;
+        const isRightmost = depth === maxDepth;
+        
+        let layerPadding;
+        if (isLeftmost) {
+            layerPadding = this.config.nodePadding * this.config.leftmostSpacing;
+        } else if (isRightmost) {
+            layerPadding = this.config.nodePadding * this.config.rightmostSpacing;
+        } else {
+            layerPadding = this.config.nodePadding * this.config.middleSpacing;
+        }
+        
+        const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        const totalHeight = d3.sum(nodes, d => d.height);
+        const totalPadding = layerPadding * (nodes.length - 1);
+        const totalRequired = totalHeight + totalPadding;
+        
+        const startY = Math.max(20, (availableHeight - totalRequired) / 2);
+        let currentY = startY;
+        
+        nodes.forEach((node, index) => {
             node.y = currentY;
             node.layerIndex = index;
             currentY += node.height + layerPadding;
