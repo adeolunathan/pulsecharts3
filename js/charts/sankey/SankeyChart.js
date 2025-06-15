@@ -1405,7 +1405,16 @@ class PulseSankeyChart {
 
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
-        const titleText = `${company} ${period} Financial Flow`;
+        
+        // Get proper statement name
+        const statementNames = {
+            'income': 'Income Statement',
+            'balance': 'Balance Sheet', 
+            'cashflow': 'Cash Flow Statement'
+        };
+        const statementName = statementNames[this.statementType] || 'Financial Statement';
+        
+        const titleText = `${company} ${period} ${statementName}`;
 
         headerGroup.append('text')
             .attr('x', this.config.width / 2)
