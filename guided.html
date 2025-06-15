@@ -705,7 +705,7 @@
             previewDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // Accept uploaded data and auto-advance
+        // FIXED: Accept uploaded data and auto-render chart
         function acceptUploadedData() {
             if (!uploadedFlowData) {
                 alert('❌ No data to accept');
@@ -716,18 +716,11 @@
             const sankeyData = generateNodesAndLinksFromFlows(uploadedFlowData);
             appState.data = sankeyData;
             
-            // Hide preview
-            document.getElementById('upload-preview').style.display = 'none';
-            
-            // Enable next step button (though we'll auto-advance)
-            document.getElementById('step2-next').disabled = false;
-            
             console.log('✅ Accepted uploaded data:', appState.data);
             
-            // Auto-advance to next step (like template flow)
-            setTimeout(() => {
-                nextStep();
-            }, 200);
+            // FIXED: Skip intermediate step and go directly to chart
+            const dataString = encodeURIComponent(JSON.stringify(sankeyData));
+            window.location.href = `chart.html?chartType=${selectedChartType}&data=${dataString}`;
         }
 
         // Clear upload preview

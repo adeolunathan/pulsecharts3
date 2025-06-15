@@ -1,11 +1,12 @@
-/* ===== SANKEY CHART CONTROLS - DYNAMIC COLOR SYSTEM ===== */
-/* Enhanced with dynamic color detection and improved UI */
+/* ===== SANKEY CHART CONTROLS - ENHANCED WITH BALANCE SHEET SUPPORT ===== */
+/* Enhanced with statement-specific color detection and Total Assets control */
 
 class SankeyControlModule {
     constructor() {
         this.capabilities = this.defineCapabilities();
         this.dynamicColors = new Map(); // Store detected colors from data
         this.chart = null; // Reference to current chart
+        this.statementType = 'income'; // Track current statement type
     }
 
     defineCapabilities() {
@@ -200,7 +201,7 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Dynamically detect colors from chart data
+     * ENHANCED: Dynamically detect colors from chart data with statement type awareness
      */
     initializeDynamicColors(chart) {
         if (!chart || !chart.data) {
@@ -209,9 +210,11 @@ class SankeyControlModule {
         }
 
         this.chart = chart;
+        this.statementType = chart.statementType || 'income';
+        
         const detectedCategories = this.analyzeDataCategories(chart.data);
         
-        console.log('🎨 Detected categories from chart data:', detectedCategories);
+        console.log(`🎨 Detected categories for ${this.statementType} statement:`, detectedCategories);
         
         // Update the colors section with detected categories
         this.capabilities.colors.controls = this.generateColorControls(detectedCategories, chart);
@@ -225,7 +228,7 @@ class SankeyControlModule {
     }
 
     /**
-     * Analyze chart data to detect unique categories
+     * ENHANCED: Analyze chart data to detect categories with statement type awareness
      */
     analyzeDataCategories(data) {
         const categories = new Set();
@@ -235,6 +238,12 @@ class SankeyControlModule {
             data.nodes.forEach(node => {
                 if (node.category) {
                     categories.add(node.category);
+                }
+                
+                // Special detection for Total Assets in balance sheets
+                if (node.id && node.id.toLowerCase().includes('total') && node.id.toLowerCase().includes('asset')) {
+                    categories.add('total_assets');
+                    console.log(`🎨 Detected Total Assets node: ${node.id}`);
                 }
             });
         }
@@ -250,17 +259,81 @@ class SankeyControlModule {
                 }
             });
         }
+
+        // Statement-specific category detection and additions
+        if (this.statementType === 'balance') {
+            // Always add Total Assets as a distinct category for balance sheets
+            categories.add('total_assets');
+            
+            // Add standard balance sheet categories if not present
+            const balanceSheetCategories = ['asset', 'liability', 'equity', 'current', 'noncurrent'];
+            balanceSheetCategories.forEach(cat => {
+                if (this.hasNodesWithCategory(data, cat) || this.hasNodesWithKeywords(data, cat)) {
+                    categories.add(cat);
+                }
+            });
+            
+            console.log(`🎨 Balance sheet categories detected:`, Array.from(categories));
+        } else if (this.statementType === 'cashflow') {
+            const cashFlowCategories = ['operating', 'investing', 'financing', 'inflow', 'outflow'];
+            cashFlowCategories.forEach(cat => {
+                if (this.hasNodesWithCategory(data, cat)) {
+                    categories.add(cat);
+                }
+            });
+        } else {
+            // Income statement categories
+            const incomeCategories = ['revenue', 'cost', 'profit', 'expense', 'income'];
+            incomeCategories.forEach(cat => {
+                if (this.hasNodesWithCategory(data, cat)) {
+                    categories.add(cat);
+                }
+            });
+        }
         
-        // If no categories found, provide defaults
+        // If no categories found, provide statement-specific defaults
         if (categories.size === 0) {
-            return ['revenue', 'cost', 'profit', 'expense', 'income'];
+            if (this.statementType === 'balance') {
+                return ['total_assets', 'asset', 'liability', 'equity'];
+            } else if (this.statementType === 'cashflow') {
+                return ['operating', 'investing', 'financing'];
+            } else {
+                return ['revenue', 'cost', 'profit', 'expense', 'income'];
+            }
         }
         
         return Array.from(categories).sort();
     }
 
     /**
-     * Generate color controls based on detected categories
+     * NEW: Check if data has nodes with specific category
+     */
+    hasNodesWithCategory(data, category) {
+        return data.nodes.some(node => node.category === category);
+    }
+
+    /**
+     * NEW: Check if data has nodes with keywords related to category
+     */
+    hasNodesWithKeywords(data, category) {
+        const keywordMap = {
+            'current': ['current', 'short-term'],
+            'noncurrent': ['non-current', 'long-term', 'property', 'equipment'],
+            'asset': ['asset', 'cash', 'receivable', 'inventory'],
+            'liability': ['liability', 'payable', 'debt'],
+            'equity': ['equity', 'stock', 'retained']
+        };
+        
+        const keywords = keywordMap[category] || [];
+        return data.nodes.some(node => 
+            keywords.some(keyword => 
+                node.id && node.id.toLowerCase().includes(keyword.toLowerCase())
+            )
+        );
+    }
+
+    /**
+     * ENHANCED: Generate color controls with statement-specific handling
      */
     generateColorControls(categories, chart) {
         const controls = [];
@@ -273,8 +346,10 @@ class SankeyControlModule {
             description: "Quick color schemes and controls"
         });
         
-        // Add individual category controls
-        categories.forEach((category, index) => {
+        // Add individual category controls with proper ordering
+        const orderedCategories = this.orderCategoriesForStatement(categories);
+        
+        orderedCategories.forEach((category, index) => {
             const currentColor = this.getCurrentColorForCategory(category, chart);
             const description = this.getCategoryDescription(category);
             
@@ -293,7 +368,46 @@ class SankeyControlModule {
     }
 
     /**
-     * Get current color for a category from chart
+     * NEW: Order categories appropriately for each statement type
+     */
+    orderCategoriesForStatement(categories) {
+        const categoryArrays = categories instanceof Set ? Array.from(categories) : categories;
+        
+        if (this.statementType === 'balance') {
+            const balanceOrder = ['total_assets', 'asset', 'current', 'noncurrent', 'liability', 'equity'];
+            return this.sortByCustomOrder(categoryArrays, balanceOrder);
+        } else if (this.statementType === 'cashflow') {
+            const cashFlowOrder = ['operating', 'investing', 'financing', 'inflow', 'outflow'];
+            return this.sortByCustomOrder(categoryArrays, cashFlowOrder);
+        } else {
+            const incomeOrder = ['revenue', 'cost', 'profit', 'expense', 'income'];
+            return this.sortByCustomOrder(categoryArrays, incomeOrder);
+        }
+    }
+
+    /**
+     * NEW: Sort categories by custom order, with unmatched items at end
+     */
+    sortByCustomOrder(categories, order) {
+        const ordered = [];
+        const remaining = [...categories];
+        
+        // Add categories in specified order
+        order.forEach(orderItem => {
+            const index = remaining.indexOf(orderItem);
+            if (index !== -1) {
+                ordered.push(remaining.splice(index, 1)[0]);
+            }
+        });
+        
+        // Add any remaining categories
+        ordered.push(...remaining.sort());
+        
+        return ordered;
+    }
+
+    /**
+     * ENHANCED: Get current color for a category with statement-specific logic
      */
     getCurrentColorForCategory(category, chart) {
         // Try to get from chart's custom colors
@@ -311,54 +425,85 @@ class SankeyControlModule {
     }
 
     /**
-     * Get default color for a category
+     * ENHANCED: Get default color for a category with statement-specific colors
      */
     getDefaultColorForCategory(category) {
-        const defaultColors = {
-            revenue: '#3498db',
-            cost: '#e74c3c',
-            profit: '#27ae60',
-            expense: '#e67e22',
-            income: '#9b59b6',
-            tax: '#e67e22',
-            asset: '#3498db',
-            liability: '#e74c3c',
-            equity: '#27ae60',
-            current: '#f39c12',
-            noncurrent: '#9b59b6',
-            operating: '#3498db',
-            investing: '#e74c3c',
-            financing: '#27ae60',
-            inflow: '#2ecc71',
-            outflow: '#e67e22'
-        };
-        
-        return defaultColors[category] || this.generateRandomColor();
+        // Statement-specific color schemes
+        if (this.statementType === 'balance') {
+            const balanceSheetColors = {
+                total_assets: '#2C3E50',     // Distinct dark blue-gray for Total Assets
+                asset: '#8B4513',            // Brown for assets
+                current: '#8B4513',          // Brown for current assets  
+                noncurrent: '#9B59B6',       // Purple for non-current assets
+                liability: '#E74C3C',        // Red for liabilities
+                equity: '#27AE60',           // Green for equity
+                default: '#95a5a6'
+            };
+            return balanceSheetColors[category] || balanceSheetColors.default;
+        } else if (this.statementType === 'cashflow') {
+            const cashFlowColors = {
+                operating: '#3498db',
+                investing: '#e74c3c',
+                financing: '#27ae60',
+                inflow: '#2ecc71',
+                outflow: '#e67e22',
+                default: '#95a5a6'
+            };
+            return cashFlowColors[category] || cashFlowColors.default;
+        } else {
+            // Income statement colors (default)
+            const incomeColors = {
+                revenue: '#3498db',
+                cost: '#e74c3c',
+                profit: '#27ae60',
+                expense: '#e67e22',
+                income: '#9b59b6',
+                tax: '#e67e22',
+                default: '#95a5a6'
+            };
+            return incomeColors[category] || incomeColors.default;
+        }
     }
 
     /**
-     * Format category label for display
+     * ENHANCED: Format category label with statement-specific naming
      */
     formatCategoryLabel(category) {
+        const specialLabels = {
+            total_assets: 'Total Assets',
+            noncurrent: 'Non-Current Items',
+            cashflow: 'Cash Flow'
+        };
+        
+        if (specialLabels[category]) {
+            return specialLabels[category];
+        }
+        
         return category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1');
     }
 
     /**
-     * Get description for category
+     * ENHANCED: Get description for category with statement-specific context
      */
     getCategoryDescription(category) {
         const descriptions = {
+            // Balance sheet descriptions
+            total_assets: 'Total Assets (distinct from individual asset categories)',
+            asset: 'Individual asset line items',
+            current: 'Current/short-term items',
+            noncurrent: 'Non-current/long-term items',
+            liability: 'Liabilities and obligations',
+            equity: 'Equity and ownership',
+            
+            // Income statement descriptions
             revenue: 'Revenue and income flows',
             cost: 'Cost and expense flows',
             profit: 'Profit and margin nodes',
             expense: 'Operating expenses',
             income: 'Net income and final results',
             tax: 'Tax expenses and obligations',
-            asset: 'Assets and resources',
-            liability: 'Liabilities and obligations',
-            equity: 'Equity and ownership',
-            current: 'Current/short-term items',
-            noncurrent: 'Non-current/long-term items',
+            
+            // Cash flow descriptions
             operating: 'Operating activities',
             investing: 'Investment activities', 
             financing: 'Financing activities',
@@ -370,20 +515,12 @@ class SankeyControlModule {
     }
 
     /**
-     * Generate random color
-     */
-    generateRandomColor() {
-        const colors = ['#3498db', '#e74c3c', '#27ae60', '#e67e22', '#9b59b6', '#f39c12', '#1abc9c', '#34495e'];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    /**
-     * Enhanced control change handler
+     * ENHANCED: Control change handler with statement-specific logic
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
-        // Handle color controls
+        // Handle color controls with statement awareness
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
             this.updateChartColor(chart, category, value);
@@ -393,7 +530,6 @@ class SankeyControlModule {
 
         // Handle color presets
         if (controlId === 'colorPresets') {
-            // This will be handled by the control panel's preset system
             return;
         }
 
@@ -403,8 +539,8 @@ class SankeyControlModule {
             chart.chart.selectAll('.sankey-node rect')
                 .transition()
                 .duration(150)
-                .attr('fill-opacity', value)
-                .attr('opacity', value);
+                .attr('fill-opacity', d => chart.getNodeOpacity(d))
+                .attr('opacity', d => chart.getNodeOpacity(d));
             return;
         }
 
@@ -510,10 +646,10 @@ class SankeyControlModule {
     }
 
     /**
-     * Update chart color with immediate re-render
+     * ENHANCED: Update chart color with statement-specific handling
      */
     updateChartColor(chart, category, color) {
-        console.log(`🎨 Updating ${category} color to ${color}`);
+        console.log(`🎨 Updating ${category} color to ${color} for ${this.statementType} statement`);
         
         if (!chart.customColors) {
             chart.customColors = {};
@@ -521,10 +657,12 @@ class SankeyControlModule {
         
         chart.customColors[category] = color;
         
+        // Special handling for expense category applying to tax
         if (category === 'expense') {
             chart.customColors['tax'] = color;
         }
         
+        // Update chart data metadata
         if (chart.data && chart.data.metadata) {
             if (!chart.data.metadata.colorPalette) {
                 chart.data.metadata.colorPalette = {};
@@ -535,13 +673,14 @@ class SankeyControlModule {
             }
         }
         
+        // Re-render chart to apply color changes
         if (chart.data) {
             chart.render(chart.data);
         }
     }
 
     /**
-     * Get current values with enhanced color support
+     * ENHANCED: Get current values with statement-specific handling
      */
     getCurrentValue(controlId, chart) {
         if (controlId.endsWith('Color')) {
@@ -591,7 +730,7 @@ class SankeyControlModule {
     }
 
     /**
-     * Enhanced default configuration
+     * ENHANCED: Default configuration with statement awareness
      */
     getDefaultConfig() {
         const defaults = {};
@@ -628,7 +767,7 @@ class SankeyControlModule {
         defaults.leftmostGroupGap = 40;
         defaults.rightmostGroupGap = 40;
 
-        console.log('📋 Enhanced control module defaults generated:', defaults);
+        console.log(`📋 Enhanced control module defaults generated for ${this.statementType}:`, defaults);
         return defaults;
     }
 
@@ -640,7 +779,7 @@ class SankeyControlModule {
     }
 
     /**
-     * Apply color preset to dynamic colors
+     * ENHANCED: Apply color preset with statement-specific colors
      */
     applyColorPreset(chart, presetName) {
         const categories = Array.from(this.dynamicColors.keys());
@@ -695,7 +834,7 @@ class SankeyControlModule {
                 this.dynamicColors.set(category, color);
             });
             
-            console.log(`🎨 Applied ${presetName} color preset to dynamic categories`);
+            console.log(`🎨 Applied ${presetName} color preset to ${this.statementType} statement categories`);
         }
     }
 
@@ -723,7 +862,7 @@ class SankeyControlModule {
             this.dynamicColors.set(category, color);
         });
         
-        console.log('🎲 Randomized all detected colors');
+        console.log(`🎲 Randomized all detected colors for ${this.statementType} statement`);
     }
 
     // Enhanced validation, reset, and export methods
@@ -766,11 +905,15 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '2.5',
+            statementType: this.statementType,
+            version: '2.6',
             config: config,
             dynamicColors: Object.fromEntries(this.dynamicColors),
             timestamp: new Date().toISOString(),
             features: {
+                statementSpecificColors: true,
+                balanceSheetHierarchy: true,
+                totalAssetsDistinctColor: true,
                 dynamicColorDetection: true,
                 smartLabelPositioning: true,
                 layerSpecificSpacing: true,
@@ -786,6 +929,11 @@ class SankeyControlModule {
             
             if (imported.chartType !== 'sankey') {
                 throw new Error('Configuration is not for Sankey charts');
+            }
+            
+            // Restore statement type
+            if (imported.statementType) {
+                this.statementType = imported.statementType;
             }
             
             // Restore dynamic colors if available
@@ -810,14 +958,14 @@ class SankeyControlModule {
 
     // Enhanced dynamic layer support
     supportsDynamicLayers() {
-        return true; // Re-enabled with better implementation
+        return true;
     }
 
     /**
-     * Enhanced dynamic control initialization
+     * ENHANCED: Dynamic control initialization with statement awareness
      */
     initializeDynamicControls(chart) {
-        console.log('🔧 Initializing dynamic color controls');
+        console.log(`🔧 Initializing dynamic color controls for ${chart.statementType || 'income'} statement`);
         this.initializeDynamicColors(chart);
     }
 
@@ -826,8 +974,9 @@ class SankeyControlModule {
      */
     updateCapabilities(chart) {
         if (chart && chart.data) {
+            this.statementType = chart.statementType || 'income';
             this.initializeDynamicColors(chart);
-            console.log('🔄 Updated dynamic color capabilities');
+            console.log(`🔄 Updated dynamic color capabilities for ${this.statementType} statement`);
         }
     }
 }
