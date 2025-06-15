@@ -589,7 +589,7 @@
 
                 <!-- Template Quick Actions -->
                 <div class="template-actions">
-                    <button class="template-btn" onclick="loadCompleteTemplate()">📊 Complete Template</button>
+                    <button class="template-btn" onclick="loadSimpleTemplate()">📊 Simple Template</button>
                     <button class="template-btn" onclick="loadBlankFlows()">📄 Blank Template</button>
                 </div>
 
@@ -604,7 +604,7 @@
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                                 <div>
                                     <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
-                                    <input type="text" class="flow-input" id="company-name" value="TechFlow Corporation" onchange="updateMetadata()">
+                                    <input type="text" class="flow-input" id="company-name" value="Your Company" onchange="updateMetadata()">
                                 </div>
                                 <div>
                                     <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period</label>
@@ -700,16 +700,19 @@
     <!-- Hidden file input -->
     <input type="file" id="csv-file-input" style="display: none;" accept=".csv,.json" onchange="handleFileImport(event)">
 
+    <!-- Core Scripts -->
+    <script src="js/utils/ExportUtils.js"></script>
+
     <script>
         // Global data structure
         let currentStatementType = 'income';
         let flowData = {
             metadata: {
-                title: "TechFlow Financial Flow",
+                title: "Your Company Financial Flow",
                 subtitle: "",  // REMOVED: No longer using subtitle
                 currency: "USD",
                 unit: "millions",
-                company: "TechFlow Corporation",
+                company: "Your Company",
                 period: "Q3 2025",
                 statementType: "income",
                 colorPalette: {}
@@ -798,8 +801,12 @@
             // Update color palette
             updateColorPalette();
             
-            // Load appropriate template
-            loadCompleteTemplate();
+            // Load appropriate template if income statement, otherwise show blank
+            if (type === 'income') {
+                loadSimpleTemplate();
+            } else {
+                loadBlankFlows();
+            }
         }
 
         function updateColorPalette() {
@@ -929,429 +936,143 @@
             }
         }
 
-        function loadCompleteTemplate() {
-            const templates = {
-                income: () => {
-                    flowData.metadata.company = "TechFlow Corporation";
-                    flowData.metadata.title = "TechFlow Income Statement";
-                    
-                    flowData.flows = [
-                        new BusinessFlow({
-                            source: "Product Sales",
-                            target: "Total Revenue",
-                            value: 2800,
-                            flowType: "revenue_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "revenue",
-                            targetCategory: "revenue",
-                            description: "Revenue from product sales"
-                        }),
-                        new BusinessFlow({
-                            source: "Service Revenue",
-                            target: "Total Revenue",
-                            value: 1200,
-                            flowType: "revenue_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "revenue",
-                            targetCategory: "revenue",
-                            description: "Revenue from services"
-                        }),
-                        new BusinessFlow({
-                            source: "Subscription Revenue",
-                            target: "Total Revenue",
-                            value: 600,
-                            flowType: "revenue_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "revenue",
-                            targetCategory: "revenue",
-                            description: "Recurring subscription income"
-                        }),
-                        new BusinessFlow({
-                            source: "Total Revenue",
-                            target: "Gross Profit",
-                            value: 3800,
-                            flowType: "profit_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "revenue",
-                            targetCategory: "profit",
-                            description: "Revenue after cost of revenue"
-                        }),
-                        new BusinessFlow({
-                            source: "Total Revenue",
-                            target: "Cost of Revenue",
-                            value: 800,
-                            flowType: "cost_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "revenue",
-                            targetCategory: "cost",
-                            description: "Direct costs to deliver services"
-                        }),
-                        new BusinessFlow({
-                            source: "Gross Profit",
-                            target: "Operating Profit",
-                            value: 1400,
-                            flowType: "profit_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "profit",
-                            targetCategory: "profit",
-                            description: "Profit from core operations"
-                        }),
-                        new BusinessFlow({
-                            source: "Gross Profit",
-                            target: "Operating Expenses",
-                            value: 2400,
-                            flowType: "expense_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "profit",
-                            targetCategory: "expense",
-                            description: "Total operating expenses"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Expenses",
-                            target: "R&D",
-                            value: 1200,
-                            flowType: "expense_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "expense",
-                            targetCategory: "expense",
-                            description: "Research and development"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Expenses",
-                            target: "Sales & Marketing",
-                            value: 800,
-                            flowType: "expense_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "expense",
-                            targetCategory: "expense",
-                            description: "Customer acquisition"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Expenses",
-                            target: "General & Admin",
-                            value: 400,
-                            flowType: "expense_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "expense",
-                            targetCategory: "expense",
-                            description: "Administrative costs"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Profit",
-                            target: "Net Income",
-                            value: 1100,
-                            flowType: "final_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "profit",
-                            targetCategory: "income",
-                            description: "Final net income"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Profit",
-                            target: "Tax Expense",
-                            value: 300,
-                            flowType: "expense_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "profit",
-                            targetCategory: "expense",
-                            description: "Corporate income tax"
-                        })
-                    ];
-                },
-                balance: () => {
-                    flowData.metadata.company = "TechFlow Corporation";
-                    flowData.metadata.title = "TechFlow Balance Sheet";
-                    
-                    flowData.flows = [
-                        // Assets breakdown
-                        new BusinessFlow({
-                            source: "Cash & Equivalents",
-                            target: "Current Assets",
-                            value: 1500,
-                            flowType: "asset_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "current",
-                            targetCategory: "asset",
-                            description: "Cash and short-term investments"
-                        }),
-                        new BusinessFlow({
-                            source: "Accounts Receivable",
-                            target: "Current Assets",
-                            value: 800,
-                            flowType: "asset_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "current",
-                            targetCategory: "asset",
-                            description: "Money owed by customers"
-                        }),
-                        new BusinessFlow({
-                            source: "Inventory",
-                            target: "Current Assets",
-                            value: 400,
-                            flowType: "asset_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "current",
-                            targetCategory: "asset",
-                            description: "Products and materials"
-                        }),
-                        new BusinessFlow({
-                            source: "Property & Equipment",
-                            target: "Non-Current Assets",
-                            value: 2200,
-                            flowType: "asset_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "noncurrent",
-                            targetCategory: "asset",
-                            description: "Buildings, equipment, and infrastructure"
-                        }),
-                        new BusinessFlow({
-                            source: "Intangible Assets",
-                            target: "Non-Current Assets",
-                            value: 600,
-                            flowType: "asset_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "noncurrent",
-                            targetCategory: "asset",
-                            description: "Patents, software, and goodwill"
-                        }),
-                        new BusinessFlow({
-                            source: "Current Assets",
-                            target: "Total Assets",
-                            value: 2700,
-                            flowType: "asset_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "asset",
-                            targetCategory: "asset",
-                            description: "Sum of current assets"
-                        }),
-                        new BusinessFlow({
-                            source: "Non-Current Assets",
-                            target: "Total Assets",
-                            value: 2800,
-                            flowType: "asset_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "asset",
-                            targetCategory: "asset",
-                            description: "Sum of non-current assets"
-                        }),
-                        // Liabilities breakdown
-                        new BusinessFlow({
-                            source: "Total Assets",
-                            target: "Current Liabilities",
-                            value: 1200,
-                            flowType: "liability_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "asset",
-                            targetCategory: "liability",
-                            description: "Short-term obligations"
-                        }),
-                        new BusinessFlow({
-                            source: "Total Assets",
-                            target: "Long-term Debt",
-                            value: 1800,
-                            flowType: "liability_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "asset",
-                            targetCategory: "liability",
-                            description: "Long-term borrowings"
-                        }),
-                        new BusinessFlow({
-                            source: "Total Assets",
-                            target: "Shareholders Equity",
-                            value: 2500,
-                            flowType: "equity_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "asset",
-                            targetCategory: "equity",
-                            description: "Owners' equity in the company"
-                        }),
-                        // Equity breakdown
-                        new BusinessFlow({
-                            source: "Shareholders Equity",
-                            target: "Common Stock",
-                            value: 1000,
-                            flowType: "equity_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "equity",
-                            targetCategory: "equity",
-                            description: "Issued common shares"
-                        }),
-                        new BusinessFlow({
-                            source: "Shareholders Equity",
-                            target: "Retained Earnings",
-                            value: 1500,
-                            flowType: "equity_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "equity",
-                            targetCategory: "equity",
-                            description: "Accumulated profits"
-                        })
-                    ];
-                },
-                cashflow: () => {
-                    flowData.metadata.company = "TechFlow Corporation";
-                    flowData.metadata.title = "TechFlow Cash Flow Statement";
-                    
-                    flowData.flows = [
-                        // Operating activities
-                        new BusinessFlow({
-                            source: "Net Income",
-                            target: "Operating Cash Flow",
-                            value: 1100,
-                            flowType: "operating_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "inflow",
-                            targetCategory: "operating",
-                            description: "Starting point for cash flow"
-                        }),
-                        new BusinessFlow({
-                            source: "Depreciation",
-                            target: "Operating Cash Flow",
-                            value: 300,
-                            flowType: "operating_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "inflow",
-                            targetCategory: "operating",
-                            description: "Non-cash expense added back"
-                        }),
-                        new BusinessFlow({
-                            source: "Working Capital Changes",
-                            target: "Operating Cash Flow",
-                            value: -200,
-                            flowType: "operating_flow",
-                            sourceLayer: 0,
-                            targetLayer: 1,
-                            sourceCategory: "outflow",
-                            targetCategory: "operating",
-                            description: "Changes in receivables, inventory, payables"
-                        }),
-                        // Investing activities
-                        new BusinessFlow({
-                            source: "Operating Cash Flow",
-                            target: "Capital Expenditures",
-                            value: 400,
-                            flowType: "investing_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "operating",
-                            targetCategory: "investing",
-                            description: "Investments in property and equipment"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Cash Flow",
-                            target: "Acquisitions",
-                            value: 200,
-                            flowType: "investing_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "operating",
-                            targetCategory: "investing",
-                            description: "Business acquisitions"
-                        }),
-                        new BusinessFlow({
-                            source: "Operating Cash Flow",
-                            target: "Free Cash Flow",
-                            value: 600,
-                            flowType: "cash_flow",
-                            sourceLayer: 1,
-                            targetLayer: 2,
-                            sourceCategory: "operating",
-                            targetCategory: "inflow",
-                            description: "Cash available after investments"
-                        }),
-                        // Financing activities
-                        new BusinessFlow({
-                            source: "Free Cash Flow",
-                            target: "Debt Repayment",
-                            value: 150,
-                            flowType: "financing_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "inflow",
-                            targetCategory: "financing",
-                            description: "Principal payments on debt"
-                        }),
-                        new BusinessFlow({
-                            source: "Free Cash Flow",
-                            target: "Dividends",
-                            value: 100,
-                            flowType: "financing_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "inflow",
-                            targetCategory: "financing",
-                            description: "Payments to shareholders"
-                        }),
-                        new BusinessFlow({
-                            source: "Free Cash Flow",
-                            target: "Net Cash Change",
-                            value: 350,
-                            flowType: "cash_flow",
-                            sourceLayer: 2,
-                            targetLayer: 3,
-                            sourceCategory: "inflow",
-                            targetCategory: "inflow",
-                            description: "Net change in cash position"
-                        }),
-                        // Cash position
-                        new BusinessFlow({
-                            source: "Net Cash Change",
-                            target: "Ending Cash Balance",
-                            value: 350,
-                            flowType: "cash_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "inflow",
-                            targetCategory: "inflow",
-                            description: "Final cash position"
-                        }),
-                        new BusinessFlow({
-                            source: "Beginning Cash Balance",
-                            target: "Ending Cash Balance",
-                            value: 1150,
-                            flowType: "cash_flow",
-                            sourceLayer: 3,
-                            targetLayer: 4,
-                            sourceCategory: "inflow",
-                            targetCategory: "inflow",
-                            description: "Starting cash position"
-                        })
-                    ];
-                }
-            };
-
-            const template = templates[currentStatementType];
-            if (template) {
-                template();
+        // SIMPLIFIED TEMPLATES - Only basic income statement example, no hardcoded data for other types
+        function loadSimpleTemplate() {
+            if (currentStatementType === 'income') {
+                flowData.metadata.company = "Your Company";
+                flowData.metadata.title = "Your Company Income Statement";
+                
+                // Simple income statement structure - users can modify amounts
+                flowData.flows = [
+                    new BusinessFlow({
+                        source: "Product Sales",
+                        target: "Total Revenue",
+                        value: 1000,
+                        flowType: "revenue_flow",
+                        sourceLayer: 0,
+                        targetLayer: 1,
+                        sourceCategory: "revenue",
+                        targetCategory: "revenue",
+                        description: "Revenue from product sales"
+                    }),
+                    new BusinessFlow({
+                        source: "Service Revenue",
+                        target: "Total Revenue",
+                        value: 500,
+                        flowType: "revenue_flow",
+                        sourceLayer: 0,
+                        targetLayer: 1,
+                        sourceCategory: "revenue",
+                        targetCategory: "revenue",
+                        description: "Revenue from services"
+                    }),
+                    new BusinessFlow({
+                        source: "Total Revenue",
+                        target: "Gross Profit",
+                        value: 1200,
+                        flowType: "profit_flow",
+                        sourceLayer: 1,
+                        targetLayer: 2,
+                        sourceCategory: "revenue",
+                        targetCategory: "profit",
+                        description: "Revenue after cost of revenue"
+                    }),
+                    new BusinessFlow({
+                        source: "Total Revenue",
+                        target: "Cost of Revenue",
+                        value: 300,
+                        flowType: "cost_flow",
+                        sourceLayer: 1,
+                        targetLayer: 2,
+                        sourceCategory: "revenue",
+                        targetCategory: "cost",
+                        description: "Direct costs to deliver services"
+                    }),
+                    new BusinessFlow({
+                        source: "Gross Profit",
+                        target: "Operating Profit",
+                        value: 400,
+                        flowType: "profit_flow",
+                        sourceLayer: 2,
+                        targetLayer: 3,
+                        sourceCategory: "profit",
+                        targetCategory: "profit",
+                        description: "Profit from core operations"
+                    }),
+                    new BusinessFlow({
+                        source: "Gross Profit",
+                        target: "Operating Expenses",
+                        value: 800,
+                        flowType: "expense_flow",
+                        sourceLayer: 2,
+                        targetLayer: 3,
+                        sourceCategory: "profit",
+                        targetCategory: "expense",
+                        description: "Total operating expenses"
+                    }),
+                    new BusinessFlow({
+                        source: "Operating Expenses",
+                        target: "Sales & Marketing",
+                        value: 400,
+                        flowType: "expense_flow",
+                        sourceLayer: 3,
+                        targetLayer: 4,
+                        sourceCategory: "expense",
+                        targetCategory: "expense",
+                        description: "Customer acquisition costs"
+                    }),
+                    new BusinessFlow({
+                        source: "Operating Expenses",
+                        target: "R&D",
+                        value: 250,
+                        flowType: "expense_flow",
+                        sourceLayer: 3,
+                        targetLayer: 4,
+                        sourceCategory: "expense",
+                        targetCategory: "expense",
+                        description: "Research and development"
+                    }),
+                    new BusinessFlow({
+                        source: "Operating Expenses",
+                        target: "General & Admin",
+                        value: 150,
+                        flowType: "expense_flow",
+                        sourceLayer: 3,
+                        targetLayer: 4,
+                        sourceCategory: "expense",
+                        targetCategory: "expense",
+                        description: "Administrative costs"
+                    }),
+                    new BusinessFlow({
+                        source: "Operating Profit",
+                        target: "Net Income",
+                        value: 300,
+                        flowType: "final_flow",
+                        sourceLayer: 3,
+                        targetLayer: 4,
+                        sourceCategory: "profit",
+                        targetCategory: "income",
+                        description: "Final net income"
+                    }),
+                    new BusinessFlow({
+                        source: "Operating Profit",
+                        target: "Tax Expense",
+                        value: 100,
+                        flowType: "expense_flow",
+                        sourceLayer: 3,
+                        targetLayer: 4,
+                        sourceCategory: "profit",
+                        targetCategory: "expense",
+                        description: "Corporate income tax"
+                    })
+                ];
+                
                 document.getElementById('company-name').value = flowData.metadata.company;
                 renderFlowTable();
                 updateAllStats();
+            } else {
+                // For non-income statements, show basic structure
+                loadBlankFlows();
             }
         }
 
@@ -1509,7 +1230,7 @@
             return `<div class="balance-indicator ${isValid ? 'balanced' : 'unbalanced'}">${isValid ? '✓' : '⚠'}</div>`;
         }
 
-        // Flow Management Functions (rest of the functions remain the same as before)
+        // Flow Management Functions
         function addFlow() {
             const defaultCategories = {
                 income: { source: 'revenue', target: 'revenue' },
@@ -1727,20 +1448,25 @@
             alert(message);
         }
 
+        // UPDATED: Export functions using ExportUtils.js
         function exportToCSV() {
-            let csv = 'Statement Type,Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            if (!window.ExportUtils) {
+                console.error('ExportUtils not loaded');
+                alert('Export functionality not available. Please refresh the page.');
+                return;
+            }
             
-            flowData.flows.forEach(flow => {
-                csv += `"${currentStatementType}","${flow.source}","${flow.target}",${flow.value},"${flow.flowType}",${flow.sourceLayer},${flow.targetLayer},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
-            });
+            window.ExportUtils.exportFinancialFlowsToCSV(flowData);
+        }
+
+        function exportToJSON() {
+            if (!window.ExportUtils) {
+                console.error('ExportUtils not loaded');
+                alert('Export functionality not available. Please refresh the page.');
+                return;
+            }
             
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${flowData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}-${currentStatementType}-flows.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
+            window.ExportUtils.exportFinancialFlowsToJSON(flowData);
         }
 
         function importFromCSV() {
@@ -1764,8 +1490,9 @@
                                 switchStatementType(data.metadata.statementType);
                             }
                         } else if (data.nodes && data.links) {
-                            // Convert from nodes/links to flows format
-                            flowData.flows = convertFromNodesLinks(data);
+                            // Convert from nodes/links to flows format (simplified)
+                            alert('⚠️ Please use the Flow Builder format for imports. Nodes/links format not supported here.');
+                            return;
                         }
                         renderFlowTable();
                         updateAllStats();
@@ -1781,7 +1508,7 @@
         }
 
         function parseCSVFlows(csvContent) {
-            const lines = csvContent.split('\n').filter(line => line.trim());
+            const lines = csvContent.split('\n').filter(line => line.trim() && !line.startsWith('#'));
             if (lines.length < 2) {
                 alert('❌ CSV file must have header and at least one data row');
                 return;
@@ -1871,7 +1598,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             switchStatementType('income');
-            loadCompleteTemplate();
+            loadSimpleTemplate();
         });
     </script>
 </body>

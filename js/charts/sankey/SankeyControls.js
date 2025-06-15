@@ -1,9 +1,11 @@
-/* ===== SANKEY CHART CONTROLS - WITH GROUP SPACING ===== */
-/* Enhanced Sankey controls with group-to-group spacing and color customization */
+/* ===== SANKEY CHART CONTROLS - DYNAMIC COLOR SYSTEM ===== */
+/* Enhanced with dynamic color detection and improved UI */
 
 class SankeyControlModule {
     constructor() {
         this.capabilities = this.defineCapabilities();
+        this.dynamicColors = new Map(); // Store detected colors from data
+        this.chart = null; // Reference to current chart
     }
 
     defineCapabilities() {
@@ -44,7 +46,7 @@ class SankeyControlModule {
                         default: 0.5, 
                         step: 0.1, 
                         unit: "×", 
-                        description: "Spacing multiplier for middle layers (leftmost/rightmost use manual positioning)" 
+                        description: "Spacing multiplier for middle layers" 
                     }
                 ]
             },
@@ -67,47 +69,13 @@ class SankeyControlModule {
                 ]
             },
 
+            // Dynamic colors section - will be populated based on actual data
             colors: {
                 title: "Color Customization",
                 icon: "🎨",
-                collapsed: true,
-                controls: [
-                    {
-                        id: "revenueColor",
-                        type: "color",
-                        label: "Revenue Color",
-                        default: "#3498db",
-                        description: "Color for revenue"
-                    },
-                    {
-                        id: "costColor",
-                        type: "color",
-                        label: "Cost Color",
-                        default: "#e74c3c",
-                        description: "Color for cost"
-                    },
-                    {
-                        id: "profitColor",
-                        type: "color",
-                        label: "Profit Color",
-                        default: "#27ae60",
-                        description: "Color for profit"
-                    },
-                    {
-                        id: "expenseColor",
-                        type: "color",
-                        label: "Expense & Tax Color",
-                        default: "#e67e22",
-                        description: "Color for expense and tax (taxes grouped with expenses)"
-                    },
-                    {
-                        id: "incomeColor",
-                        type: "color",
-                        label: "Income Color",
-                        default: "#9b59b6",
-                        description: "Color for income"
-                    }
-                ]
+                collapsed: false,
+                controls: [], // Will be dynamically populated
+                isDynamic: true
             },
 
             labels: {
@@ -232,7 +200,185 @@ class SankeyControlModule {
     }
 
     /**
-     * Control change handler with proper color and opacity updates + group spacing
+     * ENHANCED: Dynamically detect colors from chart data
+     */
+    initializeDynamicColors(chart) {
+        if (!chart || !chart.data) {
+            console.warn('No chart data available for color initialization');
+            return;
+        }
+
+        this.chart = chart;
+        const detectedCategories = this.analyzeDataCategories(chart.data);
+        
+        console.log('🎨 Detected categories from chart data:', detectedCategories);
+        
+        // Update the colors section with detected categories
+        this.capabilities.colors.controls = this.generateColorControls(detectedCategories, chart);
+        
+        // Store dynamic colors
+        this.dynamicColors.clear();
+        detectedCategories.forEach(category => {
+            const currentColor = this.getCurrentColorForCategory(category, chart);
+            this.dynamicColors.set(category, currentColor);
+        });
+    }
+
+    /**
+     * Analyze chart data to detect unique categories
+     */
+    analyzeDataCategories(data) {
+        const categories = new Set();
+        
+        // Analyze nodes for categories
+        if (data.nodes) {
+            data.nodes.forEach(node => {
+                if (node.category) {
+                    categories.add(node.category);
+                }
+            });
+        }
+        
+        // Analyze links for additional categories
+        if (data.links) {
+            data.links.forEach(link => {
+                if (link.colorCategory) {
+                    categories.add(link.colorCategory);
+                }
+                if (link.targetCategory) {
+                    categories.add(link.targetCategory);
+                }
+            });
+        }
+        
+        // If no categories found, provide defaults
+        if (categories.size === 0) {
+            return ['revenue', 'cost', 'profit', 'expense', 'income'];
+        }
+        
+        return Array.from(categories).sort();
+    }
+
+    /**
+     * Generate color controls based on detected categories
+     */
+    generateColorControls(categories, chart) {
+        const controls = [];
+        
+        // Add color reset and preset controls first
+        controls.push({
+            id: "colorPresets",
+            type: "preset_controls",
+            label: "Color Presets",
+            description: "Quick color schemes and controls"
+        });
+        
+        // Add individual category controls
+        categories.forEach((category, index) => {
+            const currentColor = this.getCurrentColorForCategory(category, chart);
+            const description = this.getCategoryDescription(category);
+            
+            controls.push({
+                id: `${category}Color`,
+                type: "color",
+                label: this.formatCategoryLabel(category),
+                default: currentColor,
+                description: description,
+                category: category,
+                isDynamic: true
+            });
+        });
+        
+        return controls;
+    }
+
+    /**
+     * Get current color for a category from chart
+     */
+    getCurrentColorForCategory(category, chart) {
+        // Try to get from chart's custom colors
+        if (chart && chart.customColors && chart.customColors[category]) {
+            return chart.customColors[category];
+        }
+        
+        // Try to get from chart's data metadata
+        if (chart && chart.data && chart.data.metadata && chart.data.metadata.colorPalette && chart.data.metadata.colorPalette[category]) {
+            return chart.data.metadata.colorPalette[category];
+        }
+        
+        // Fallback to default colors
+        return this.getDefaultColorForCategory(category);
+    }
+
+    /**
+     * Get default color for a category
+     */
+    getDefaultColorForCategory(category) {
+        const defaultColors = {
+            revenue: '#3498db',
+            cost: '#e74c3c',
+            profit: '#27ae60',
+            expense: '#e67e22',
+            income: '#9b59b6',
+            tax: '#e67e22',
+            asset: '#3498db',
+            liability: '#e74c3c',
+            equity: '#27ae60',
+            current: '#f39c12',
+            noncurrent: '#9b59b6',
+            operating: '#3498db',
+            investing: '#e74c3c',
+            financing: '#27ae60',
+            inflow: '#2ecc71',
+            outflow: '#e67e22'
+        };
+        
+        return defaultColors[category] || this.generateRandomColor();
+    }
+
+    /**
+     * Format category label for display
+     */
+    formatCategoryLabel(category) {
+        return category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1');
+    }
+
+    /**
+     * Get description for category
+     */
+    getCategoryDescription(category) {
+        const descriptions = {
+            revenue: 'Revenue and income flows',
+            cost: 'Cost and expense flows',
+            profit: 'Profit and margin nodes',
+            expense: 'Operating expenses',
+            income: 'Net income and final results',
+            tax: 'Tax expenses and obligations',
+            asset: 'Assets and resources',
+            liability: 'Liabilities and obligations',
+            equity: 'Equity and ownership',
+            current: 'Current/short-term items',
+            noncurrent: 'Non-current/long-term items',
+            operating: 'Operating activities',
+            investing: 'Investment activities', 
+            financing: 'Financing activities',
+            inflow: 'Cash inflows',
+            outflow: 'Cash outflows'
+        };
+        
+        return descriptions[category] || `${this.formatCategoryLabel(category)} related items`;
+    }
+
+    /**
+     * Generate random color
+     */
+    generateRandomColor() {
+        const colors = ['#3498db', '#e74c3c', '#27ae60', '#e67e22', '#9b59b6', '#f39c12', '#1abc9c', '#34495e'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    /**
+     * Enhanced control change handler
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
@@ -241,17 +387,24 @@ class SankeyControlModule {
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
             this.updateChartColor(chart, category, value);
+            this.dynamicColors.set(category, value);
             return;
         }
 
-        // FIXED: Handle opacity controls with both fill-opacity and opacity
+        // Handle color presets
+        if (controlId === 'colorPresets') {
+            // This will be handled by the control panel's preset system
+            return;
+        }
+
+        // Handle opacity controls with immediate visual feedback
         if (controlId === 'nodeOpacity') {
             chart.config.nodeOpacity = value;
             chart.chart.selectAll('.sankey-node rect')
                 .transition()
                 .duration(150)
                 .attr('fill-opacity', value)
-                .attr('opacity', value); // Added overall opacity for immediate visual effect
+                .attr('opacity', value);
             return;
         }
 
@@ -261,17 +414,16 @@ class SankeyControlModule {
                 .transition()
                 .duration(150)
                 .attr('fill-opacity', value)
-                .attr('opacity', value); // Added overall opacity for immediate visual effect
+                .attr('opacity', value);
             return;
         }
 
-        // Handle group spacing controls
+        // Handle other controls with existing logic
         if (controlId === 'leftmostGroupGap' || controlId === 'rightmostGroupGap') {
             chart.updateConfig({ [controlId]: value });
             return;
         }
 
-        // Handle middle layer spacing control
         if (controlId === 'nodePadding') {
             chart.updateConfig({ nodePadding: value });
             return;
@@ -389,16 +541,12 @@ class SankeyControlModule {
     }
 
     /**
-     * Get current values from chart including colors
+     * Get current values with enhanced color support
      */
     getCurrentValue(controlId, chart) {
         if (controlId.endsWith('Color')) {
             const category = controlId.replace('Color', '').toLowerCase();
-            if (chart && chart.customColors && chart.customColors[category]) {
-                return chart.customColors[category];
-            }
-            const colorControl = this.findControlById(controlId);
-            return colorControl ? colorControl.default : '#000000';
+            return this.getCurrentColorForCategory(category, chart);
         }
 
         if (chart && chart.config) {
@@ -443,7 +591,7 @@ class SankeyControlModule {
     }
 
     /**
-     * Get default configuration matching chart initialization
+     * Enhanced default configuration
      */
     getDefaultConfig() {
         const defaults = {};
@@ -451,7 +599,9 @@ class SankeyControlModule {
         Object.values(this.capabilities).forEach(section => {
             if (section.controls && Array.isArray(section.controls)) {
                 section.controls.forEach(control => {
-                    defaults[control.id] = control.default;
+                    if (control.type !== 'preset_controls') {
+                        defaults[control.id] = control.default;
+                    }
                 });
             }
         });
@@ -475,11 +625,10 @@ class SankeyControlModule {
             4: 0.7
         };
 
-        // Add group spacing defaults
         defaults.leftmostGroupGap = 40;
         defaults.rightmostGroupGap = 40;
 
-        console.log('📋 Control module defaults generated:', defaults);
+        console.log('📋 Enhanced control module defaults generated:', defaults);
         return defaults;
     }
 
@@ -491,91 +640,101 @@ class SankeyControlModule {
     }
 
     /**
-     * Reset chart colors to defaults
-     */
-    resetColors(chart) {
-        if (chart.resetColors) {
-            chart.resetColors();
-        } else {
-            chart.customColors = {};
-            if (chart.data) {
-                chart.render(chart.data);
-            }
-        }
-        console.log('🔄 Reset colors to defaults');
-    }
-
-    /**
-     * Apply color preset
+     * Apply color preset to dynamic colors
      */
     applyColorPreset(chart, presetName) {
+        const categories = Array.from(this.dynamicColors.keys());
+        
         const presets = {
-            default: {
-                revenue: '#3498db',
-                cost: '#e74c3c',
-                profit: '#27ae60',
-                expense: '#e67e22',
-                income: '#9b59b6'
+            default: (categories) => {
+                const colors = {};
+                categories.forEach(cat => {
+                    colors[cat] = this.getDefaultColorForCategory(cat);
+                });
+                return colors;
             },
-            vibrant: {
-                revenue: '#ff6b6b',
-                cost: '#4ecdc4',
-                profit: '#45b7d1',
-                expense: '#f9ca24',
-                income: '#6c5ce7'
+            vibrant: (categories) => {
+                const vibrantColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
+                const colors = {};
+                categories.forEach((cat, index) => {
+                    colors[cat] = vibrantColors[index % vibrantColors.length];
+                });
+                return colors;
             },
-            professional: {
-                revenue: '#2c3e50',
-                cost: '#95a5a6',
-                profit: '#27ae60',
-                expense: '#e67e22',
-                income: '#3498db'
+            professional: (categories) => {
+                const professionalColors = ['#2c3e50', '#95a5a6', '#27ae60', '#e67e22', '#3498db', '#9b59b6', '#1abc9c', '#34495e'];
+                const colors = {};
+                categories.forEach((cat, index) => {
+                    colors[cat] = professionalColors[index % professionalColors.length];
+                });
+                return colors;
             },
-            monochrome: {
-                revenue: '#2c3e50',
-                cost: '#7f8c8d',
-                profit: '#34495e',
-                expense: '#95a5a6',
-                income: '#2c3e50'
+            monochrome: (categories) => {
+                const monochromeColors = ['#2c3e50', '#7f8c8d', '#34495e', '#95a5a6', '#2c3e50', '#bdc3c7', '#ecf0f1', '#34495e'];
+                const colors = {};
+                categories.forEach((cat, index) => {
+                    colors[cat] = monochromeColors[index % monochromeColors.length];
+                });
+                return colors;
             }
         };
 
         const preset = presets[presetName];
         if (preset && chart.setCustomColors) {
-            const colorsWithTax = { ...preset };
-            colorsWithTax.tax = preset.expense;
+            const colors = preset(categories);
             
-            chart.setCustomColors(colorsWithTax);
-            console.log(`🎨 Applied ${presetName} color preset`);
+            // Handle tax special case
+            if (colors.expense) {
+                colors.tax = colors.expense;
+            }
+            
+            chart.setCustomColors(colors);
+            
+            // Update dynamic colors map
+            Object.entries(colors).forEach(([category, color]) => {
+                this.dynamicColors.set(category, color);
+            });
+            
+            console.log(`🎨 Applied ${presetName} color preset to dynamic categories`);
         }
     }
 
     /**
-     * Generate random colors
+     * Randomize all detected colors
      */
     randomizeColors(chart) {
-        const categories = ['revenue', 'cost', 'profit', 'expense', 'income'];
+        const categories = Array.from(this.dynamicColors.keys());
         const randomColors = {};
         
         categories.forEach(category => {
             randomColors[category] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
         });
         
-        randomColors.tax = randomColors.expense;
+        if (randomColors.expense) {
+            randomColors.tax = randomColors.expense;
+        }
         
         if (chart.setCustomColors) {
             chart.setCustomColors(randomColors);
         }
         
-        console.log('🎲 Randomized all colors');
+        // Update dynamic colors map
+        Object.entries(randomColors).forEach(([category, color]) => {
+            this.dynamicColors.set(category, color);
+        });
+        
+        console.log('🎲 Randomized all detected colors');
     }
 
+    // Enhanced validation, reset, and export methods
     validateConfig(config) {
         const errors = [];
         
         Object.values(this.capabilities).forEach(section => {
             if (section.controls && Array.isArray(section.controls)) {
                 section.controls.forEach(control => {
+                    if (control.type === 'preset_controls') return; // Skip preset controls
+                    
                     const value = config[control.id];
                     
                     if (value !== undefined) {
@@ -607,14 +766,15 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            version: '2.4',
+            version: '2.5',
             config: config,
+            dynamicColors: Object.fromEntries(this.dynamicColors),
             timestamp: new Date().toISOString(),
             features: {
+                dynamicColorDetection: true,
                 smartLabelPositioning: true,
                 layerSpecificSpacing: true,
-                colorCustomization: true,
-                taxExpenseGrouping: true,
+                enhancedColorCustomization: true,
                 groupSpacing: true
             }
         }, null, 2);
@@ -626,6 +786,14 @@ class SankeyControlModule {
             
             if (imported.chartType !== 'sankey') {
                 throw new Error('Configuration is not for Sankey charts');
+            }
+            
+            // Restore dynamic colors if available
+            if (imported.dynamicColors) {
+                this.dynamicColors.clear();
+                Object.entries(imported.dynamicColors).forEach(([category, color]) => {
+                    this.dynamicColors.set(category, color);
+                });
             }
             
             const validation = this.validateConfig(imported.config);
@@ -640,19 +808,27 @@ class SankeyControlModule {
         }
     }
 
+    // Enhanced dynamic layer support
     supportsDynamicLayers() {
-        return false; // Removed advanced layer controls
+        return true; // Re-enabled with better implementation
     }
 
-    // Stub method for backward compatibility
+    /**
+     * Enhanced dynamic control initialization
+     */
     initializeDynamicControls(chart) {
-        // No-op - dynamic controls removed
-        console.log('🔧 Dynamic controls disabled in this version');
+        console.log('🔧 Initializing dynamic color controls');
+        this.initializeDynamicColors(chart);
     }
 
+    /**
+     * Update capabilities based on chart data
+     */
     updateCapabilities(chart) {
-        // No-op - dynamic controls removed
-        console.log('🔄 Capability updates disabled in this version');
+        if (chart && chart.data) {
+            this.initializeDynamicColors(chart);
+            console.log('🔄 Updated dynamic color capabilities');
+        }
     }
 }
 

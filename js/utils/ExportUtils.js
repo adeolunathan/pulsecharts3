@@ -1,5 +1,5 @@
-/* ===== PULSE EXPORT UTILITIES ===== */
-/* Complete export functionality for charts and data */
+/* ===== PULSE EXPORT UTILITIES - ENHANCED ===== */
+/* Complete export functionality for charts and financial data */
 
 window.ExportUtils = (function() {
     'use strict';
@@ -163,6 +163,137 @@ window.ExportUtils = (function() {
         }
     }
 
+    // NEW: Export financial flows to CSV (template format)
+    function exportFinancialFlowsToCSV(flowData, options = {}) {
+        try {
+            const filename = generateFinancialFileName(flowData.metadata, 'csv');
+            
+            let csvContent = '';
+            
+            // Add metadata header
+            if (options.includeMetadata !== false) {
+                csvContent += `# Financial Flow Export\n`;
+                csvContent += `# Company: ${flowData.metadata.company || 'N/A'}\n`;
+                csvContent += `# Period: ${flowData.metadata.period || 'N/A'}\n`;
+                csvContent += `# Statement Type: ${flowData.metadata.statementType || 'income'}\n`;
+                csvContent += `# Currency: ${flowData.metadata.currency || 'USD'}\n`;
+                csvContent += `# Unit: ${flowData.metadata.unit || 'millions'}\n`;
+                csvContent += `# Exported: ${new Date().toISOString()}\n\n`;
+            }
+            
+            // Header row
+            csvContent += 'Statement Type,Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            
+            // Data rows
+            flowData.flows.forEach(flow => {
+                const row = [
+                    `"${flowData.metadata.statementType || 'income'}"`,
+                    `"${flow.source || ''}"`,
+                    `"${flow.target || ''}"`,
+                    flow.value || 0,
+                    `"${flow.flowType || ''}"`,
+                    flow.sourceLayer || 0,
+                    flow.targetLayer || 0,
+                    `"${flow.sourceCategory || ''}"`,
+                    `"${flow.targetCategory || ''}"`,
+                    `"${(flow.description || '').replace(/"/g, '""')}"`
+                ].join(',');
+                csvContent += row + '\n';
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            downloadBlob(blob, filename);
+            
+            console.log(`✅ Exported ${flowData.flows.length} flows to ${filename}`);
+            
+        } catch (error) {
+            console.error('Financial flows CSV export failed:', error);
+            alert('Failed to export financial flows. Please check console for details.');
+        }
+    }
+
+    // NEW: Export financial flows to JSON (template format)
+    function exportFinancialFlowsToJSON(flowData, options = {}) {
+        try {
+            const filename = generateFinancialFileName(flowData.metadata, 'json');
+            
+            const exportData = {
+                metadata: {
+                    ...flowData.metadata,
+                    exportedAt: new Date().toISOString(),
+                    exportVersion: '1.0'
+                },
+                flows: flowData.flows,
+                summary: {
+                    totalFlows: flowData.flows.length,
+                    statementType: flowData.metadata.statementType || 'income',
+                    balanceScore: calculateBalanceScore(flowData.flows)
+                }
+            };
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            downloadBlob(blob, filename);
+            
+            console.log(`✅ Exported flow data to ${filename}`);
+            
+        } catch (error) {
+            console.error('Financial flows JSON export failed:', error);
+            alert('Failed to export financial flows as JSON. Please check console for details.');
+        }
+    }
+
+    // Generate filename for financial data using existing convention
+    function generateFinancialFileName(metadata, extension = 'csv') {
+        let company = metadata.company || metadata.title || 'Company';
+        company = company.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
+        
+        let period = metadata.period || 'Period';
+        period = period.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 10);
+        
+        const statementType = metadata.statementType || 'financial';
+        
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() +
+                         (now.getMonth() + 1).toString().padStart(2, '0') +
+                         now.getDate().toString().padStart(2, '0') + '-' +
+                         now.getHours().toString().padStart(2, '0') +
+                         now.getMinutes().toString().padStart(2, '0');
+        
+        return `${company}_${statementType}_${period}_${timestamp}.${extension}`;
+    }
+
+    // Calculate balance score for flows
+    function calculateBalanceScore(flows) {
+        if (flows.length === 0) return 0;
+        
+        let balancedFlows = 0;
+        flows.forEach(flow => {
+            const isValid = flow.source && flow.target && flow.value !== 0 && flow.sourceLayer < flow.targetLayer;
+            if (isValid) balancedFlows++;
+        });
+        
+        return Math.round((balancedFlows / flows.length) * 100);
+    }
+
+    // Generate filename using existing convention (from original ExportUtils)
+    function generateFileName(metadata, extension = 'png') {
+        let company = metadata?.company || metadata?.title || 'Chart';
+        company = company.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
+        
+        let period = metadata?.period || 'Period';
+        period = period.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 10);
+        
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() +
+                         (now.getMonth() + 1).toString().padStart(2, '0') +
+                         now.getDate().toString().padStart(2, '0') + '-' +
+                         now.getHours().toString().padStart(2, '0') +
+                         now.getMinutes().toString().padStart(2, '0');
+        
+        return `${company}_${period}_${timestamp}.${extension}`;
+    }
+
     // Export comprehensive PDF report
     function exportToPDF(svgElement, data, filename = 'pulse-report.pdf', options = {}) {
         // For now, convert to PNG and provide instructions
@@ -302,11 +433,17 @@ window.ExportUtils = (function() {
         exportDataToCSV: exportDataToCSV,
         exportToPDF: exportToPDF,
         
+        // NEW: Financial data specific exports
+        exportFinancialFlowsToCSV: exportFinancialFlowsToCSV,
+        exportFinancialFlowsToJSON: exportFinancialFlowsToJSON,
+        generateFinancialFileName: generateFinancialFileName,
+        
         // Utility functions
         downloadBlob: downloadBlob,
         createDownloadLink: createDownloadLink,
         getExportDimensions: getExportDimensions,
         validateExportSupport: validateExportSupport,
+        generateFileName: generateFileName,
         
         // Batch export (export multiple formats at once)
         exportMultiple: function(svgElement, data, baseName = 'pulse-chart', formats = ['png', 'svg']) {
