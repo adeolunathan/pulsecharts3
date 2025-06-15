@@ -899,7 +899,7 @@ class PulseSankeyChart {
 
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
-        const titleText = `${company} ${period} Income Statement`;
+        const titleText = `${company} ${period} Financial Flow`;
 
         headerGroup.append('text')
             .attr('x', this.config.width / 2)
@@ -911,16 +911,7 @@ class PulseSankeyChart {
             .attr('letter-spacing', '0.5px')
             .text(titleText);
 
-        if (this.data?.metadata?.subtitle) {
-            headerGroup.append('text')
-                .attr('x', this.config.width / 2)
-                .attr('y', 85)
-                .attr('text-anchor', 'middle')
-                .attr('font-size', '13px')
-                .attr('font-weight', '900')
-                .attr('fill', '#1f2937')
-                .text(this.data.metadata.subtitle);
-        }
+        // REMOVED: Subtitle rendering - no longer displays subtitle
     }
 
     renderBrandingFooter() {
@@ -946,14 +937,7 @@ class PulseSankeyChart {
             .attr('fill', '#667eea')
             .text('PULSE ANALYTICS');
 
-        footerGroup.append('text')
-            .attr('x', this.config.width / 2)
-            .attr('y', -25)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', '16px')
-            .attr('font-weight', '800')
-            .attr('fill', '#667eea')
-            .text('pulse-analytics.com');
+        // REMOVED: pulse-analytics.com text from center
 
         footerGroup.append('text')
             .attr('x', this.config.width - 20)
@@ -1026,6 +1010,7 @@ class PulseSankeyChart {
             .attr('height', d => d.height)
             .attr('fill', d => this.getNodeColor(d))
             .attr('fill-opacity', this.config.nodeOpacity)
+            .attr('opacity', this.config.nodeOpacity) // FIXED: Added overall opacity
             .attr('stroke', 'white')
             .attr('stroke-width', 2)
             .attr('rx', 1)
@@ -1686,13 +1671,13 @@ class PulseSankeyChart {
         this.config.nodeOpacity = nodeOpacity;
         this.config.linkOpacity = linkOpacity;
         
-        // Force immediate visual update
+        // FIXED: Force immediate visual update for both fill-opacity and opacity
         this.chart.selectAll('.sankey-node rect')
             .attr('fill-opacity', nodeOpacity)
-            .style('opacity', nodeOpacity);
+            .attr('opacity', nodeOpacity); // Added overall opacity
         this.chart.selectAll('.sankey-link path')
             .attr('fill-opacity', linkOpacity)
-            .style('opacity', linkOpacity);
+            .attr('opacity', linkOpacity); // Added overall opacity
         return this;
     }
 
@@ -1774,17 +1759,20 @@ class PulseSankeyChart {
             this.chart.selectAll('.node-label, .node-value').remove();
             this.renderLabels();
         } else {
+            // FIXED: Update both fill-opacity and opacity for immediate visual feedback
             if (newConfig.nodeOpacity !== undefined) {
                 this.chart.selectAll('.sankey-node rect')
                     .transition()
                     .duration(200)
-                    .attr('fill-opacity', newConfig.nodeOpacity);
+                    .attr('fill-opacity', newConfig.nodeOpacity)
+                    .attr('opacity', newConfig.nodeOpacity);
             }
             if (newConfig.linkOpacity !== undefined) {
                 this.chart.selectAll('.sankey-link path')
                     .transition()
                     .duration(200)
-                    .attr('fill-opacity', newConfig.linkOpacity);
+                    .attr('fill-opacity', newConfig.linkOpacity)
+                    .attr('opacity', newConfig.linkOpacity);
             }
         }
         

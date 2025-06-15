@@ -48,20 +48,6 @@ class SankeyControlModule {
                     }
                 ]
             },
-
-            manual: {
-                title: "Manual Positioning",
-                icon: "🖱️",
-                collapsed: false,
-                controls: [
-                    {
-                        id: "dragInfo",
-                        type: "info",
-                        label: "Interactive Positioning",
-                        description: "💡 Drag nodes vertically to reposition them manually.\n\n🖱️ Click and drag any node up or down within its layer.\n📍 Dashed line shows drag constraints.\n🔗 Links update in real-time during dragging."
-                    }
-                ]
-            },
             
             curves: {
                 title: "Flow Curves",
@@ -258,13 +244,14 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle opacity controls
+        // FIXED: Handle opacity controls with both fill-opacity and opacity
         if (controlId === 'nodeOpacity') {
             chart.config.nodeOpacity = value;
             chart.chart.selectAll('.sankey-node rect')
                 .transition()
                 .duration(150)
-                .attr('fill-opacity', value);
+                .attr('fill-opacity', value)
+                .attr('opacity', value); // Added overall opacity for immediate visual effect
             return;
         }
 
@@ -273,7 +260,8 @@ class SankeyControlModule {
             chart.chart.selectAll('.sankey-link path')
                 .transition()
                 .duration(150)
-                .attr('fill-opacity', value);
+                .attr('fill-opacity', value)
+                .attr('opacity', value); // Added overall opacity for immediate visual effect
             return;
         }
 

@@ -85,6 +85,58 @@
             margin: 0 auto;
         }
         
+        /* Statement Type Selector */
+        .statement-type-selector {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .statement-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        
+        .statement-tab {
+            flex: 1;
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .statement-tab:hover {
+            background: #e9ecef;
+            color: #374151;
+        }
+        
+        .statement-tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .statement-info {
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e1e5e9;
+        }
+        
+        .statement-description {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        
         /* Collapsible Sections */
         .collapsible-section {
             background: white;
@@ -466,6 +518,10 @@
             .color-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .statement-tabs {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -476,7 +532,7 @@
             <div>
                 <h1 class="action-title">💰 Business Flow Designer</h1>
                 <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">
-                    Build financial flows: "From Revenue to Profit"
+                    Build financial flows: Income Statement, Balance Sheet & Cash Flow
                 </div>
             </div>
             <div class="action-buttons">
@@ -491,6 +547,26 @@
     <div class="template-container">
         <div class="template-main">
             <div class="template-content" style="padding: 20px;">
+                <!-- Statement Type Selector -->
+                <div class="statement-type-selector">
+                    <div class="statement-tabs">
+                        <button class="statement-tab active" data-type="income" onclick="switchStatementType('income')">
+                            📊 Income Statement
+                        </button>
+                        <button class="statement-tab" data-type="balance" onclick="switchStatementType('balance')">
+                            ⚖️ Balance Sheet
+                        </button>
+                        <button class="statement-tab" data-type="cashflow" onclick="switchStatementType('cashflow')">
+                            💸 Cash Flow
+                        </button>
+                    </div>
+                    <div class="statement-info">
+                        <div class="statement-description" id="statement-description">
+                            Shows revenue flows through costs and expenses to arrive at net income. Ideal for understanding profitability and operational efficiency.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Quick Stats -->
                 <div class="stats-bar">
                     <div class="stat-item">
@@ -562,42 +638,8 @@
                     </div>
                     <div class="collapsible-content" id="colors-content">
                         <div class="color-customization">
-                            <div class="color-grid">
-                                <div class="color-item">
-                                    <input type="color" class="color-picker" id="revenue-color" value="#3498db" onchange="updateColor('revenue', this.value)">
-                                    <div class="color-info">
-                                        <div class="color-label">Revenue</div>
-                                        <div class="color-description">Revenue nodes and flows</div>
-                                    </div>
-                                </div>
-                                <div class="color-item">
-                                    <input type="color" class="color-picker" id="cost-color" value="#e74c3c" onchange="updateColor('cost', this.value)">
-                                    <div class="color-info">
-                                        <div class="color-label">Cost</div>
-                                        <div class="color-description">Cost of revenue nodes</div>
-                                    </div>
-                                </div>
-                                <div class="color-item">
-                                    <input type="color" class="color-picker" id="profit-color" value="#27ae60" onchange="updateColor('profit', this.value)">
-                                    <div class="color-info">
-                                        <div class="color-label">Profit</div>
-                                        <div class="color-description">Profit nodes and flows</div>
-                                    </div>
-                                </div>
-                                <div class="color-item">
-                                    <input type="color" class="color-picker" id="expense-color" value="#e67e22" onchange="updateColor('expense', this.value)">
-                                    <div class="color-info">
-                                        <div class="color-label">Expense & Tax</div>
-                                        <div class="color-description">Operating expenses and tax nodes</div>
-                                    </div>
-                                </div>
-                                <div class="color-item">
-                                    <input type="color" class="color-picker" id="income-color" value="#9b59b6" onchange="updateColor('income', this.value)">
-                                    <div class="color-info">
-                                        <div class="color-label">Income</div>
-                                        <div class="color-description">Final income nodes</div>
-                                    </div>
-                                </div>
+                            <div class="color-grid" id="color-grid">
+                                <!-- Colors will be dynamically populated based on statement type -->
                             </div>
                             
                             <div class="color-presets">
@@ -660,22 +702,17 @@
 
     <script>
         // Global data structure
+        let currentStatementType = 'income';
         let flowData = {
             metadata: {
                 title: "TechFlow Financial Flow",
-                subtitle: "Multi-Layer Business Model",
+                subtitle: "",  // REMOVED: No longer using subtitle
                 currency: "USD",
                 unit: "millions",
                 company: "TechFlow Corporation",
                 period: "Q3 2025",
-                colorPalette: {
-                    revenue: "#3498db",
-                    cost: "#e74c3c",
-                    profit: "#27ae60",
-                    expense: "#e67e22",
-                    income: "#9b59b6",
-                    tax: "#e67e22"  // Tax uses expense color
-                }
+                statementType: "income",
+                colorPalette: {}
             },
             flows: []
         };
@@ -700,74 +737,166 @@
             }
         }
 
+        // Statement Type Configuration
+        const statementConfigs = {
+            income: {
+                title: "Income Statement",
+                description: "Shows revenue flows through costs and expenses to arrive at net income. Ideal for understanding profitability and operational efficiency.",
+                colorCategories: {
+                    revenue: { label: "Revenue", description: "Revenue nodes and flows", default: "#3498db" },
+                    cost: { label: "Cost", description: "Cost of revenue nodes", default: "#e74c3c" },
+                    profit: { label: "Profit", description: "Profit nodes and flows", default: "#27ae60" },
+                    expense: { label: "Expense & Tax", description: "Operating expenses and tax nodes", default: "#e67e22" },
+                    income: { label: "Income", description: "Final income nodes", default: "#9b59b6" }
+                }
+            },
+            balance: {
+                title: "Balance Sheet",
+                description: "Shows how assets are financed by liabilities and equity. Visualizes the fundamental accounting equation: Assets = Liabilities + Equity.",
+                colorCategories: {
+                    asset: { label: "Assets", description: "Current and non-current assets", default: "#3498db" },
+                    liability: { label: "Liabilities", description: "Current and long-term liabilities", default: "#e74c3c" },
+                    equity: { label: "Equity", description: "Shareholders' equity components", default: "#27ae60" },
+                    current: { label: "Current Items", description: "Short-term assets and liabilities", default: "#f39c12" },
+                    noncurrent: { label: "Non-Current Items", description: "Long-term assets and liabilities", default: "#9b59b6" }
+                }
+            },
+            cashflow: {
+                title: "Cash Flow Statement",
+                description: "Tracks cash movements from operating, investing, and financing activities. Shows how cash is generated and used across business activities.",
+                colorCategories: {
+                    operating: { label: "Operating", description: "Cash from core business operations", default: "#3498db" },
+                    investing: { label: "Investing", description: "Cash from investment activities", default: "#e74c3c" },
+                    financing: { label: "Financing", description: "Cash from financing activities", default: "#27ae60" },
+                    inflow: { label: "Cash Inflow", description: "Sources of cash", default: "#2ecc71" },
+                    outflow: { label: "Cash Outflow", description: "Uses of cash", default: "#e67e22" }
+                }
+            }
+        };
+
+        // Statement Type Management
+        function switchStatementType(type) {
+            if (type === currentStatementType) return;
+            
+            console.log(`🔄 Switching statement type from ${currentStatementType} to ${type}`);
+            
+            // Update active tab
+            document.querySelectorAll('.statement-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+            
+            // Update description
+            const config = statementConfigs[type];
+            document.getElementById('statement-description').textContent = config.description;
+            
+            // Update current type
+            currentStatementType = type;
+            flowData.metadata.statementType = type;
+            flowData.metadata.title = `${flowData.metadata.company} ${config.title}`;
+            
+            // Update color palette
+            updateColorPalette();
+            
+            // Load appropriate template
+            loadCompleteTemplate();
+        }
+
+        function updateColorPalette() {
+            const config = statementConfigs[currentStatementType];
+            const colorGrid = document.getElementById('color-grid');
+            
+            // Clear existing colors
+            colorGrid.innerHTML = '';
+            
+            // Reset color palette
+            flowData.metadata.colorPalette = {};
+            
+            // Add colors for current statement type
+            Object.entries(config.colorCategories).forEach(([category, info]) => {
+                flowData.metadata.colorPalette[category] = info.default;
+                
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                colorItem.innerHTML = `
+                    <input type="color" class="color-picker" id="${category}-color" value="${info.default}" onchange="updateColor('${category}', this.value)">
+                    <div class="color-info">
+                        <div class="color-label">${info.label}</div>
+                        <div class="color-description">${info.description}</div>
+                    </div>
+                `;
+                colorGrid.appendChild(colorItem);
+            });
+        }
+
         // Color Management Functions
         function updateColor(category, color) {
             flowData.metadata.colorPalette[category] = color;
-            
-            // Tax always uses expense color
-            if (category === 'expense') {
-                flowData.metadata.colorPalette.tax = color;
-            }
-            
             console.log(`🎨 Updated ${category} color to ${color}`);
         }
 
         function applyColorPreset(presetName) {
+            const config = statementConfigs[currentStatementType];
+            const categories = Object.keys(config.colorCategories);
+            
             const presets = {
-                default: {
-                    revenue: '#3498db',
-                    cost: '#e74c3c',
-                    profit: '#27ae60',
-                    expense: '#e67e22',
-                    income: '#9b59b6'
+                default: (categories) => {
+                    const defaultColors = {};
+                    categories.forEach(cat => {
+                        defaultColors[cat] = config.colorCategories[cat].default;
+                    });
+                    return defaultColors;
                 },
-                vibrant: {
-                    revenue: '#ff6b6b',
-                    cost: '#4ecdc4',
-                    profit: '#45b7d1',
-                    expense: '#f9ca24',
-                    income: '#6c5ce7'
+                vibrant: (categories) => {
+                    const vibrantColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7'];
+                    const colors = {};
+                    categories.forEach((cat, index) => {
+                        colors[cat] = vibrantColors[index % vibrantColors.length];
+                    });
+                    return colors;
                 },
-                professional: {
-                    revenue: '#2c3e50',
-                    cost: '#95a5a6',
-                    profit: '#27ae60',
-                    expense: '#e67e22',
-                    income: '#3498db'
+                professional: (categories) => {
+                    const professionalColors = ['#2c3e50', '#95a5a6', '#27ae60', '#e67e22', '#3498db'];
+                    const colors = {};
+                    categories.forEach((cat, index) => {
+                        colors[cat] = professionalColors[index % professionalColors.length];
+                    });
+                    return colors;
                 },
-                monochrome: {
-                    revenue: '#2c3e50',
-                    cost: '#7f8c8d',
-                    profit: '#34495e',
-                    expense: '#95a5a6',
-                    income: '#2c3e50'
+                monochrome: (categories) => {
+                    const monochromeColors = ['#2c3e50', '#7f8c8d', '#34495e', '#95a5a6', '#2c3e50'];
+                    const colors = {};
+                    categories.forEach((cat, index) => {
+                        colors[cat] = monochromeColors[index % monochromeColors.length];
+                    });
+                    return colors;
                 }
             };
 
             const preset = presets[presetName];
             if (preset) {
+                const colors = preset(categories);
+                
                 // Apply colors to data
-                Object.entries(preset).forEach(([category, color]) => {
+                Object.entries(colors).forEach(([category, color]) => {
                     flowData.metadata.colorPalette[category] = color;
                 });
                 
-                // Tax uses expense color
-                flowData.metadata.colorPalette.tax = preset.expense;
-                
                 // Update UI
-                Object.entries(preset).forEach(([category, color]) => {
+                Object.entries(colors).forEach(([category, color]) => {
                     const picker = document.getElementById(`${category}-color`);
                     if (picker) {
                         picker.value = color;
                     }
                 });
                 
-                console.log(`🎨 Applied ${presetName} color preset`);
+                console.log(`🎨 Applied ${presetName} color preset for ${currentStatementType}`);
             }
         }
 
         function randomizeColors() {
-            const categories = ['revenue', 'cost', 'profit', 'expense', 'income'];
+            const config = statementConfigs[currentStatementType];
+            const categories = Object.keys(config.colorCategories);
             
             categories.forEach(category => {
                 const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
@@ -778,9 +907,6 @@
                     picker.value = randomColor;
                 }
             });
-            
-            // Tax uses expense color
-            flowData.metadata.colorPalette.tax = flowData.metadata.colorPalette.expense;
             
             console.log('🎲 Randomized all colors');
         }
@@ -804,183 +930,465 @@
         }
 
         function loadCompleteTemplate() {
-            flowData.metadata.company = "TechFlow Corporation";
-            flowData.metadata.title = "TechFlow Financial Flow";
-            flowData.metadata.subtitle = "Multi-Layer Business Model";
-            
-            flowData.flows = [
-                new BusinessFlow({
-                    source: "Creative Cloud",
-                    target: "Subscription",
-                    value: 2800,
-                    flowType: "revenue_flow",
-                    sourceLayer: 0,
-                    targetLayer: 1,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
-                    description: "Photoshop, Illustrator, and creative tools"
-                }),
-                new BusinessFlow({
-                    source: "Document Cloud",
-                    target: "Subscription",
-                    value: 600,
-                    flowType: "revenue_flow",
-                    sourceLayer: 0,
-                    targetLayer: 1,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
-                    description: "Acrobat, Sign, and document services"
-                }),
-                new BusinessFlow({
-                    source: "Experience Cloud",
-                    target: "Subscription",
-                    value: 1200,
-                    flowType: "revenue_flow",
-                    sourceLayer: 0,
-                    targetLayer: 1,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
-                    description: "Analytics, Commerce, and marketing tools"
-                }),
-                new BusinessFlow({
-                    source: "Products",
-                    target: "Total Revenue",
-                    value: 900,
-                    flowType: "revenue_flow",
-                    sourceLayer: 1,
-                    targetLayer: 2,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
-                    description: "Product-based revenue"
-                }),
-                new BusinessFlow({
-                    source: "Subscription",
-                    target: "Total Revenue",
-                    value: 4600,
-                    flowType: "revenue_flow",
-                    sourceLayer: 1,
-                    targetLayer: 2,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
-                    description: "All subscription-based revenue"
-                }),
-                new BusinessFlow({
-                    source: "Total Revenue",
-                    target: "Gross Profit",
-                    value: 3800,
-                    flowType: "profit_flow",
-                    sourceLayer: 2,
-                    targetLayer: 3,
-                    sourceCategory: "revenue",
-                    targetCategory: "profit",
-                    description: "Revenue after cost of revenue"
-                }),
-                new BusinessFlow({
-                    source: "Total Revenue",
-                    target: "Cost of Revenue",
-                    value: 800,
-                    flowType: "cost_flow",
-                    sourceLayer: 2,
-                    targetLayer: 3,
-                    sourceCategory: "revenue",
-                    targetCategory: "cost",
-                    description: "Direct costs to deliver services"
-                }),
-                new BusinessFlow({
-                    source: "Gross Profit",
-                    target: "Operating Profit",
-                    value: 1400,
-                    flowType: "profit_flow",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "profit",
-                    targetCategory: "profit",
-                    description: "Profit from core operations"
-                }),
-                new BusinessFlow({
-                    source: "Gross Profit",
-                    target: "Operating Expenses",
-                    value: 2400,
-                    flowType: "expense_flow",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "profit",
-                    targetCategory: "expense",
-                    description: "Total operating expenses"
-                }),
-                new BusinessFlow({
-                    source: "Operating Expenses",
-                    target: "R&D",
-                    value: 1200,
-                    flowType: "expense_flow",
-                    sourceLayer: 4,
-                    targetLayer: 5,
-                    sourceCategory: "expense",
-                    targetCategory: "expense",
-                    description: "Research and development investment"
-                }),
-                new BusinessFlow({
-                    source: "Operating Expenses",
-                    target: "Sales & Marketing",
-                    value: 800,
-                    flowType: "expense_flow",
-                    sourceLayer: 4,
-                    targetLayer: 5,
-                    sourceCategory: "expense",
-                    targetCategory: "expense",
-                    description: "Customer acquisition and marketing"
-                }),
-                new BusinessFlow({
-                    source: "Operating Expenses",
-                    target: "General & Admin",
-                    value: 400,
-                    flowType: "expense_flow",
-                    sourceLayer: 4,
-                    targetLayer: 5,
-                    sourceCategory: "expense",
-                    targetCategory: "expense",
-                    description: "Administrative and overhead costs"
-                }),
-                new BusinessFlow({
-                    source: "Operating Profit",
-                    target: "Net Income",
-                    value: 1100,
-                    flowType: "final_flow",
-                    sourceLayer: 4,
-                    targetLayer: 5,
-                    sourceCategory: "profit",
-                    targetCategory: "income",
-                    description: "Final net income after all expenses"
-                }),
-                new BusinessFlow({
-                    source: "Operating Profit",
-                    target: "Tax Expense",
-                    value: 300,
-                    flowType: "expense_flow",
-                    sourceLayer: 4,
-                    targetLayer: 5,
-                    sourceCategory: "profit",
-                    targetCategory: "tax",
-                    description: "Corporate income tax"
-                })
-            ];
-            
-            document.getElementById('company-name').value = flowData.metadata.company;
-            renderFlowTable();
-            updateAllStats();
+            const templates = {
+                income: () => {
+                    flowData.metadata.company = "TechFlow Corporation";
+                    flowData.metadata.title = "TechFlow Income Statement";
+                    
+                    flowData.flows = [
+                        new BusinessFlow({
+                            source: "Product Sales",
+                            target: "Total Revenue",
+                            value: 2800,
+                            flowType: "revenue_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "revenue",
+                            targetCategory: "revenue",
+                            description: "Revenue from product sales"
+                        }),
+                        new BusinessFlow({
+                            source: "Service Revenue",
+                            target: "Total Revenue",
+                            value: 1200,
+                            flowType: "revenue_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "revenue",
+                            targetCategory: "revenue",
+                            description: "Revenue from services"
+                        }),
+                        new BusinessFlow({
+                            source: "Subscription Revenue",
+                            target: "Total Revenue",
+                            value: 600,
+                            flowType: "revenue_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "revenue",
+                            targetCategory: "revenue",
+                            description: "Recurring subscription income"
+                        }),
+                        new BusinessFlow({
+                            source: "Total Revenue",
+                            target: "Gross Profit",
+                            value: 3800,
+                            flowType: "profit_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "revenue",
+                            targetCategory: "profit",
+                            description: "Revenue after cost of revenue"
+                        }),
+                        new BusinessFlow({
+                            source: "Total Revenue",
+                            target: "Cost of Revenue",
+                            value: 800,
+                            flowType: "cost_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "revenue",
+                            targetCategory: "cost",
+                            description: "Direct costs to deliver services"
+                        }),
+                        new BusinessFlow({
+                            source: "Gross Profit",
+                            target: "Operating Profit",
+                            value: 1400,
+                            flowType: "profit_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "profit",
+                            targetCategory: "profit",
+                            description: "Profit from core operations"
+                        }),
+                        new BusinessFlow({
+                            source: "Gross Profit",
+                            target: "Operating Expenses",
+                            value: 2400,
+                            flowType: "expense_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "profit",
+                            targetCategory: "expense",
+                            description: "Total operating expenses"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Expenses",
+                            target: "R&D",
+                            value: 1200,
+                            flowType: "expense_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "expense",
+                            targetCategory: "expense",
+                            description: "Research and development"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Expenses",
+                            target: "Sales & Marketing",
+                            value: 800,
+                            flowType: "expense_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "expense",
+                            targetCategory: "expense",
+                            description: "Customer acquisition"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Expenses",
+                            target: "General & Admin",
+                            value: 400,
+                            flowType: "expense_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "expense",
+                            targetCategory: "expense",
+                            description: "Administrative costs"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Profit",
+                            target: "Net Income",
+                            value: 1100,
+                            flowType: "final_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "profit",
+                            targetCategory: "income",
+                            description: "Final net income"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Profit",
+                            target: "Tax Expense",
+                            value: 300,
+                            flowType: "expense_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "profit",
+                            targetCategory: "expense",
+                            description: "Corporate income tax"
+                        })
+                    ];
+                },
+                balance: () => {
+                    flowData.metadata.company = "TechFlow Corporation";
+                    flowData.metadata.title = "TechFlow Balance Sheet";
+                    
+                    flowData.flows = [
+                        // Assets breakdown
+                        new BusinessFlow({
+                            source: "Cash & Equivalents",
+                            target: "Current Assets",
+                            value: 1500,
+                            flowType: "asset_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "current",
+                            targetCategory: "asset",
+                            description: "Cash and short-term investments"
+                        }),
+                        new BusinessFlow({
+                            source: "Accounts Receivable",
+                            target: "Current Assets",
+                            value: 800,
+                            flowType: "asset_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "current",
+                            targetCategory: "asset",
+                            description: "Money owed by customers"
+                        }),
+                        new BusinessFlow({
+                            source: "Inventory",
+                            target: "Current Assets",
+                            value: 400,
+                            flowType: "asset_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "current",
+                            targetCategory: "asset",
+                            description: "Products and materials"
+                        }),
+                        new BusinessFlow({
+                            source: "Property & Equipment",
+                            target: "Non-Current Assets",
+                            value: 2200,
+                            flowType: "asset_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "noncurrent",
+                            targetCategory: "asset",
+                            description: "Buildings, equipment, and infrastructure"
+                        }),
+                        new BusinessFlow({
+                            source: "Intangible Assets",
+                            target: "Non-Current Assets",
+                            value: 600,
+                            flowType: "asset_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "noncurrent",
+                            targetCategory: "asset",
+                            description: "Patents, software, and goodwill"
+                        }),
+                        new BusinessFlow({
+                            source: "Current Assets",
+                            target: "Total Assets",
+                            value: 2700,
+                            flowType: "asset_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "asset",
+                            targetCategory: "asset",
+                            description: "Sum of current assets"
+                        }),
+                        new BusinessFlow({
+                            source: "Non-Current Assets",
+                            target: "Total Assets",
+                            value: 2800,
+                            flowType: "asset_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "asset",
+                            targetCategory: "asset",
+                            description: "Sum of non-current assets"
+                        }),
+                        // Liabilities breakdown
+                        new BusinessFlow({
+                            source: "Total Assets",
+                            target: "Current Liabilities",
+                            value: 1200,
+                            flowType: "liability_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "asset",
+                            targetCategory: "liability",
+                            description: "Short-term obligations"
+                        }),
+                        new BusinessFlow({
+                            source: "Total Assets",
+                            target: "Long-term Debt",
+                            value: 1800,
+                            flowType: "liability_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "asset",
+                            targetCategory: "liability",
+                            description: "Long-term borrowings"
+                        }),
+                        new BusinessFlow({
+                            source: "Total Assets",
+                            target: "Shareholders Equity",
+                            value: 2500,
+                            flowType: "equity_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "asset",
+                            targetCategory: "equity",
+                            description: "Owners' equity in the company"
+                        }),
+                        // Equity breakdown
+                        new BusinessFlow({
+                            source: "Shareholders Equity",
+                            target: "Common Stock",
+                            value: 1000,
+                            flowType: "equity_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "equity",
+                            targetCategory: "equity",
+                            description: "Issued common shares"
+                        }),
+                        new BusinessFlow({
+                            source: "Shareholders Equity",
+                            target: "Retained Earnings",
+                            value: 1500,
+                            flowType: "equity_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "equity",
+                            targetCategory: "equity",
+                            description: "Accumulated profits"
+                        })
+                    ];
+                },
+                cashflow: () => {
+                    flowData.metadata.company = "TechFlow Corporation";
+                    flowData.metadata.title = "TechFlow Cash Flow Statement";
+                    
+                    flowData.flows = [
+                        // Operating activities
+                        new BusinessFlow({
+                            source: "Net Income",
+                            target: "Operating Cash Flow",
+                            value: 1100,
+                            flowType: "operating_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "inflow",
+                            targetCategory: "operating",
+                            description: "Starting point for cash flow"
+                        }),
+                        new BusinessFlow({
+                            source: "Depreciation",
+                            target: "Operating Cash Flow",
+                            value: 300,
+                            flowType: "operating_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "inflow",
+                            targetCategory: "operating",
+                            description: "Non-cash expense added back"
+                        }),
+                        new BusinessFlow({
+                            source: "Working Capital Changes",
+                            target: "Operating Cash Flow",
+                            value: -200,
+                            flowType: "operating_flow",
+                            sourceLayer: 0,
+                            targetLayer: 1,
+                            sourceCategory: "outflow",
+                            targetCategory: "operating",
+                            description: "Changes in receivables, inventory, payables"
+                        }),
+                        // Investing activities
+                        new BusinessFlow({
+                            source: "Operating Cash Flow",
+                            target: "Capital Expenditures",
+                            value: 400,
+                            flowType: "investing_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "operating",
+                            targetCategory: "investing",
+                            description: "Investments in property and equipment"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Cash Flow",
+                            target: "Acquisitions",
+                            value: 200,
+                            flowType: "investing_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "operating",
+                            targetCategory: "investing",
+                            description: "Business acquisitions"
+                        }),
+                        new BusinessFlow({
+                            source: "Operating Cash Flow",
+                            target: "Free Cash Flow",
+                            value: 600,
+                            flowType: "cash_flow",
+                            sourceLayer: 1,
+                            targetLayer: 2,
+                            sourceCategory: "operating",
+                            targetCategory: "inflow",
+                            description: "Cash available after investments"
+                        }),
+                        // Financing activities
+                        new BusinessFlow({
+                            source: "Free Cash Flow",
+                            target: "Debt Repayment",
+                            value: 150,
+                            flowType: "financing_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "inflow",
+                            targetCategory: "financing",
+                            description: "Principal payments on debt"
+                        }),
+                        new BusinessFlow({
+                            source: "Free Cash Flow",
+                            target: "Dividends",
+                            value: 100,
+                            flowType: "financing_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "inflow",
+                            targetCategory: "financing",
+                            description: "Payments to shareholders"
+                        }),
+                        new BusinessFlow({
+                            source: "Free Cash Flow",
+                            target: "Net Cash Change",
+                            value: 350,
+                            flowType: "cash_flow",
+                            sourceLayer: 2,
+                            targetLayer: 3,
+                            sourceCategory: "inflow",
+                            targetCategory: "inflow",
+                            description: "Net change in cash position"
+                        }),
+                        // Cash position
+                        new BusinessFlow({
+                            source: "Net Cash Change",
+                            target: "Ending Cash Balance",
+                            value: 350,
+                            flowType: "cash_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "inflow",
+                            targetCategory: "inflow",
+                            description: "Final cash position"
+                        }),
+                        new BusinessFlow({
+                            source: "Beginning Cash Balance",
+                            target: "Ending Cash Balance",
+                            value: 1150,
+                            flowType: "cash_flow",
+                            sourceLayer: 3,
+                            targetLayer: 4,
+                            sourceCategory: "inflow",
+                            targetCategory: "inflow",
+                            description: "Starting cash position"
+                        })
+                    ];
+                }
+            };
+
+            const template = templates[currentStatementType];
+            if (template) {
+                template();
+                document.getElementById('company-name').value = flowData.metadata.company;
+                renderFlowTable();
+                updateAllStats();
+            }
         }
 
         function loadBlankFlows() {
             if (confirm('This will clear all current flows. Continue?')) {
-                flowData.flows = [
-                    new BusinessFlow({
-                        source: "Revenue Source",
-                        target: "Total Revenue",
-                        value: 100,
-                        description: "Start building your flow here"
-                    })
-                ];
+                const startingFlows = {
+                    income: () => [
+                        new BusinessFlow({
+                            source: "Revenue Source",
+                            target: "Total Revenue",
+                            value: 100,
+                            description: "Start building your income statement here"
+                        })
+                    ],
+                    balance: () => [
+                        new BusinessFlow({
+                            source: "Asset Item",
+                            target: "Total Assets",
+                            value: 100,
+                            sourceCategory: "asset",
+                            targetCategory: "asset",
+                            description: "Start building your balance sheet here"
+                        })
+                    ],
+                    cashflow: () => [
+                        new BusinessFlow({
+                            source: "Cash Source",
+                            target: "Operating Cash Flow",
+                            value: 100,
+                            sourceCategory: "inflow",
+                            targetCategory: "operating",
+                            description: "Start building your cash flow statement here"
+                        })
+                    ]
+                };
                 
+                flowData.flows = startingFlows[currentStatementType]();
                 renderFlowTable();
                 updateAllStats();
             }
@@ -1009,6 +1417,9 @@
         }
 
         function createFlowRow(flow, index) {
+            const config = statementConfigs[currentStatementType];
+            const categories = Object.keys(config.colorCategories);
+            
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
@@ -1041,31 +1452,17 @@
                 </td>
                 <td>
                     <select class="flow-select" onchange="updateFlow(${index}, 'flowType', this.value)">
-                        <option value="revenue_flow" ${flow.flowType === 'revenue_flow' ? 'selected' : ''}>Revenue</option>
-                        <option value="cost_flow" ${flow.flowType === 'cost_flow' ? 'selected' : ''}>Cost</option>
-                        <option value="profit_flow" ${flow.flowType === 'profit_flow' ? 'selected' : ''}>Profit</option>
-                        <option value="expense_flow" ${flow.flowType === 'expense_flow' ? 'selected' : ''}>Expense</option>
-                        <option value="final_flow" ${flow.flowType === 'final_flow' ? 'selected' : ''}>Final</option>
+                        ${getFlowTypeOptions(flow.flowType)}
                     </select>
                 </td>
                 <td>
                     <select class="flow-select" onchange="updateFlow(${index}, 'sourceCategory', this.value)">
-                        <option value="revenue" ${flow.sourceCategory === 'revenue' ? 'selected' : ''}>Revenue</option>
-                        <option value="cost" ${flow.sourceCategory === 'cost' ? 'selected' : ''}>Cost</option>
-                        <option value="profit" ${flow.sourceCategory === 'profit' ? 'selected' : ''}>Profit</option>
-                        <option value="expense" ${flow.sourceCategory === 'expense' ? 'selected' : ''}>Expense</option>
-                        <option value="income" ${flow.sourceCategory === 'income' ? 'selected' : ''}>Income</option>
-                        <option value="tax" ${flow.sourceCategory === 'tax' ? 'selected' : ''}>Tax</option>
+                        ${getCategoryOptions(categories, flow.sourceCategory)}
                     </select>
                 </td>
                 <td>
                     <select class="flow-select" onchange="updateFlow(${index}, 'targetCategory', this.value)">
-                        <option value="revenue" ${flow.targetCategory === 'revenue' ? 'selected' : ''}>Revenue</option>
-                        <option value="cost" ${flow.targetCategory === 'cost' ? 'selected' : ''}>Cost</option>
-                        <option value="profit" ${flow.targetCategory === 'profit' ? 'selected' : ''}>Profit</option>
-                        <option value="expense" ${flow.targetCategory === 'expense' ? 'selected' : ''}>Expense</option>
-                        <option value="income" ${flow.targetCategory === 'income' ? 'selected' : ''}>Income</option>
-                        <option value="tax" ${flow.targetCategory === 'tax' ? 'selected' : ''}>Tax</option>
+                        ${getCategoryOptions(categories, flow.targetCategory)}
                     </select>
                 </td>
                 <td>
@@ -1080,19 +1477,56 @@
             return tr;
         }
 
+        function getFlowTypeOptions(selected) {
+            const options = [
+                { value: 'revenue_flow', label: 'Revenue' },
+                { value: 'cost_flow', label: 'Cost' },
+                { value: 'profit_flow', label: 'Profit' },
+                { value: 'expense_flow', label: 'Expense' },
+                { value: 'asset_flow', label: 'Asset' },
+                { value: 'liability_flow', label: 'Liability' },
+                { value: 'equity_flow', label: 'Equity' },
+                { value: 'operating_flow', label: 'Operating' },
+                { value: 'investing_flow', label: 'Investing' },
+                { value: 'financing_flow', label: 'Financing' },
+                { value: 'cash_flow', label: 'Cash' },
+                { value: 'final_flow', label: 'Final' }
+            ];
+            
+            return options.map(opt => 
+                `<option value="${opt.value}" ${opt.value === selected ? 'selected' : ''}>${opt.label}</option>`
+            ).join('');
+        }
+
+        function getCategoryOptions(categories, selected) {
+            return categories.map(cat => 
+                `<option value="${cat}" ${cat === selected ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+        }
+
         function getFlowBalanceIndicator(flow) {
-            const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
+            const isValid = flow.source && flow.target && flow.value !== 0 && flow.sourceLayer < flow.targetLayer;
             return `<div class="balance-indicator ${isValid ? 'balanced' : 'unbalanced'}">${isValid ? '✓' : '⚠'}</div>`;
         }
 
-        // Flow Management Functions
+        // Flow Management Functions (rest of the functions remain the same as before)
         function addFlow() {
+            const defaultCategories = {
+                income: { source: 'revenue', target: 'revenue' },
+                balance: { source: 'asset', target: 'asset' },
+                cashflow: { source: 'inflow', target: 'operating' }
+            };
+            
+            const defaults = defaultCategories[currentStatementType];
+            
             const newFlow = new BusinessFlow({
                 source: "New Source",
                 target: "New Target",
                 value: 100,
                 sourceLayer: 0,
-                targetLayer: 1
+                targetLayer: 1,
+                sourceCategory: defaults.source,
+                targetCategory: defaults.target
             });
             
             flowData.flows.push(newFlow);
@@ -1110,6 +1544,7 @@
             if (index > 0) {
                 [flowData.flows[index], flowData.flows[index - 1]] = [flowData.flows[index - 1], flowData.flows[index]];
                 renderFlowTable();
+                updateAllStats();
             }
         }
 
@@ -1117,6 +1552,7 @@
             if (index < flowData.flows.length - 1) {
                 [flowData.flows[index], flowData.flows[index + 1]] = [flowData.flows[index + 1], flowData.flows[index]];
                 renderFlowTable();
+                updateAllStats();
             }
         }
 
@@ -1157,8 +1593,9 @@
             flowData.metadata.period = document.getElementById('period').value;
             flowData.metadata.currency = document.getElementById('currency').value;
             flowData.metadata.unit = document.getElementById('units').value;
-            flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
-            flowData.metadata.subtitle = `${flowData.metadata.period} Business Model`;
+            
+            const config = statementConfigs[currentStatementType];
+            flowData.metadata.title = `${flowData.metadata.company} ${config.title}`;
         }
 
         function generateNodesAndLinksFromFlows() {
@@ -1189,16 +1626,15 @@
                 }
                 
                 const targetNode = nodeMap.get(flow.target);
-                targetNode.value += flow.value;
+                targetNode.value += Math.abs(flow.value);
                 
-                // FIXED: Link color should reflect TARGET category, not source
                 links.push({
                     source: flow.source,
                     target: flow.target,
-                    value: flow.value,
+                    value: Math.abs(flow.value),
                     type: flow.flowType,
                     description: flow.description,
-                    colorCategory: flow.targetCategory  // NEW: Use target category for coloring
+                    colorCategory: flow.targetCategory
                 });
             });
             
@@ -1206,7 +1642,7 @@
                 const sourceNode = nodeMap.get(flow.source);
                 if (sourceNode.value === 0) {
                     const outflows = flowData.flows.filter(f => f.source === flow.source);
-                    sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
+                    sourceNode.value = outflows.reduce((sum, f) => sum + Math.abs(f.value), 0);
                 }
             });
             
@@ -1233,7 +1669,7 @@
             
             let balancedFlows = 0;
             flowData.flows.forEach(flow => {
-                const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
+                const isValid = flow.source && flow.target && flow.value !== 0 && flow.sourceLayer < flow.targetLayer;
                 if (isValid) balancedFlows++;
             });
             
@@ -1258,8 +1694,8 @@
                     errors.push(`Flow ${index + 1}: Missing source or target`);
                 }
                 
-                if (flow.value <= 0) {
-                    errors.push(`Flow ${index + 1}: Invalid value (${flow.value})`);
+                if (flow.value === 0) {
+                    warnings.push(`Flow ${index + 1}: Zero value flow`);
                 }
                 
                 if (flow.sourceLayer >= flow.targetLayer) {
@@ -1271,16 +1707,7 @@
                 }
             });
             
-            const flowSignatures = new Set();
-            flowData.flows.forEach((flow, index) => {
-                const signature = `${flow.source}->${flow.target}`;
-                if (flowSignatures.has(signature)) {
-                    warnings.push(`Flow ${index + 1}: Duplicate flow from ${flow.source} to ${flow.target}`);
-                }
-                flowSignatures.add(signature);
-            });
-            
-            let message = '✅ Flow Validation Results\n\n';
+            let message = `✅ ${statementConfigs[currentStatementType].title} Validation Results\n\n`;
             
             if (errors.length > 0) {
                 message += '❌ Errors:\n' + errors.map(e => `• ${e}`).join('\n') + '\n\n';
@@ -1295,23 +1722,23 @@
             }
             
             const balanceScore = document.getElementById('balance-score').textContent;
-            message += `📊 Summary:\n• ${flowData.flows.length} flows\n• Balance Score: ${balanceScore}`;
+            message += `📊 Summary:\n• ${flowData.flows.length} flows\n• Statement Type: ${currentStatementType}\n• Balance Score: ${balanceScore}`;
             
             alert(message);
         }
 
         function exportToCSV() {
-            let csv = 'Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            let csv = 'Statement Type,Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
             
             flowData.flows.forEach(flow => {
-                csv += `"${flow.source}","${flow.target}",${flow.value},"${flow.flowType}",${flow.sourceLayer},${flow.targetLayer},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
+                csv += `"${currentStatementType}","${flow.source}","${flow.target}",${flow.value},"${flow.flowType}",${flow.sourceLayer},${flow.targetLayer},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${flowData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}-flows.csv`;
+            link.download = `${flowData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}-${currentStatementType}-flows.csv`;
             link.click();
             URL.revokeObjectURL(url);
         }
@@ -1333,7 +1760,11 @@
                         const data = JSON.parse(content);
                         if (data.flows) {
                             flowData = data;
+                            if (data.metadata && data.metadata.statementType) {
+                                switchStatementType(data.metadata.statementType);
+                            }
                         } else if (data.nodes && data.links) {
+                            // Convert from nodes/links to flows format
                             flowData.flows = convertFromNodesLinks(data);
                         }
                         renderFlowTable();
@@ -1357,25 +1788,34 @@
             }
             
             const flows = [];
+            let detectedStatementType = null;
             
             for (let i = 1; i < lines.length; i++) {
                 const values = parseCSVLine(lines[i]);
-                if (values.length >= 9) {
+                if (values.length >= 10) {
+                    if (!detectedStatementType && values[0]) {
+                        detectedStatementType = values[0];
+                    }
+                    
                     flows.push(new BusinessFlow({
-                        source: values[0],
-                        target: values[1],
-                        value: parseFloat(values[2]) || 0,
-                        flowType: values[3] || 'revenue_flow',
-                        sourceLayer: parseInt(values[4]) || 0,
-                        targetLayer: parseInt(values[5]) || 1,
-                        sourceCategory: values[6] || 'revenue',
-                        targetCategory: values[7] || 'revenue',
-                        description: values[8] || ''
+                        source: values[1],
+                        target: values[2],
+                        value: parseFloat(values[3]) || 0,
+                        flowType: values[4] || 'revenue_flow',
+                        sourceLayer: parseInt(values[5]) || 0,
+                        targetLayer: parseInt(values[6]) || 1,
+                        sourceCategory: values[7] || 'revenue',
+                        targetCategory: values[8] || 'revenue',
+                        description: values[9] || ''
                     }));
                 }
             }
             
             if (flows.length > 0) {
+                if (detectedStatementType && detectedStatementType !== currentStatementType) {
+                    switchStatementType(detectedStatementType);
+                }
+                
                 flowData.flows = flows;
                 renderFlowTable();
                 updateAllStats();
@@ -1430,6 +1870,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            switchStatementType('income');
             loadCompleteTemplate();
         });
     </script>
