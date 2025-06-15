@@ -318,11 +318,12 @@ class PulseSankeyChart {
         this.colorGroups.clear();
         
         // Define group colors - ORDER MATTERS: most specific first
+        // Only true parent groups that receive flows from Total Assets
         const groupColors = {
             'Current Assets': '#3498DB',    // Blue - FIRST (most specific)
             'Non-Current Assets': '#9B59B6', // Purple  
             'Current Liabilities': '#E74C3C', // Red
-            'Long-term Debt': '#C0392B',     // Dark Red
+            'Non-Current Liabilities': '#C0392B', // Dark Red for NCL parent
             'Shareholders Equity': '#27AE60', // Green
             'Total Assets': '#2C3E50'       // Black/Dark Gray - LAST (most general)
         };
@@ -425,32 +426,28 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Check if node matches a specific group
+     * NEW: Check if node matches a specific group (more precise matching)
      */
     nodeMatchesGroup(node, groupName) {
         const nodeName = node.id.toLowerCase();
         const groupLower = groupName.toLowerCase();
         
-        // Direct name matches
-        if (nodeName === groupLower || nodeName.includes(groupLower)) {
-            return true;
-        }
-        
-        // Specific aliases and variations
-        const aliases = {
-            'Total Assets': ['total assets', 'total asset'],
-            'Current Assets': ['current assets', 'current asset'],
-            'Non-Current Assets': ['non-current assets', 'noncurrent assets', 'fixed assets', 'non current assets'],
-            'Current Liabilities': ['current liabilities', 'current liability', 'current liab'],
-            'Long-term Debt': ['long-term debt', 'long term debt', 'long-term liabilities', 'non-current liabilities'],
-            'Shareholders Equity': ['shareholders equity', 'stockholders equity', 'shareholders\' equity', 'stockholders\' equity', 'total equity'],
+        // EXACT matches only for parent groups
+        const exactMatches = {
+            'Current Assets': ['current assets'],
+            'Non-Current Assets': ['non-current assets', 'noncurrent assets'], 
+            'Current Liabilities': ['current liabilities'],
+            'Non-Current Liabilities': ['non-current liabilities', 'noncurrent liabilities'],
+            'Shareholders Equity': ['shareholders equity', 'stockholders equity', 'shareholders\' equity'],
+            'Total Assets': ['total assets']
         };
         
-        if (aliases[groupName]) {
-            return aliases[groupName].some(alias => nodeName.includes(alias));
+        if (exactMatches[groupName]) {
+            return exactMatches[groupName].some(exact => nodeName === exact);
         }
         
-        return false;
+        // Fallback for direct match
+        return nodeName === groupLower;
     }
 
     /**
@@ -597,9 +594,10 @@ class PulseSankeyChart {
             });
         }
         
+        // Enhanced node processing with proper balance sheet categories
         data.nodes.forEach(node => {
             const existingInfo = existingManualPositions.get(node.id);
-            nodeMap.set(node.id, {
+            const processedNode = {
                 ...node,
                 sourceLinks: [],
                 targetLinks: [],
@@ -607,7 +605,14 @@ class PulseSankeyChart {
                 manuallyPositioned: existingInfo?.manuallyPositioned || false,
                 manualY: existingInfo?.y || null,
                 preserveLabelsAbove: existingInfo?.preserveLabelsAbove || null
-            });
+            };
+            
+            // Fix category for balance sheet statements
+            if (this.statementType === 'balance') {
+                processedNode.category = this.getBalanceSheetCategory(node);
+            }
+            
+            nodeMap.set(node.id, processedNode);
         });
         
         const processedLinks = [];
@@ -620,10 +625,18 @@ class PulseSankeyChart {
                     ...link,
                     source: sourceNode,
                     target: targetNode,
-                    value: link.value || 0,
-                    targetCategory: targetNode.category,
-                    colorCategory: link.colorCategory || targetNode.category
+                    value: link.value || 0
                 };
+                
+                // Fix categories for balance sheet statements
+                if (this.statementType === 'balance') {
+                    processedLink.type = this.getBalanceSheetFlowType(sourceNode, targetNode);
+                    processedLink.targetCategory = targetNode.category;
+                    processedLink.colorCategory = targetNode.category;
+                } else {
+                    processedLink.targetCategory = targetNode.category;
+                    processedLink.colorCategory = link.colorCategory || targetNode.category;
+                }
                 
                 sourceNode.sourceLinks.push(processedLink);
                 targetNode.targetLinks.push(processedLink);
@@ -635,6 +648,86 @@ class PulseSankeyChart {
         this.links = processedLinks;
         
         this.calculateFinancialMetrics();
+    }
+
+    /**
+     * NEW: Get proper balance sheet category for nodes
+     */
+    getBalanceSheetCategory(node) {
+        const nodeName = node.id.toLowerCase();
+        
+        // Total Assets is special
+        if (nodeName.includes('total assets')) {
+            return 'total';
+        }
+        
+        // Assets
+        if (nodeName.includes('current assets') || 
+            nodeName.includes('cash') || 
+            nodeName.includes('receivable') || 
+            nodeName.includes('inventory')) {
+            return 'current_asset';
+        }
+        
+        if (nodeName.includes('non-current assets') || 
+            nodeName.includes('property') || 
+            nodeName.includes('equipment') || 
+            nodeName.includes('intangible')) {
+            return 'non_current_asset';
+        }
+        
+        // Liabilities  
+        if (nodeName.includes('current liabilities') || 
+            nodeName.includes('payables') || 
+            nodeName.includes('current debt')) {
+            return 'current_liability';
+        }
+        
+        if (nodeName.includes('non-current liabilities') || 
+            nodeName.includes('long-term debt') || 
+            nodeName.includes('other non-current')) {
+            return 'non_current_liability';
+        }
+        
+        // Equity
+        if (nodeName.includes('equity') || 
+            nodeName.includes('stock') || 
+            nodeName.includes('retained')) {
+            return 'equity';
+        }
+        
+        // Fallback to original category or generic asset
+        return node.category || 'asset';
+    }
+
+    /**
+     * NEW: Get proper balance sheet flow type
+     */
+    getBalanceSheetFlowType(sourceNode, targetNode) {
+        const sourceCategory = sourceNode.category;
+        const targetCategory = targetNode.category;
+        
+        // Total Assets flowing out
+        if (sourceCategory === 'total') {
+            return targetCategory;
+        }
+        
+        // Asset flows
+        if (sourceCategory?.includes('asset') || targetCategory?.includes('asset')) {
+            return 'asset_flow';
+        }
+        
+        // Liability flows
+        if (sourceCategory?.includes('liability') || targetCategory?.includes('liability')) {
+            return 'liability_flow';
+        }
+        
+        // Equity flows
+        if (sourceCategory === 'equity' || targetCategory === 'equity') {
+            return 'equity_flow';
+        }
+        
+        return 'balance_sheet_flow';
     }
 
     /**
@@ -1699,8 +1792,10 @@ class PulseSankeyChart {
 
     renderMiddleLabels(node) {
         const labelDistance = this.config.labelDistance.middle;
-        const wrappedText = this.wrapText(node.id, 18);
         const nodeColor = this.getNodeColor(node);
+        
+        // NO WRAPPING for middle labels - use single line
+        const singleLineText = node.id;
         
         // More robust label positioning for manually positioned nodes
         let isTopNode;
@@ -1713,9 +1808,9 @@ class PulseSankeyChart {
         }
         
         if (isTopNode) {
-            this.renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor);
+            this.renderMiddleLabelsAbove(node, labelDistance, [singleLineText], nodeColor);
         } else {
-            this.renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor);
+            this.renderMiddleLabelsBelow(node, labelDistance, [singleLineText], nodeColor);
         }
     }
 
