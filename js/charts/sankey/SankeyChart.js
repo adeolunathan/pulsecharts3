@@ -61,6 +61,23 @@ class PulseSankeyChart {
                 2: 1.0,
                 3: 0.9,
                 4: 0.7
+            },
+            // NEW: Configurable hierarchy styles
+            hierarchyStyles: {
+                balance: {
+                    total: { nodeOpacity: 1.0, linkOpacity: 1.0 },
+                    parent: { nodeOpacity: 1.0, linkOpacity: 1.0 },
+                    child: { nodeOpacity: 0.65, linkOpacity: 0.65 },
+                    connectToTotal: { linkOpacity: 1.0 }
+                },
+                income: {
+                    all: { nodeOpacity: 1.0, linkOpacity: 1.0 }
+                },
+                cashflow: {
+                    total: { nodeOpacity: 1.0, linkOpacity: 1.0 },
+                    summary: { nodeOpacity: 0.85, linkOpacity: 0.85 },
+                    detail: { nodeOpacity: 0.65, linkOpacity: 0.65 }
+                }
             }
         };
     }
