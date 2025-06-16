@@ -391,13 +391,24 @@
                         <span id="realtime-indicator" class="realtime-indicator live"></span>
                         Live Update Mode
                     </h4>
-                    <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
                         <button id="realtime-toggle" class="btn btn-secondary" onclick="toggleRealTimeMode()">
                             ⚪ Disable Live Updates
                         </button>
                         <div style="font-size: 12px; color: #6b7280;">
                             <strong>Manual:</strong> Changes apply when you click "Apply Changes"<br>
                             <strong>Live:</strong> Changes apply automatically as you type (500ms delay)
+                        </div>
+                    </div>
+                    
+                    <!-- Comparison Mode Toggle -->
+                    <div style="display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid #0ea5e9;">
+                        <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()" style="width: 16px; height: 16px;">
+                        <label for="comparison-mode-toggle" style="font-weight: 600; color: #0369a1; font-size: 14px;">
+                            📈 Period-over-Period Comparison
+                        </label>
+                        <div style="font-size: 11px; color: #6b7280;">
+                            Shows variance % and trends
                         </div>
                     </div>
                 </div>
@@ -488,7 +499,9 @@
                                         <th style="width: 50px;">Actions</th>
                                         <th style="width: 180px;">From (Source)</th>
                                         <th style="width: 180px;">To (Target)</th>
-                                        <th style="width: 80px;">Amount</th>
+                                        <th style="width: 80px;">Current Value</th>
+                                        <th style="width: 80px;" id="previous-value-col">Previous Value</th>
+                                        <th style="width: 70px;" id="variance-col">Variance</th>
                                         <th style="width: 70px;">Src Layer</th>
                                         <th style="width: 70px;">Tgt Layer</th>
                                         <th style="width: 100px;">Flow Type</th>
@@ -808,6 +821,26 @@
 
         let flowIdCounter = 0;
 
+        // Comparison Mode Toggle
+        function toggleComparisonMode() {
+            const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+            
+            // Show/hide comparison columns
+            const previousCol = document.getElementById('previous-value-col');
+            const varianceCol = document.getElementById('variance-col');
+            
+            if (comparisonMode) {
+                previousCol.style.display = 'table-cell';
+                varianceCol.style.display = 'table-cell';
+            } else {
+                previousCol.style.display = 'none';
+                varianceCol.style.display = 'none';
+            }
+            
+            // Re-render table
+            renderFlowTable();
+        }
+
         // Flow structure definition
         class BusinessFlow {
             constructor(options = {}) {
@@ -815,6 +848,7 @@
                 this.source = options.source || '';
                 this.target = options.target || '';
                 this.value = options.value || 0;
+                this.previousValue = options.previousValue || 0;
                 this.flowType = options.flowType || 'revenue_flow';
                 this.sourceLayer = options.sourceLayer || 0;
                 this.targetLayer = options.targetLayer || 1;
@@ -823,6 +857,33 @@
                 this.sourceCategory = options.sourceCategory || 'revenue';
                 this.targetCategory = options.targetCategory || 'revenue';
                 this.description = options.description || '';
+            }
+            
+            // Calculate variance between current and previous period
+            getVariance() {
+                if (this.previousValue === 0) {
+                    return this.value > 0 ? { amount: this.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+                }
+                
+                const amount = this.value - this.previousValue;
+                const percentage = (amount / Math.abs(this.previousValue)) * 100;
+                let trend = 'none';
+                
+                if (percentage > 0.1) trend = 'up';
+                else if (percentage < -0.1) trend = 'down';
+                
+                return { amount, percentage, trend };
+            }
+            
+            // Get formatted variance display
+            getVarianceDisplay() {
+                const variance = this.getVariance();
+                if (variance.trend === 'none') return '→ 0%';
+                if (variance.trend === 'new') return '🆕';
+                
+                const symbol = variance.trend === 'up' ? '↗️' : '↘️';
+                const sign = variance.percentage > 0 ? '+' : '';
+                return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
             }
         }
 
@@ -951,6 +1012,7 @@
                         source: link.source,
                         target: link.target,
                         value: link.value,
+                        previousValue: link.previousValue || 0,
                         flowType: link.type || 'revenue_flow',
                         sourceLayer: sourceNode.depth,
                         targetLayer: targetNode.depth,
@@ -984,6 +1046,7 @@
                         id: flow.source,
                         depth: flow.sourceLayer,
                         value: 0,
+                        previousValue: 0,
                         category: flow.sourceCategory,
                         description: `Source: ${flow.description}`,
                         sort_order: flow.sourceOrder || 1
@@ -995,6 +1058,7 @@
                         id: flow.target,
                         depth: flow.targetLayer,
                         value: 0,
+                        previousValue: 0,
                         category: flow.targetCategory,
                         description: `Target: ${flow.description}`,
                         sort_order: flow.targetOrder || 1
@@ -1003,13 +1067,16 @@
                 
                 const targetNode = nodeMap.get(flow.target);
                 targetNode.value += flow.value;
+                targetNode.previousValue += (flow.previousValue || 0);
                 
                 links.push({
                     source: flow.source,
                     target: flow.target,
                     value: flow.value,
+                    previousValue: flow.previousValue || 0,
                     type: flow.flowType,
-                    description: flow.description
+                    description: flow.description,
+                    colorCategory: flow.targetCategory
                 });
             });
             
@@ -1018,14 +1085,37 @@
                 if (sourceNode.value === 0) {
                     const outflows = flowData.flows.filter(f => f.source === flow.source);
                     sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
+                    sourceNode.previousValue = outflows.reduce((sum, f) => sum + (f.previousValue || 0), 0);
                 }
             });
             
+            // Calculate variance for nodes if comparison mode is enabled
+            const nodes = Array.from(nodeMap.values());
+            const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+            
+            if (comparisonMode) {
+                nodes.forEach(node => {
+                    if (node.previousValue === 0) {
+                        node.variance = node.value > 0 ? { amount: node.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+                    } else {
+                        const amount = node.value - node.previousValue;
+                        const percentage = (amount / Math.abs(node.previousValue)) * 100;
+                        let trend = 'none';
+                        
+                        if (percentage > 0.1) trend = 'up';
+                        else if (percentage < -0.1) trend = 'down';
+                        
+                        node.variance = { amount, percentage, trend };
+                    }
+                });
+            }
+            
             return {
                 metadata: {
-                    ...flowData.metadata
+                    ...flowData.metadata,
+                    comparisonMode: comparisonMode
                 },
-                nodes: Array.from(nodeMap.values()),
+                nodes: nodes,
                 links: links
             };
         }
@@ -1054,6 +1144,7 @@
                     source: "Subscription Revenue",
                     target: "Total Revenue",
                     value: 300,
+                    previousValue: 250,
                     flowType: "revenue_flow",
                     sourceLayer: 0,
                     targetLayer: 1,
@@ -1065,6 +1156,7 @@
                     source: "Professional Services",
                     target: "Total Revenue",
                     value: 60,
+                    previousValue: 55,
                     flowType: "revenue_flow",
                     sourceLayer: 0,
                     targetLayer: 1,
@@ -1076,6 +1168,7 @@
                     source: "Platform & Other",
                     target: "Total Revenue",
                     value: 135,
+                    previousValue: 120,
                     flowType: "revenue_flow",
                     sourceLayer: 0,
                     targetLayer: 1,
@@ -1087,6 +1180,7 @@
                     source: "Total Revenue",
                     target: "Gross Profit",
                     value: 340,
+                    previousValue: 290,
                     flowType: "profit_flow",
                     sourceLayer: 1,
                     targetLayer: 2,
@@ -1098,6 +1192,7 @@
                     source: "Total Revenue",
                     target: "Cost of Revenue",
                     value: 55,
+                    previousValue: 50,
                     flowType: "cost_flow",
                     sourceLayer: 1,
                     targetLayer: 2,
@@ -1109,6 +1204,7 @@
                     source: "Gross Profit",
                     target: "Operating Profit",
                     value: 65,
+                    previousValue: 55,
                     flowType: "profit_flow",
                     sourceLayer: 2,
                     targetLayer: 3,
@@ -1120,6 +1216,7 @@
                     source: "Gross Profit",
                     target: "Operating Expenses",
                     value: 155,
+                    previousValue: 140,
                     flowType: "expense_flow",
                     sourceLayer: 2,
                     targetLayer: 3,
@@ -1131,6 +1228,7 @@
                     source: "Operating Expenses",
                     target: "Sales & Marketing",
                     value: 85,
+                    previousValue: 75,
                     flowType: "expense_flow",
                     sourceLayer: 3,
                     targetLayer: 4,
@@ -1142,6 +1240,7 @@
                     source: "Operating Expenses",
                     target: "R&D",
                     value: 45,
+                    previousValue: 40,
                     flowType: "expense_flow",
                     sourceLayer: 3,
                     targetLayer: 4,
@@ -1153,6 +1252,7 @@
                     source: "Operating Expenses",
                     target: "G&A",
                     value: 20,
+                    previousValue: 18,
                     flowType: "expense_flow",
                     sourceLayer: 3,
                     targetLayer: 4,
@@ -1164,6 +1264,7 @@
                     source: "Operating Profit",
                     target: "Net Income",
                     value: 50,
+                    previousValue: 42,
                     flowType: "final_flow",
                     sourceLayer: 3,
                     targetLayer: 4,
@@ -1175,6 +1276,7 @@
                     source: "Operating Profit",
                     target: "Tax Expense",
                     value: 12,
+                    previousValue: 10,
                     flowType: "expense_flow",
                     sourceLayer: 3,
                     targetLayer: 4,
@@ -1197,6 +1299,7 @@
                         source: "Revenue Source",
                         target: "Total Revenue",
                         value: 100,
+                        previousValue: 0,
                         description: "Start building your flow here"
                     })
                 ];
@@ -1235,9 +1338,11 @@
             tbody.innerHTML = '';
             
             if (flowData.flows.length === 0) {
+                const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+                const colSpan = comparisonMode ? 13 : 11;
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="11" style="text-align: center; padding: 40px; color: #6b7280;">
+                        <td colspan="${colSpan}" style="text-align: center; padding: 40px; color: #6b7280;">
                             <div style="font-size: 16px; margin-bottom: 8px;">💡</div>
                             <div>No flows defined. Click "Add Flow" to start building your financial structure.</div>
                         </td>
@@ -1254,7 +1359,10 @@
 
         function createFlowRow(flow, index) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
+            
+            const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+            
+            let rowHTML = `
                 <td>
                     <div class="flow-controls">
                         <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
@@ -1274,7 +1382,21 @@
                 <td>
                     <input type="number" class="flow-input number" value="${flow.value}" 
                            onchange="updateFlow(${index}, 'value', parseFloat(this.value) || 0)">
+                </td>`;
+            
+            // Add previous value and variance columns if comparison mode is enabled
+            if (comparisonMode) {
+                rowHTML += `
+                <td>
+                    <input type="number" class="flow-input number" value="${flow.previousValue || 0}" 
+                           onchange="updateFlow(${index}, 'previousValue', parseFloat(this.value) || 0)">
                 </td>
+                <td>
+                    <div style="font-size: 11px; font-weight: 600; text-align: center;">${flow.getVarianceDisplay()}</div>
+                </td>`;
+            }
+            
+            rowHTML += `
                 <td>
                     <input type="number" class="flow-input number" value="${flow.sourceLayer}" min="0" max="20"
                            onchange="updateFlow(${index}, 'sourceLayer', parseInt(this.value) || 0)">
@@ -1319,6 +1441,8 @@
                     ${getFlowBalanceIndicator(flow)}
                 </td>
             `;
+            
+            tr.innerHTML = rowHTML;
             return tr;
         }
 
@@ -1332,6 +1456,7 @@
                 source: "New Source",
                 target: "New Target",
                 value: 100,
+                previousValue: 0,
                 sourceLayer: 0,
                 targetLayer: 1
             });
@@ -1373,6 +1498,7 @@
                 source: originalFlow.source + " Copy",
                 target: originalFlow.target,
                 value: originalFlow.value,
+                previousValue: originalFlow.previousValue,
                 flowType: originalFlow.flowType,
                 sourceLayer: originalFlow.sourceLayer,
                 targetLayer: originalFlow.targetLayer,
@@ -1502,10 +1628,10 @@
         }
 
         function exportFlowsToCSV() {
-            let csv = 'Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            let csv = 'Source,Target,Current Value,Previous Value,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
             
             flowData.flows.forEach(flow => {
-                csv += `"${flow.source}","${flow.target}",${flow.value},"${flow.flowType}",${flow.sourceLayer},${flow.targetLayer},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
+                csv += `"${flow.source}","${flow.target}",${flow.value},${flow.previousValue || 0},"${flow.flowType}",${flow.sourceLayer},${flow.targetLayer},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -1552,36 +1678,64 @@
         }
 
         function parseCSVFlows(csvContent) {
-            const lines = csvContent.split('\n').filter(line => line.trim());
+            const lines = csvContent.split('\n').filter(line => line.trim() && !line.startsWith('#'));
             if (lines.length < 2) {
                 alert('❌ CSV file must have header and at least one data row');
                 return;
             }
             
+            // Parse header to detect column positions
+            const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+            const columnMap = {
+                source: Math.max(headers.indexOf('source'), headers.indexOf('from')),
+                target: Math.max(headers.indexOf('target'), headers.indexOf('to')),
+                amount: Math.max(headers.indexOf('amount'), headers.indexOf('current value'), headers.indexOf('value')),
+                previousAmount: Math.max(headers.indexOf('previous amount'), headers.indexOf('previous value')),
+                flowType: headers.indexOf('flow type'),
+                sourceLayer: headers.indexOf('source layer'),
+                targetLayer: headers.indexOf('target layer'),
+                sourceCategory: headers.indexOf('source category'),
+                targetCategory: headers.indexOf('target category'),
+                description: headers.indexOf('description')
+            };
+            
             const flows = [];
             
             for (let i = 1; i < lines.length; i++) {
                 const values = parseCSVLine(lines[i]);
-                if (values.length >= 9) {
+                if (values.length >= 6) {
+                    const previousValue = columnMap.previousAmount >= 0 && values[columnMap.previousAmount] 
+                        ? parseFloat(values[columnMap.previousAmount]) || 0 
+                        : 0;
+                    
                     flows.push(new BusinessFlow({
-                        source: values[0],
-                        target: values[1],
-                        value: parseFloat(values[2]) || 0,
-                        flowType: values[3] || 'revenue_flow',
-                        sourceLayer: parseInt(values[4]) || 0,
-                        targetLayer: parseInt(values[5]) || 1,
-                        sourceCategory: values[6] || 'revenue',
-                        targetCategory: values[7] || 'revenue',
-                        description: values[8] || ''
+                        source: values[columnMap.source] || '',
+                        target: values[columnMap.target] || '',
+                        value: parseFloat(values[columnMap.amount]) || 0,
+                        previousValue: previousValue,
+                        flowType: values[columnMap.flowType] || 'revenue_flow',
+                        sourceLayer: parseInt(values[columnMap.sourceLayer]) || 0,
+                        targetLayer: parseInt(values[columnMap.targetLayer]) || 1,
+                        sourceCategory: values[columnMap.sourceCategory] || 'revenue',
+                        targetCategory: values[columnMap.targetCategory] || 'revenue',
+                        description: values[columnMap.description] || ''
                     }));
                 }
             }
             
             if (flows.length > 0) {
                 flowData.flows = flows;
+                
+                // Enable comparison mode if any previous values exist
+                const hasPreviousValues = flows.some(flow => flow.previousValue > 0);
+                if (hasPreviousValues) {
+                    document.getElementById('comparison-mode-toggle').checked = true;
+                    toggleComparisonMode();
+                }
+                
                 renderFlowTable();
                 updateAllStats();
-                debouncedRealTimeUpdate();
+                console.log('✅ Flow Builder refreshed successfully');
                 alert(`✅ Successfully imported ${flows.length} flows from CSV!`);
             } else {
                 alert('❌ No valid flows found in CSV file');
@@ -1616,6 +1770,12 @@
             if (csvFileInput) {
                 csvFileInput.addEventListener('change', handleFileImport);
             }
+            
+            // Initialize comparison columns as hidden
+            const previousCol = document.getElementById('previous-value-col');
+            const varianceCol = document.getElementById('variance-col');
+            if (previousCol) previousCol.style.display = 'none';
+            if (varianceCol) varianceCol.style.display = 'none';
         });
     </script>
 </body>

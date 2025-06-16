@@ -402,8 +402,10 @@ class SankeyControlModule {
      */
     generateControlId(category) {
         if (this.statementType === 'balance') {
-            // Convert "Current Assets" to "currentAssetsColor"
-            const camelCase = category.replace(/\s+(.)/g, (match, letter) => letter.toUpperCase())
+            // Convert "Non-Current Assets" to "nonCurrentAssetsColor"
+            // First remove hyphens and other non-alphanumeric chars, then handle spaces
+            const camelCase = category.replace(/[^a-zA-Z0-9\s]/g, '')  // Remove hyphens, etc.
+                                     .replace(/\s+(.)/g, (match, letter) => letter.toUpperCase())
                                      .replace(/^\w/, c => c.toLowerCase());
             return camelCase + 'Color';
         } else {

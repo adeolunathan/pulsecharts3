@@ -1578,11 +1578,30 @@
                 }
             });
             
+            // Calculate variance for each node (for comparison mode)
+            const nodes = Array.from(nodeMap.values());
+            if (comparisonMode) {
+                nodes.forEach(node => {
+                    if (node.previousValue === 0) {
+                        node.variance = node.value > 0 ? { amount: node.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+                    } else {
+                        const amount = node.value - node.previousValue;
+                        const percentage = (amount / Math.abs(node.previousValue)) * 100;
+                        let trend = 'none';
+                        
+                        if (percentage > 0.1) trend = 'up';
+                        else if (percentage < -0.1) trend = 'down';
+                        
+                        node.variance = { amount, percentage, trend };
+                    }
+                });
+            }
+            
             return {
                 metadata: {
                     ...flowData.metadata
                 },
-                nodes: Array.from(nodeMap.values()),
+                nodes: nodes,
                 links: links
             };
         }

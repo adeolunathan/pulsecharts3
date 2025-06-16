@@ -164,6 +164,7 @@ window.ExportUtils = (function() {
     }
 
     // NEW: Export financial flows to CSV (template format)
+    // NEW: Export financial flows to CSV (template format)
     function exportFinancialFlowsToCSV(flowData, options = {}) {
         try {
             const filename = generateFinancialFileName(flowData.metadata, 'csv');
@@ -181,24 +182,45 @@ window.ExportUtils = (function() {
                 csvContent += `# Exported: ${new Date().toISOString()}\n\n`;
             }
             
-            // Header row
-            csvContent += 'Statement Type,Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            // Header row - include Previous Amount if comparison mode is enabled
+            if (flowData.metadata.comparisonMode) {
+                csvContent += 'Statement Type,Source,Target,Amount,Previous Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            } else {
+                csvContent += 'Statement Type,Source,Target,Amount,Flow Type,Source Layer,Target Layer,Source Category,Target Category,Description\n';
+            }
             
             // Data rows
             flowData.flows.forEach(flow => {
-                const row = [
-                    `"${flowData.metadata.statementType || 'income'}"`,
-                    `"${flow.source || ''}"`,
-                    `"${flow.target || ''}"`,
-                    flow.value || 0,
-                    `"${flow.flowType || ''}"`,
-                    flow.sourceLayer || 0,
-                    flow.targetLayer || 0,
-                    `"${flow.sourceCategory || ''}"`,
-                    `"${flow.targetCategory || ''}"`,
-                    `"${(flow.description || '').replace(/"/g, '""')}"`
-                ].join(',');
-                csvContent += row + '\n';
+                if (flowData.metadata.comparisonMode) {
+                    const row = [
+                        `"${flowData.metadata.statementType || 'income'}"`,
+                        `"${flow.source || ''}"`,
+                        `"${flow.target || ''}"`,
+                        flow.value || 0,
+                        flow.previousValue || 0,
+                        `"${flow.flowType || ''}"`,
+                        flow.sourceLayer || 0,
+                        flow.targetLayer || 0,
+                        `"${flow.sourceCategory || ''}"`,
+                        `"${flow.targetCategory || ''}"`,
+                        `"${(flow.description || '').replace(/"/g, '""')}"`
+                    ].join(',');
+                    csvContent += row + '\n';
+                } else {
+                    const row = [
+                        `"${flowData.metadata.statementType || 'income'}"`,
+                        `"${flow.source || ''}"`,
+                        `"${flow.target || ''}"`,
+                        flow.value || 0,
+                        `"${flow.flowType || ''}"`,
+                        flow.sourceLayer || 0,
+                        flow.targetLayer || 0,
+                        `"${flow.sourceCategory || ''}"`,
+                        `"${flow.targetCategory || ''}"`,
+                        `"${(flow.description || '').replace(/"/g, '""')}"`
+                    ].join(',');
+                    csvContent += row + '\n';
+                }
             });
             
             const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -501,3 +523,6 @@ window.ExportUtils = (function() {
         }
     };
 })();
+
+
+
