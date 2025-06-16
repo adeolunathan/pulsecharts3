@@ -1,5 +1,4 @@
-/* ===== PULSE SANKEY CHART - ENHANCED WITH PERIOD COMPARISON & NO CASHFLOW ===== */
-/* Enhanced with period-over-period comparison display, removed all cashflow references */
+/* ===== PULSE SANKEY CHART - ENHANCED WITH PERIOD COMPARISON*/
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -15,7 +14,6 @@ class PulseSankeyChart {
         // Custom color storage
         this.customColors = {};
         
-        // Statement-specific color system (removed cashflow)
         this.statementType = 'income'; // Default to income statement
         this.nodeClassification = new Map(); // Store node hierarchy levels
         this.colorGroups = new Map(); // Store color group assignments
@@ -167,7 +165,6 @@ class PulseSankeyChart {
     render(data) {
         this.data = data;
         
-        // Detect statement type from metadata (removed cashflow)
         this.detectStatementType(data);
         
         // NEW: Detect comparison mode
@@ -200,7 +197,6 @@ class PulseSankeyChart {
     }
 
     /**
-     * Detect statement type from metadata (removed cashflow)
      */
     detectStatementType(data) {
         if (data.metadata && data.metadata.statementType) {
@@ -1440,7 +1436,6 @@ class PulseSankeyChart {
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
         
-        // Get proper statement name (removed cashflow)
         const statementNames = {
             'income': 'Income Statement',
             'balance': 'Balance Sheet'
@@ -2247,8 +2242,6 @@ class PulseSankeyChart {
     getLinkColor_Hierarchical(link) {
         if (this.statementType === 'balance') {
             return this.getBalanceSheetLinkColor(link);
-        } else {
-            return this.getCashFlowLinkColor(link);
         }
     }
 
@@ -2298,30 +2291,6 @@ class PulseSankeyChart {
             console.log(`   → 65% opacity: ${fadedColor}`);
             return fadedColor;
         }
-    }
-
-    /**
-     * NEW: Cash flow specific link coloring
-     */
-    getCashFlowLinkColor(link) {
-        const sourceColorGroup = this.colorGroups.get(link.source.id);
-        
-        if (sourceColorGroup) {
-            const baseColor = sourceColorGroup.baseColor;
-            
-            // For flows into "Total" nodes, use full saturation
-            const targetLevel = this.nodeClassification.get(link.target.id);
-            if (targetLevel === 'total') {
-                return baseColor; // Full saturation for emphasis
-            } else {
-                return this.lightenColor(baseColor, 10); // Slightly lighter for other flows
-            }
-        }
-        
-        // Fallback to source category color
-        const sourceCategory = link.source.category;
-        const sourceColor = this.getColorByCategory(sourceCategory);
-        return this.lightenColor(sourceColor, 15);
     }
 
     getColorByCategory(category) {
