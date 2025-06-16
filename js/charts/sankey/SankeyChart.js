@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - ENHANCED WITH STATEMENT-SPECIFIC COLOR SYSTEM ===== */
-/* Enhanced with hierarchical coloring for Balance Sheet & Cash Flow, preserves Income Statement logic */
+/* ===== PULSE SANKEY CHART - ENHANCED WITH PERIOD COMPARISON & NO CASHFLOW ===== */
+/* Enhanced with period-over-period comparison display, removed all cashflow references */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -15,10 +15,13 @@ class PulseSankeyChart {
         // Custom color storage
         this.customColors = {};
         
-        // NEW: Statement-specific color system
+        // Statement-specific color system (removed cashflow)
         this.statementType = 'income'; // Default to income statement
         this.nodeClassification = new Map(); // Store node hierarchy levels
         this.colorGroups = new Map(); // Store color group assignments
+        
+        // NEW: Comparison mode support
+        this.comparisonMode = false;
         
         // Initialize with proper defaults including group spacing
         this.config = this.getInitialConfig();
@@ -62,7 +65,7 @@ class PulseSankeyChart {
                 3: 0.9,
                 4: 0.7
             },
-            // NEW: Configurable hierarchy styles
+            // Enhanced hierarchy styles for balance sheet only
             hierarchyStyles: {
                 balance: {
                     total: { nodeOpacity: 1.0, linkOpacity: 1.0 },
@@ -72,11 +75,6 @@ class PulseSankeyChart {
                 },
                 income: {
                     all: { nodeOpacity: 1.0, linkOpacity: 1.0 }
-                },
-                cashflow: {
-                    total: { nodeOpacity: 1.0, linkOpacity: 1.0 },
-                    summary: { nodeOpacity: 0.85, linkOpacity: 0.85 },
-                    detail: { nodeOpacity: 0.65, linkOpacity: 0.65 }
                 }
             }
         };
@@ -169,16 +167,19 @@ class PulseSankeyChart {
     render(data) {
         this.data = data;
         
-        // NEW: Detect statement type from metadata
+        // Detect statement type from metadata (removed cashflow)
         this.detectStatementType(data);
+        
+        // NEW: Detect comparison mode
+        this.comparisonMode = data.metadata?.comparisonMode || false;
         
         // Auto-detect and apply colors from metadata
         this.detectAndApplyColors(data);
         
         this.processData(data);
         
-        // NEW: Classify nodes for hierarchical coloring (Balance Sheet & Cash Flow only)
-        if (this.statementType !== 'income') {
+        // Classify nodes for hierarchical coloring (Balance Sheet only)
+        if (this.statementType === 'balance') {
             this.classifyNodesHierarchically();
             this.assignColorGroups();
         }
@@ -199,7 +200,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Detect statement type from metadata for color system selection
+     * Detect statement type from metadata (removed cashflow)
      */
     detectStatementType(data) {
         if (data.metadata && data.metadata.statementType) {
@@ -210,8 +211,6 @@ class PulseSankeyChart {
             
             if (categories.has('asset') || categories.has('liability') || categories.has('equity')) {
                 this.statementType = 'balance';
-            } else if (categories.has('operating') || categories.has('investing') || categories.has('financing')) {
-                this.statementType = 'cashflow';
             } else {
                 this.statementType = 'income'; // Default
             }
@@ -221,7 +220,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Enhanced node classification with balance sheet specific logic
+     * Enhanced node classification with balance sheet specific logic
      */
     classifyNodesHierarchically() {
         this.nodeClassification.clear();
@@ -236,7 +235,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Balance sheet specific node classification
+     * Balance sheet specific node classification
      */
     classifyBalanceSheetNodes() {
         // Balance sheet parent group identifiers
@@ -281,7 +280,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Standard node classification for non-balance sheet statements
+     * Standard node classification for income statements
      */
     classifyStandardNodes() {
         this.nodes.forEach(node => {
@@ -300,7 +299,6 @@ class PulseSankeyChart {
             else if (node.id.toLowerCase().includes('assets') ||
                      node.id.toLowerCase().includes('liabilities') ||
                      node.id.toLowerCase().includes('equity') ||
-                     node.id.toLowerCase().includes('cash flow') ||
                      (inflowCount >= 2 && outflowCount >= 1)) {
                 level = 'summary';
             }
@@ -314,7 +312,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * FIXED: Assign nodes to color groups with proper parent-child relationships
+     * Assign nodes to color groups with proper parent-child relationships
      */
     assignColorGroups() {
         this.colorGroups.clear();
@@ -329,23 +327,22 @@ class PulseSankeyChart {
     }
 
     /**
-     * FIXED: Balance sheet color assignment with improved flow detection
+     * Balance sheet color assignment with improved flow detection
      */
     assignBalanceSheetColorGroups() {
         this.colorGroups.clear();
         
         // Define group colors - ORDER MATTERS: most specific first
-        // Only true parent groups that receive flows from Total Assets
         const groupColors = {
-            'Current Assets': '#3498DB',    // Blue - FIRST (most specific)
+            'Current Assets': '#3498DB',    // Blue
             'Non-Current Assets': '#9B59B6', // Purple  
             'Current Liabilities': '#E74C3C', // Red
             'Non-Current Liabilities': '#C0392B', // Dark Red for NCL parent
             'Shareholders Equity': '#27AE60', // Green
-            'Total Assets': '#2C3E50'       // Black/Dark Gray - LAST (most general)
+            'Total Assets': '#2C3E50'       // Black/Dark Gray
         };
         
-        // First pass: Identify parent group nodes (specific first)
+        // First pass: Identify parent group nodes
         const parentNodes = new Set();
         this.nodes.forEach(node => {
             for (const [group, color] of Object.entries(groupColors)) {
@@ -443,7 +440,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Check if node matches a specific group (more precise matching)
+     * Check if node matches a specific group (more precise matching)
      */
     nodeMatchesGroup(node, groupName) {
         const nodeName = node.id.toLowerCase();
@@ -468,7 +465,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Standard color grouping for non-balance sheet statements
+     * Standard color grouping for income statements
      */
     assignStandardColorGroups() {
         // Group by category first, then apply hierarchy
@@ -498,7 +495,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Get hierarchical opacity with balance sheet specific rules
+     * Get hierarchical opacity with balance sheet specific rules
      */
     getHierarchicalOpacity(nodeId) {
         if (this.statementType === 'income') {
@@ -511,12 +508,12 @@ class PulseSankeyChart {
         if (this.statementType === 'balance') {
             // Balance sheet specific opacity rules
             if (colorGroup.isParentGroup) {
-                return 1.0; // 100% opacity for parent groups (Current Assets, etc.)
+                return 1.0; // 100% opacity for parent groups
             } else {
-                return 0.65; // 65% opacity for sub-components (Cash, Receivables, etc.)
+                return 0.65; // 65% opacity for sub-components
             }
         } else {
-            // Cash flow and other statements use level-based opacity
+            // Income statements use level-based opacity
             switch (colorGroup.level) {
                 case 'detail':
                     return 0.65; // 65% opacity for individual items
@@ -531,7 +528,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Get hierarchical color with proper debugging
+     * Get hierarchical color with proper debugging
      */
     getHierarchicalColor(nodeId) {
         if (this.statementType === 'income') {
@@ -563,7 +560,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Convert hex color to RGBA with opacity
+     * Convert hex color to RGBA with opacity
      */
     hexToRgba(hex, opacity) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -619,6 +616,7 @@ class PulseSankeyChart {
                 sourceLinks: [],
                 targetLinks: [],
                 value: node.value || 0,
+                previousValue: node.previousValue || 0, // NEW: Support previous period values
                 manuallyPositioned: existingInfo?.manuallyPositioned || false,
                 manualY: existingInfo?.y || null,
                 preserveLabelsAbove: existingInfo?.preserveLabelsAbove || null
@@ -642,7 +640,8 @@ class PulseSankeyChart {
                     ...link,
                     source: sourceNode,
                     target: targetNode,
-                    value: link.value || 0
+                    value: link.value || 0,
+                    previousValue: link.previousValue || 0 // NEW: Support previous period values
                 };
                 
                 // Fix categories for balance sheet statements
@@ -668,7 +667,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Get proper balance sheet category for nodes
+     * Get proper balance sheet category for nodes
      */
     getBalanceSheetCategory(node) {
         const nodeName = node.id.toLowerCase();
@@ -718,7 +717,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Get proper balance sheet flow type
+     * Get proper balance sheet flow type
      */
     getBalanceSheetFlowType(sourceNode, targetNode) {
         const sourceCategory = sourceNode.category;
@@ -768,6 +767,11 @@ class PulseSankeyChart {
                 node.percentageOfRevenue = 0;
             }
             
+            // NEW: Calculate period-over-period variance
+            if (this.comparisonMode && node.previousValue !== undefined) {
+                node.variance = this.calculateVariance(node.value, node.previousValue);
+            }
+            
             // Calculate specific margins for profit items
             if (node.category === 'profit') {
                 if (node.id.toLowerCase().includes('gross')) {
@@ -789,6 +793,36 @@ class PulseSankeyChart {
         });
         
         console.log('📊 Financial metrics calculated');
+    }
+
+    /**
+     * NEW: Calculate variance between current and previous period
+     */
+    calculateVariance(current, previous) {
+        if (previous === 0) {
+            return current > 0 ? { amount: current, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+        }
+        
+        const amount = current - previous;
+        const percentage = (amount / Math.abs(previous)) * 100;
+        let trend = 'none';
+        
+        if (percentage > 0.1) trend = 'up';
+        else if (percentage < -0.1) trend = 'down';
+        
+        return { amount, percentage, trend };
+    }
+
+    /**
+     * NEW: Get variance display string
+     */
+    getVarianceDisplay(variance) {
+        if (!variance || variance.trend === 'none') return '';
+        if (variance.trend === 'new') return '🆕';
+        
+        const symbol = variance.trend === 'up' ? '↗️' : '↘️';
+        const sign = variance.percentage > 0 ? '+' : '';
+        return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
     }
 
     calculateLayout() {
@@ -983,13 +1017,13 @@ class PulseSankeyChart {
     }
 
     /**
-     * Detect groups based on naming patterns (e.g., "mercado" prefix)
+     * Detect groups based on naming patterns
      */
     detectPatternGroups(nodes) {
         const groups = [];
         const processedNodes = new Set();
         
-        // Look for common prefixes (e.g., "mercado")
+        // Look for common prefixes
         const prefixGroups = new Map();
         
         nodes.forEach(node => {
@@ -1406,15 +1440,18 @@ class PulseSankeyChart {
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
         
-        // Get proper statement name
+        // Get proper statement name (removed cashflow)
         const statementNames = {
             'income': 'Income Statement',
-            'balance': 'Balance Sheet', 
-            'cashflow': 'Cash Flow Statement'
+            'balance': 'Balance Sheet'
         };
         const statementName = statementNames[this.statementType] || 'Financial Statement';
         
-        const titleText = `${company} ${period} ${statementName}`;
+        // NEW: Add comparison indicator to title
+        let titleText = `${company} ${period} ${statementName}`;
+        if (this.comparisonMode && this.data?.metadata?.previousPeriod) {
+            titleText += ` vs ${this.data.metadata.previousPeriod}`;
+        }
 
         headerGroup.append('text')
             .attr('x', this.config.width / 2)
@@ -1550,14 +1587,14 @@ class PulseSankeyChart {
     }
 
     /**
-     * NEW: Get node opacity based on statement type
+     * Get node opacity based on statement type
      */
     getNodeOpacity(node) {
         if (this.statementType === 'income') {
             return this.config.nodeOpacity; // Use global setting for income statements
         }
         
-        // For balance sheet and cash flow, use hierarchical opacity
+        // For balance sheet, use hierarchical opacity
         const hierarchicalOpacity = this.getHierarchicalOpacity(node.id);
         return hierarchicalOpacity * this.config.nodeOpacity; // Combine with global setting
     }
@@ -1773,13 +1810,27 @@ class PulseSankeyChart {
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
-            .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+        // NEW: Add comparison display
+        if (this.comparisonMode && node.variance) {
+            const formattedValue = this.formatCurrency(node.value, node);
+            const varianceDisplay = this.getVarianceDisplay(node.variance);
+            
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(`${formattedValue} ${varianceDisplay}`);
+        } else {
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(this.formatCurrency(node.value, node));
+        }
     }
 
     renderRightmostLabels(node) {
@@ -1807,13 +1858,27 @@ class PulseSankeyChart {
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
-            .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+        // NEW: Add comparison display
+        if (this.comparisonMode && node.variance) {
+            const formattedValue = this.formatCurrency(node.value, node);
+            const varianceDisplay = this.getVarianceDisplay(node.variance);
+            
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(`${formattedValue} ${varianceDisplay}`);
+        } else {
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(this.formatCurrency(node.value, node));
+        }
     }
 
     renderMiddleLabels(node) {
@@ -1862,14 +1927,29 @@ class PulseSankeyChart {
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
-            .attr('y', 0)
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
-            .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+        // NEW: Add comparison display
+        if (this.comparisonMode && node.variance) {
+            const formattedValue = this.formatCurrency(node.value, node);
+            const varianceDisplay = this.getVarianceDisplay(node.variance);
+            
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('y', 0)
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(`${formattedValue} ${varianceDisplay}`);
+        } else {
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('y', 0)
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(this.formatCurrency(node.value, node));
+        }
     }
 
     renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
@@ -1879,14 +1959,29 @@ class PulseSankeyChart {
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance + 11})`);
 
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
-            .attr('y', 0)
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
-            .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+        // NEW: Add comparison display
+        if (this.comparisonMode && node.variance) {
+            const formattedValue = this.formatCurrency(node.value, node);
+            const varianceDisplay = this.getVarianceDisplay(node.variance);
+            
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('y', 0)
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(`${formattedValue} ${varianceDisplay}`);
+        } else {
+            valueGroup.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'alphabetic')
+                .attr('y', 0)
+                .attr('font-size', '11px')
+                .attr('font-weight', '500')
+                .attr('fill', nodeColor)
+                .text(this.formatCurrency(node.value, node));
+        }
 
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -1933,9 +2028,6 @@ class PulseSankeyChart {
         return lines;
     }
 
-    /**
-     * Format currency with proper brackets for expenses and percentages/margins
-     */
     formatCurrency(value, node) {
         const currency = this.data?.metadata?.currency || 'USD';
         const unit = this.data?.metadata?.unit || 'millions';

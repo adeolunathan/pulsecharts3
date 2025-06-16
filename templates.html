@@ -137,6 +137,41 @@
             line-height: 1.4;
         }
         
+        /* Comparison Mode Toggle */
+        .comparison-toggle {
+            background: #e7f3ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .comparison-toggle-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .comparison-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .comparison-label {
+            font-weight: 600;
+            color: #0369a1;
+            font-size: 14px;
+        }
+        
+        .comparison-description {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
         /* Collapsible Sections */
         .collapsible-section {
             background: white;
@@ -427,6 +462,32 @@
             color: #991b1b;
         }
         
+        /* Variance Indicator */
+        .variance-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .variance-indicator.positive {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .variance-indicator.negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .variance-indicator.neutral {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
         /* Template Quick Actions */
         .template-actions {
             display: flex;
@@ -481,6 +542,27 @@
             letter-spacing: 0.5px;
         }
         
+        /* Previous Period Sections */
+        .period-section {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        
+        .period-header {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .period-description {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 1200px) {
             .flow-table {
@@ -532,7 +614,7 @@
             <div>
                 <h1 class="action-title">💰 Business Flow Designer</h1>
                 <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">
-                    Build financial flows: Income Statement, Balance Sheet & Cash Flow
+                    Build financial flows: Income Statement & Balance Sheet with period comparison
                 </div>
             </div>
             <div class="action-buttons">
@@ -556,14 +638,25 @@
                         <button class="statement-tab" data-type="balance" onclick="switchStatementType('balance')">
                             ⚖️ Balance Sheet
                         </button>
-                        <button class="statement-tab" data-type="cashflow" onclick="switchStatementType('cashflow')">
-                            💸 Cash Flow
-                        </button>
                     </div>
                     <div class="statement-info">
                         <div class="statement-description" id="statement-description">
                             Shows revenue flows through costs and expenses to arrive at net income. Ideal for understanding profitability and operational efficiency.
                         </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Mode Toggle -->
+                <div class="comparison-toggle">
+                    <div class="comparison-toggle-content">
+                        <input type="checkbox" class="comparison-checkbox" id="comparison-mode" onchange="toggleComparisonMode()">
+                        <div>
+                            <div class="comparison-label">📈 Period-over-Period Comparison</div>
+                            <div class="comparison-description">Compare current period vs. previous period values</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: #6b7280;">
+                        Shows variance % and trends on chart nodes
                     </div>
                 </div>
 
@@ -585,6 +678,10 @@
                         <div class="stat-value" id="balance-score">0%</div>
                         <div class="stat-label">Balance Score</div>
                     </div>
+                    <div class="stat-item" id="comparison-stats" style="display: none;">
+                        <div class="stat-value" id="avg-growth">0%</div>
+                        <div class="stat-label">Avg Growth</div>
+                    </div>
                 </div>
 
                 <!-- Template Quick Actions -->
@@ -600,14 +697,15 @@
                         <span class="collapsible-chevron">▼</span>
                     </div>
                     <div class="collapsible-content" id="company-content">
-                        <div style="padding: 20px;">
+                        <div class="period-section">
+                            <div class="period-header">📅 Current Period</div>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                                 <div>
                                     <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
                                     <input type="text" class="flow-input" id="company-name" value="Your Company" onchange="updateMetadata()">
                                 </div>
                                 <div>
-                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period</label>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Current Period</label>
                                     <input type="text" class="flow-input" id="period" value="Q3 2025" onchange="updateMetadata()">
                                 </div>
                                 <div>
@@ -623,6 +721,26 @@
                                     <select class="flow-select" id="units" onchange="updateMetadata()">
                                         <option value="millions">Millions</option>
                                         <option value="billions">Billions</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="period-section" id="previous-period-section" style="display: none;">
+                            <div class="period-header">📊 Previous Period (for Comparison)</div>
+                            <div class="period-description">
+                                Enter previous period information to enable period-over-period comparison on the chart
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Previous Period</label>
+                                    <input type="text" class="flow-input" id="previous-period" value="Q2 2025" onchange="updateMetadata()">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Data Source</label>
+                                    <select class="flow-select" id="comparison-source" onchange="updateMetadata()">
+                                        <option value="manual">Manual Entry</option>
+                                        <option value="import">Imported Data</option>
                                     </select>
                                 </div>
                             </div>
@@ -674,9 +792,11 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 80px;">Actions</th>
-                                        <th style="width: 240px;">From (Source)</th>
-                                        <th style="width: 240px;">To (Target)</th>
-                                        <th style="width: 100px;">Amount</th>
+                                        <th style="width: 200px;">From (Source)</th>
+                                        <th style="width: 200px;">To (Target)</th>
+                                        <th style="width: 100px;">Current Value</th>
+                                        <th style="width: 100px;" id="previous-value-header">Previous Value</th>
+                                        <th style="width: 80px;" id="variance-header">Variance</th>
                                         <th style="width: 90px;">Src Layer</th>
                                         <th style="width: 90px;">Tgt Layer</th>
                                         <th style="width: 140px;">Flow Type</th>
@@ -706,15 +826,18 @@
     <script>
         // Global data structure
         let currentStatementType = 'income';
+        let comparisonMode = false;
         let flowData = {
             metadata: {
                 title: "Your Company Financial Flow",
-                subtitle: "",  // REMOVED: No longer using subtitle
+                subtitle: "",
                 currency: "USD",
                 unit: "millions",
                 company: "Your Company",
                 period: "Q3 2025",
+                previousPeriod: "Q2 2025",
                 statementType: "income",
+                comparisonMode: false,
                 colorPalette: {}
             },
             flows: []
@@ -722,13 +845,14 @@
 
         let flowIdCounter = 0;
 
-        // Flow structure definition
+        // Enhanced Flow structure with previous period data
         class BusinessFlow {
             constructor(options = {}) {
                 this.id = options.id || `flow_${++flowIdCounter}`;
                 this.source = options.source || '';
                 this.target = options.target || '';
                 this.value = options.value || 0;
+                this.previousValue = options.previousValue || 0;
                 this.flowType = options.flowType || 'revenue_flow';
                 this.sourceLayer = options.sourceLayer || 0;
                 this.targetLayer = options.targetLayer || 1;
@@ -738,9 +862,36 @@
                 this.targetCategory = options.targetCategory || 'revenue';
                 this.description = options.description || '';
             }
+            
+            // Calculate variance between current and previous period
+            getVariance() {
+                if (this.previousValue === 0) {
+                    return this.value > 0 ? { amount: this.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+                }
+                
+                const amount = this.value - this.previousValue;
+                const percentage = (amount / Math.abs(this.previousValue)) * 100;
+                let trend = 'none';
+                
+                if (percentage > 0.1) trend = 'up';
+                else if (percentage < -0.1) trend = 'down';
+                
+                return { amount, percentage, trend };
+            }
+            
+            // Get formatted variance display
+            getVarianceDisplay() {
+                const variance = this.getVariance();
+                if (variance.trend === 'none') return '→ 0%';
+                if (variance.trend === 'new') return '🆕 New';
+                
+                const symbol = variance.trend === 'up' ? '↗️' : '↘️';
+                const sign = variance.percentage > 0 ? '+' : '';
+                return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
+            }
         }
 
-        // Statement Type Configuration
+        // Statement Type Configuration (removed cashflow)
         const statementConfigs = {
             income: {
                 title: "Income Statement",
@@ -763,19 +914,38 @@
                     current: { label: "Current Items", description: "Short-term assets and liabilities", default: "#f39c12" },
                     noncurrent: { label: "Non-Current Items", description: "Long-term assets and liabilities", default: "#9b59b6" }
                 }
-            },
-            cashflow: {
-                title: "Cash Flow Statement",
-                description: "Tracks cash movements from operating, investing, and financing activities. Shows how cash is generated and used across business activities.",
-                colorCategories: {
-                    operating: { label: "Operating", description: "Cash from core business operations", default: "#3498db" },
-                    investing: { label: "Investing", description: "Cash from investment activities", default: "#e74c3c" },
-                    financing: { label: "Financing", description: "Cash from financing activities", default: "#27ae60" },
-                    inflow: { label: "Cash Inflow", description: "Sources of cash", default: "#2ecc71" },
-                    outflow: { label: "Cash Outflow", description: "Uses of cash", default: "#e67e22" }
-                }
             }
         };
+
+        // Comparison Mode Management
+        function toggleComparisonMode() {
+            comparisonMode = document.getElementById('comparison-mode').checked;
+            flowData.metadata.comparisonMode = comparisonMode;
+            
+            // Show/hide previous period sections
+            const previousPeriodSection = document.getElementById('previous-period-section');
+            const previousValueHeader = document.getElementById('previous-value-header');
+            const varianceHeader = document.getElementById('variance-header');
+            const comparisonStats = document.getElementById('comparison-stats');
+            
+            if (comparisonMode) {
+                previousPeriodSection.style.display = 'block';
+                previousValueHeader.style.display = 'table-cell';
+                varianceHeader.style.display = 'table-cell';
+                comparisonStats.style.display = 'flex';
+            } else {
+                previousPeriodSection.style.display = 'none';
+                previousValueHeader.style.display = 'none';
+                varianceHeader.style.display = 'none';
+                comparisonStats.style.display = 'none';
+            }
+            
+            // Re-render table to show/hide comparison columns
+            renderFlowTable();
+            updateAllStats();
+            
+            console.log(`📈 Comparison mode ${comparisonMode ? 'ENABLED' : 'DISABLED'}`);
+        }
 
         // Statement Type Management
         function switchStatementType(type) {
@@ -936,18 +1106,19 @@
             }
         }
 
-        // SIMPLIFIED TEMPLATES - Only basic income statement example, no hardcoded data for other types
+        // SIMPLIFIED TEMPLATES - Only basic income statement example
         function loadSimpleTemplate() {
             if (currentStatementType === 'income') {
                 flowData.metadata.company = "Your Company";
                 flowData.metadata.title = "Your Company Income Statement";
                 
-                // Simple income statement structure - users can modify amounts
+                // Simple income statement structure with previous period data
                 flowData.flows = [
                     new BusinessFlow({
                         source: "Product Sales",
                         target: "Total Revenue",
                         value: 1000,
+                        previousValue: 850,
                         flowType: "revenue_flow",
                         sourceLayer: 0,
                         targetLayer: 1,
@@ -959,6 +1130,7 @@
                         source: "Service Revenue",
                         target: "Total Revenue",
                         value: 500,
+                        previousValue: 480,
                         flowType: "revenue_flow",
                         sourceLayer: 0,
                         targetLayer: 1,
@@ -970,6 +1142,7 @@
                         source: "Total Revenue",
                         target: "Gross Profit",
                         value: 1200,
+                        previousValue: 1060,
                         flowType: "profit_flow",
                         sourceLayer: 1,
                         targetLayer: 2,
@@ -981,6 +1154,7 @@
                         source: "Total Revenue",
                         target: "Cost of Revenue",
                         value: 300,
+                        previousValue: 270,
                         flowType: "cost_flow",
                         sourceLayer: 1,
                         targetLayer: 2,
@@ -992,6 +1166,7 @@
                         source: "Gross Profit",
                         target: "Operating Profit",
                         value: 400,
+                        previousValue: 350,
                         flowType: "profit_flow",
                         sourceLayer: 2,
                         targetLayer: 3,
@@ -1003,6 +1178,7 @@
                         source: "Gross Profit",
                         target: "Operating Expenses",
                         value: 800,
+                        previousValue: 710,
                         flowType: "expense_flow",
                         sourceLayer: 2,
                         targetLayer: 3,
@@ -1014,6 +1190,7 @@
                         source: "Operating Expenses",
                         target: "Sales & Marketing",
                         value: 400,
+                        previousValue: 360,
                         flowType: "expense_flow",
                         sourceLayer: 3,
                         targetLayer: 4,
@@ -1025,6 +1202,7 @@
                         source: "Operating Expenses",
                         target: "R&D",
                         value: 250,
+                        previousValue: 220,
                         flowType: "expense_flow",
                         sourceLayer: 3,
                         targetLayer: 4,
@@ -1036,6 +1214,7 @@
                         source: "Operating Expenses",
                         target: "General & Admin",
                         value: 150,
+                        previousValue: 130,
                         flowType: "expense_flow",
                         sourceLayer: 3,
                         targetLayer: 4,
@@ -1047,6 +1226,7 @@
                         source: "Operating Profit",
                         target: "Net Income",
                         value: 300,
+                        previousValue: 260,
                         flowType: "final_flow",
                         sourceLayer: 3,
                         targetLayer: 4,
@@ -1058,6 +1238,7 @@
                         source: "Operating Profit",
                         target: "Tax Expense",
                         value: 100,
+                        previousValue: 90,
                         flowType: "expense_flow",
                         sourceLayer: 3,
                         targetLayer: 4,
@@ -1071,7 +1252,6 @@
                 renderFlowTable();
                 updateAllStats();
             } else {
-                // For non-income statements, show basic structure
                 loadBlankFlows();
             }
         }
@@ -1084,6 +1264,7 @@
                             source: "Revenue Source",
                             target: "Total Revenue",
                             value: 100,
+                            previousValue: 0,
                             description: "Start building your income statement here"
                         })
                     ],
@@ -1092,19 +1273,10 @@
                             source: "Asset Item",
                             target: "Total Assets",
                             value: 100,
+                            previousValue: 0,
                             sourceCategory: "asset",
                             targetCategory: "asset",
                             description: "Start building your balance sheet here"
-                        })
-                    ],
-                    cashflow: () => [
-                        new BusinessFlow({
-                            source: "Cash Source",
-                            target: "Operating Cash Flow",
-                            value: 100,
-                            sourceCategory: "inflow",
-                            targetCategory: "operating",
-                            description: "Start building your cash flow statement here"
                         })
                     ]
                 };
@@ -1120,9 +1292,10 @@
             tbody.innerHTML = '';
             
             if (flowData.flows.length === 0) {
+                const colSpan = comparisonMode ? 13 : 11;
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="11" style="text-align: center; padding: 40px; color: #6b7280;">
+                        <td colspan="${colSpan}" style="text-align: center; padding: 40px; color: #6b7280;">
                             <div style="font-size: 16px; margin-bottom: 8px;">💡</div>
                             <div>No flows defined. Click "Add Flow" to start building your financial structure.</div>
                         </td>
@@ -1142,7 +1315,9 @@
             const categories = Object.keys(config.colorCategories);
             
             const tr = document.createElement('tr');
-            tr.innerHTML = `
+            
+            // Build row HTML with conditional previous value and variance columns
+            let rowHTML = `
                 <td>
                     <div class="flow-controls">
                         <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
@@ -1162,7 +1337,21 @@
                 <td>
                     <input type="number" class="flow-input number" value="${flow.value}" 
                            onchange="updateFlow(${index}, 'value', parseFloat(this.value) || 0)">
+                </td>`;
+            
+            // Add previous value column if comparison mode is enabled
+            if (comparisonMode) {
+                rowHTML += `
+                <td>
+                    <input type="number" class="flow-input number" value="${flow.previousValue}" 
+                           onchange="updateFlow(${index}, 'previousValue', parseFloat(this.value) || 0)">
                 </td>
+                <td>
+                    <div class="variance-indicator ${getVarianceClass(flow)}">${flow.getVarianceDisplay()}</div>
+                </td>`;
+            }
+            
+            rowHTML += `
                 <td>
                     <input type="number" class="flow-input number" value="${flow.sourceLayer}" min="0" max="20"
                            onchange="updateFlow(${index}, 'sourceLayer', parseInt(this.value) || 0)">
@@ -1195,7 +1384,16 @@
                     ${getFlowBalanceIndicator(flow)}
                 </td>
             `;
+            
+            tr.innerHTML = rowHTML;
             return tr;
+        }
+
+        function getVarianceClass(flow) {
+            const variance = flow.getVariance();
+            if (variance.trend === 'up') return 'positive';
+            if (variance.trend === 'down') return 'negative';
+            return 'neutral';
         }
 
         function getFlowTypeOptions(selected) {
@@ -1207,10 +1405,6 @@
                 { value: 'asset_flow', label: 'Asset' },
                 { value: 'liability_flow', label: 'Liability' },
                 { value: 'equity_flow', label: 'Equity' },
-                { value: 'operating_flow', label: 'Operating' },
-                { value: 'investing_flow', label: 'Investing' },
-                { value: 'financing_flow', label: 'Financing' },
-                { value: 'cash_flow', label: 'Cash' },
                 { value: 'final_flow', label: 'Final' }
             ];
             
@@ -1234,8 +1428,7 @@
         function addFlow() {
             const defaultCategories = {
                 income: { source: 'revenue', target: 'revenue' },
-                balance: { source: 'asset', target: 'asset' },
-                cashflow: { source: 'inflow', target: 'operating' }
+                balance: { source: 'asset', target: 'asset' }
             };
             
             const defaults = defaultCategories[currentStatementType];
@@ -1244,6 +1437,7 @@
                 source: "New Source",
                 target: "New Target",
                 value: 100,
+                previousValue: 0,
                 sourceLayer: 0,
                 targetLayer: 1,
                 sourceCategory: defaults.source,
@@ -1283,6 +1477,7 @@
                 source: originalFlow.source + " Copy",
                 target: originalFlow.target,
                 value: originalFlow.value,
+                previousValue: originalFlow.previousValue,
                 flowType: originalFlow.flowType,
                 sourceLayer: originalFlow.sourceLayer,
                 targetLayer: originalFlow.targetLayer,
@@ -1301,10 +1496,15 @@
                 flowData.flows[index][field] = value;
                 updateAllStats();
                 
-                const row = document.querySelectorAll('#flows-tbody tr')[index];
-                if (row) {
-                    const balanceCell = row.lastElementChild;
-                    balanceCell.innerHTML = getFlowBalanceIndicator(flowData.flows[index]);
+                // Update variance display if we're in comparison mode
+                if (comparisonMode && (field === 'value' || field === 'previousValue')) {
+                    renderFlowTable();
+                } else {
+                    const row = document.querySelectorAll('#flows-tbody tr')[index];
+                    if (row) {
+                        const balanceCell = row.lastElementChild;
+                        balanceCell.innerHTML = getFlowBalanceIndicator(flowData.flows[index]);
+                    }
                 }
             }
         }
@@ -1317,6 +1517,12 @@
             
             const config = statementConfigs[currentStatementType];
             flowData.metadata.title = `${flowData.metadata.company} ${config.title}`;
+            
+            // Update previous period if field exists
+            const previousPeriodField = document.getElementById('previous-period');
+            if (previousPeriodField) {
+                flowData.metadata.previousPeriod = previousPeriodField.value;
+            }
         }
 
         function generateNodesAndLinksFromFlows() {
@@ -1329,6 +1535,7 @@
                         id: flow.source,
                         depth: flow.sourceLayer,
                         value: 0,
+                        previousValue: 0,
                         category: flow.sourceCategory,
                         description: `Source: ${flow.description}`,
                         sort_order: flow.sourceOrder || 1
@@ -1340,6 +1547,7 @@
                         id: flow.target,
                         depth: flow.targetLayer,
                         value: 0,
+                        previousValue: 0,
                         category: flow.targetCategory,
                         description: `Target: ${flow.description}`,
                         sort_order: flow.targetOrder || 1
@@ -1348,22 +1556,26 @@
                 
                 const targetNode = nodeMap.get(flow.target);
                 targetNode.value += Math.abs(flow.value);
+                targetNode.previousValue += Math.abs(flow.previousValue);
                 
                 links.push({
                     source: flow.source,
                     target: flow.target,
                     value: Math.abs(flow.value),
+                    previousValue: Math.abs(flow.previousValue),
                     type: flow.flowType,
                     description: flow.description,
                     colorCategory: flow.targetCategory
                 });
             });
             
+            // Calculate source node values
             flowData.flows.forEach(flow => {
                 const sourceNode = nodeMap.get(flow.source);
                 if (sourceNode.value === 0) {
                     const outflows = flowData.flows.filter(f => f.source === flow.source);
                     sourceNode.value = outflows.reduce((sum, f) => sum + Math.abs(f.value), 0);
+                    sourceNode.previousValue = outflows.reduce((sum, f) => sum + Math.abs(f.previousValue), 0);
                 }
             });
             
@@ -1396,10 +1608,28 @@
             
             const balanceScore = flowCount > 0 ? Math.round((balancedFlows / flowCount) * 100) : 0;
             
+            // Calculate average growth if comparison mode is enabled
+            let avgGrowth = 0;
+            if (comparisonMode && flowCount > 0) {
+                const totalGrowth = flowData.flows.reduce((sum, flow) => {
+                    const variance = flow.getVariance();
+                    return sum + variance.percentage;
+                }, 0);
+                avgGrowth = totalGrowth / flowCount;
+            }
+            
             document.getElementById('flow-count').textContent = flowCount;
             document.getElementById('node-count').textContent = nodeCount;
             document.getElementById('layer-count').textContent = layerCount;
             document.getElementById('balance-score').textContent = balanceScore + '%';
+            
+            if (comparisonMode) {
+                const avgGrowthElement = document.getElementById('avg-growth');
+                if (avgGrowthElement) {
+                    const sign = avgGrowth > 0 ? '+' : '';
+                    avgGrowthElement.textContent = `${sign}${avgGrowth.toFixed(1)}%`;
+                }
+            }
         }
 
         function validateFlows() {
@@ -1426,6 +1656,10 @@
                 if (flow.source === flow.target) {
                     errors.push(`Flow ${index + 1}: Source and target cannot be the same`);
                 }
+                
+                if (comparisonMode && flow.previousValue < 0) {
+                    warnings.push(`Flow ${index + 1}: Negative previous value may cause display issues`);
+                }
             });
             
             let message = `✅ ${statementConfigs[currentStatementType].title} Validation Results\n\n`;
@@ -1445,10 +1679,15 @@
             const balanceScore = document.getElementById('balance-score').textContent;
             message += `📊 Summary:\n• ${flowData.flows.length} flows\n• Statement Type: ${currentStatementType}\n• Balance Score: ${balanceScore}`;
             
+            if (comparisonMode) {
+                const avgGrowth = document.getElementById('avg-growth').textContent;
+                message += `\n• Average Growth: ${avgGrowth}`;
+            }
+            
             alert(message);
         }
 
-        // UPDATED: Export functions using ExportUtils.js
+        // Export functions using ExportUtils.js
         function exportToCSV() {
             if (!window.ExportUtils) {
                 console.error('ExportUtils not loaded');
@@ -1489,8 +1728,11 @@
                             if (data.metadata && data.metadata.statementType) {
                                 switchStatementType(data.metadata.statementType);
                             }
+                            if (data.metadata && data.metadata.comparisonMode) {
+                                document.getElementById('comparison-mode').checked = data.metadata.comparisonMode;
+                                toggleComparisonMode();
+                            }
                         } else if (data.nodes && data.links) {
-                            // Convert from nodes/links to flows format (simplified)
                             alert('⚠️ Please use the Flow Builder format for imports. Nodes/links format not supported here.');
                             return;
                         }
@@ -1528,12 +1770,13 @@
                         source: values[1],
                         target: values[2],
                         value: parseFloat(values[3]) || 0,
-                        flowType: values[4] || 'revenue_flow',
-                        sourceLayer: parseInt(values[5]) || 0,
-                        targetLayer: parseInt(values[6]) || 1,
-                        sourceCategory: values[7] || 'revenue',
-                        targetCategory: values[8] || 'revenue',
-                        description: values[9] || ''
+                        previousValue: parseFloat(values[4]) || 0, // Support previous value in CSV
+                        flowType: values[5] || 'revenue_flow',
+                        sourceLayer: parseInt(values[6]) || 0,
+                        targetLayer: parseInt(values[7]) || 1,
+                        sourceCategory: values[8] || 'revenue',
+                        targetCategory: values[9] || 'revenue',
+                        description: values[10] || ''
                     }));
                 }
             }
@@ -1544,6 +1787,14 @@
                 }
                 
                 flowData.flows = flows;
+                
+                // Enable comparison mode if any previous values exist
+                const hasPreviousValues = flows.some(flow => flow.previousValue > 0);
+                if (hasPreviousValues) {
+                    document.getElementById('comparison-mode').checked = true;
+                    toggleComparisonMode();
+                }
+                
                 renderFlowTable();
                 updateAllStats();
                 alert(`✅ Successfully imported ${flows.length} flows from CSV!`);
@@ -1599,6 +1850,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             switchStatementType('income');
             loadSimpleTemplate();
+            
+            // Initialize comparison mode toggle visibility
+            toggleComparisonMode();
         });
     </script>
 </body>
