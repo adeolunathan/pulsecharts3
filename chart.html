@@ -1647,6 +1647,45 @@
             document.getElementById('csv-file-input').click();
         }
 
+        function convertSankeyDataToFlows(sankeyData) {
+            const flows = [];
+            
+            sankeyData.links.forEach((link, index) => {
+                const sourceNode = sankeyData.nodes.find(n => n.id === link.source);
+                const targetNode = sankeyData.nodes.find(n => n.id === link.target);
+                
+                if (sourceNode && targetNode) {
+                    flows.push(new BusinessFlow({
+                        source: link.source,
+                        target: link.target,
+                        value: link.value,
+                        previousValue: link.previousValue || 0,
+                        flowType: link.type || 'revenue_flow',
+                        sourceLayer: sourceNode.depth || 0,
+                        targetLayer: targetNode.depth || 1,
+                        sourceCategory: sourceNode.category || 'revenue',
+                        targetCategory: targetNode.category || 'revenue',
+                        description: link.description || targetNode.description || ''
+                    }));
+                }
+            });
+            
+            return {
+                metadata: {
+                    title: sankeyData.metadata?.title || "Imported Financial Flow",
+                    subtitle: sankeyData.metadata?.subtitle || "From imported data",
+                    currency: sankeyData.metadata?.currency || "USD",
+                    unit: sankeyData.metadata?.unit || "millions",
+                    company: sankeyData.metadata?.company || "Your Company",
+                    period: sankeyData.metadata?.period || "Current Period",
+                    statementType: sankeyData.metadata?.statementType || "income",
+                    comparisonMode: sankeyData.metadata?.comparisonMode || false,
+                    colorPalette: sankeyData.metadata?.colorPalette || {}
+                },
+                flows: flows
+            };
+        }
+
         function handleFileImport(event) {
             const file = event.target.files[0];
             if (!file) return;
