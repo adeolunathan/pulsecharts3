@@ -228,62 +228,41 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Analyze chart data to detect categories with statement type awareness
+     * ENHANCED: Analyze chart data to detect categories with balance sheet group awareness
      */
     analyzeDataCategories(data) {
         const categories = new Set();
         
-        // Analyze nodes for categories
-        if (data.nodes) {
-            data.nodes.forEach(node => {
-                if (node.category) {
-                    categories.add(node.category);
-                }
-                
-                // Special detection for Total Assets in balance sheets
-                if (node.id && node.id.toLowerCase().includes('total') && node.id.toLowerCase().includes('asset')) {
-                    categories.add('total_assets');
-                    console.log(`🎨 Detected Total Assets node: ${node.id}`);
-                }
-            });
-        }
-        
-        // Analyze links for additional categories
-        if (data.links) {
-            data.links.forEach(link => {
-                if (link.colorCategory) {
-                    categories.add(link.colorCategory);
-                }
-                if (link.targetCategory) {
-                    categories.add(link.targetCategory);
-                }
-            });
-        }
-
-        // Statement-specific category detection and additions
         if (this.statementType === 'balance') {
-            // Always add Total Assets as a distinct category for balance sheets
-            categories.add('total_assets');
+            // For balance sheets, detect the actual color groups the chart uses
+            const balanceSheetGroups = this.detectBalanceSheetGroups(data);
+            balanceSheetGroups.forEach(group => categories.add(group));
             
-            // Add standard balance sheet categories if not present
-            const balanceSheetCategories = ['asset', 'liability', 'equity', 'current', 'noncurrent'];
-            balanceSheetCategories.forEach(cat => {
-                if (this.hasNodesWithCategory(data, cat) || this.hasNodesWithKeywords(data, cat)) {
-                    categories.add(cat);
-                }
-            });
-            
-            console.log(`🎨 Balance sheet categories detected:`, Array.from(categories));
-        } else if (this.statementType === 'cashflow') {
-            const cashFlowCategories = ['operating', 'investing', 'financing', 'inflow', 'outflow'];
-            cashFlowCategories.forEach(cat => {
-                if (this.hasNodesWithCategory(data, cat)) {
-                    categories.add(cat);
-                }
-            });
+            console.log(`🎨 Balance sheet groups detected:`, Array.from(categories));
         } else {
-            // Income statement categories
-            const incomeCategories = ['revenue', 'cost', 'profit', 'expense', 'income'];
+            // Income statement - analyze nodes for categories
+            if (data.nodes) {
+                data.nodes.forEach(node => {
+                    if (node.category) {
+                        categories.add(node.category);
+                    }
+                });
+            }
+            
+            // Analyze links for additional categories
+            if (data.links) {
+                data.links.forEach(link => {
+                    if (link.colorCategory) {
+                        categories.add(link.colorCategory);
+                    }
+                    if (link.targetCategory) {
+                        categories.add(link.targetCategory);
+                    }
+                });
+            }
+
+            // Add standard income statement categories
+            const incomeCategories = ['revenue', 'cost', 'profit', 'expense', 'income', 'tax'];
             incomeCategories.forEach(cat => {
                 if (this.hasNodesWithCategory(data, cat)) {
                     categories.add(cat);
@@ -294,9 +273,7 @@ class SankeyControlModule {
         // If no categories found, provide statement-specific defaults
         if (categories.size === 0) {
             if (this.statementType === 'balance') {
-                return ['total_assets', 'asset', 'liability', 'equity'];
-            } else if (this.statementType === 'cashflow') {
-                return ['operating', 'investing', 'financing'];
+                return ['Current Assets', 'Non-Current Assets', 'Current Liabilities', 'Non-Current Liabilities', 'Shareholders Equity', 'Total Assets'];
             } else {
                 return ['revenue', 'cost', 'profit', 'expense', 'income'];
             }
@@ -306,22 +283,72 @@ class SankeyControlModule {
     }
 
     /**
-     * NEW: Check if data has nodes with specific category
+     * Detect balance sheet color groups based on node names (matches chart logic)
+     */
+    detectBalanceSheetGroups(data) {
+        const groups = new Set();
+        
+        if (!data.nodes) return [];
+        
+        // These match the exact group names used in SankeyChart.js
+        const groupPatterns = {
+            'Current Assets': ['current assets'],
+            'Non-Current Assets': ['non-current assets', 'noncurrent assets'],
+            'Current Liabilities': ['current liabilities'],
+            'Non-Current Liabilities': ['non-current liabilities', 'noncurrent liabilities', 'long-term debt'],
+            'Shareholders Equity': ['shareholders equity', 'stockholders equity', 'shareholders\' equity', 'equity'],
+            'Total Assets': ['total assets']
+        };
+        
+        data.nodes.forEach(node => {
+            const nodeName = node.id.toLowerCase();
+            
+            Object.entries(groupPatterns).forEach(([groupName, patterns]) => {
+                if (patterns.some(pattern => nodeName.includes(pattern))) {
+                    groups.add(groupName);
+                }
+            });
+            
+            // Also detect by keywords for child nodes
+            if (nodeName.includes('cash') || nodeName.includes('receivable') || nodeName.includes('inventory')) {
+                groups.add('Current Assets');
+            }
+            if (nodeName.includes('property') || nodeName.includes('equipment') || nodeName.includes('intangible')) {
+                groups.add('Non-Current Assets');
+            }
+            if (nodeName.includes('payable') || nodeName.includes('accrued')) {
+                groups.add('Current Liabilities');
+            }
+            if (nodeName.includes('bonds') || nodeName.includes('notes')) {
+                groups.add('Non-Current Liabilities');
+            }
+            if (nodeName.includes('stock') || nodeName.includes('retained') || nodeName.includes('capital')) {
+                groups.add('Shareholders Equity');
+            }
+        });
+        
+        return Array.from(groups);
+    }
+
+    /**
+     * Check if data has nodes with specific category
      */
     hasNodesWithCategory(data, category) {
         return data.nodes.some(node => node.category === category);
     }
 
     /**
-     * NEW: Check if data has nodes with keywords related to category
+     * Check if data has nodes with keywords related to category
      */
     hasNodesWithKeywords(data, category) {
         const keywordMap = {
-            'current': ['current', 'short-term'],
-            'noncurrent': ['non-current', 'long-term', 'property', 'equipment'],
-            'asset': ['asset', 'cash', 'receivable', 'inventory'],
-            'liability': ['liability', 'payable', 'debt'],
-            'equity': ['equity', 'stock', 'retained']
+            'current_asset': ['current asset', 'cash', 'receivable', 'inventory', 'prepaid'],
+            'non_current_asset': ['non-current asset', 'property', 'equipment', 'intangible', 'fixed asset'],
+            'current_liability': ['current liability', 'payable', 'current debt', 'accrued'],
+            'non_current_liability': ['non-current liability', 'long-term debt', 'bonds', 'notes'],
+            'asset': ['asset'],
+            'liability': ['liability'],
+            'equity': ['equity', 'stock', 'retained', 'capital']
         };
         
         const keywords = keywordMap[category] || [];
@@ -333,7 +360,7 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Generate color controls with statement-specific handling
+     * ENHANCED: Generate color controls with proper ID handling for balance sheet groups
      */
     generateColorControls(categories, chart) {
         const controls = [];
@@ -353,8 +380,11 @@ class SankeyControlModule {
             const currentColor = this.getCurrentColorForCategory(category, chart);
             const description = this.getCategoryDescription(category);
             
+            // Generate proper control ID
+            const controlId = this.generateControlId(category);
+            
             controls.push({
-                id: `${category}Color`,
+                id: controlId,
                 type: "color",
                 label: this.formatCategoryLabel(category),
                 default: currentColor,
@@ -368,25 +398,42 @@ class SankeyControlModule {
     }
 
     /**
-     * NEW: Order categories appropriately for each statement type
+     * Generate proper control ID from category name
+     */
+    generateControlId(category) {
+        if (this.statementType === 'balance') {
+            // Convert "Current Assets" to "currentAssetsColor"
+            const camelCase = category.replace(/\s+(.)/g, (match, letter) => letter.toUpperCase())
+                                     .replace(/^\w/, c => c.toLowerCase());
+            return camelCase + 'Color';
+        } else {
+            // Income statement categories are already simple
+            return category + 'Color';
+        }
+    }
+
+    /**
+     * Order categories appropriately for each statement type
      */
     orderCategoriesForStatement(categories) {
         const categoryArrays = categories instanceof Set ? Array.from(categories) : categories;
         
         if (this.statementType === 'balance') {
-            const balanceOrder = ['total_assets', 'asset', 'current', 'noncurrent', 'liability', 'equity'];
+            const balanceOrder = [
+                'Total Assets',
+                'Current Assets', 'Non-Current Assets',
+                'Current Liabilities', 'Non-Current Liabilities', 
+                'Shareholders Equity'
+            ];
             return this.sortByCustomOrder(categoryArrays, balanceOrder);
-        } else if (this.statementType === 'cashflow') {
-            const cashFlowOrder = ['operating', 'investing', 'financing', 'inflow', 'outflow'];
-            return this.sortByCustomOrder(categoryArrays, cashFlowOrder);
         } else {
-            const incomeOrder = ['revenue', 'cost', 'profit', 'expense', 'income'];
+            const incomeOrder = ['revenue', 'cost', 'profit', 'expense', 'income', 'tax'];
             return this.sortByCustomOrder(categoryArrays, incomeOrder);
         }
     }
 
     /**
-     * NEW: Sort categories by custom order, with unmatched items at end
+     * Sort categories by custom order, with unmatched items at end
      */
     sortByCustomOrder(categories, order) {
         const ordered = [];
@@ -425,31 +472,21 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Get default color for a category with statement-specific colors
+     * ENHANCED: Get default color for a category with balance sheet group awareness
      */
     getDefaultColorForCategory(category) {
         // Statement-specific color schemes
         if (this.statementType === 'balance') {
             const balanceSheetColors = {
-                total_assets: '#2C3E50',     // Distinct dark blue-gray for Total Assets
-                asset: '#8B4513',            // Brown for assets
-                current: '#8B4513',          // Brown for current assets  
-                noncurrent: '#9B59B6',       // Purple for non-current assets
-                liability: '#E74C3C',        // Red for liabilities
-                equity: '#27AE60',           // Green for equity
+                'Total Assets': '#2C3E50',           // Distinct dark blue-gray for Total Assets
+                'Current Assets': '#3498DB',         // Blue for current assets
+                'Non-Current Assets': '#9B59B6',     // Purple for non-current assets  
+                'Current Liabilities': '#E74C3C',    // Red for current liabilities
+                'Non-Current Liabilities': '#C0392B', // Dark red for non-current liabilities
+                'Shareholders Equity': '#27AE60',     // Green for equity
                 default: '#95a5a6'
             };
             return balanceSheetColors[category] || balanceSheetColors.default;
-        } else if (this.statementType === 'cashflow') {
-            const cashFlowColors = {
-                operating: '#3498db',
-                investing: '#e74c3c',
-                financing: '#27ae60',
-                inflow: '#2ecc71',
-                outflow: '#e67e22',
-                default: '#95a5a6'
-            };
-            return cashFlowColors[category] || cashFlowColors.default;
         } else {
             // Income statement colors (default)
             const incomeColors = {
@@ -466,34 +503,30 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Format category label with statement-specific naming
+     * ENHANCED: Format category label (no changes needed for balance sheet groups)
      */
     formatCategoryLabel(category) {
-        const specialLabels = {
-            total_assets: 'Total Assets',
-            noncurrent: 'Non-Current Items',
-            cashflow: 'Cash Flow'
-        };
-        
-        if (specialLabels[category]) {
-            return specialLabels[category];
+        // Balance sheet group names are already properly formatted
+        if (this.statementType === 'balance') {
+            return category;
         }
         
+        // Income statement formatting
         return category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1');
     }
 
     /**
-     * ENHANCED: Get description for category with statement-specific context
+     * ENHANCED: Get description for balance sheet groups
      */
     getCategoryDescription(category) {
         const descriptions = {
-            // Balance sheet descriptions
-            total_assets: 'Total Assets (distinct from individual asset categories)',
-            asset: 'Individual asset line items',
-            current: 'Current/short-term items',
-            noncurrent: 'Non-current/long-term items',
-            liability: 'Liabilities and obligations',
-            equity: 'Equity and ownership',
+            // Balance sheet group descriptions
+            'Total Assets': 'Total Assets line (balancing item)',
+            'Current Assets': 'Short-term assets (cash, receivables, inventory)',
+            'Non-Current Assets': 'Long-term assets (property, equipment, intangibles)',
+            'Current Liabilities': 'Short-term obligations',
+            'Non-Current Liabilities': 'Long-term debt and obligations',
+            'Shareholders Equity': 'Ownership equity components',
             
             // Income statement descriptions
             revenue: 'Revenue and income flows',
@@ -501,28 +534,38 @@ class SankeyControlModule {
             profit: 'Profit and margin nodes',
             expense: 'Operating expenses',
             income: 'Net income and final results',
-            tax: 'Tax expenses and obligations',
-            
-            // Cash flow descriptions
-            operating: 'Operating activities',
-            investing: 'Investment activities', 
-            financing: 'Financing activities',
-            inflow: 'Cash inflows',
-            outflow: 'Cash outflows'
+            tax: 'Tax expenses and obligations'
         };
         
-        return descriptions[category] || `${this.formatCategoryLabel(category)} related items`;
+        return descriptions[category] || `${category} related items`;
     }
 
     /**
-     * ENHANCED: Control change handler with statement-specific logic
+     * ENHANCED: Control change handler with balance sheet group awareness
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
         // Handle color controls with statement awareness
         if (controlId.endsWith('Color')) {
-            const category = controlId.replace('Color', '').toLowerCase();
+            // Extract category name from control ID
+            let category = controlId.replace('Color', '');
+            
+            // For balance sheet, convert from camelCase to proper group name
+            if (this.statementType === 'balance') {
+                const groupNameMap = {
+                    'totalAssets': 'Total Assets',
+                    'currentAssets': 'Current Assets', 
+                    'nonCurrentAssets': 'Non-Current Assets',
+                    'currentLiabilities': 'Current Liabilities',
+                    'nonCurrentLiabilities': 'Non-Current Liabilities',
+                    'shareholdersEquity': 'Shareholders Equity'
+                };
+                category = groupNameMap[category] || category;
+            } else {
+                category = category.toLowerCase();
+            }
+            
             this.updateChartColor(chart, category, value);
             this.dynamicColors.set(category, value);
             return;
@@ -646,7 +689,7 @@ class SankeyControlModule {
     }
 
     /**
-     * ENHANCED: Update chart color with statement-specific handling
+     * ENHANCED: Update chart color with direct balance sheet group update
      */
     updateChartColor(chart, category, color) {
         console.log(`🎨 Updating ${category} color to ${color} for ${this.statementType} statement`);
@@ -673,18 +716,54 @@ class SankeyControlModule {
             }
         }
         
-        // Re-render chart to apply color changes
-        if (chart.data) {
+        // For balance sheets, need to reassign color groups and re-render
+        if (this.statementType === 'balance') {
+            // Force reassignment of color groups with new custom colors
+            if (chart.assignColorGroups) {
+                chart.assignColorGroups();
+            }
+            
+            // Re-render nodes and links with new colors
+            if (chart.chart) {
+                chart.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(200)
+                    .attr('fill', d => chart.getHierarchicalColor(d.id));
+                    
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('fill', d => chart.getLinkColor(d));
+            }
+        } else if (chart.data) {
+            // For income statements, just re-render
             chart.render(chart.data);
         }
     }
 
     /**
-     * ENHANCED: Get current values with statement-specific handling
+     * ENHANCED: Get current values with balance sheet group support
      */
     getCurrentValue(controlId, chart) {
         if (controlId.endsWith('Color')) {
-            const category = controlId.replace('Color', '').toLowerCase();
+            // Extract category name from control ID
+            let category = controlId.replace('Color', '');
+            
+            // For balance sheet, convert from camelCase back to proper group name
+            if (this.statementType === 'balance') {
+                const groupNameMap = {
+                    'totalAssets': 'Total Assets',
+                    'currentAssets': 'Current Assets', 
+                    'nonCurrentAssets': 'Non-Current Assets',
+                    'currentLiabilities': 'Current Liabilities',
+                    'nonCurrentLiabilities': 'Non-Current Liabilities',
+                    'shareholdersEquity': 'Shareholders Equity'
+                };
+                category = groupNameMap[category] || category;
+            } else {
+                category = category.toLowerCase();
+            }
+            
             return this.getCurrentColorForCategory(category, chart);
         }
 

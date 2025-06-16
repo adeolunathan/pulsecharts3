@@ -325,18 +325,24 @@ class PulseSankeyChart {
     /**
      * Balance sheet color assignment with improved flow detection
      */
+    /**
+     * Balance sheet color assignment with improved flow detection and custom color support
+     */
     assignBalanceSheetColorGroups() {
         this.colorGroups.clear();
         
         // Define group colors - ORDER MATTERS: most specific first
+        // CHECK FOR CUSTOM COLORS FIRST
         const groupColors = {
-            'Current Assets': '#3498DB',    // Blue
-            'Non-Current Assets': '#9B59B6', // Purple  
-            'Current Liabilities': '#E74C3C', // Red
-            'Non-Current Liabilities': '#C0392B', // Dark Red for NCL parent
-            'Shareholders Equity': '#27AE60', // Green
-            'Total Assets': '#2C3E50'       // Black/Dark Gray
+            'Current Assets': this.customColors['Current Assets'] || '#3498DB',    // Blue
+            'Non-Current Assets': this.customColors['Non-Current Assets'] || '#9B59B6', // Purple  
+            'Current Liabilities': this.customColors['Current Liabilities'] || '#E74C3C', // Red
+            'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#C0392B', // Dark Red for NCL parent
+            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#27AE60', // Green
+            'Total Assets': this.customColors['Total Assets'] || '#2C3E50'       // Black/Dark Gray
         };
+        
+        console.log('🎨 Using group colors:', groupColors);
         
         // First pass: Identify parent group nodes
         const parentNodes = new Set();
@@ -401,8 +407,8 @@ class PulseSankeyChart {
                     baseColor = groupColors['Current Liabilities'];
                 } else if (nodeId.includes('long-term debt') || nodeId.includes('bonds') || nodeId.includes('notes') ||
                           nodeId.includes('long term debt')) {
-                    groupName = 'Long-term Debt';
-                    baseColor = groupColors['Long-term Debt'];
+                    groupName = 'Non-Current Liabilities';
+                    baseColor = groupColors['Non-Current Liabilities'];
                 } else if (nodeId.includes('stock') || nodeId.includes('retained') || nodeId.includes('earnings') ||
                           nodeId.includes('equity') || nodeId.includes('capital')) {
                     groupName = 'Shareholders Equity';
@@ -432,7 +438,7 @@ class PulseSankeyChart {
             });
         });
         
-        console.log('🎨 Balance sheet color groups assigned');
+        console.log('🎨 Balance sheet color groups assigned with custom colors');
     }
 
     /**

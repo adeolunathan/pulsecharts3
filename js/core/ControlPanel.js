@@ -1,5 +1,5 @@
-/* ===== GENERIC CONTROL PANEL - FIXED VERSION ===== */
-/* Chart-agnostic control panel with proper color persistence and opacity fixes */
+/* ===== GENERIC CONTROL PANEL - ENHANCED WITH BETTER LAYOUT ===== */
+/* Chart-agnostic control panel with improved color grid layout and responsiveness */
 
 class PulseControlPanel {
     constructor(containerId) {
@@ -63,16 +63,184 @@ class PulseControlPanel {
             .attr('class', 'control-section-content')
             .style('display', section.collapsed ? 'none' : 'block');
 
-        section.controls.forEach(control => {
-            this.createControl(content, control);
+        // Special handling for color section
+        if (sectionKey === 'colors') {
+            this.createColorSection(content, section);
+        } else {
+            section.controls.forEach(control => {
+                this.createControl(content, control);
+            });
+        }
+    }
+
+    // Create enhanced color section with grid layout
+    createColorSection(container, section) {
+        const colorDiv = container
+            .append('div')
+            .attr('class', 'color-customization')
+            .style('padding', '20px');
+
+        // Add preset controls first
+        const presetControl = section.controls.find(c => c.type === 'preset_controls');
+        if (presetControl) {
+            this.createColorPresets(colorDiv);
+        }
+
+        // Create color grid
+        const colorGrid = colorDiv
+            .append('div')
+            .attr('class', 'color-grid')
+            .style('display', 'grid')
+            .style('grid-template-columns', 'repeat(auto-fit, minmax(280px, 1fr))')
+            .style('gap', '16px')
+            .style('margin-top', '20px');
+
+        // Add color controls
+        const colorControls = section.controls.filter(c => c.type === 'color');
+        colorControls.forEach(control => {
+            this.createColorItem(colorGrid, control);
         });
+    }
+
+    // Create color preset buttons
+    createColorPresets(container) {
+        const presetsDiv = container
+            .append('div')
+            .attr('class', 'color-presets')
+            .style('margin-bottom', '16px')
+            .style('padding-bottom', '16px')
+            .style('border-bottom', '1px solid #e1e5e9');
+
+        presetsDiv
+            .append('div')
+            .style('font-weight', '600')
+            .style('margin-bottom', '8px')
+            .style('color', '#374151')
+            .text('Color Presets:');
+
+        const buttonContainer = presetsDiv
+            .append('div')
+            .attr('class', 'preset-buttons')
+            .style('display', 'flex')
+            .style('gap', '8px')
+            .style('flex-wrap', 'wrap');
+
+        const presets = [
+            { key: 'default', label: 'Default' },
+            { key: 'vibrant', label: 'Vibrant' },
+            { key: 'professional', label: 'Professional' },
+            { key: 'monochrome', label: 'Monochrome' },
+            { key: 'random', label: '🎲 Random' }
+        ];
+
+        presets.forEach(preset => {
+            buttonContainer
+                .append('button')
+                .attr('class', 'preset-btn')
+                .style('background', '#f8f9fa')
+                .style('border', '1px solid #d1d5db')
+                .style('padding', '6px 12px')
+                .style('border-radius', '4px')
+                .style('cursor', 'pointer')
+                .style('font-size', '12px')
+                .style('transition', 'all 0.2s ease')
+                .text(preset.label)
+                .on('mouseover', function() {
+                    d3.select(this).style('background', '#e5e7eb');
+                })
+                .on('mouseout', function() {
+                    d3.select(this).style('background', '#f8f9fa');
+                })
+                .on('click', () => {
+                    if (preset.key === 'random') {
+                        this.controlModule.randomizeColors(this.chart);
+                    } else {
+                        this.controlModule.applyColorPreset(this.chart, preset.key);
+                    }
+                    // Regenerate controls to show updated colors
+                    this.generateControls();
+                });
+        });
+    }
+
+    // Create individual color item with better layout
+    createColorItem(container, config) {
+        const colorItem = container
+            .append('div')
+            .attr('class', 'color-item')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '12px')
+            .style('padding', '12px')
+            .style('background', '#f8f9fa')
+            .style('border-radius', '6px')
+            .style('border', '1px solid #e1e5e9');
+
+        // **CRITICAL: Get current color from chart, not just config defaults**
+        let currentValue = this.getCurrentValue(config);
+        
+        console.log(`🎨 Creating color control for ${config.id}, current value: ${currentValue}`);
+
+        const colorPicker = colorItem
+            .append('input')
+            .attr('type', 'color')
+            .attr('class', 'color-picker')
+            .attr('value', currentValue)
+            .style('width', '40px')
+            .style('height', '40px')
+            .style('border', '2px solid #d1d5db')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('background', 'none')
+            .style('padding', '0')
+            .style('transition', 'all 0.2s ease')
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('border-color', '#667eea')
+                    .style('transform', 'scale(1.05)');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('border-color', '#d1d5db')
+                    .style('transform', 'scale(1)');
+            })
+            .on('change', (event) => {
+                console.log(`🎨 Color changed for ${config.id}: ${event.target.value}`);
+                this.handleChange(config.id, event.target.value);
+            });
+
+        const colorInfo = colorItem
+            .append('div')
+            .attr('class', 'color-info')
+            .style('flex', '1');
+
+        colorInfo
+            .append('div')
+            .attr('class', 'color-label')
+            .style('font-weight', '600')
+            .style('color', '#374151')
+            .style('margin-bottom', '2px')
+            .text(config.label);
+
+        colorInfo
+            .append('div')
+            .attr('class', 'color-description')
+            .style('font-size', '12px')
+            .style('color', '#6b7280')
+            .text(config.description);
     }
 
     // Create individual control elements
     createControl(container, config) {
+        // Skip color controls as they're handled separately
+        if (config.type === 'color' || config.type === 'preset_controls') {
+            return;
+        }
+
         const controlDiv = container
             .append('div')
-            .attr('class', 'control-item');
+            .attr('class', 'control-item')
+            .style('margin-bottom', '16px');
 
         const header = controlDiv.append('div').attr('class', 'control-header');
         header.append('label').attr('class', 'control-label').text(config.label);
@@ -89,9 +257,6 @@ class PulseControlPanel {
             case 'toggle':
                 this.createToggleControl(controlDiv, config);
                 break;
-            case 'color':
-                this.createColorControl(controlDiv, config);
-                break;
             case 'info':
                 this.createInfoControl(controlDiv, config);
                 break;
@@ -105,6 +270,9 @@ class PulseControlPanel {
         if (config.description) {
             controlDiv.append('div')
                 .attr('class', 'control-description')
+                .style('font-size', '12px')
+                .style('color', '#6b7280')
+                .style('margin-top', '4px')
                 .text(config.description);
         }
     }
@@ -123,6 +291,7 @@ class PulseControlPanel {
             .attr('step', config.step)
             .attr('value', currentValue)
             .attr('class', 'control-slider')
+            .style('width', '100%')
             .on('input', (event) => {
                 const value = parseFloat(event.target.value);
                 valueDisplay.text(this.formatValue(value, config));
@@ -131,6 +300,8 @@ class PulseControlPanel {
 
         const valueDisplay = sliderContainer.append('span')
             .attr('class', 'slider-value')
+            .style('font-weight', '600')
+            .style('color', '#374151')
             .text(this.formatValue(currentValue, config));
     }
 
@@ -140,6 +311,10 @@ class PulseControlPanel {
         
         const select = container.append('select')
             .attr('class', 'control-dropdown')
+            .style('width', '100%')
+            .style('padding', '8px')
+            .style('border-radius', '6px')
+            .style('border', '1px solid #d1d5db')
             .on('change', (event) => {
                 this.handleChange(config.id, event.target.value);
             });
@@ -167,23 +342,6 @@ class PulseControlPanel {
             });
 
         toggleContainer.append('span').attr('class', 'toggle-slider');
-    }
-
-    // FIXED: Create color control with proper current value detection
-    createColorControl(container, config) {
-        // **CRITICAL: Get current color from chart, not just config defaults**
-        let currentValue = this.getCurrentValue(config);
-        
-        console.log(`🎨 Creating color control for ${config.id}, current value: ${currentValue}`);
-        
-        container.append('input')
-            .attr('type', 'color')
-            .attr('class', 'control-color')
-            .attr('value', currentValue)
-            .on('change', (event) => {
-                console.log(`🎨 Color changed for ${config.id}: ${event.target.value}`);
-                this.handleChange(config.id, event.target.value);
-            });
     }
 
     // Create info control (for displaying information)
