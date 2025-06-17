@@ -827,6 +827,13 @@ class PulseSankeyChart {
         return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
     }
 
+    getVarianceColor(variance) {
+        if (variance.trend === 'up') return '#10b981'; // Green
+        if (variance.trend === 'down') return '#ef4444'; // Red  
+        if (variance.trend === 'new') return '#0ea5e9'; // Blue
+        return '#6b7280'; // Grey
+    }
+
     calculateLayout() {
         const dimensions = {
             width: this.config.width - this.config.margin.left - this.config.margin.right,
@@ -1787,218 +1794,232 @@ class PulseSankeyChart {
     }
 
     renderLeftmostLabels(node) {
-        const labelDistance = this.config.labelDistance.leftmost;
-        const valueDistance = this.getValueDistance('general');
-        const wrappedText = this.wrapText(node.id, 15);
-        const nodeColor = this.getNodeColor(node);
-        
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x - labelDistance}, ${node.y + node.height/2})`);
-
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
-                .attr('text-anchor', 'end')
-                .attr('dominant-baseline', 'middle')
-                .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
-                .attr('fill', nodeColor)
-                .text(line);
-        });
-
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
-
-        // NEW: Add comparison display
-        if (this.comparisonMode && node.variance) {
-            const formattedValue = this.formatCurrency(node.value, node);
-            const varianceDisplay = this.getVarianceDisplay(node.variance);
+            const labelDistance = this.config.labelDistance.leftmost;
+            const valueDistance = this.getValueDistance('general');
+            const wrappedText = this.wrapText(node.id, 15);
+            const nodeColor = this.getFullOpacityNodeColor(node);
             
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(`${formattedValue} ${varianceDisplay}`);
-        } else {
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(this.formatCurrency(node.value, node));
+            const labelGroup = this.chart.append('g')
+                .attr('class', 'node-label')
+                .attr('transform', `translate(${node.x - labelDistance}, ${node.y + node.height/2})`);
+
+            wrappedText.forEach((line, index) => {
+                labelGroup.append('text')
+                    .attr('text-anchor', 'end')
+                    .attr('dominant-baseline', 'middle')
+                    .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
+                    .attr('font-size', '12px')
+                    .attr('font-weight', '600')
+                    .attr('fill', nodeColor)
+                    .text(line);
+            });
+
+            const valueGroup = this.chart.append('g')
+                .attr('class', 'node-value')
+                .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
+
+            if (this.comparisonMode && node.variance) {
+                const formattedValue = this.formatCurrency(node.value, node);
+                const varianceDisplay = this.getVarianceDisplay(node.variance);
+                const varianceColor = this.getVarianceColor(node.variance);
+                
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('y', 0)
+                    .attr('font-size', '11px')
+                    .attr('font-weight', '500')
+                    .attr('fill', nodeColor)
+                    .text(formattedValue);
+                
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('y', 12)
+                    .attr('font-size', '10px')
+                    .attr('font-weight', '600')
+                    .attr('fill', varianceColor)
+                    .text(varianceDisplay);
+            } else {
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('font-size', '11px')
+                    .attr('font-weight', '500')
+                    .attr('fill', nodeColor)
+                    .text(this.formatCurrency(node.value, node));
+            }
         }
-    }
 
     renderRightmostLabels(node) {
-        const labelDistance = this.config.labelDistance.rightmost;
-        const valueDistance = this.getValueDistance('general');
-        const wrappedText = this.wrapText(node.id, 15);
-        const nodeColor = this.getNodeColor(node);
+    const labelDistance = this.config.labelDistance.rightmost;
+    const valueDistance = this.getValueDistance('general');
+    const wrappedText = this.wrapText(node.id, 15);
+    const nodeColor = this.getFullOpacityNodeColor(node);
+    
+    const labelGroup = this.chart.append('g')
+        .attr('class', 'node-label')
+        .attr('transform', `translate(${node.x + this.config.nodeWidth + labelDistance}, ${node.y + node.height/2})`);
+
+    wrappedText.forEach((line, index) => {
+        labelGroup.append('text')
+            .attr('text-anchor', 'start')
+            .attr('dominant-baseline', 'middle')
+            .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', nodeColor)
+            .text(line);
+    });
+
+    const valueGroup = this.chart.append('g')
+        .attr('class', 'node-value')
+        .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
+
+    if (this.comparisonMode && node.variance) {
+        const formattedValue = this.formatCurrency(node.value, node);
+        const varianceDisplay = this.getVarianceDisplay(node.variance);
+        const varianceColor = this.getVarianceColor(node.variance);
         
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth + labelDistance}, ${node.y + node.height/2})`);
-
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
-                .attr('text-anchor', 'start')
-                .attr('dominant-baseline', 'middle')
-                .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
-                .attr('fill', nodeColor)
-                .text(line);
-        });
-
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
-
-        // NEW: Add comparison display
-        if (this.comparisonMode && node.variance) {
-            const formattedValue = this.formatCurrency(node.value, node);
-            const varianceDisplay = this.getVarianceDisplay(node.variance);
-            
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(`${formattedValue} ${varianceDisplay}`);
-        } else {
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(this.formatCurrency(node.value, node));
-        }
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 0)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(formattedValue);
+        
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 12)
+            .attr('font-size', '10px')
+            .attr('font-weight', '600')
+            .attr('fill', varianceColor)
+            .text(varianceDisplay);
+    } else {
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(this.formatCurrency(node.value, node));
     }
-
-    renderMiddleLabels(node) {
-        const labelDistance = this.config.labelDistance.middle;
-        const nodeColor = this.getNodeColor(node);
-        
-        // NO WRAPPING for middle labels - use single line
-        const singleLineText = node.id;
-        
-        // More robust label positioning for manually positioned nodes
-        let isTopNode;
-        if (node.manuallyPositioned) {
-            // Always use preserved preference for manually positioned nodes
-            isTopNode = node.preserveLabelsAbove === true;
-        } else {
-            // Use layerIndex for automatically positioned nodes
-            isTopNode = node.layerIndex === 0;
-        }
-        
-        if (isTopNode) {
-            this.renderMiddleLabelsAbove(node, labelDistance, [singleLineText], nodeColor);
-        } else {
-            this.renderMiddleLabelsBelow(node, labelDistance, [singleLineText], nodeColor);
-        }
-    }
+}
 
     renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor) {
-        const valueDistance = this.getValueDistance('middle');
+    const valueDistance = this.getValueDistance('middle');
+    
+    const labelGroup = this.chart.append('g')
+        .attr('class', 'node-label')
+        .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - labelDistance})`);
+
+    wrappedText.forEach((line, index) => {
+        labelGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', index * 14)
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', nodeColor)
+            .text(line);
+    });
+
+    const valueGroup = this.chart.append('g')
+        .attr('class', 'node-value')
+        .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
+
+    if (this.comparisonMode && node.variance) {
+        const formattedValue = this.formatCurrency(node.value, node);
+        const varianceDisplay = this.getVarianceDisplay(node.variance);
+        const varianceColor = this.getVarianceColor(node.variance);
         
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - labelDistance})`);
-
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('y', index * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
-                .attr('fill', nodeColor)
-                .text(line);
-        });
-
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
-
-        // NEW: Add comparison display
-        if (this.comparisonMode && node.variance) {
-            const formattedValue = this.formatCurrency(node.value, node);
-            const varianceDisplay = this.getVarianceDisplay(node.variance);
-            
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('y', 0)
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(`${formattedValue} ${varianceDisplay}`);
-        } else {
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('y', 0)
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(this.formatCurrency(node.value, node));
-        }
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 0)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(formattedValue);
+        
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 12)
+            .attr('font-size', '10px')
+            .attr('font-weight', '600')
+            .attr('fill', varianceColor)
+            .text(varianceDisplay);
+    } else {
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 0)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(this.formatCurrency(node.value, node));
     }
+}
 
     renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
-        const valueDistance = this.getValueDistance('middle');
+    const valueDistance = this.getValueDistance('middle');
+    
+    const valueGroup = this.chart.append('g')
+        .attr('class', 'node-value')
+        .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance + 11})`);
+
+    if (this.comparisonMode && node.variance) {
+        const formattedValue = this.formatCurrency(node.value, node);
+        const varianceDisplay = this.getVarianceDisplay(node.variance);
+        const varianceColor = this.getVarianceColor(node.variance);
         
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance + 11})`);
-
-        // NEW: Add comparison display
-        if (this.comparisonMode && node.variance) {
-            const formattedValue = this.formatCurrency(node.value, node);
-            const varianceDisplay = this.getVarianceDisplay(node.variance);
-            
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('y', 0)
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(`${formattedValue} ${varianceDisplay}`);
-        } else {
-            valueGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'alphabetic')
-                .attr('y', 0)
-                .attr('font-size', '11px')
-                .attr('font-weight', '500')
-                .attr('fill', nodeColor)
-                .text(this.formatCurrency(node.value, node));
-        }
-
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + labelDistance})`);
-
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'hanging')
-                .attr('y', index * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
-                .attr('fill', nodeColor)
-                .text(line);
-        });
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 0)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(formattedValue);
+        
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 12)
+            .attr('font-size', '10px')
+            .attr('font-weight', '600')
+            .attr('fill', varianceColor)
+            .text(varianceDisplay);
+    } else {
+        valueGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', 0)
+            .attr('font-size', '11px')
+            .attr('font-weight', '500')
+            .attr('fill', nodeColor)
+            .text(this.formatCurrency(node.value, node));
     }
+
+    const labelGroup = this.chart.append('g')
+        .attr('class', 'node-label')
+        .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + labelDistance})`);
+
+    wrappedText.forEach((line, index) => {
+        labelGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'hanging')
+            .attr('y', index * 14)
+            .attr('font-size', '12px')
+            .attr('font-weight', '600')
+            .attr('fill', nodeColor)
+            .text(line);
+    });
+}
 
     wrapText(text, maxLength = 10) {
         if (text.length <= maxLength) return [text];
@@ -2117,6 +2138,29 @@ class PulseSankeyChart {
             // FIXED: Use hierarchical color for balance sheet and cash flow
             return this.getHierarchicalColor(node.id);
         }
+    }
+
+    /**
+     * NEW: Get full opacity node color for labels and values
+     */
+    getFullOpacityNodeColor(node) {
+        const color = this.getNodeColor(node);
+        
+        // If it's already a hex color, return as-is
+        if (color.startsWith('#')) {
+            return color;
+        }
+        
+        // If it's rgba, extract RGB and return as solid color
+        if (color.startsWith('rgba')) {
+            const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+            if (rgbaMatch) {
+                return `rgb(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]})`;
+            }
+        }
+        
+        // Return as-is for other formats
+        return color;
     }
 
     /**

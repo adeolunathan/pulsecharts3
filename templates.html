@@ -488,6 +488,11 @@
             color: #6b7280;
         }
         
+        .variance-indicator.new {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
         /* Template Quick Actions */
         .template-actions {
             display: flex;
@@ -1392,6 +1397,7 @@
             const variance = flow.getVariance();
             if (variance.trend === 'up') return 'positive';
             if (variance.trend === 'down') return 'negative';
+            if (variance.trend === 'new') return 'new';
             return 'neutral';
         }
 
