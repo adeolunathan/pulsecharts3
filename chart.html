@@ -814,16 +814,60 @@
                 currency: "USD",
                 unit: "millions",
                 company: "Your Company",
-                period: "Current Period"
+                period: "Current Period",
+                colorPalette: {} // CRITICAL: Always preserve color palette
             },
             flows: []
         };
 
         let flowIdCounter = 0;
 
-        // Comparison Mode Toggle
+        // FIXED: Add missing convertSankeyDataToFlows function
+        function convertSankeyDataToFlows(sankeyData) {
+            const flows = [];
+            
+            sankeyData.links.forEach((link, index) => {
+                const sourceNode = sankeyData.nodes.find(n => n.id === link.source);
+                const targetNode = sankeyData.nodes.find(n => n.id === link.target);
+                
+                if (sourceNode && targetNode) {
+                    flows.push(new BusinessFlow({
+                        source: link.source,
+                        target: link.target,
+                        value: link.value,
+                        previousValue: link.previousValue || 0,
+                        flowType: link.type || 'revenue_flow',
+                        sourceLayer: sourceNode.depth || 0,
+                        targetLayer: targetNode.depth || 1,
+                        sourceCategory: sourceNode.category || 'revenue',
+                        targetCategory: targetNode.category || 'revenue',
+                        description: link.description || targetNode.description || ''
+                    }));
+                }
+            });
+
+            return {
+                metadata: {
+                    title: sankeyData.metadata?.title || "Financial Flow",
+                    subtitle: sankeyData.metadata?.subtitle || "Live Chart Data",
+                    currency: sankeyData.metadata?.currency || "USD",
+                    unit: sankeyData.metadata?.unit || "millions",
+                    company: sankeyData.metadata?.company || "Your Company",
+                    period: sankeyData.metadata?.period || "Current Period",
+                    comparisonMode: sankeyData.metadata?.comparisonMode || false,
+                    // CRITICAL: Preserve the existing color palette
+                    colorPalette: sankeyData.metadata?.colorPalette || flowData.metadata?.colorPalette || {}
+                },
+                flows: flows
+            };
+        }
+
+        // FIXED: Comparison Mode Toggle with color preservation
         function toggleComparisonMode() {
             const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+            
+            // CRITICAL: Store existing colors before any changes
+            const existingColors = { ...flowData.metadata.colorPalette };
             
             // Show/hide comparison columns
             const previousCol = document.getElementById('previous-value-col');
@@ -837,8 +881,22 @@
                 varianceCol.style.display = 'none';
             }
             
+            // Update metadata with comparison mode but preserve colors
+            flowData.metadata.comparisonMode = comparisonMode;
+            flowData.metadata.colorPalette = existingColors; // CRITICAL: Restore colors
+            
             // Re-render table
             renderFlowTable();
+            
+            // If in real-time mode, trigger update with color preservation
+            if (window.PulseDataBridge.realTimeMode) {
+                const sankeyData = generateNodesAndLinksFromFlows();
+                // CRITICAL: Ensure colors are preserved in the generated data
+                sankeyData.metadata.colorPalette = existingColors;
+                debouncedRealTimeUpdate();
+            }
+            
+            console.log(`📈 Comparison mode ${comparisonMode ? 'ENABLED' : 'DISABLED'} with colors preserved`);
         }
 
         // Flow structure definition
@@ -985,7 +1043,14 @@
             if (data && data.nodes && data.links) {
                 console.log('✅ Successfully found data for Flow Builder');
                 
+                // CRITICAL: Preserve existing colors before conversion
+                const existingColors = { ...flowData.metadata.colorPalette };
+                
                 flowData = convertSankeyDataToFlows(data);
+                
+                // CRITICAL: Restore colors after conversion
+                flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
+                
                 updateMetadataInputs();
                 renderFlowTable();
                 updateAllStats();
@@ -994,136 +1059,23 @@
                     toggleRealTimeMode();
                 }
                 
-                console.log('✅ Flow Builder initialized with live data');
+                console.log('✅ Flow Builder initialized with live data and preserved colors');
             } else {
                 console.log('⚠️ No data found - Flow Builder ready for manual input');
             }
         }
 
-        function convertSankeyDataToFlows(sankeyData) {
-            const flows = [];
-            
-            sankeyData.links.forEach((link, index) => {
-                const sourceNode = sankeyData.nodes.find(n => n.id === link.source);
-                const targetNode = sankeyData.nodes.find(n => n.id === link.target);
-                
-                if (sourceNode && targetNode) {
-                    flows.push(new BusinessFlow({
-                        source: link.source,
-                        target: link.target,
-                        value: link.value,
-                        previousValue: link.previousValue || 0,
-                        flowType: link.type || 'revenue_flow',
-                        sourceLayer: sourceNode.depth,
-                        targetLayer: targetNode.depth,
-                        sourceCategory: sourceNode.category,
-                        targetCategory: targetNode.category,
-                        description: link.description || targetNode.description || ''
-                    }));
-                }
-            });
-            
-            return {
-                metadata: {
-                    title: sankeyData.metadata?.title || "Financial Flow",
-                    subtitle: sankeyData.metadata?.subtitle || "Live Chart Data",
-                    currency: sankeyData.metadata?.currency || "USD",
-                    unit: sankeyData.metadata?.unit || "millions",
-                    company: sankeyData.metadata?.company || "Your Company",
-                    period: sankeyData.metadata?.period || "Current Period"
-                },
-                flows: flows
-            };
-        }
-
-        function generateNodesAndLinksFromFlows() {
-            const nodeMap = new Map();
-            const links = [];
-            
-            flowData.flows.forEach(flow => {
-                if (!nodeMap.has(flow.source)) {
-                    nodeMap.set(flow.source, {
-                        id: flow.source,
-                        depth: flow.sourceLayer,
-                        value: 0,
-                        previousValue: 0,
-                        category: flow.sourceCategory,
-                        description: `Source: ${flow.description}`,
-                        sort_order: flow.sourceOrder || 1
-                    });
-                }
-                
-                if (!nodeMap.has(flow.target)) {
-                    nodeMap.set(flow.target, {
-                        id: flow.target,
-                        depth: flow.targetLayer,
-                        value: 0,
-                        previousValue: 0,
-                        category: flow.targetCategory,
-                        description: `Target: ${flow.description}`,
-                        sort_order: flow.targetOrder || 1
-                    });
-                }
-                
-                const targetNode = nodeMap.get(flow.target);
-                targetNode.value += flow.value;
-                targetNode.previousValue += (flow.previousValue || 0);
-                
-                links.push({
-                    source: flow.source,
-                    target: flow.target,
-                    value: flow.value,
-                    previousValue: flow.previousValue || 0,
-                    type: flow.flowType,
-                    description: flow.description,
-                    colorCategory: flow.targetCategory
-                });
-            });
-            
-            flowData.flows.forEach(flow => {
-                const sourceNode = nodeMap.get(flow.source);
-                if (sourceNode.value === 0) {
-                    const outflows = flowData.flows.filter(f => f.source === flow.source);
-                    sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
-                    sourceNode.previousValue = outflows.reduce((sum, f) => sum + (f.previousValue || 0), 0);
-                }
-            });
-            
-            // Calculate variance for nodes if comparison mode is enabled
-            const nodes = Array.from(nodeMap.values());
-            const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
-            
-            if (comparisonMode) {
-                nodes.forEach(node => {
-                    if (node.previousValue === 0) {
-                        node.variance = node.value > 0 ? { amount: node.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
-                    } else {
-                        const amount = node.value - node.previousValue;
-                        const percentage = (amount / Math.abs(node.previousValue)) * 100;
-                        let trend = 'none';
-                        
-                        if (percentage > 0.1) trend = 'up';
-                        else if (percentage < -0.1) trend = 'down';
-                        
-                        node.variance = { amount, percentage, trend };
-                    }
-                });
-            }
-            
-            return {
-                metadata: {
-                    ...flowData.metadata,
-                    comparisonMode: comparisonMode
-                },
-                nodes: nodes,
-                links: links
-            };
-        }
-
         function loadCurrentChartData() {
             const data = window.PulseDataBridge.getData();
             if (data) {
+                // CRITICAL: Preserve existing colors
+                const existingColors = { ...flowData.metadata.colorPalette };
+                
                 flowData = convertSankeyDataToFlows(data);
+                
+                // CRITICAL: Restore colors
+                flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
+                
                 updateMetadataInputs();
                 renderFlowTable();
                 updateAllStats();
@@ -1135,9 +1087,15 @@
         }
 
         function loadCompleteTemplate() {
+            // CRITICAL: Preserve existing colors
+            const existingColors = { ...flowData.metadata.colorPalette };
+            
             flowData.metadata.company = "TechFlow Corporation";
             flowData.metadata.title = "TechFlow Financial Flow";
             flowData.metadata.subtitle = "Multi-Layer Business Model";
+            
+            // CRITICAL: Restore colors
+            flowData.metadata.colorPalette = existingColors;
             
             flowData.flows = [
                 new BusinessFlow({
@@ -1294,6 +1252,9 @@
 
         function loadBlankFlows() {
             if (confirm('This will clear all current flows. Continue?')) {
+                // CRITICAL: Preserve existing colors
+                const existingColors = { ...flowData.metadata.colorPalette };
+                
                 flowData.flows = [
                     new BusinessFlow({
                         source: "Revenue Source",
@@ -1303,6 +1264,9 @@
                         description: "Start building your flow here"
                     })
                 ];
+                
+                // CRITICAL: Restore colors
+                flowData.metadata.colorPalette = existingColors;
                 
                 renderFlowTable();
                 updateAllStats();
@@ -1647,45 +1611,6 @@
             document.getElementById('csv-file-input').click();
         }
 
-        function convertSankeyDataToFlows(sankeyData) {
-            const flows = [];
-            
-            sankeyData.links.forEach((link, index) => {
-                const sourceNode = sankeyData.nodes.find(n => n.id === link.source);
-                const targetNode = sankeyData.nodes.find(n => n.id === link.target);
-                
-                if (sourceNode && targetNode) {
-                    flows.push(new BusinessFlow({
-                        source: link.source,
-                        target: link.target,
-                        value: link.value,
-                        previousValue: link.previousValue || 0,
-                        flowType: link.type || 'revenue_flow',
-                        sourceLayer: sourceNode.depth || 0,
-                        targetLayer: targetNode.depth || 1,
-                        sourceCategory: sourceNode.category || 'revenue',
-                        targetCategory: targetNode.category || 'revenue',
-                        description: link.description || targetNode.description || ''
-                    }));
-                }
-            });
-            
-            return {
-                metadata: {
-                    title: sankeyData.metadata?.title || "Imported Financial Flow",
-                    subtitle: sankeyData.metadata?.subtitle || "From imported data",
-                    currency: sankeyData.metadata?.currency || "USD",
-                    unit: sankeyData.metadata?.unit || "millions",
-                    company: sankeyData.metadata?.company || "Your Company",
-                    period: sankeyData.metadata?.period || "Current Period",
-                    statementType: sankeyData.metadata?.statementType || "income",
-                    comparisonMode: sankeyData.metadata?.comparisonMode || false,
-                    colorPalette: sankeyData.metadata?.colorPalette || {}
-                },
-                flows: flows
-            };
-        }
-
         function handleFileImport(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1697,11 +1622,19 @@
                 if (file.name.endsWith('.json')) {
                     try {
                         const data = JSON.parse(content);
+                        
+                        // CRITICAL: Preserve existing colors before import
+                        const existingColors = { ...flowData.metadata.colorPalette };
+                        
                         if (data.flows) {
                             flowData = data;
                         } else if (data.nodes && data.links) {
                             flowData = convertSankeyDataToFlows(data);
                         }
+                        
+                        // CRITICAL: Restore colors after import
+                        flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
+                        
                         renderFlowTable();
                         updateAllStats();
                         debouncedRealTimeUpdate();
@@ -1738,6 +1671,9 @@
                 description: headers.indexOf('description')
             };
             
+            // CRITICAL: Preserve existing colors before import
+            const existingColors = { ...flowData.metadata.colorPalette };
+            
             const flows = [];
             
             for (let i = 1; i < lines.length; i++) {
@@ -1764,6 +1700,9 @@
             
             if (flows.length > 0) {
                 flowData.flows = flows;
+                
+                // CRITICAL: Restore colors after import
+                flowData.metadata.colorPalette = existingColors;
                 
                 // Enable comparison mode if any previous values exist
                 const hasPreviousValues = flows.some(flow => flow.previousValue > 0);
@@ -1801,6 +1740,91 @@
             
             result.push(current.trim());
             return result.map(field => field.replace(/^"|"$/g, ''));
+        }
+
+        // FIXED: Generate nodes and links with proper color preservation
+        function generateNodesAndLinksFromFlows() {
+            const nodeMap = new Map();
+            const links = [];
+            
+            flowData.flows.forEach(flow => {
+                if (!nodeMap.has(flow.source)) {
+                    nodeMap.set(flow.source, {
+                        id: flow.source,
+                        depth: flow.sourceLayer,
+                        value: 0,
+                        previousValue: 0,
+                        category: flow.sourceCategory,
+                        description: `Source: ${flow.description}`,
+                        sort_order: flow.sourceOrder || 1
+                    });
+                }
+                
+                if (!nodeMap.has(flow.target)) {
+                    nodeMap.set(flow.target, {
+                        id: flow.target,
+                        depth: flow.targetLayer,
+                        value: 0,
+                        previousValue: 0,
+                        category: flow.targetCategory,
+                        description: `Target: ${flow.description}`,
+                        sort_order: flow.targetOrder || 1
+                    });
+                }
+                
+                const targetNode = nodeMap.get(flow.target);
+                targetNode.value += flow.value;
+                targetNode.previousValue += (flow.previousValue || 0);
+                
+                links.push({
+                    source: flow.source,
+                    target: flow.target,
+                    value: flow.value,
+                    previousValue: flow.previousValue || 0,
+                    type: flow.flowType,
+                    description: flow.description,
+                    colorCategory: flow.targetCategory
+                });
+            });
+            
+            flowData.flows.forEach(flow => {
+                const sourceNode = nodeMap.get(flow.source);
+                if (sourceNode.value === 0) {
+                    const outflows = flowData.flows.filter(f => f.source === flow.source);
+                    sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
+                    sourceNode.previousValue = outflows.reduce((sum, f) => sum + (f.previousValue || 0), 0);
+                }
+            });
+            
+            // Calculate variance for nodes if comparison mode is enabled
+            const nodes = Array.from(nodeMap.values());
+            const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+            
+            if (comparisonMode) {
+                nodes.forEach(node => {
+                    if (node.previousValue === 0) {
+                        node.variance = node.value > 0 ? { amount: node.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+                    } else {
+                        const amount = node.value - node.previousValue;
+                        const percentage = (amount / Math.abs(node.previousValue)) * 100;
+                        let trend = 'none';
+                        
+                        if (percentage > 0.1) trend = 'up';
+                        else if (percentage < -0.1) trend = 'down';
+                        
+                        node.variance = { amount, percentage, trend };
+                    }
+                });
+            }
+            
+            return {
+                metadata: {
+                    ...flowData.metadata, // CRITICAL: This preserves the colorPalette
+                    comparisonMode: comparisonMode
+                },
+                nodes: nodes,
+                links: links
+            };
         }
 
         // Setup file import handler
