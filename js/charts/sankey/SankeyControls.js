@@ -37,17 +37,6 @@ class SankeyControlModule {
                         step: 5, 
                         unit: "px", 
                         description: "Foundational vertical spacing between nodes" 
-                    },
-                    { 
-                        id: "middleSpacing", 
-                        type: "slider", 
-                        label: "Middle Layers Spacing", 
-                        min: 0.5, 
-                        max: 1.5, 
-                        default: 0.5, 
-                        step: 0.1, 
-                        unit: "×", 
-                        description: "Spacing multiplier for middle layers" 
                     }
                 ]
             },
@@ -210,6 +199,10 @@ class SankeyControlModule {
         }
 
         this.chart = chart;
+        // Ensure the chart has detected its statement type
+        if (chart.detectStatementType) {
+            chart.detectStatementType(chart.data);
+        }
         this.statementType = chart.statementType || 'income';
         
         const detectedCategories = this.analyzeDataCategories(chart.data);
@@ -286,48 +279,19 @@ class SankeyControlModule {
      * Detect balance sheet color groups based on node names (matches chart logic)
      */
     detectBalanceSheetGroups(data) {
-        const groups = new Set();
+        // For balance sheets, always provide all standard groups for color controls
+        // This ensures users can customize any balance sheet group color
+        const standardGroups = [
+            'Total Assets',
+            'Current Assets', 
+            'Non-Current Assets',
+            'Current Liabilities',
+            'Non-Current Liabilities', 
+            'Shareholders Equity'
+        ];
         
-        if (!data.nodes) return [];
-        
-        // These match the exact group names used in SankeyChart.js
-        const groupPatterns = {
-            'Current Assets': ['current assets'],
-            'Non-Current Assets': ['non-current assets', 'noncurrent assets'],
-            'Current Liabilities': ['current liabilities'],
-            'Non-Current Liabilities': ['non-current liabilities', 'noncurrent liabilities', 'long-term debt'],
-            'Shareholders Equity': ['shareholders equity', 'stockholders equity', 'shareholders\' equity', 'equity'],
-            'Total Assets': ['total assets']
-        };
-        
-        data.nodes.forEach(node => {
-            const nodeName = node.id.toLowerCase();
-            
-            Object.entries(groupPatterns).forEach(([groupName, patterns]) => {
-                if (patterns.some(pattern => nodeName.includes(pattern))) {
-                    groups.add(groupName);
-                }
-            });
-            
-            // Also detect by keywords for child nodes
-            if (nodeName.includes('cash') || nodeName.includes('receivable') || nodeName.includes('inventory')) {
-                groups.add('Current Assets');
-            }
-            if (nodeName.includes('property') || nodeName.includes('equipment') || nodeName.includes('intangible')) {
-                groups.add('Non-Current Assets');
-            }
-            if (nodeName.includes('payable') || nodeName.includes('accrued')) {
-                groups.add('Current Liabilities');
-            }
-            if (nodeName.includes('bonds') || nodeName.includes('notes')) {
-                groups.add('Non-Current Liabilities');
-            }
-            if (nodeName.includes('stock') || nodeName.includes('retained') || nodeName.includes('capital')) {
-                groups.add('Shareholders Equity');
-            }
-        });
-        
-        return Array.from(groups);
+        console.log('🎨 Providing standard balance sheet groups for color controls:', standardGroups);
+        return standardGroups;
     }
 
     /**
@@ -584,8 +548,7 @@ class SankeyControlModule {
             chart.chart.selectAll('.sankey-node rect')
                 .transition()
                 .duration(150)
-                .attr('fill-opacity', d => chart.getNodeOpacity(d))
-                .attr('opacity', d => chart.getNodeOpacity(d));
+                .attr('fill-opacity', d => chart.getNodeOpacity ? chart.getNodeOpacity(d) : value);
             return;
         }
 
@@ -594,8 +557,7 @@ class SankeyControlModule {
             chart.chart.selectAll('.sankey-link path')
                 .transition()
                 .duration(150)
-                .attr('fill-opacity', value)
-                .attr('opacity', value);
+                .attr('fill-opacity', d => chart.getLinkOpacity ? chart.getLinkOpacity(d) : value);
             return;
         }
 

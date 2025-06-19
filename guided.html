@@ -7,6 +7,13 @@
     
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
+    
+    <!-- D3.js Library -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+    
+    <!-- Sankey Chart Component -->
+    <script src="js/charts/sankey/SankeyChart.js"></script>
 </head>
 <body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
     <!-- Step Progress Indicator -->
@@ -197,61 +204,8 @@
 
         // Generate nodes and links from flows (reused from template)
         function generateNodesAndLinksFromFlows(flowData) {
-            const nodeMap = new Map();
-            const links = [];
-            
-            flowData.flows.forEach(flow => {
-                if (!nodeMap.has(flow.source)) {
-                    nodeMap.set(flow.source, {
-                        id: flow.source,
-                        depth: flow.sourceLayer,
-                        value: 0,
-                        category: flow.sourceCategory,
-                        description: `Source: ${flow.description}`,
-                        sort_order: flow.sourceOrder || 1
-                    });
-                }
-                
-                if (!nodeMap.has(flow.target)) {
-                    nodeMap.set(flow.target, {
-                        id: flow.target,
-                        depth: flow.targetLayer,
-                        value: 0,
-                        category: flow.targetCategory,
-                        description: `Target: ${flow.description}`,
-                        sort_order: flow.targetOrder || 1
-                    });
-                }
-                
-                const targetNode = nodeMap.get(flow.target);
-                targetNode.value += flow.value;
-                
-                links.push({
-                    source: flow.source,
-                    target: flow.target,
-                    value: flow.value,
-                    type: flow.flowType,
-                    description: flow.description,
-                    colorCategory: flow.targetCategory
-                });
-            });
-            
-            // Calculate source node values
-            flowData.flows.forEach(flow => {
-                const sourceNode = nodeMap.get(flow.source);
-                if (sourceNode.value === 0) {
-                    const outflows = flowData.flows.filter(f => f.source === flow.source);
-                    sourceNode.value = outflows.reduce((sum, f) => sum + f.value, 0);
-                }
-            });
-            
-            return {
-                metadata: {
-                    ...flowData.metadata
-                },
-                nodes: Array.from(nodeMap.values()),
-                links: links
-            };
+            // Use the static method from SankeyChart for data processing
+            return PulseSankeyChart.generateNodesAndLinksFromFlows(flowData, false);
         }
 
         // Step Management
@@ -571,7 +525,6 @@
             return {
                 metadata: {
                     title: "Uploaded Financial Flow",
-                    subtitle: "Data from CSV upload",
                     currency: "USD",
                     unit: "millions",
                     company: "Your Company",

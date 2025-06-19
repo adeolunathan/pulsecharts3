@@ -339,26 +339,36 @@ window.ExportUtils = (function() {
 
     // Add embedded CSS styles to SVG for standalone viewing
     function addEmbeddedStyles(svgElement) {
-        const styles = `
-            <style>
-                .pulse-sankey-chart {
-                    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-                }
-                .sankey-link path {
-                    transition: all 0.2s ease;
-                }
-                .sankey-node rect {
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .node-label-group text {
-                    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-                }
-            </style>
-        `;
-        
-        const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        styleElement.innerHTML = styles;
-        svgElement.insertBefore(styleElement, svgElement.firstChild);
+        // Load styles from the main CSS file for embedded SVG exports
+        const link = document.querySelector('link[href*="pulse-analytics.css"]');
+        if (link) {
+            // For standalone SVG, we still need some basic styles
+            const styles = `
+                <style>
+                    .pulse-sankey-chart {
+                        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+                    }
+                    .sankey-link path {
+                        transition: all 0.2s ease;
+                    }
+                    .sankey-node rect {
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    .node-label-group text {
+                        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+                    }
+                    .chart-svg {
+                        max-width: 100%;
+                        display: block;
+                        margin: 0 auto;
+                    }
+                </style>
+            `;
+            
+            const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            styleElement.innerHTML = styles;
+            svgElement.insertBefore(styleElement, svgElement.firstChild);
+        }
     }
 
     // Utility: Download blob as file

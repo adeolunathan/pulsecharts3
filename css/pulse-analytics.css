@@ -2421,3 +2421,548 @@ body {
         border-width: 2px;
     }
 }
+
+/* ===== ADDITIONAL EXTRACTED STYLES FROM HTML FILES ===== */
+
+/* Realtime Controls from chart.html */
+.realtime-controls {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.realtime-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+
+.realtime-indicator.live {
+    background-color: #ef4444;
+}
+
+.realtime-indicator.manual {
+    background-color: #6b7280;
+    animation: none;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Flow Builder specific styles from chart.html */
+.flow-builder-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f8f9fa;
+}
+
+/* Action Bar from templates.html */
+.action-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.action-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.action-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.action-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+}
+
+.action-btn.primary {
+    background: #f59e0b;
+    border-color: #f59e0b;
+}
+
+.action-btn.primary:hover {
+    background: #d97706;
+    border-color: #d97706;
+}
+
+/* Template Container from templates.html */
+.template-container {
+    max-width: 1800px;
+    margin: 0 auto;
+    background: white;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.template-main {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Statement Type Selector from templates.html */
+.statement-type-selector {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.statement-tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.statement-tab {
+    flex: 1;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.statement-tab:hover {
+    background: #e9ecef;
+    color: #374151;
+}
+
+.statement-tab.active {
+    background: white;
+    color: #667eea;
+    border-bottom-color: #667eea;
+    font-weight: 600;
+}
+
+.statement-info {
+    padding: 16px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e1e5e9;
+}
+
+.statement-description {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* Comparison Mode Toggle from templates.html */
+.comparison-toggle {
+    background: #e7f3ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comparison-toggle-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.comparison-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.comparison-label {
+    font-weight: 600;
+    color: #0369a1;
+    font-size: 14px;
+}
+
+.comparison-description {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Variance Indicator from templates.html */
+.variance-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.variance-indicator.positive {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.variance-indicator.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.variance-indicator.neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.variance-indicator.new {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* Period Section from templates.html */
+.period-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.period-header {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.period-description {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+
+/* SVG Chart Embedded Styles (from ExportUtils.js) */
+.pulse-sankey-chart {
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+.sankey-link path {
+    transition: all 0.2s ease;
+}
+
+.sankey-node rect {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.node-label-group text {
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+/* Pulse Sankey Tooltip Styles (from SankeyChart.js) */
+.pulse-sankey-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Chart SVG Container Styles (from SankeyChart.js) */
+.chart-svg {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+}
+
+/* ===== ADDITIONAL UTILITY CLASSES FOR INLINE STYLES ===== */
+
+/* Common form labels */
+.form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+/* Header controls styling */
+.header-label {
+    color: white;
+    margin-right: 8px;
+}
+
+/* Grid layouts */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+/* Flex layouts */
+.flex-center {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.flex-center-v {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* Text colors */
+.text-muted {
+    color: #6b7280;
+}
+
+.text-blue {
+    color: #0369a1;
+}
+
+.text-dark {
+    color: #1f2937;
+}
+
+/* Status indicators */
+.status-live {
+    background: #e7f3ff;
+    color: #0369a1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.status-dynamic {
+    background: #e7f3ff;
+    color: #0369a1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+/* Table column widths */
+.col-actions { width: 50px; }
+.col-actions-wide { width: 80px; }
+.col-source { width: 180px; }
+.col-source-wide { width: 200px; }
+.col-target { width: 180px; }
+.col-target-wide { width: 200px; }
+.col-value { width: 80px; }
+.col-value-wide { width: 100px; }
+.col-layer { width: 70px; }
+.col-layer-wide { width: 90px; }
+.col-type { width: 100px; }
+.col-type-wide { width: 140px; }
+.col-category { width: 90px; }
+.col-category-wide { width: 140px; }
+.col-description { width: 200px; }
+.col-description-wide { width: 300px; }
+.col-check { width: 50px; }
+.col-check-wide { width: 60px; }
+
+/* Overflow containers */
+.overflow-x {
+    overflow-x: auto;
+}
+
+.overflow-y {
+    overflow-y: auto;
+}
+
+/* Preview styles */
+.preview-container {
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.preview-header {
+    background: #f8f9fa;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.preview-title {
+    margin: 0;
+    color: #1f2937;
+    font-size: 16px;
+}
+
+.preview-content {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.preview-actions {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e1e5e9;
+    display: flex;
+    gap: 12px;
+    justify-content: end;
+}
+
+/* Summary boxes */
+.summary-box {
+    background: #f0f9ff;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.summary-title {
+    font-weight: 600;
+    color: #0369a1;
+    margin-bottom: 8px;
+}
+
+.summary-content {
+    font-size: 13px;
+    color: #374151;
+}
+
+/* Table layouts for preview */
+.preview-table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: collapse;
+}
+
+.preview-table thead {
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+}
+
+.preview-table th {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.preview-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+/* Center content containers */
+.center-content {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.center-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.large-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+}
+
+/* Hidden file inputs */
+.hidden-input {
+    display: none;
+}
+
+/* Body backgrounds */
+.bg-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.bg-light {
+    background: #f8f9fa;
+}
+
+/* Border separators */
+.border-top {
+    border-top: 1px solid #0ea5e9;
+    padding-top: 12px;
+}
+
+.border-top-light {
+    border-top: 1px solid #e1e5e9;
+    margin-top: 16px;
+    padding-top: 16px;
+}
+
+/* Special spacing */
+.mt-8 { margin-top: 8px; }
+.mb-8 { margin-bottom: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+.mt-20 { margin-top: 20px; }
+.mb-20 { margin-bottom: 20px; }
+
+/* Text sizes */
+.text-xs { font-size: 11px; }
+.text-sm { font-size: 12px; }
+.text-base { font-size: 13px; }
+.text-lg { font-size: 16px; }
+
+/* Font weights */
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+
+/* Text alignment */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
