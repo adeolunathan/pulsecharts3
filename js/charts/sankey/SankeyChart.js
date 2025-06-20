@@ -16,7 +16,7 @@ class PulseSankeyChart {
         this.customColors = {};
         
         // Statement type and flow properties
-        this.statementType = 'income'; // 'income', 'balance', or 'revenue_flow'
+        this.statementType = 'profit'; // 'profit', 'balance', or 'revenue_flow'
         this.colorGroups = new Map(); // For balance sheet hierarchy
         this.revenueFlowGroups = new Map(); // For revenue flow categorization
         
@@ -205,7 +205,7 @@ class PulseSankeyChart {
                 console.log('🎨 Applied default balance sheet colors:', this.customColors);
             } else {
                 // Income statement defaults (if needed)
-                console.log('🎨 Using default income statement color scheme');
+                console.log('🎨 Using default profit statement color scheme');
             }
         }
     }
@@ -296,7 +296,7 @@ class PulseSankeyChart {
                 } else if (node.id.toLowerCase().includes('operating')) {
                     node.marginType = 'Operating Margin';
                     node.marginValue = node.percentageOfRevenue;
-                } else if (node.id.toLowerCase().includes('net') || node.category === 'income') {
+                } else if (node.id.toLowerCase().includes('net') || node.category === 'profit') {
                     node.marginType = 'Net Margin';
                     node.marginValue = node.percentageOfRevenue;
                 }
@@ -735,7 +735,6 @@ class PulseSankeyChart {
             'aggregated_revenue',   
             'gross_metrics',        
             'operating_metrics',    
-            'final_results',        
             'operating_expenses',   
             'final_adjustments',    
             'default'               
@@ -815,19 +814,16 @@ class PulseSankeyChart {
 
     getCategoryPriority(categoryA, categoryB, groupName) {
         const categoryPriorities = {
-            'income': 1,
-            'profit': 2,
-            'revenue': 3,
-            'cost': 4,
+            'revenue_segments': 1,
+            'revenue_hub': 2,
+            'profit': 3,
+            'cost_flows': 4,
             'expense': 5,
             'tax': 6,
             'other': 7
         };
         
-        if (groupName === 'final_results') {
-            if (categoryA === 'income' && categoryB !== 'income') return -1;
-            if (categoryB === 'income' && categoryA !== 'income') return 1;
-        }
+        // Removed final_results group - moved to profit flows
         
         if (groupName === 'final_adjustments') {
             if (categoryA === 'tax' && categoryB !== 'tax') return -1;
@@ -1562,11 +1558,11 @@ class PulseSankeyChart {
         } else if (this.statementType === 'revenue_flow') {
             return this.getLinkColor_RevenueFlow(link);
         } else {
-            return this.getLinkColor_Income(link);
+            return this.getLinkColor_Profit(link);
         }
     }
 
-    getLinkColor_Income(link) {
+    getLinkColor_Profit(link) {
         const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
         
         let effectiveCategory = targetCategory;
@@ -1578,21 +1574,46 @@ class PulseSankeyChart {
         return this.lightenColor(targetColor, 15);
     }
 
+    /**
+     * Get the actual color that would be rendered for a node
+     * This matches the logic used in node rendering
+     */
+    getActualNodeColor(node) {
+        if (this.statementType === 'balance') {
+            return this.getHierarchicalColor(node.id);
+        } else {
+            return this.getNodeColor(node);
+        }
+    }
+
     getLinkColor_RevenueFlow(link) {
-        // CRITICAL: Links must inherit SOURCE node color to maintain visual flow narrative
-        const sourceFlowGroup = this.revenueFlowGroups.get(link.source.id);
+        const sourceCategory = link.source.category;
         
-        if (sourceFlowGroup) {
-            // Use source color with slight transparency to show flow
-            console.log(`🔗 Link ${link.source.id} → ${link.target.id} using source color: ${sourceFlowGroup.baseColor}`);
-            return this.lightenColor(sourceFlowGroup.baseColor, 15);
+        // Every link must take the color of its source node
+        // Revenue segment links → Source segment color
+        // Profit progression links → Source profit node color  
+        // Expense links → Source expense node color
+        if (sourceCategory === 'revenue_segments' || sourceCategory === 'profit' || 
+            sourceCategory === 'cost_flows' || sourceCategory === 'expense') {
+            const sourceColor = this.getActualNodeColor(link.source);
+            if (sourceColor && sourceColor !== '#95a5a6') {
+                console.log(`🔗 ${sourceCategory} link ${link.source.id} → ${link.target.id} using source color: ${sourceColor}`);
+                return this.lightenColor(sourceColor, 15);
+            }
         }
         
-        // Fallback: if source color not available, try target
+        // Links after the revenue point → Target node color (only for specific flow cases)
         const targetFlowGroup = this.revenueFlowGroups.get(link.target.id);
         if (targetFlowGroup) {
-            console.log(`🔗 Link ${link.source.id} → ${link.target.id} fallback to target color: ${targetFlowGroup.baseColor}`);
+            console.log(`🔗 Post-revenue link ${link.source.id} → ${link.target.id} using target color: ${targetFlowGroup.baseColor}`);
             return this.lightenColor(targetFlowGroup.baseColor, 25);
+        }
+        
+        // Fallback: use source node color
+        const sourceColor = this.getActualNodeColor(link.source);
+        if (sourceColor && sourceColor !== '#95a5a6') {
+            console.log(`🔗 Link ${link.source.id} → ${link.target.id} fallback to source color: ${sourceColor}`);
+            return this.lightenColor(sourceColor, 15);
         }
         
         console.warn(`⚠️ No color found for link ${link.source.id} → ${link.target.id}`);
@@ -1647,11 +1668,11 @@ class PulseSankeyChart {
         }
         
         const defaultColors = {
-            revenue: '#3498db',
-            cost: '#e74c3c',
+            revenue_segments: '#3498db',
+            revenue_hub: '#2C3E50',
             profit: '#27ae60',
+            cost_flows: '#e74c3c',
             expense: '#e67e22',
-            income: '#9b59b6',
             tax: '#e67e22'
         };
         
@@ -2041,15 +2062,15 @@ categorizeRevenueFlowNode(node, revenueHub) {
     if (this.isRightOfHub(node, revenueHub)) {
         // Classify based on category or keywords
         if (this.isIncomeNode(node)) {
-            return 'income';
+            return 'profit';
         } else if (this.isCostNode(node)) {
             return 'cost';
         } else {
             // Default classification based on common patterns
             const nodeName = node.id.toLowerCase();
             if (nodeName.includes('profit') || nodeName.includes('retained') || 
-                nodeName.includes('income') || nodeName.includes('earnings')) {
-                return 'income';
+                nodeName.includes('profit') || nodeName.includes('earnings')) {
+                return 'profit';
             } else {
                 return 'cost'; // Default to cost for right-side nodes
             }
@@ -2101,18 +2122,18 @@ isDownstreamFromHub(node, hub, visited = new Set()) {
 }
 
 /**
- * Check if node should be classified as income
+ * Check if node should be classified as profit
  */
 isIncomeNode(node) {
-    if (node.category === 'income' || node.category === 'profit') return true;
+    if (node.category === 'profit') return true;
     
     const nodeName = node.id.toLowerCase();
-    const incomeKeywords = [
-        'profit', 'income', 'earnings', 'retained', 'surplus', 
-        'net income', 'operating income', 'dividend'
+    const profitKeywords = [
+        'profit', 'earnings', 'retained', 'surplus', 
+        'net profit', 'operating profit', 'dividend'
     ];
     
-    return incomeKeywords.some(keyword => nodeName.includes(keyword));
+    return profitKeywords.some(keyword => nodeName.includes(keyword));
 }
 
 /**
@@ -2150,9 +2171,9 @@ getRevenueFlowColor(node, category) {
                 intensity: 1.0
             };
             
-        case 'income':
+        case 'profit':
             return {
-                color: this.generateIncomeColor(node),
+                color: this.generateProfitColor(node),
                 intensity: this.calculateColorIntensity(node)
             };
             
@@ -2219,16 +2240,16 @@ generateRevenueSegmentColor(node) {
 }
 
 /**
- * Generate green family color for income nodes
+ * Generate green family color for profit nodes
  */
-generateIncomeColor(node) {
-    // Specific green shades for income/profit nodes
-    const specificIncomeColors = {
+generateProfitColor(node) {
+    // Specific green shades for profit nodes
+    const specificProfitColors = {
         'gross profit': '#A3E4D7',      // Light Green
         'operating profit': '#48C9B0',   // Medium Green  
-        'net income': '#16A085',         // Dark Green
+        'net profit': '#16A085',         // Dark Green
         'ebitda': '#76D7C4',            // Medium Light Green
-        'income': '#2ECC71',            // Standard Green
+        'profit': '#2ECC71',            // Standard Green
         'profit': '#27AE60',            // Darker Green
         'earnings': '#58D68D',          // Light Medium Green
         'retained': '#1ABC9C',          // Teal Green
@@ -2237,10 +2258,10 @@ generateIncomeColor(node) {
     
     const nodeLower = node.id.toLowerCase();
     
-    // Check for specific income/profit matches
-    for (const [keyword, color] of Object.entries(specificIncomeColors)) {
+    // Check for specific profit matches
+    for (const [keyword, color] of Object.entries(specificProfitColors)) {
         if (nodeLower.includes(keyword)) {
-            console.log(`💚 Income node ${node.id} matched "${keyword}" → ${color}`);
+            console.log(`💚 Profit node ${node.id} matched "${keyword}" → ${color}`);
             return color;
         }
     }
@@ -2393,8 +2414,8 @@ getHierarchicalColor(nodeId) {
  * Get hierarchical opacity with balance sheet specific rules
  */
 getHierarchicalOpacity(nodeId) {
-    if (this.statementType === 'income') {
-        return 1.0; // Income statements use uniform opacity
+    if (this.statementType === 'profit') {
+        return 1.0; // Profit statements use uniform opacity
     }
     
     const colorGroup = this.colorGroups.get(nodeId);
