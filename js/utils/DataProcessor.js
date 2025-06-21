@@ -250,7 +250,6 @@ window.DataProcessor = (function() {
         
         const defaultColors = {
             revenue: '#4A90E2',   // Blue
-            cost: '#E74C3C',      // Red  
             profit: '#27AE60',    // Green
             expense: '#E67E22',   // Orange
             income: '#F39C12',    // Gold

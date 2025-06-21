@@ -810,11 +810,11 @@
                     target: "Cost of Revenue",
                     value: 55,
                     previousValue: 50,
-                    flowType: "cost_flow",
+                    flowType: "expense_flow",
                     sourceLayer: 1,
                     targetLayer: 2,
                     sourceCategory: "revenue",
-                    targetCategory: "cost",
+                    targetCategory: "expense",
                     description: "Direct costs to deliver services"
                 }),
                 new BusinessFlow({
@@ -851,7 +851,7 @@
                     targetLayer: 4,
                     sourceCategory: "expense",
                     targetCategory: "expense",
-                    description: "Customer acquisition costs"
+                    description: "Customer acquisition expenses"
                 }),
                 new BusinessFlow({
                     source: "Operating Expenses",
@@ -882,11 +882,11 @@
                     target: "Net Income",
                     value: 50,
                     previousValue: 42,
-                    flowType: "final_flow",
+                    flowType: "profit",
                     sourceLayer: 3,
                     targetLayer: 4,
                     sourceCategory: "profit",
-                    targetCategory: "income",
+                    targetCategory: "profit",
                     description: "Final net income"
                 }),
                 new BusinessFlow({
@@ -1031,16 +1031,16 @@
                 <td>
                     <select class="flow-select" onchange="updateFlow(${index}, 'flowType', this.value)">
                         <option value="revenue_flow" ${flow.flowType === 'revenue_flow' ? 'selected' : ''}>Revenue</option>
-                        <option value="cost_flow" ${flow.flowType === 'cost_flow' ? 'selected' : ''}>Cost</option>
+                        <option value="expense_flow" ${flow.flowType === 'expense_flow' ? 'selected' : ''}>expense</option>
                         <option value="profit_flow" ${flow.flowType === 'profit_flow' ? 'selected' : ''}>Profit</option>
                         <option value="expense_flow" ${flow.flowType === 'expense_flow' ? 'selected' : ''}>Expense</option>
-                        <option value="final_flow" ${flow.flowType === 'final_flow' ? 'selected' : ''}>Final</option>
+                        <option value="profit_flow" ${flow.flowType === 'profit_flow' ? 'selected' : ''}>profit</option>
                     </select>
                 </td>
                 <td>
                     <select class="flow-select" onchange="updateFlow(${index}, 'sourceCategory', this.value)">
                         <option value="revenue" ${flow.sourceCategory === 'revenue' ? 'selected' : ''}>Revenue</option>
-                        <option value="cost" ${flow.sourceCategory === 'cost' ? 'selected' : ''}>Cost</option>
+                        <option value="expense" ${flow.sourceCategory === 'expense' ? 'selected' : ''}>expense</option>
                         <option value="profit" ${flow.sourceCategory === 'profit' ? 'selected' : ''}>Profit</option>
                         <option value="expense" ${flow.sourceCategory === 'expense' ? 'selected' : ''}>Expense</option>
                         <option value="income" ${flow.sourceCategory === 'income' ? 'selected' : ''}>Income</option>
@@ -1049,7 +1049,7 @@
                 <td>
                     <select class="flow-select" onchange="updateFlow(${index}, 'targetCategory', this.value)">
                         <option value="revenue" ${flow.targetCategory === 'revenue' ? 'selected' : ''}>Revenue</option>
-                        <option value="cost" ${flow.targetCategory === 'cost' ? 'selected' : ''}>Cost</option>
+                        <option value="expense" ${flow.targetCategory === 'expense' ? 'selected' : ''}>expense</option>
                         <option value="profit" ${flow.targetCategory === 'profit' ? 'selected' : ''}>Profit</option>
                         <option value="expense" ${flow.targetCategory === 'expense' ? 'selected' : ''}>Expense</option>
                         <option value="income" ${flow.targetCategory === 'income' ? 'selected' : ''}>Income</option>

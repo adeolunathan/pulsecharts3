@@ -392,11 +392,8 @@
                         source: source,
                         colorPalette: data.metadata?.colorPalette || {
                             revenue: "#3498db",
-                            cost: "#e74c3c", 
                             profit: "#27ae60",
-                            expense: "#e67e22",
-                            income: "#9b59b6",
-                            tax: "#e67e22"
+                            expense: "#e67e22"
                         }
                     },
                     flows: data.flows.map(flow => new BusinessFlow(flow))
@@ -433,11 +430,8 @@
                         source: source,
                         colorPalette: data.metadata?.colorPalette || {
                             revenue: "#3498db",
-                            cost: "#e74c3c",
                             profit: "#27ae60", 
                             expense: "#e67e22",
-                            income: "#9b59b6",
-                            tax: "#e67e22"
                         }
                     },
                     flows: flows
@@ -533,11 +527,8 @@
                     parsedRows: flows.length,
                     colorPalette: {
                         revenue: "#3498db",
-                        cost: "#e74c3c",
                         profit: "#27ae60",
                         expense: "#e67e22",
-                        income: "#9b59b6",
-                        tax: "#e67e22"
                     }
                 },
                 flows: flows

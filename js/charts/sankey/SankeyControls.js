@@ -255,7 +255,7 @@ class SankeyControlModule {
             }
 
             // Add standard income statement categories
-            const incomeCategories = ['revenue', 'cost', 'profit', 'expense', 'income', 'tax'];
+            const incomeCategories = ['revenue', 'profit', 'expense'];
             incomeCategories.forEach(cat => {
                 if (this.hasNodesWithCategory(data, cat)) {
                     categories.add(cat);
@@ -268,7 +268,7 @@ class SankeyControlModule {
             if (this.statementType === 'balance') {
                 return ['Current Assets', 'Non-Current Assets', 'Current Liabilities', 'Non-Current Liabilities', 'Shareholders Equity', 'Total Assets'];
             } else {
-                return ['revenue', 'cost', 'profit', 'expense', 'income'];
+                return ['revenue', 'profit', 'expense'];
             }
         }
         
@@ -393,7 +393,7 @@ class SankeyControlModule {
             ];
             return this.sortByCustomOrder(categoryArrays, balanceOrder);
         } else {
-            const incomeOrder = ['revenue', 'cost', 'profit', 'expense', 'income', 'tax'];
+            const incomeOrder = ['revenue', 'profit', 'expense'];
             return this.sortByCustomOrder(categoryArrays, incomeOrder);
         }
     }
@@ -457,11 +457,8 @@ class SankeyControlModule {
             // Income statement colors (default)
             const incomeColors = {
                 revenue: '#3498db',
-                cost: '#e74c3c',
                 profit: '#27ae60',
                 expense: '#e67e22',
-                income: '#9b59b6',
-                tax: '#e67e22',
                 default: '#95a5a6'
             };
             return incomeColors[category] || incomeColors.default;
@@ -496,11 +493,8 @@ class SankeyControlModule {
             
             // Income statement descriptions
             revenue: 'Revenue and income flows',
-            cost: 'Cost and expense flows',
             profit: 'Profit and margin nodes',
-            expense: 'Operating expenses',
-            income: 'Net income and final results',
-            tax: 'Tax expenses and obligations'
+            expense: 'Operating expenses'
         };
         
         return descriptions[category] || `${category} related items`;

@@ -305,10 +305,8 @@
                 description: "Shows revenue flows through costs and expenses to arrive at net income. Ideal for understanding profitability and operational efficiency.",
                 colorCategories: {
                     revenue: { label: "Revenue", description: "Revenue nodes and flows", default: "#3498db" },
-                    cost: { label: "Cost", description: "Cost of revenue nodes", default: "#e74c3c" },
                     profit: { label: "Profit", description: "Profit nodes and flows", default: "#27ae60" },
-                    expense: { label: "Expense & Tax", description: "Operating expenses and tax nodes", default: "#e67e22" },
-                    income: { label: "Income", description: "Final income nodes", default: "#9b59b6" }
+                    expense: { label: "Expense", description: "Operating expenses", default: "#e67e22" }
                 }
             },
             balance: {
@@ -535,11 +533,11 @@
                         target: "Cost of Revenue",
                         value: 300,
                         previousValue: 270,
-                        flowType: "cost_flow",
+                        flowType: "expense_flow",
                         sourceLayer: 1,
                         targetLayer: 2,
                         sourceCategory: "revenue",
-                        targetCategory: "cost",
+                        targetCategory: "expense",
                         description: "Direct costs to deliver services"
                     }),
                     new BusinessFlow({
@@ -607,12 +605,12 @@
                         target: "Net Income",
                         value: 300,
                         previousValue: 260,
-                        flowType: "final_flow",
+                        flowType: "profit_flow",
                         sourceLayer: 3,
                         targetLayer: 4,
                         sourceCategory: "profit",
-                        targetCategory: "income",
-                        description: "Final net income"
+                        targetCategory: "profit",
+                        description: "net income"
                     }),
                     new BusinessFlow({
                         source: "Operating Profit",
@@ -780,13 +778,11 @@
         function getFlowTypeOptions(selected) {
             const options = [
                 { value: 'revenue_flow', label: 'Revenue' },
-                { value: 'cost_flow', label: 'Cost' },
                 { value: 'profit_flow', label: 'Profit' },
                 { value: 'expense_flow', label: 'Expense' },
                 { value: 'asset_flow', label: 'Asset' },
                 { value: 'liability_flow', label: 'Liability' },
-                { value: 'equity_flow', label: 'Equity' },
-                { value: 'final_flow', label: 'Final' }
+                { value: 'equity_flow', label: 'Equity' }
             ];
             
             return options.map(opt => 

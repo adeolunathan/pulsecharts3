@@ -12,7 +12,7 @@
     {
       "id": "Subscription Revenue",
       "depth": 0,
-      "value": 300,
+      "value": 3000,
       "category": "revenue",
       "description": "Recurring subscription revenue from software licenses",
       "group": "revenue_sources",
@@ -21,7 +21,7 @@
     {
       "id": "Professional Services",
       "depth": 0,
-      "value": 60,
+      "value": 600,
       "category": "revenue",
       "description": "Implementation and consulting services",
       "group": "revenue_sources",
@@ -30,7 +30,7 @@
     {
       "id": "Platform & Other",
       "depth": 0,
-      "value": 135,
+      "value": 1350,
       "category": "revenue",
       "description": "Platform fees and other revenue streams",
       "group": "revenue_sources",
@@ -39,7 +39,7 @@
     {
       "id": "Total Revenue",
       "depth": 1,
-      "value": 395,
+      "value": 4950,
       "category": "revenue",
       "description": "Total company revenue for the period",
       "group": "aggregated_revenue",
@@ -48,7 +48,7 @@
     {
       "id": "Gross Profit",
       "depth": 2,
-      "value": 340,
+      "value": 3400,
       "category": "profit",
       "description": "Revenue minus direct costs of providing services",
       "group": "gross_metrics",
@@ -57,8 +57,8 @@
     {
       "id": "Cost of Revenue",
       "depth": 2,
-      "value": 55,
-      "category": "cost",
+      "value": 550,
+      "category": "expense",
       "description": "Direct costs associated with delivering services",
       "group": "gross_metrics",
       "sort_order": 2
@@ -66,7 +66,7 @@
     {
       "id": "Operating Profit",
       "depth": 3,
-      "value": 65,
+      "value": 650,
       "category": "profit",
       "description": "Profit from core business operations",
       "group": "operating_metrics",
@@ -75,7 +75,7 @@
     {
       "id": "Operating Expenses",
       "depth": 3,
-      "value": 155,
+      "value": 1550,
       "category": "expense",
       "description": "Total operating expenses excluding COGS",
       "group": "operating_metrics",
@@ -84,8 +84,8 @@
     {
       "id": "Net Income",
       "depth": 4,
-      "value": 50,
-      "category": "income",
+      "value": 500,
+      "category": "profit",
       "description": "Final net income after all adjustments",
       "group": "final_results",
       "sort_order": 1
@@ -93,8 +93,8 @@
     {
       "id": "Tax Expense",
       "depth": 4,
-      "value": 12,
-      "category": "tax",
+      "value": 120,
+      "category": "expense",
       "description": "Income tax expense on operating profit",
       "group": "final_adjustments",
       "sort_order": 1
@@ -102,7 +102,7 @@
     {
       "id": "Other Expense",
       "depth": 4,
-      "value": 3,
+      "value": 30,
       "category": "expense",
       "description": "Other non-operating expenses",
       "group": "final_adjustments",
@@ -111,7 +111,7 @@
     {
       "id": "Sales & Marketing",
       "depth": 4,
-      "value": 85,
+      "value": 850,
       "category": "expense",
       "description": "Customer acquisition and marketing costs",
       "group": "operating_expenses",
@@ -120,16 +120,16 @@
     {
       "id": "R&D",
       "depth": 4,
-      "value": 45,
+      "value": 450,
       "category": "expense",
       "description": "Research and development investments",
       "group": "operating_expenses",
       "sort_order": 2
     },
     {
-      "id": "G&A",
+      "id": "SG&A",
       "depth": 4,
-      "value": 20,
+      "value": 200,
       "category": "expense",
       "description": "General and administrative expenses",
       "group": "operating_expenses",
@@ -138,7 +138,7 @@
     {
       "id": "Restructuring",
       "depth": 4,
-      "value": 5,
+      "value": 50,
       "category": "expense",
       "description": "One-time restructuring costs",
       "group": "operating_expenses",
@@ -149,98 +149,98 @@
     {
       "source": "Subscription Revenue",
       "target": "Total Revenue",
-      "value": 180,
+      "value": 1800,
       "type": "revenue_flow",
       "description": "Subscription revenue contributing to total revenue"
     },
     {
       "source": "Professional Services",
       "target": "Total Revenue",
-      "value": 60,
+      "value": 600,
       "type": "revenue_flow",
       "description": "Services revenue contributing to total revenue"
     },
     {
       "source": "Platform & Other",
       "target": "Total Revenue",
-      "value": 35,
+      "value": 350,
       "type": "revenue_flow",
       "description": "Other revenue contributing to total revenue"
     },
     {
       "source": "Total Revenue",
       "target": "Gross Profit",
-      "value": 220,
+      "value": 2200,
       "type": "profit_flow",
       "description": "Revenue after cost of goods sold"
     },
     {
       "source": "Total Revenue",
       "target": "Cost of Revenue",
-      "value": 55,
+      "value": 550,
       "type": "cost_flow",
       "description": "Direct costs of providing services"
     },
     {
       "source": "Gross Profit",
       "target": "Operating Profit",
-      "value": 65,
+      "value": 650,
       "type": "profit_flow",
       "description": "Operating profit after operating expenses"
     },
     {
       "source": "Gross Profit",
       "target": "Operating Expenses",
-      "value": 155,
+      "value": 1550,
       "type": "expense_flow",
       "description": "Operating expenses reducing gross profit"
     },
     {
       "source": "Operating Profit",
       "target": "Net Income",
-      "value": 50,
+      "value": 500,
       "type": "final_income",
       "description": "Final net income after all adjustments"
     },
     {
       "source": "Operating Profit",
       "target": "Tax Expense",
-      "value": 12,
+      "value": 120,
       "type": "tax_flow",
       "description": "Income tax on operating profit"
     },
     {
       "source": "Operating Profit",
       "target": "Other Expense",
-      "value": 3,
+      "value": 30,
       "type": "other_flow",
       "description": "Other expenses reducing operating profit"
     },
     {
       "source": "Operating Expenses",
       "target": "Sales & Marketing",
-      "value": 85,
+      "value": 850,
       "type": "expense_breakdown",
       "description": "Sales and marketing portion of operating expenses"
     },
     {
       "source": "Operating Expenses",
       "target": "R&D",
-      "value": 45,
+      "value": 450,
       "type": "expense_breakdown",
       "description": "R&D portion of operating expenses"
     },
     {
       "source": "Operating Expenses",
-      "target": "G&A",
-      "value": 20,
+      "target": "SG&A",
+      "value": 200,
       "type": "expense_breakdown",
       "description": "G&A portion of operating expenses"
     },
     {
       "source": "Operating Expenses",
       "target": "Restructuring",
-      "value": 5,
+      "value": 50,
       "type": "expense_breakdown",
       "description": "Restructuring portion of operating expenses"
     }
