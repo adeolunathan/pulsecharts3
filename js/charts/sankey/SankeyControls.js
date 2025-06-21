@@ -10,11 +10,11 @@ class SankeyControlModule {
     }
 
     defineCapabilities() {
-        return {
+        const capabilities = {
             layout: {
                 title: "Layout & Positioning",
                 icon: "⚖️",
-                collapsed: false,
+                collapsed: true,
                 controls: [
                     { 
                         id: "nodeWidth", 
@@ -59,11 +59,51 @@ class SankeyControlModule {
                 ]
             },
 
+            // Visual appearance controls
+            appearance: {
+                title: "Visual Appearance",
+                icon: "🎨",
+                collapsed: true,
+                controls: [
+                    {
+                        id: "backgroundColor",
+                        type: "color_picker",
+                        label: "Background Color",
+                        default: "#f8f9fa"
+                    },
+                    {
+                        id: "titleFont",
+                        type: "dropdown",
+                        label: "Font",
+                        default: "Inter",
+                        options: [
+                            { value: "Inter", label: "Inter (Modern)" },
+                            { value: "Roboto", label: "Roboto (Clean)" },
+                            { value: "Open Sans", label: "Open Sans (Friendly)" },
+                            { value: "Lato", label: "Lato (Professional)" },
+                            { value: "Montserrat", label: "Montserrat (Bold)" },
+                            { value: "Poppins", label: "Poppins (Rounded)" },
+                            { value: "Source Sans Pro", label: "Source Sans Pro (Technical)" },
+                            { value: "Nunito", label: "Nunito (Soft)" },
+                            { value: "Trebuchet MS", label: "Trebuchet MS (Classic)" },
+                            { value: "system-ui", label: "System Default" }
+                        ],
+                        description: "Font family for all chart text"
+                    },
+                    {
+                        id: "titleColor",
+                        type: "color_picker",
+                        label: "Text Color",
+                        default: "#1f2937"
+                    }
+                ]
+            },
+
             // Dynamic colors section - will be populated based on actual data
             colors: {
-                title: "Color Customization",
-                icon: "🎨",
-                collapsed: false,
+                title: "Node Colors", 
+                icon: "🎭",
+                collapsed: true,
                 controls: [], // Will be dynamically populated
                 isDynamic: true
             },
@@ -100,8 +140,8 @@ class SankeyControlModule {
                         type: "slider", 
                         label: "Middle Value Distance", 
                         min: 1, 
-                        max: 20, 
-                        default: 5, 
+                        max: 30, 
+                        default: 1, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of middle layer values from nodes" 
@@ -187,6 +227,9 @@ class SankeyControlModule {
                 ]
             }
         };
+        
+        console.log('🎨 Defined capabilities with appearance section:', capabilities);
+        return capabilities;
     }
 
     /**
@@ -540,6 +583,24 @@ class SankeyControlModule {
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
 
+        // Handle backgroundColor specially
+        if (controlId === 'backgroundColor') {
+            chart.updateConfig({ backgroundColor: value });
+            return;
+        }
+
+        // Handle titleFont specially
+        if (controlId === 'titleFont') {
+            chart.updateConfig({ titleFont: value });
+            return;
+        }
+
+        // Handle titleColor specially
+        if (controlId === 'titleColor') {
+            chart.updateConfig({ titleColor: value });
+            return;
+        }
+
         // Handle individual node color controls
         if (controlId.startsWith('node_') && controlId.endsWith('_color')) {
             // Extract node ID from control ID (node_nodeId_color)
@@ -788,6 +849,21 @@ class SankeyControlModule {
      * ENHANCED: Get current values with balance sheet group support
      */
     getCurrentValue(controlId, chart) {
+        // Handle backgroundColor specially
+        if (controlId === 'backgroundColor') {
+            return chart && chart.config ? chart.config.backgroundColor : '#f8f9fa';
+        }
+        
+        // Handle titleFont specially
+        if (controlId === 'titleFont') {
+            return chart && chart.config ? chart.config.titleFont : 'Inter';
+        }
+        
+        // Handle titleColor specially
+        if (controlId === 'titleColor') {
+            return chart && chart.config ? chart.config.titleColor : '#1f2937';
+        }
+        
         if (controlId.endsWith('Color')) {
             // Extract category name from control ID
             let category = controlId.replace('Color', '');
@@ -868,14 +944,14 @@ class SankeyControlModule {
         });
 
         defaults.labelDistance = {
-            leftmost: 15,
-            middle: 12,
-            rightmost: 15
+            leftmost: 10,
+            middle: 18,
+            rightmost: 10
         };
 
         defaults.valueDistance = {
             general: 8,
-            middle: 8
+            middle: 2
         };
 
         defaults.layerSpacing = {

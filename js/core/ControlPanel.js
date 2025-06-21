@@ -102,56 +102,79 @@ class PulseControlPanel {
         });
     }
 
-    // Create color preset buttons
+    // Create modern color preset buttons
     createColorPresets(container) {
         const presetsDiv = container
             .append('div')
-            .attr('class', 'color-presets')
-            .style('margin-bottom', '16px')
-            .style('padding-bottom', '16px')
-            .style('border-bottom', '1px solid #e1e5e9');
+            .attr('class', 'color-presets-modern')
+            .style('margin-bottom', '20px')
+            .style('padding', '20px')
+            .style('background', 'rgba(248, 250, 252, 0.4)')
+            .style('border-radius', '12px')
+            .style('border', '1px solid rgba(226, 232, 240, 0.6)');
 
         presetsDiv
             .append('div')
-            .style('font-weight', '600')
-            .style('margin-bottom', '8px')
-            .style('color', '#374151')
-            .text('Color Presets:');
+            .attr('class', 'presets-title')
+            .style('font-weight', '700')
+            .style('margin-bottom', '16px')
+            .style('color', '#1e293b')
+            .style('font-size', '15px')
+            .style('letter-spacing', '-0.01em')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px')
+            .html('🎨 <span>Color Themes</span>');
 
         const buttonContainer = presetsDiv
             .append('div')
-            .attr('class', 'preset-buttons')
-            .style('display', 'flex')
-            .style('gap', '8px')
-            .style('flex-wrap', 'wrap');
+            .attr('class', 'preset-buttons-modern')
+            .style('display', 'grid')
+            .style('grid-template-columns', 'repeat(auto-fit, minmax(120px, 1fr))')
+            .style('gap', '10px');
 
         const presets = [
-            { key: 'default', label: 'Default' },
-            { key: 'vibrant', label: 'Vibrant' },
-            { key: 'professional', label: 'Professional' },
-            { key: 'monochrome', label: 'Monochrome' },
-            { key: 'random', label: '🎲 Random' }
+            { key: 'default', label: 'Default', colors: ['#3b82f6', '#10b981', '#f59e0b'], description: 'Clean & balanced' },
+            { key: 'vibrant', label: 'Vibrant', colors: ['#ef4444', '#8b5cf6', '#06b6d4'], description: 'Bold & energetic' },
+            { key: 'monochrome', label: 'Monochrome', colors: ['#111827', '#4b5563', '#9ca3af'], description: 'Grayscale elegance' },
+            { key: 'random', label: 'Random', colors: ['#random'], description: 'Surprise me!' }
         ];
 
         presets.forEach(preset => {
-            buttonContainer
-                .append('button')
-                .attr('class', 'preset-btn')
-                .style('background', '#f8f9fa')
-                .style('border', '1px solid #d1d5db')
-                .style('padding', '6px 12px')
-                .style('border-radius', '4px')
+            const presetCard = buttonContainer
+                .append('div')
+                .attr('class', 'preset-card')
+                .style('background', 'white')
+                .style('border', '2px solid rgba(226, 232, 240, 0.6)')
+                .style('border-radius', '10px')
+                .style('padding', '12px')
                 .style('cursor', 'pointer')
-                .style('font-size', '12px')
                 .style('transition', 'all 0.2s ease')
-                .text(preset.label)
+                .style('text-align', 'center')
+                .style('position', 'relative')
+                .style('overflow', 'hidden')
                 .on('mouseover', function() {
-                    d3.select(this).style('background', '#e5e7eb');
+                    d3.select(this)
+                        .style('border-color', '#6366f1')
+                        .style('transform', 'translateY(-2px)')
+                        .style('box-shadow', '0 8px 24px rgba(99, 102, 241, 0.15)');
                 })
                 .on('mouseout', function() {
-                    d3.select(this).style('background', '#f8f9fa');
+                    d3.select(this)
+                        .style('border-color', 'rgba(226, 232, 240, 0.6)')
+                        .style('transform', 'translateY(0)')
+                        .style('box-shadow', 'none');
                 })
                 .on('click', () => {
+                    // Add selection feedback
+                    buttonContainer.selectAll('.preset-card')
+                        .style('border-color', 'rgba(226, 232, 240, 0.6)')
+                        .style('background', 'white');
+                    
+                    d3.select(presetCard.node())
+                        .style('border-color', '#6366f1')
+                        .style('background', 'rgba(99, 102, 241, 0.05)');
+
                     if (preset.key === 'random') {
                         this.controlModule.randomizeColors(this.chart);
                     } else {
@@ -160,74 +183,168 @@ class PulseControlPanel {
                     // Regenerate controls to show updated colors
                     this.generateControls();
                 });
+
+            // Preset label and description (no icon)
+            presetCard
+                .append('div')
+                .style('font-weight', '600')
+                .style('color', '#1e293b')
+                .style('font-size', '13px')
+                .style('margin-bottom', '4px')
+                .style('letter-spacing', '-0.01em')
+                .text(preset.label);
+
+            presetCard
+                .append('div')
+                .style('font-size', '11px')
+                .style('color', '#64748b')
+                .style('margin-bottom', '10px')
+                .style('line-height', '1.3')
+                .text(preset.description);
+
+            // Color preview dots
+            if (preset.key !== 'random') {
+                const colorPreview = presetCard
+                    .append('div')
+                    .style('display', 'flex')
+                    .style('justify-content', 'center')
+                    .style('gap', '4px');
+
+                preset.colors.forEach(color => {
+                    colorPreview
+                        .append('div')
+                        .style('width', '12px')
+                        .style('height', '12px')
+                        .style('border-radius', '50%')
+                        .style('background', color)
+                        .style('border', '1px solid rgba(255, 255, 255, 0.8)')
+                        .style('box-shadow', '0 1px 3px rgba(0, 0, 0, 0.1)');
+                });
+            } else {
+                // Random pattern for the random option
+                const randomPreview = presetCard
+                    .append('div')
+                    .style('display', 'flex')
+                    .style('justify-content', 'center')
+                    .style('gap', '4px');
+
+                const randomColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
+                randomColors.slice(0, 3).forEach(color => {
+                    randomPreview
+                        .append('div')
+                        .style('width', '12px')
+                        .style('height', '12px')
+                        .style('border-radius', '50%')
+                        .style('background', color)
+                        .style('border', '1px solid rgba(255, 255, 255, 0.8)')
+                        .style('box-shadow', '0 1px 3px rgba(0, 0, 0, 0.1)')
+                        .style('animation', 'pulse 2s infinite');
+                });
+            }
         });
     }
 
-    // Create individual color item with better layout
+    // Create individual color item with modern compact design
     createColorItem(container, config) {
         const colorItem = container
             .append('div')
-            .attr('class', 'color-item')
+            .attr('class', 'color-item-modern')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('gap', '12px')
-            .style('padding', '12px')
-            .style('background', '#f8f9fa')
-            .style('border-radius', '6px')
-            .style('border', '1px solid #e1e5e9');
+            .style('gap', '16px')
+            .style('padding', '12px 20px')
+            .style('background', 'rgba(248, 250, 252, 0.6)')
+            .style('border-radius', '12px')
+            .style('border', '1px solid rgba(226, 232, 240, 0.8)')
+            .style('transition', 'all 0.2s ease')
+            .style('cursor', 'pointer')
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('background', 'rgba(241, 245, 249, 0.8)')
+                    .style('border-color', 'rgba(99, 102, 241, 0.3)')
+                    .style('transform', 'translateY(-1px)')
+                    .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.05)');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('background', 'rgba(248, 250, 252, 0.6)')
+                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
+                    .style('transform', 'translateY(0)')
+                    .style('box-shadow', 'none');
+            });
 
         // **CRITICAL: Get current color from chart, not just config defaults**
         let currentValue = this.getCurrentValue(config);
         
         console.log(`🎨 Creating color control for ${config.id}, current value: ${currentValue}`);
 
+        // Small square color picker
         const colorPicker = colorItem
             .append('input')
             .attr('type', 'color')
-            .attr('class', 'color-picker')
+            .attr('class', 'color-picker-square')
             .attr('value', currentValue)
-            .style('width', '40px')
-            .style('height', '40px')
-            .style('border', '2px solid #d1d5db')
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('border', '2px solid rgba(226, 232, 240, 0.8)')
             .style('border-radius', '6px')
             .style('cursor', 'pointer')
             .style('background', 'none')
             .style('padding', '0')
             .style('transition', 'all 0.2s ease')
+            .style('flex-shrink', '0')
             .on('mouseover', function() {
                 d3.select(this)
-                    .style('border-color', '#667eea')
-                    .style('transform', 'scale(1.05)');
+                    .style('border-color', '#6366f1')
+                    .style('transform', 'scale(1.15)')
+                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.3)');
             })
             .on('mouseout', function() {
                 d3.select(this)
-                    .style('border-color', '#d1d5db')
-                    .style('transform', 'scale(1)');
+                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
+                    .style('transform', 'scale(1)')
+                    .style('box-shadow', 'none');
             })
             .on('change', (event) => {
                 console.log(`🎨 Color changed for ${config.id}: ${event.target.value}`);
                 this.handleChange(config.id, event.target.value);
+                // Update the visual indicator
+                d3.select(colorPicker.node())
+                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.4)');
+                setTimeout(() => {
+                    d3.select(colorPicker.node())
+                        .style('box-shadow', 'none');
+                }, 300);
             });
 
         const colorInfo = colorItem
             .append('div')
-            .attr('class', 'color-info')
-            .style('flex', '1');
+            .attr('class', 'color-info-modern')
+            .style('flex', '1')
+            .style('min-width', '0');
 
         colorInfo
             .append('div')
-            .attr('class', 'color-label')
+            .attr('class', 'color-label-modern')
             .style('font-weight', '600')
-            .style('color', '#374151')
-            .style('margin-bottom', '2px')
+            .style('color', '#1e293b')
+            .style('font-size', '14px')
+            .style('margin-bottom', '4px')
+            .style('letter-spacing', '-0.01em')
             .text(config.label);
 
-        colorInfo
-            .append('div')
-            .attr('class', 'color-description')
-            .style('font-size', '12px')
-            .style('color', '#6b7280')
-            .text(config.description);
+        if (config.description) {
+            colorInfo
+                .append('div')
+                .attr('class', 'color-description-modern')
+                .style('font-size', '12px')
+                .style('color', '#64748b')
+                .style('line-height', '1.4')
+                .style('overflow', 'hidden')
+                .style('text-overflow', 'ellipsis')
+                .style('white-space', 'nowrap')
+                .text(config.description);
+        }
     }
 
     // Create individual control elements
@@ -240,7 +357,7 @@ class PulseControlPanel {
         const controlDiv = container
             .append('div')
             .attr('class', 'control-item')
-            .style('margin-bottom', '16px');
+            .style('margin-bottom', '12px');
 
         const header = controlDiv.append('div').attr('class', 'control-header');
         header.append('label').attr('class', 'control-label').text(config.label);
@@ -256,6 +373,9 @@ class PulseControlPanel {
                 break;
             case 'toggle':
                 this.createToggleControl(controlDiv, config);
+                break;
+            case 'color_picker':
+                this.createColorPickerControl(controlDiv, config);
                 break;
             case 'info':
                 this.createInfoControl(controlDiv, config);
@@ -369,12 +489,111 @@ class PulseControlPanel {
         console.warn(`Custom control type '${config.component}' not implemented`);
     }
 
+    // Create color picker control with modern compact design
+    createColorPickerControl(container, config) {
+        const currentValue = this.getCurrentValue(config);
+        
+        console.log(`🎨 Creating color picker for ${config.id}, current value: ${currentValue}`);
+
+        const colorItem = container
+            .append('div')
+            .attr('class', 'color-picker-item-modern')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '16px')
+            .style('padding', '12px 20px')
+            .style('background', 'rgba(248, 250, 252, 0.6)')
+            .style('border-radius', '12px')
+            .style('border', '1px solid rgba(226, 232, 240, 0.8)')
+            .style('transition', 'all 0.2s ease')
+            .style('cursor', 'pointer')
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('background', 'rgba(241, 245, 249, 0.8)')
+                    .style('border-color', 'rgba(99, 102, 241, 0.3)')
+                    .style('transform', 'translateY(-1px)')
+                    .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.05)');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('background', 'rgba(248, 250, 252, 0.6)')
+                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
+                    .style('transform', 'translateY(0)')
+                    .style('box-shadow', 'none');
+            });
+
+        // Small square color picker
+        const colorPicker = colorItem
+            .append('input')
+            .attr('type', 'color')
+            .attr('class', 'color-picker-square')
+            .attr('value', currentValue)
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('border', '2px solid rgba(226, 232, 240, 0.8)')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('background', 'none')
+            .style('padding', '0')
+            .style('transition', 'all 0.2s ease')
+            .style('flex-shrink', '0')
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('border-color', '#6366f1')
+                    .style('transform', 'scale(1.15)')
+                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.3)');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
+                    .style('transform', 'scale(1)')
+                    .style('box-shadow', 'none');
+            })
+            .on('change', (event) => {
+                const newValue = event.target.value;
+                this.handleChange(config.id, newValue);
+                // Update the visual indicator
+                d3.select(colorPicker.node())
+                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.4)');
+                setTimeout(() => {
+                    d3.select(colorPicker.node())
+                        .style('box-shadow', 'none');
+                }, 300);
+            });
+
+        const colorInfo = colorItem
+            .append('div')
+            .attr('class', 'color-info-modern')
+            .style('flex', '1')
+            .style('min-width', '0');
+
+        colorInfo
+            .append('div')
+            .attr('class', 'color-label-modern')
+            .style('font-weight', '600')
+            .style('color', '#1e293b')
+            .style('font-size', '14px')
+            .style('margin-bottom', '4px')
+            .style('letter-spacing', '-0.01em')
+            .text(config.label);
+
+        if (config.description) {
+            colorInfo
+                .append('div')
+                .attr('class', 'color-description-modern')
+                .style('font-size', '12px')
+                .style('color', '#64748b')
+                .style('line-height', '1.4')
+                .text(config.description);
+        }
+    }
+
     /**
      * FIXED: Get current value with proper color detection and chart synchronization
      */
     getCurrentValue(config) {
         // **CRITICAL: Handle color controls by getting from chart's custom colors**
-        if (config.type === 'color') {
+        if (config.type === 'color' || config.type === 'color_picker') {
             if (this.controlModule && this.controlModule.getCurrentValue) {
                 const value = this.controlModule.getCurrentValue(config.id, this.chart);
                 console.log(`🎨 Got color value for ${config.id}: ${value}`);

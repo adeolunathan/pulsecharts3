@@ -10,6 +10,7 @@ class PulseApplication {
         this.currentData = null;
         this.currentDataset = 'saas';
         this.currentChartType = 'sankey';
+        this.isInitialized = false;
         
         // Data Bridge integration
         this.dataBridge = null;
@@ -47,12 +48,20 @@ class PulseApplication {
             const urlData = this.handleURLParameters();
             
             if (!urlData) {
-                // Only load default dataset if no URL data
-                await this.loadDataset('saas');
+                // Try to load default dataset, but don't fail initialization if it fails
+                try {
+                    await this.loadDataset('saas');
+                } catch (error) {
+                    console.warn('⚠️ Failed to load default dataset, continuing with initialization:', error);
+                    this.setStatus('Ready - Default dataset not available', 'ready');
+                }
             }
             
             // Hide loading indicator
             this.hideLoadingIndicator();
+            
+            // Mark as initialized
+            this.isInitialized = true;
             
             console.log('✅ Enhanced Platform initialized successfully');
             

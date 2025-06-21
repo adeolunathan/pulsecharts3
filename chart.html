@@ -9,6 +9,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
     
+    <!-- Google Fonts for Title Font Control -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
     
@@ -237,6 +242,7 @@
     <input type="file" id="csv-file-input" style="display: none;" accept=".csv,.json">
 
     <!-- Core Scripts -->
+    <script src="js/utils/ExportUtils.js"></script>
     <script src="js/core/DataManager.js"></script>
     <script src="js/core/ControlPanel.js"></script>
     <script src="js/charts/sankey/SankeyChart.js"></script>
@@ -381,15 +387,15 @@
             },
             
             async waitForAppReady() {
-                const maxAttempts = 100;
-                const checkInterval = 100;
+                const maxAttempts = 50;
+                const checkInterval = 200;
                 let attempts = 0;
                 
                 return new Promise((resolve, reject) => {
                     const checkApp = () => {
                         attempts++;
                         
-                        if (window.pulseApp && window.pulseApp.chart) {
+                        if (window.pulseApp && window.pulseApp.isInitialized) {
                             console.log('✅ Main app found and ready, hooking into data flow');
                             this.hookIntoApp();
                             
@@ -400,8 +406,17 @@
                             return;
                         }
                         
+                        // Also check if app exists but is still initializing
+                        if (window.pulseApp && !window.pulseApp.isInitialized) {
+                            console.log(`⏳ App found but still initializing (attempt ${attempts}/${maxAttempts})`);
+                        }
+                        
                         if (attempts >= maxAttempts) {
-                            console.warn('⚠️ Main app not found after maximum attempts');
+                            console.warn('⚠️ Main app initialization timeout - continuing without full integration');
+                            // Try to hook into app anyway if it exists
+                            if (window.pulseApp) {
+                                this.hookIntoApp();
+                            }
                             resolve();
                             return;
                         }
@@ -460,7 +475,14 @@
             }
         };
 
-        window.PulseDataBridge.init();
+        // Initialize Data Bridge after DOM is ready and app.js has loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => window.PulseDataBridge.init(), 100);
+            });
+        } else {
+            setTimeout(() => window.PulseDataBridge.init(), 100);
+        }
     </script>
     
     <!-- Flow Builder Implementation -->

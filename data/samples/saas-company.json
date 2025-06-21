@@ -8,6 +8,7 @@
     "period": "Q3 2025",
     "prepared_date": "2025-01-15"
   },
+  
   "nodes": [
     {
       "id": "Subscription Revenue",
@@ -57,7 +58,7 @@
     {
       "id": "Cost of Revenue",
       "depth": 2,
-      "value": 550,
+      "value": 1550,
       "category": "expense",
       "description": "Direct costs associated with delivering services",
       "group": "gross_metrics",
@@ -149,7 +150,7 @@
     {
       "source": "Subscription Revenue",
       "target": "Total Revenue",
-      "value": 1800,
+      "value": 3000,
       "type": "revenue_flow",
       "description": "Subscription revenue contributing to total revenue"
     },
@@ -163,21 +164,21 @@
     {
       "source": "Platform & Other",
       "target": "Total Revenue",
-      "value": 350,
+      "value": 1350,
       "type": "revenue_flow",
       "description": "Other revenue contributing to total revenue"
     },
     {
       "source": "Total Revenue",
       "target": "Gross Profit",
-      "value": 2200,
+      "value": 3400,
       "type": "profit_flow",
       "description": "Revenue after cost of goods sold"
     },
     {
       "source": "Total Revenue",
       "target": "Cost of Revenue",
-      "value": 550,
+      "value": 1550,
       "type": "cost_flow",
       "description": "Direct costs of providing services"
     },
