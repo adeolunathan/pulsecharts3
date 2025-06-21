@@ -2040,6 +2040,18 @@ class PulseSankeyChart {
             return this.revenueSegmentColors.get(node.id);
         }
         
+        // FIXED: Revenue segments should use their own default colors, not category colors
+        // This prevents "Total Revenue" color changes from affecting revenue segments
+        if (this.isPreRevenueNode(node) && node.category === 'revenue') {
+            // Use default revenue segment color palette instead of falling back to category color
+            const defaultSegmentColors = [
+                '#3498db', '#2980b9', '#5dade2', '#85c1e9', '#aed6f1', 
+                '#d5e8f3', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'
+            ];
+            const segmentIndex = this.getRevenueSegmentNodes().findIndex(n => n.id === node.id);
+            return defaultSegmentColors[segmentIndex % defaultSegmentColors.length];
+        }
+        
         let effectiveCategory = node.category;
         if (node.category === 'tax') {
             effectiveCategory = 'expense';

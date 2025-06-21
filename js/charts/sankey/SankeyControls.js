@@ -63,7 +63,7 @@ class SankeyControlModule {
             appearance: {
                 title: "Visual Appearance",
                 icon: "🎨",
-                collapsed: true,
+                collapsed: false,
                 controls: [
                     {
                         id: "backgroundColor",
@@ -103,7 +103,7 @@ class SankeyControlModule {
             colors: {
                 title: "Node Colors", 
                 icon: "🎭",
-                collapsed: true,
+                collapsed: false,
                 controls: [], // Will be dynamically populated
                 isDynamic: true
             },

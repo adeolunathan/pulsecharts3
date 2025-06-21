@@ -2610,7 +2610,7 @@ body {
 .flow-builder-container {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 16px;
     background: #f8f9fa;
 }
 
@@ -3115,3 +3115,1310 @@ body {
 /* Text alignment */
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+
+/* ===== FLOW BUILDER - GOOGLE SHEETS/EXCEL STYLE ===== */
+
+/* Flow Table - Google Sheets Style */
+.flow-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.flow-table thead {
+    background: linear-gradient(180deg, #f6f8fa 0%, #eaeef2 100%);
+    border-bottom: 2px solid #d0d7de;
+}
+
+.flow-table th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    color: #24292f;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #d0d7de;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.flow-table th:last-child {
+    border-right: none;
+}
+
+.flow-table td {
+    padding: 0;
+    border-right: 1px solid #d0d7de;
+    border-bottom: 1px solid #f1f3f4;
+    vertical-align: middle;
+    position: relative;
+}
+
+.flow-table td:last-child {
+    border-right: none;
+}
+
+.flow-table tr:hover {
+    background: rgba(39, 125, 243, 0.04);
+}
+
+.flow-table tr:nth-child(even) {
+    background: rgba(246, 248, 250, 0.5);
+}
+
+.flow-table tr:nth-child(even):hover {
+    background: rgba(39, 125, 243, 0.08);
+}
+
+/* Flow Input Controls - Excel Style */
+.flow-input {
+    width: 100%;
+    height: 36px;
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: inherit;
+    color: #24292f;
+    transition: all 0.2s ease;
+    outline: none;
+    border-radius: 0;
+}
+
+.flow-input:focus {
+    background: white;
+    box-shadow: inset 0 0 0 2px #0969da;
+    z-index: 5;
+    position: relative;
+}
+
+.flow-input.number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+.flow-select {
+    width: 100%;
+    height: 36px;
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: inherit;
+    color: #24292f;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 12px;
+    padding-right: 28px;
+}
+
+.flow-select:focus {
+    background-color: white;
+    box-shadow: inset 0 0 0 2px #0969da;
+    z-index: 5;
+    position: relative;
+}
+
+/* Flow Control Buttons */
+.flow-controls {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    justify-content: center;
+}
+
+.flow-control-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #d0d7de;
+    background: white;
+    color: #656d76;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.flow-control-btn:hover:not(:disabled) {
+    background: #f6f8fa;
+    color: #24292f;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.flow-control-btn:active {
+    transform: translateY(0);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.flow-control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.flow-control-btn.remove {
+    color: #cf222e;
+}
+
+.flow-control-btn.remove:hover:not(:disabled) {
+    background: #ffebee;
+    border-color: #cf222e;
+}
+
+.flow-control-btn.duplicate {
+    color: #0969da;
+}
+
+.flow-control-btn.duplicate:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #0969da;
+}
+
+/* Balance Indicator */
+.balance-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 8px auto;
+}
+
+.balance-indicator.balanced {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.balance-indicator.unbalanced {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* Modern Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding: 24px 20px;
+    background: white;
+    border-top: 1px solid #e1e5e9;
+}
+
+.add-flow-btn {
+    background: linear-gradient(135deg, #0969da 0%, #0550ae 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(9, 105, 218, 0.3);
+}
+
+.add-flow-btn:hover {
+    background: linear-gradient(135deg, #0550ae 0%, #033d8b 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(9, 105, 218, 0.4);
+}
+
+/* Stats Bar - Compact */
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f6f8fa 0%, #eaeef2 100%);
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0969da;
+    margin-bottom: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #656d76;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+}
+
+/* Template Actions - Compact */
+.template-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 12px;
+    background: rgba(246, 248, 250, 0.5);
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.template-btn {
+    background: white;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.template-btn:hover {
+    background: #f6f8fa;
+    border-color: #0969da;
+    color: #0969da;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Collapsible Sections - Compact */
+.collapsible-section {
+    background: white;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.collapsible-header {
+    padding: 10px 16px;
+    background: linear-gradient(180deg, #f6f8fa 0%, #eaeef2 100%);
+    border-bottom: 1px solid #d0d7de;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.collapsible-header:hover {
+    background: linear-gradient(180deg, #eaeef2 0%, #d0d7de 100%);
+}
+
+.collapsible-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #24292f;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.collapsible-chevron {
+    color: #656d76;
+    transition: transform 0.2s ease;
+    font-size: 12px;
+}
+
+.collapsible-section.collapsed .collapsible-chevron {
+    transform: rotate(-90deg);
+}
+
+.collapsible-content {
+    padding: 12px 16px;
+    transition: all 0.2s ease;
+}
+
+.collapsible-section.collapsed .collapsible-content {
+    display: none;
+}
+
+/* Real-time Controls - Compact */
+.realtime-controls {
+    background: linear-gradient(135deg, #e7f3ff 0%, #cfe2ff 100%);
+    border: 1px solid #0969da;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.realtime-indicator.live {
+    background-color: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.realtime-indicator.manual {
+    background-color: #6b7280;
+    animation: none;
+}
+
+/* Company Information Grid - Compact */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 0;
+}
+
+.info-grid input,
+.info-grid select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.info-grid input:focus,
+.info-grid select:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .flow-table {
+        font-size: 12px;
+    }
+    
+    .flow-table th,
+    .flow-table td {
+        padding: 8px 6px;
+    }
+    
+    .flow-input,
+    .flow-select {
+        height: 32px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .template-actions {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* ===== COMPACT FLOW BUILDER LAYOUT ===== */
+/* Additional compact styles for the flow builder */
+
+.realtime-controls h4 {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+    color: #0369a1;
+}
+
+.realtime-controls .flex-center-v {
+    margin-bottom: 8px;
+}
+
+.realtime-controls .text-muted {
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+/* Compact flow table header */
+.flow-table th {
+    padding: 8px 6px;
+    font-size: 10px;
+}
+
+/* Compact company information form */
+.collapsible-content .info-grid label {
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+.collapsible-content .info-grid input,
+.collapsible-content .info-grid select {
+    padding: 6px 8px;
+    font-size: 12px;
+    height: 32px;
+}
+
+/* Make sections more compact vertically */
+.collapsible-section:last-child {
+    margin-bottom: 8px;
+}
+
+/* Compact spacing for flow controls */
+.add-flow-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* More compact action buttons */
+.action-buttons {
+    padding: 16px 20px;
+    gap: 8px;
+}
+
+/* Compact comparison mode toggle */
+.realtime-controls .border-top {
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.realtime-controls input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+}
+
+.realtime-controls label {
+    font-size: 13px;
+}
+
+/* Tighter spacing between sections */
+.flow-builder-container > * + * {
+    margin-top: 8px;
+}
+
+/* Override default margins for form elements */
+.collapsible-content .form-label {
+    margin-bottom: 2px;
+}
+
+/* Compact status indicators */
+.status-live,
+.status-dynamic {
+    padding: 1px 4px;
+    font-size: 9px;
+}
+
+/* ===== TOP MENU BAR ===== */
+/* Horizontal menu bar for statistics and actions */
+
+.top-menu-bar {
+    background: linear-gradient(135deg, #f6f8fa 0%, #eaeef2 100%);
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.menu-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-label {
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+.stats-menu .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 6px;
+    background: white;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    min-width: 35px;
+}
+
+.stats-menu .stat-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0969da;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.stats-menu .stat-label {
+    font-size: 7px;
+    font-weight: 600;
+    color: #656d76;
+    text-transform: uppercase;
+    letter-spacing: 0.1px;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.menu-btn {
+    background: white;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+    color: #24292f;
+}
+
+.menu-btn:hover {
+    background: #f6f8fa;
+    border-color: #0969da;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Individual sections within the streamlined panel */
+.stats-comparison-section,
+.actions-section {
+    padding: 10px;
+    position: relative;
+}
+
+.stats-comparison-section {
+    border-right: 1px solid #d0d7de;
+}
+
+.section-header {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Header row with integrated period comparison */
+.section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* Ultra-compact period comparison */
+.period-comparison-compact {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.period-comparison-compact input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+}
+
+.period-comparison-compact label {
+    font-size: 12px;
+    margin: 0;
+    cursor: pointer;
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+
+/* Stats Section Styles - Ultra Compact */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.stats-comparison-section .stat-item {
+    text-align: center;
+    padding: 3px 4px;
+    background: white;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.stats-comparison-section .stat-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0969da;
+    margin-bottom: 1px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.stats-comparison-section .stat-label {
+    font-size: 7px;
+    font-weight: 600;
+    color: #656d76;
+    text-transform: uppercase;
+    letter-spacing: 0.1px;
+    line-height: 1;
+}
+
+/* Actions Section Styles */
+.actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.actions-section .template-btn {
+    background: white;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.actions-section .template-btn:hover {
+    background: #f6f8fa;
+    border-color: #0969da;
+    color: #0969da;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive design for the streamlined panel */
+@media (max-width: 1200px) {
+    .control-sections {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-comparison-section {
+        border-right: none;
+        border-bottom: 1px solid #d0d7de;
+    }
+    
+    .actions-section {
+        border-bottom: none;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .actions-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .control-sections {
+        padding: 8px;
+    }
+    
+    .stats-comparison-section,
+    .actions-section {
+        padding: 8px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+/* ===== UPDATE MODE TOGGLE BUTTON ===== */
+/* Compact toggle button for Business Flows section */
+
+.update-mode-toggle {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    position: relative;
+    min-width: 50px;
+    height: 20px;
+}
+
+.update-mode-toggle:hover {
+    background: #e0f2fe;
+    transform: translateY(-1px);
+}
+
+.mode-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.update-mode-toggle.live .mode-indicator {
+    background-color: #22c55e;
+    animation: pulse 2s infinite;
+}
+
+.update-mode-toggle.manual .mode-indicator {
+    background-color: #6b7280;
+    animation: none;
+}
+
+.mode-text {
+    font-size: 9px;
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.update-mode-toggle.manual {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.update-mode-toggle.manual .mode-text {
+    color: #6b7280;
+}
+
+/* Make actions section even more compact */
+.actions-section .template-btn {
+    padding: 4px 6px;
+    font-size: 9px;
+    line-height: 1.1;
+    gap: 2px;
+}
+
+.actions-grid {
+    gap: 4px;
+}
+
+/* Ultra compact spacing */
+.live-update-section,
+.stats-section,
+.actions-section {
+    padding: 10px;
+}
+
+.update-controls {
+    margin-bottom: 8px;
+}
+
+/* ===== FLOW CONTROLS GROUP ===== */
+/* Controls in Business Flows header */
+
+.flow-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+}
+
+.period-comparison-toggle {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    background: rgba(9, 105, 218, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(9, 105, 218, 0.2);
+}
+
+.period-comparison-toggle input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+}
+
+.period-comparison-toggle label {
+    font-size: 12px;
+    margin: 0;
+    cursor: pointer;
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+/* ===== COMPANY INFORMATION CONTRAST FIX ===== */
+/* Better visibility for form fields */
+
+.collapsible-content .info-grid input,
+.collapsible-content .info-grid select {
+    background: white;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.collapsible-content .info-grid input:focus,
+.collapsible-content .info-grid select:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+    background: #fff;
+}
+
+.collapsible-content .info-grid input:hover,
+.collapsible-content .info-grid select:hover {
+    border-color: #8b9dc3;
+}
+
+.collapsible-content .info-grid label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 4px;
+    display: block;
+}
+
+/* Override any previous transparent styling */
+.flow-input, .flow-select {
+    background: white !important;
+    border: 1px solid #d0d7de !important;
+}
+
+.flow-input:focus, .flow-select:focus {
+    background: white !important;
+    border-color: #0969da !important;
+}
+
+/* ===== ENHANCED GOOGLE SHEETS-STYLE TABLE ===== */
+/* Ensure proper cell visibility and spreadsheet appearance */
+
+.flow-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border: 2px solid #d0d7de;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+}
+
+.flow-table thead {
+    background: linear-gradient(180deg, #f6f8fa 0%, #eaeef2 100%);
+    border-bottom: 2px solid #d0d7de;
+}
+
+.flow-table th {
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    color: #24292f;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #d0d7de;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #f6f8fa 0%, #eaeef2 100%);
+}
+
+.flow-table th:last-child {
+    border-right: none;
+}
+
+.flow-table td {
+    padding: 0;
+    border-right: 1px solid #d0d7de;
+    border-bottom: 1px solid #e1e5e9;
+    vertical-align: middle;
+    position: relative;
+    background: white;
+}
+
+.flow-table td:last-child {
+    border-right: none;
+}
+
+.flow-table tr:hover {
+    background: rgba(39, 125, 243, 0.04);
+}
+
+.flow-table tr:nth-child(even) {
+    background: rgba(246, 248, 250, 0.8);
+}
+
+.flow-table tr:nth-child(even):hover {
+    background: rgba(39, 125, 243, 0.08);
+}
+
+/* ===== TRUE GOOGLE SHEETS-STYLE SPREADSHEET CELLS ===== */
+/* Real spreadsheet functionality with cell selection and keyboard navigation */
+
+.spreadsheet-cell {
+    position: relative;
+    cursor: cell;
+    background: white;
+    border-right: 1px solid #d0d7de;
+    border-bottom: 1px solid #d0d7de;
+    padding: 0;
+    height: 32px;
+    min-width: 60px;
+    user-select: none;
+}
+
+.spreadsheet-cell:hover {
+    background: rgba(66, 133, 244, 0.08);
+}
+
+.spreadsheet-cell.selected {
+    background: rgba(66, 133, 244, 0.15);
+    box-shadow: inset 0 0 0 2px #4285f4;
+    z-index: 2;
+}
+
+.spreadsheet-cell.editing {
+    background: white;
+    box-shadow: inset 0 0 0 2px #4285f4;
+    z-index: 10;
+}
+
+.cell-content {
+    padding: 6px 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-family: 'Roboto', Arial, sans-serif;
+    color: #202124;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.cell-content[data-type="number"] {
+    justify-content: flex-end;
+    font-variant-numeric: tabular-nums;
+}
+
+.cell-editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: 'Roboto', Arial, sans-serif;
+    background: white;
+    color: #202124;
+    box-sizing: border-box;
+    z-index: 15;
+}
+
+.cell-editor[type="number"] {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.cell-editor select {
+    height: 100%;
+    border: none;
+    background: white;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 12px;
+    padding-right: 24px;
+}
+
+/* Special cell types */
+.control-cell, .variance-cell, .status-cell {
+    background: #f8f9fa;
+    cursor: default;
+}
+
+.control-cell:hover, .variance-cell:hover, .status-cell:hover {
+    background: #f8f9fa;
+}
+
+/* Selection highlight for ranges */
+.spreadsheet-cell.in-range {
+    background: rgba(66, 133, 244, 0.1);
+}
+
+/* Column and row headers styling */
+.flow-table th {
+    background: #f8f9fa;
+    border-right: 1px solid #d0d7de;
+    border-bottom: 1px solid #d0d7de;
+    color: #5f6368;
+    font-weight: 500;
+    font-size: 12px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    cursor: default;
+    user-select: none;
+}
+
+/* Enhanced table styling for spreadsheet appearance */
+.flow-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #d0d7de;
+    background: white;
+    font-family: 'Roboto', Arial, sans-serif;
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* Row hover effect */
+.flow-table tr:hover .spreadsheet-cell:not(.selected):not(.editing) {
+    background: rgba(66, 133, 244, 0.04);
+}
+
+/* Focus ring for accessibility */
+.spreadsheet-cell:focus-visible {
+    outline: 2px solid #4285f4;
+    outline-offset: -2px;
+}
+
+/* Enhanced Flow Control Buttons */
+.flow-controls {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.flow-control-btn {
+    width: 26px;
+    height: 26px;
+    border: 1px solid #d0d7de;
+    background: white;
+    color: #656d76;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.flow-control-btn:hover:not(:disabled) {
+    background: #f6f8fa;
+    color: #24292f;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.flow-control-btn:active {
+    transform: translateY(0);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.flow-control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.flow-control-btn.remove {
+    color: #cf222e;
+}
+
+.flow-control-btn.remove:hover:not(:disabled) {
+    background: #ffebee;
+    border-color: #cf222e;
+}
+
+.flow-control-btn.duplicate {
+    color: #0969da;
+}
+
+.flow-control-btn.duplicate:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #0969da;
+}
+
+/* Balance Check Indicator */
+.balance-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 9px auto;
+}
+
+.balance-indicator.balanced {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.balance-indicator.unbalanced {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* ===== RESPONSIVE DESIGN FOR TOP MENU BAR ===== */
+
+@media (max-width: 1200px) {
+    .top-menu-bar {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+    }
+    
+    .menu-section {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .stats-menu {
+        order: 1;
+    }
+    
+    .actions-menu {
+        order: 2;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .top-menu-bar {
+        padding: 8px;
+    }
+    
+    .stats-menu .stat-item {
+        min-width: 28px;
+        padding: 3px 4px;
+    }
+    
+    .stats-menu .stat-value {
+        font-size: 11px;
+    }
+    
+    .stats-menu .stat-label {
+        font-size: 6px;
+    }
+    
+    .menu-btn {
+        padding: 5px 6px;
+        font-size: 12px;
+    }
+    
+    .flow-controls-group {
+        flex-direction: column;
+        gap: 4px;
+        margin-left: 4px;
+    }
+    
+    .period-comparison-toggle {
+        padding: 1px 4px;
+    }
+}
+
+/* ===== VARIANCE INDICATORS ===== */
+/* Styling for period-over-period comparison values */
+
+.variance-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 50px;
+    margin: 5px auto;
+}
+
+.variance-indicator.positive {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.variance-indicator.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.variance-indicator.neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.variance-indicator.new {
+    background: #dbeafe;
+    color: #1e40af;
+}
