@@ -1771,7 +1771,7 @@ class PulseSankeyChart {
         const labelDistance = this.config.labelDistance.leftmost;
         const valueDistance = this.getValueDistance('general');
         const wrappedText = this.wrapText(node.id, 15);
-        const nodeColor = this.getNodeColor(node);
+        const nodeColor = this.statementType === 'balance' ? this.getHierarchicalColor(node.id) : this.getNodeColor(node);
         
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -1807,7 +1807,7 @@ class PulseSankeyChart {
         const labelDistance = this.config.labelDistance.rightmost;
         const valueDistance = this.getValueDistance('general');
         const wrappedText = this.wrapText(node.id, 15);
-        const nodeColor = this.getNodeColor(node);
+        const nodeColor = this.statementType === 'balance' ? this.getHierarchicalColor(node.id) : this.getNodeColor(node);
         
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -1842,7 +1842,7 @@ class PulseSankeyChart {
     renderMiddleLabels(node) {
         const labelDistance = this.config.labelDistance.middle;
         const wrappedText = this.wrapText(node.id, 18);
-        const nodeColor = this.getNodeColor(node);
+        const nodeColor = this.statementType === 'balance' ? this.getHierarchicalColor(node.id) : this.getNodeColor(node);
         
         let isTopNode;
         if (node.manuallyPositioned) {

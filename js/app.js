@@ -130,6 +130,12 @@ class PulseApplication {
     handleURLParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         
+        // Check if this is a chart type selection (handled by chart.html flow builder)
+        if (urlParams.has('type')) {
+            console.log('📊 Chart type parameter detected, skipping default dataset load');
+            return true; // Prevent default dataset loading
+        }
+        
         if (urlParams.has('data')) {
             try {
                 const data = JSON.parse(decodeURIComponent(urlParams.get('data')));

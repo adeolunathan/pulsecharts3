@@ -38,10 +38,10 @@
 
         <!-- Main Tabs Navigation -->
         <div class="main-tabs">
-            <button class="main-tab" onclick="switchMainTab('data-builder')">
+            <button class="main-tab" onclick="switchMainTab('data-builder', true)">
                 💰 Flow Builder
             </button>
-            <button class="main-tab active" onclick="switchMainTab('chart-view')">
+            <button class="main-tab active" onclick="switchMainTab('chart-view', true)">
                 📊 Chart View
             </button>
         </div>
@@ -470,6 +470,8 @@
     <script>
         let currentMainTab = 'chart-view';
         let selectedChartType = null; // 'income' or 'balance'
+        let isInitialized = false; // Prevent multiple initializations
+        let lockChartView = false; // Lock chart view when coming from type selector
         let flowData = {
             metadata: {
                 title: "Financial Flow",
@@ -515,6 +517,8 @@
                 
                 const data = await response.json();
                 console.log(`✅ Successfully loaded ${chartType} data:`, data);
+                console.log(`📊 Data nodes:`, data.nodes?.slice(0, 3));
+                console.log(`🔗 Data links:`, data.links?.slice(0, 3));
                 return data;
                 
             } catch (error) {
@@ -714,8 +718,20 @@
             console.log(`🔄 Real-time mode ${newMode ? 'ENABLED' : 'DISABLED'}`);
         }
 
-        function switchMainTab(tabName) {
+        function switchMainTab(tabName, isManualClick = false) {
+            // Check if chart view is locked (from type selector) - but allow manual clicks
+            if (lockChartView && tabName === 'data-builder' && !isManualClick) {
+                console.log('🔒 Chart view is locked, ignoring automatic switch to data-builder');
+                return;
+            }
+            
             console.log(`🎯 Switching to tab: ${tabName}`);
+            
+            // If user manually clicks any tab, unlock chart view
+            if (isManualClick) {
+                lockChartView = false;
+                console.log('🔓 Chart view unlocked by manual click');
+            }
             
             document.querySelectorAll('.main-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -740,17 +756,69 @@
             }));
             
             if (tabName === 'data-builder') {
-                setTimeout(() => {
-                    initializeFlowBuilder();
-                }, 100);
+                // Only initialize if not already done
+                if (!isInitialized) {
+                    setTimeout(() => {
+                        initializeFlowBuilder();
+                    }, 100);
+                } else {
+                    console.log('📊 Data-builder tab activated, data already loaded');
+                }
             }
         }
 
         async function initializeFlowBuilder() {
+            if (isInitialized) {
+                console.log('⚠️ Flow Builder already initialized, skipping...');
+                return;
+            }
+            
             console.log('🔧 Initializing Flow Builder...');
             
-            // Check for URL parameters first
+            // Get URL parameters once at the beginning
             const urlParams = getURLParameters();
+            
+            // Check for existing data first (priority for uploaded/custom data)
+            let existingData = null;
+            
+            if (window.PulseDataBridge && window.PulseDataBridge.currentData) {
+                existingData = window.PulseDataBridge.currentData;
+                console.log('📊 Found existing data in Data Bridge:', existingData);
+            } else if (window.pulseApp && window.pulseApp.getCurrentData()) {
+                existingData = window.pulseApp.getCurrentData();
+                console.log('📊 Found existing data from pulseApp:', existingData);
+            }
+            
+            // If we have existing custom data, use it instead of loading sample data
+            if (existingData && existingData.nodes && existingData.links) {
+                console.log('✅ Using existing custom data, skipping sample data load');
+                // CRITICAL: Preserve existing colors before conversion
+                const existingColors = { ...flowData.metadata.colorPalette };
+                
+                flowData = convertSankeyDataToFlows(existingData);
+                
+                // CRITICAL: Restore colors after conversion
+                flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
+                
+                updateMetadataInputs();
+                renderFlowTable();
+                updateAllStats();
+                
+                // Handle tab switching based on URL parameter
+                if (urlParams.tab === 'data-builder') {
+                    currentMainTab = 'data-builder';
+                    setTimeout(() => switchMainTab('data-builder'), 100);
+                } else {
+                    currentMainTab = 'chart-view';
+                    console.log('📊 Staying on chart-view with existing data');
+                }
+                
+                console.log('✅ Flow Builder initialized with existing custom data');
+                isInitialized = true;
+                return;
+            }
+            
+            // Check for URL parameters (only if no existing data)
             
             if (urlParams.type) {
                 console.log(`🎯 Chart type specified in URL: ${urlParams.type}`);
@@ -771,61 +839,51 @@
                     renderFlowTable();
                     updateAllStats();
                     
-                    // Trigger chart update
-                    debouncedRealTimeUpdate();
+                    // CRITICAL: Update the chart data bridge with the new data
+                    const sankeyData = generateNodesAndLinksFromFlows();
+                    console.log(`📊 Setting ${urlParams.type} data in bridge:`, sankeyData);
+                    window.PulseDataBridge.setData(sankeyData, `chart-type-${urlParams.type}`);
                     
-                    // Switch to the requested tab
-                    if (urlParams.tab) {
-                        setTimeout(() => switchMainTab(urlParams.tab), 100);
+                    // Handle tab switching based on URL parameter
+                    if (urlParams.tab === 'data-builder') {
+                        // Only switch to data-builder if explicitly requested
+                        currentMainTab = 'data-builder';
+                        setTimeout(() => switchMainTab('data-builder'), 100);
+                    } else {
+                        // Explicitly stay on chart-view and prevent any tab switching
+                        currentMainTab = 'chart-view';
+                        console.log('📊 Staying on chart-view with loaded data');
+                        
+                        // Ensure chart-view tab stays active
+                        document.querySelectorAll('.main-tab').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        document.querySelector(`[onclick="switchMainTab('chart-view')"]`).classList.add('active');
+                        
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById('chart-view').classList.add('active');
+                        
+                        // Lock chart view to prevent automatic switching
+                        lockChartView = true;
+                        
+                        console.log('📊 Chart view explicitly activated and locked');
                     }
                     
                     console.log(`✅ Flow Builder initialized with ${urlParams.type} sample data`);
+                    isInitialized = true;
                     return;
                 }
             }
             
-            // Fallback to existing logic for backward compatibility
-            let data = null;
-            
-            if (window.PulseDataBridge && window.PulseDataBridge.currentData) {
-                data = window.PulseDataBridge.currentData;
-                console.log('📊 Found data from Data Bridge:', data);
-            } else if (window.pulseApp && window.pulseApp.getCurrentData()) {
-                data = window.pulseApp.getCurrentData();
-                console.log('📊 Found data from pulseApp:', data);
-                if (window.PulseDataBridge) {
-                    window.PulseDataBridge.currentData = data;
-                }
-            }
-            
-            if (data && data.nodes && data.links) {
-                console.log('✅ Successfully found data for Flow Builder');
-                
-                // CRITICAL: Preserve existing colors before conversion
-                const existingColors = { ...flowData.metadata.colorPalette };
-                
-                flowData = convertSankeyDataToFlows(data);
-                
-                // CRITICAL: Restore colors after conversion
-                flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
-                
-                updateMetadataInputs();
-                renderFlowTable();
-                updateAllStats();
-                
-                selectedChartType = 'income'; // Default assumption
-                
-                if (!window.PulseDataBridge.realTimeMode) {
-                    toggleRealTimeMode();
-                }
-                
-                console.log('✅ Flow Builder initialized with live data and preserved colors');
+            // No URL parameters and no existing data - redirect to chart type selector or show empty state  
+            console.log('⚠️ No data found and no chart type specified');
+            if (!urlParams.type) {
+                window.location.href = 'js/charts/sankey/sankey-type-selector.html';
             } else {
-                console.log('⚠️ No data found - Flow Builder ready for manual input');
-                // Redirect to chart type selector if no data and no URL params
-                if (!urlParams.type) {
-                    window.location.href = 'chart-type-selector.html';
-                }
+                console.log('📊 Flow Builder ready for manual input');
+                isInitialized = true; // Mark as initialized even with no data
             }
         }
 
@@ -1137,6 +1195,9 @@
                         <option value="profit">Profit</option>
                         <option value="income">Income</option>
                         <option value="tax">Tax</option>
+                        <option value="asset">Asset</option>
+                        <option value="liability">Liability</option>
+                        <option value="equity">Equity</option>
                     </select>
                 </td>
                 <td class="spreadsheet-cell" data-col="targetCategory" data-row="${index}" data-type="select">
@@ -1148,6 +1209,9 @@
                         <option value="profit">Profit</option>
                         <option value="income">Income</option>
                         <option value="tax">Tax</option>
+                        <option value="asset">Asset</option>
+                        <option value="liability">Liability</option>
+                        <option value="equity">Equity</option>
                     </select>
                 </td>
                 <td class="spreadsheet-cell" data-col="description" data-row="${index}" data-type="text">
@@ -1237,6 +1301,12 @@
                     flow.flowType = 'profit_flow';
                 } else if (flow.sourceCategory === 'cost' || flow.sourceCategory === 'expense') {
                     flow.flowType = 'expense_flow';
+                } else if (flow.sourceCategory === 'asset' || flow.targetCategory === 'asset') {
+                    flow.flowType = 'asset_flow';
+                } else if (flow.sourceCategory === 'liability' || flow.targetCategory === 'liability') {
+                    flow.flowType = 'liability_flow';
+                } else if (flow.sourceCategory === 'equity' || flow.targetCategory === 'equity') {
+                    flow.flowType = 'equity_flow';
                 } else {
                     flow.flowType = 'revenue_flow'; // default
                 }
@@ -1607,6 +1677,11 @@
 
             // Initialize spreadsheet functionality
             window.spreadsheetController = new SpreadsheetController();
+            
+            // CRITICAL: Initialize flow builder on page load to handle URL parameters
+            setTimeout(() => {
+                initializeFlowBuilder();
+            }, 200);
         });
 
         // ===== TEMPLATE DOWNLOAD FUNCTIONALITY =====
@@ -1652,8 +1727,8 @@
 
         function resetChart() {
             if (confirm('This will reset the chart and return to chart type selection. Continue?')) {
-                // Redirect to chart type selector
-                window.location.href = 'chart-type-selector.html';
+                // Redirect to sankey chart type selector
+                window.location.href = 'js/charts/sankey/sankey-type-selector.html';
             }
         }
 
