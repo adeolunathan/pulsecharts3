@@ -143,7 +143,7 @@
                     <div class="collapsible-header" onclick="toggleSection('flows')">
                         <h3 class="collapsible-title">
                             💰 Business Flows
-                            <span style="background: #e7f3ff; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Live Updates</span>
+                            <span style="background: #f0f0f0; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;">Live Updates</span>
                         </h3>
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
@@ -469,7 +469,6 @@
         let flowData = {
             metadata: {
                 title: "Financial Flow",
-                subtitle: "Current Data", 
                 currency: "USD",
                 unit: "millions",
                 company: "Your Company",
@@ -508,7 +507,6 @@
             return {
                 metadata: {
                     title: sankeyData.metadata?.title || "Financial Flow",
-                    subtitle: sankeyData.metadata?.subtitle || "Live Chart Data",
                     currency: sankeyData.metadata?.currency || "USD",
                     unit: sankeyData.metadata?.unit || "millions",
                     company: sankeyData.metadata?.company || "Your Company",
@@ -751,7 +749,6 @@
             
             flowData.metadata.company = "TechFlow Corporation";
             flowData.metadata.title = "TechFlow Financial Flow";
-            flowData.metadata.subtitle = "Multi-Layer Business Model";
             
             // CRITICAL: Restore colors
             flowData.metadata.colorPalette = existingColors;
@@ -1156,7 +1153,6 @@
             flowData.metadata.currency = document.getElementById('currency').value;
             flowData.metadata.unit = document.getElementById('units').value;
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
-            flowData.metadata.subtitle = `${flowData.metadata.period} Business Model`;
             
             debouncedRealTimeUpdate();
         }

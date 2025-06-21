@@ -80,7 +80,6 @@ class PulseDataManager {
             const simulatedData = {
                 metadata: {
                     title: "SaaS Company Financial Flow",
-                    subtitle: "Q3 2025 Financial Performance - LOADED FROM EXTERNAL FILE",
                     currency: "USD",
                     unit: "millions",
                     source: "data/samples/saas-company.json",
@@ -215,7 +214,6 @@ class PulseDataManager {
             metadata: {
                 ...incomeStatement.company_info,
                 title: `${incomeStatement.company_info?.name || 'Company'} Financial Flow`,
-                subtitle: `${incomeStatement.company_info?.period || 'Period'} - Transformed from Income Statement`,
                 source: 'Transformed from standard income statement format'
             },
             nodes,

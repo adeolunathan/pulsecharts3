@@ -165,47 +165,107 @@ class PulseSankeyChart {
             .style('top', '50%')
             .style('left', '50%')
             .style('transform', 'translate(-50%, -50%)')
+            .style('width', '160px')
             .style('background', 'white')
-            .style('padding', '20px')
-            .style('border-radius', '8px')
-            .style('box-shadow', '0 4px 20px rgba(0,0,0,0.3)')
+            .style('border-radius', '6px')
+            .style('box-shadow', '0 8px 32px rgba(0,0,0,0.12)')
             .style('z-index', '1000')
-            .style('display', 'none');
+            .style('display', 'none')
+            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
+            .style('padding', '8px')
+            .style('border', '1px solid rgba(0,0,0,0.08)');
 
-        // Add color picker content
-        this.colorPicker.append('h3')
-            .text('Select Color')
-            .style('margin-top', '0');
+        // Close button (absolute positioned to avoid interference)
+        this.colorPicker.append('button')
+            .text('×')
+            .style('position', 'absolute')
+            .style('top', '-8px')
+            .style('right', '-8px')
+            .style('width', '20px')
+            .style('height', '20px')
+            .style('background', 'white')
+            .style('border', '1px solid #ddd')
+            .style('border-radius', '50%')
+            .style('font-size', '12px')
+            .style('cursor', 'pointer')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('color', '#666')
+            .style('box-shadow', '0 2px 8px rgba(0,0,0,0.1)')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#f8f9fa');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', 'white');
+            })
+            .on('click', () => this.hideColorPicker());
 
+        // Native color picker
         const colorInput = this.colorPicker.append('input')
             .attr('type', 'color')
             .attr('id', 'color-picker-input')
             .style('width', '100%')
-            .style('height', '40px')
-            .style('margin', '10px 0');
-
-        const buttonContainer = this.colorPicker.append('div')
-            .style('text-align', 'right')
-            .style('margin-top', '15px');
-
-        buttonContainer.append('button')
-            .text('Cancel')
-            .style('margin-right', '10px')
-            .style('padding', '8px 15px')
-            .style('background', '#f5f5f5')
+            .style('height', '28px')
             .style('border', '1px solid #ddd')
-            .style('border-radius', '4px')
+            .style('border-radius', '3px')
             .style('cursor', 'pointer')
-            .on('click', () => this.hideColorPicker());
+            .style('margin-bottom', '8px');
 
-        buttonContainer.append('button')
+        const presetColors = [
+            '#3498db', '#27ae60', '#e67e22', 
+            '#e74c3c', '#9b59b6', '#34495e'
+        ];
+
+        // Horizontal preset row
+        const presetRow = this.colorPicker.append('div')
+            .style('display', 'flex')
+            .style('gap', '4px')
+            .style('margin-bottom', '8px');
+
+        presetColors.forEach(color => {
+            presetRow.append('div')
+                .style('width', '20px')
+                .style('height', '20px')
+                .style('background', color)
+                .style('border', '1px solid rgba(0,0,0,0.1)')
+                .style('border-radius', '2px')
+                .style('cursor', 'pointer')
+                .style('transition', 'all 0.15s ease')
+                .on('mouseover', function() {
+                    d3.select(this)
+                        .style('transform', 'scale(1.15)')
+                        .style('border-color', '#333');
+                })
+                .on('mouseout', function() {
+                    d3.select(this)
+                        .style('transform', 'scale(1)')
+                        .style('border-color', 'rgba(0,0,0,0.1)');
+                })
+                .on('click', () => {
+                    colorInput.property('value', color);
+                });
+        });
+
+        // Apply button
+        this.colorPicker.append('button')
             .text('Apply')
-            .style('padding', '8px 15px')
-            .style('background', '#667eea')
+            .style('width', '100%')
+            .style('padding', '6px')
+            .style('background', '#3498db')
             .style('color', 'white')
             .style('border', 'none')
-            .style('border-radius', '4px')
+            .style('border-radius', '3px')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
             .style('cursor', 'pointer')
+            .style('transition', 'background 0.15s ease')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#2980b9');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#3498db');
+            })
             .on('click', () => this.applySelectedColor());
     }
 
@@ -537,7 +597,10 @@ class PulseSankeyChart {
     processData(data) {
         const nodeMap = new Map();
         
+        // Store existing manual positioning info from current nodes AND metadata
         const existingManualPositions = new Map();
+        
+        // First, get from current nodes
         if (this.nodes) {
             this.nodes.forEach(node => {
                 if (node.manuallyPositioned) {
@@ -547,6 +610,14 @@ class PulseSankeyChart {
                         preserveLabelsAbove: node.preserveLabelsAbove
                     });
                 }
+            });
+        }
+        
+        // Then, restore from metadata (takes priority)
+        if (data.metadata && data.metadata.manualPositions) {
+            Object.entries(data.metadata.manualPositions).forEach(([nodeId, positionData]) => {
+                existingManualPositions.set(nodeId, positionData);
+                console.log(`🔄 Restored manual position for ${nodeId}: Y=${positionData.y}`);
             });
         }
         
@@ -1176,17 +1247,6 @@ class PulseSankeyChart {
             .attr('fill', '#1f2937')
             .attr('letter-spacing', '0.5px')
             .text(titleText);
-
-        if (this.data?.metadata?.subtitle) {
-            headerGroup.append('text')
-                .attr('x', this.config.width / 2)
-                .attr('y', 85)
-                .attr('text-anchor', 'middle')
-                .attr('font-size', '13px')
-                .attr('font-weight', '900')
-                .attr('fill', '#1f2937')
-                .text(this.data.metadata.subtitle);
-        }
     }
 
     renderBrandingFooter() {
@@ -1211,15 +1271,6 @@ class PulseSankeyChart {
             .attr('font-weight', '800')
             .attr('fill', '#667eea')
             .text('PULSE ANALYTICS');
-
-        footerGroup.append('text')
-            .attr('x', this.config.width / 2)
-            .attr('y', -25)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', '16px')
-            .attr('font-weight', '800')
-            .attr('fill', '#667eea')
-            .text('pulse-analytics.com');
 
         footerGroup.append('text')
             .attr('x', this.config.width - 20)
@@ -1385,6 +1436,9 @@ class PulseSankeyChart {
                 self.renderLinks();
                 
                 console.log(`📍 Node "${d.id}" repositioned to Y: ${d.y.toFixed(1)}`);
+                
+                // Save manual position to metadata for persistence
+                self.saveManualPositionToMetadata(d);
             });
 
         nodeGroups.call(drag);
@@ -2229,8 +2283,21 @@ class PulseSankeyChart {
     }
 
     /**
-     * Get all revenue segment nodes for control generation
+     * Save manual position to metadata for persistence across navigation
      */
+    saveManualPositionToMetadata(node) {
+        if (this.data && this.data.metadata) {
+            if (!this.data.metadata.manualPositions) {
+                this.data.metadata.manualPositions = {};
+            }
+            this.data.metadata.manualPositions[node.id] = {
+                manuallyPositioned: node.manuallyPositioned,
+                y: node.y,
+                preserveLabelsAbove: node.preserveLabelsAbove
+            };
+            console.log(`💾 Saved manual position for ${node.id}: Y=${node.y.toFixed(1)}`);
+        }
+    }
     getRevenueSegmentNodes() {
         return this.nodes.filter(node => this.isPreRevenueNode(node));
     }
@@ -2245,17 +2312,23 @@ class PulseSankeyChart {
     rerenderWithNewColors() {
         if (!this.chart) return;
         
+        // Update node colors
         this.chart.selectAll('.sankey-node rect')
             .transition()
             .duration(300)
             .attr('fill', d => this.statementType === 'balance' ? this.getHierarchicalColor(d.id) : this.getNodeColor(d))
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getNodeOpacity(d) : this.config.nodeOpacity);
         
+        // Update link colors
         this.chart.selectAll('.sankey-link path')
             .transition()
             .duration(300)
             .attr('fill', d => this.getLinkColor(d))
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getLinkOpacity(d) : this.config.linkOpacity);
+        
+        // Re-render labels with new colors (immediate update)
+        this.chart.selectAll('.node-label, .node-value').remove();
+        this.renderLabels();
         
         console.log('🔄 Re-rendered chart with new colors');
     }

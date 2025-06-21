@@ -535,7 +535,6 @@ window.DataProcessor = (function() {
     function processMetadata(metadata, values) {
         if (values.length >= 6) {
             metadata.title = values[0] || 'Financial Flow';
-            metadata.subtitle = values[1] || '';
             metadata.currency = values[2] || 'USD';
             metadata.unit = values[3] || 'millions';
             metadata.period = values[4] || '';

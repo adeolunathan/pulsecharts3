@@ -141,9 +141,9 @@ class SankeyControlModule {
                         type: "slider", 
                         label: "Node Height Scale", 
                         min: 0, 
-                        max: 1.0, 
-                        default: 0.03, 
-                        step: 0.005, 
+                        max: 0.1, 
+                        default: 0.05, 
+                        step: 0.001, 
                         description: "Scale factor for node heights" 
                     },
                     { 
@@ -170,7 +170,7 @@ class SankeyControlModule {
                         label: "Node Opacity", 
                         min: 0.5, 
                         max: 1.0, 
-                        default: 1.0, 
+                        default: 0.6, 
                         step: 0.05, 
                         description: "Transparency of node rectangles" 
                     },
