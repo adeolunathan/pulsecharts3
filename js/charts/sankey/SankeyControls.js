@@ -358,6 +358,40 @@ class SankeyControlModule {
             });
         });
         
+        // Add individual node controls for pre-revenue segments (income statements only)
+        if (this.statementType !== 'balance' && chart) {
+            const preRevenueNodes = chart.getPreRevenueNodes();
+            
+            if (preRevenueNodes.length > 0) {
+                // Add section header
+                controls.push({
+                    id: "revenueSegmentHeader",
+                    type: "header",
+                    label: "Revenue Segment Colors",
+                    description: "Individual colors for revenue segments"
+                });
+                
+                preRevenueNodes.forEach(node => {
+                    const currentColor = chart.customColors && chart.customColors[node.id] 
+                        ? chart.customColors[node.id] 
+                        : chart.getNodeColor(node);
+                    
+                    const controlId = `node_${node.id.replace(/[^a-zA-Z0-9]/g, '_')}_color`;
+                    
+                    controls.push({
+                        id: controlId,
+                        type: "color",
+                        label: node.id,
+                        default: currentColor,
+                        description: `Individual color for ${node.id}`,
+                        nodeId: node.id,
+                        isNodeColor: true,
+                        isDynamic: true
+                    });
+                });
+            }
+        }
+        
         return controls;
     }
 
@@ -505,6 +539,19 @@ class SankeyControlModule {
      */
     handleControlChange(controlId, value, chart) {
         console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
+
+        // Handle individual node color controls
+        if (controlId.startsWith('node_') && controlId.endsWith('_color')) {
+            // Extract node ID from control ID (node_nodeId_color)
+            const nodeId = controlId.replace('node_', '').replace('_color', '').replace(/_/g, ' ');
+            
+            // Find the actual node to get its exact ID
+            const node = chart.nodes.find(n => n.id.replace(/[^a-zA-Z0-9]/g, '_') === controlId.replace('node_', '').replace('_color', ''));
+            if (node) {
+                this.updateChartNodeColor(chart, node.id, value);
+                return;
+            }
+        }
 
         // Handle color controls with statement awareness
         if (controlId.endsWith('Color')) {
@@ -696,6 +743,44 @@ class SankeyControlModule {
         } else if (chart.data) {
             // For income statements, just re-render
             chart.render(chart.data);
+        }
+    }
+
+    /**
+     * Update individual node color for pre-revenue segments
+     */
+    updateChartNodeColor(chart, nodeId, color) {
+        console.log(`🎨 Updating node ${nodeId} color to ${color}`);
+        
+        if (!chart.customColors) {
+            chart.customColors = {};
+        }
+        
+        chart.customColors[nodeId] = color;
+        
+        // Update chart data metadata
+        if (chart.data && chart.data.metadata) {
+            if (!chart.data.metadata.colorPalette) {
+                chart.data.metadata.colorPalette = {};
+            }
+            chart.data.metadata.colorPalette[nodeId] = color;
+        }
+        
+        // Re-render with new colors
+        if (chart.chart) {
+            // Update specific node
+            chart.chart.selectAll('.sankey-node rect')
+                .filter(d => d.id === nodeId)
+                .transition()
+                .duration(200)
+                .attr('fill', color);
+                
+            // Update links from this node (for source-based coloring)
+            chart.chart.selectAll('.sankey-link path')
+                .filter(d => d.source.id === nodeId && chart.isPreRevenueNode(d.source))
+                .transition()
+                .duration(200)
+                .attr('fill', chart.lightenColor(color, 15));
         }
     }
 

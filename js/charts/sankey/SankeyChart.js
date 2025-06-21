@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - COMPLETE WITH ALL FIXES ===== */
-/* Enhanced with drag behavior, manual positioning, and opacity fixes */
+/* ===== PULSE SANKEY CHART - ENHANCED WITH REVENUE SEGMENT COLOR CONTROL ===== */
+/* Added independent color control for revenue segments and click-to-select colors */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -14,14 +14,21 @@ class PulseSankeyChart {
         
         // Custom color storage
         this.customColors = {};
+        this.revenueSegmentColors = new Map(); // Individual colors for revenue segments
+        
+        // Revenue hub detection
+        this.revenueHubNode = null;
+        this.revenueHubLayer = null;
+        
+        // Color picker state
+        this.isColorPickerActive = false;
+        this.selectedElement = null;
         
         // Balance sheet specific properties
-        this.statementType = 'income'; // 'income' or 'balance'
-        this.colorGroups = new Map(); // For balance sheet hierarchy
+        this.statementType = 'income';
+        this.colorGroups = new Map();
         
-        // Initialize with proper defaults including group spacing
         this.config = this.getInitialConfig();
-        
         this.initializeChart();
     }
 
@@ -135,6 +142,7 @@ class PulseSankeyChart {
             .attr('transform', `translate(${this.config.margin.left}, ${this.config.margin.top})`);
 
         this.createTooltip();
+        this.initializeColorPicker();
     }
 
     createTooltip() {
@@ -145,21 +153,254 @@ class PulseSankeyChart {
             .attr('class', 'pulse-sankey-tooltip');
     }
 
+    initializeColorPicker() {
+        // Remove existing color picker
+        d3.select('.color-picker-modal').remove();
+        
+        // Create color picker modal
+        this.colorPicker = d3.select('body')
+            .append('div')
+            .attr('class', 'color-picker-modal')
+            .style('position', 'fixed')
+            .style('top', '50%')
+            .style('left', '50%')
+            .style('transform', 'translate(-50%, -50%)')
+            .style('background', 'white')
+            .style('padding', '20px')
+            .style('border-radius', '8px')
+            .style('box-shadow', '0 4px 20px rgba(0,0,0,0.3)')
+            .style('z-index', '1000')
+            .style('display', 'none');
+
+        // Add color picker content
+        this.colorPicker.append('h3')
+            .text('Select Color')
+            .style('margin-top', '0');
+
+        const colorInput = this.colorPicker.append('input')
+            .attr('type', 'color')
+            .attr('id', 'color-picker-input')
+            .style('width', '100%')
+            .style('height', '40px')
+            .style('margin', '10px 0');
+
+        const buttonContainer = this.colorPicker.append('div')
+            .style('text-align', 'right')
+            .style('margin-top', '15px');
+
+        buttonContainer.append('button')
+            .text('Cancel')
+            .style('margin-right', '10px')
+            .style('padding', '8px 15px')
+            .style('background', '#f5f5f5')
+            .style('border', '1px solid #ddd')
+            .style('border-radius', '4px')
+            .style('cursor', 'pointer')
+            .on('click', () => this.hideColorPicker());
+
+        buttonContainer.append('button')
+            .text('Apply')
+            .style('padding', '8px 15px')
+            .style('background', '#667eea')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '4px')
+            .style('cursor', 'pointer')
+            .on('click', () => this.applySelectedColor());
+    }
+
+    showColorPicker(element, currentColor) {
+        this.selectedElement = element;
+        this.isColorPickerActive = true;
+        
+        this.colorPicker.select('#color-picker-input')
+            .property('value', currentColor || '#3498db');
+        
+        this.colorPicker.style('display', 'block');
+    }
+
+    hideColorPicker() {
+        this.isColorPickerActive = false;
+        this.selectedElement = null;
+        this.colorPicker.style('display', 'none');
+    }
+
+    applySelectedColor() {
+        if (!this.selectedElement) return;
+        
+        const newColor = this.colorPicker.select('#color-picker-input').property('value');
+        const elementData = d3.select(this.selectedElement).datum();
+        
+        if (elementData.id) {
+            // Node color update
+            this.updateNodeColor(elementData, newColor);
+        } else if (elementData.source && elementData.target) {
+            // Link color update (if needed)
+            this.updateLinkColor(elementData, newColor);
+        }
+        
+        this.hideColorPicker();
+    }
+
+    updateNodeColor(node, color) {
+        console.log(`🎨 Updating node ${node.id} color to ${color} (${this.statementType} statement)`);
+        
+        if (this.statementType === 'balance') {
+            // For balance sheets, update the appropriate group color
+            const colorGroup = this.colorGroups.get(node.id);
+            if (colorGroup && colorGroup.groupName) {
+                this.customColors[colorGroup.groupName] = color;
+                console.log(`🎯 Set balance sheet group color: ${colorGroup.groupName} → ${color}`);
+                
+                // Update metadata
+                if (this.data && this.data.metadata) {
+                    if (!this.data.metadata.colorPalette) {
+                        this.data.metadata.colorPalette = {};
+                    }
+                    this.data.metadata.colorPalette[colorGroup.groupName] = color;
+                }
+                
+                // Reassign color groups and re-render
+                this.assignColorGroups();
+                this.rerenderWithNewColors();
+                return;
+            }
+        }
+        
+        // Income statement logic
+        if (this.isPreRevenueNode(node)) {
+            // Individual revenue segment color
+            this.revenueSegmentColors.set(node.id, color);
+            console.log(`🎯 Set revenue segment color: ${node.id} → ${color}`);
+            
+            // Update metadata for revenue segments
+            if (this.data && this.data.metadata) {
+                if (!this.data.metadata.revenueSegmentColors) {
+                    this.data.metadata.revenueSegmentColors = {};
+                }
+                this.data.metadata.revenueSegmentColors[node.id] = color;
+            }
+        } else {
+            // Category-based color for post-revenue nodes
+            let effectiveCategory = node.category;
+            if (node.category === 'tax') {
+                effectiveCategory = 'expense';
+            }
+            
+            this.customColors[effectiveCategory] = color;
+            console.log(`🎯 Set category color: ${effectiveCategory} → ${color}`);
+            
+            // Handle tax as expense alias
+            if (effectiveCategory === 'expense') {
+                this.customColors['tax'] = color;
+            }
+            
+            // Update metadata for categories
+            if (this.data && this.data.metadata) {
+                if (!this.data.metadata.colorPalette) {
+                    this.data.metadata.colorPalette = {};
+                }
+                this.data.metadata.colorPalette[effectiveCategory] = color;
+                if (effectiveCategory === 'expense') {
+                    this.data.metadata.colorPalette['tax'] = color;
+                }
+            }
+        }
+        
+        // Re-render with new colors
+        this.rerenderWithNewColors();
+        
+        // Trigger control panel update if available
+        if (window.controlPanel && window.controlPanel.refreshDynamicControls) {
+            window.controlPanel.refreshDynamicControls();
+        }
+    }
+
+    updateLinkColor(link, color) {
+        console.log(`🔗 Updating link color: ${link.source.id} → ${link.target.id} = ${color} (${this.statementType} statement)`);
+        
+        if (this.statementType === 'balance') {
+            // For balance sheets, determine which group to update based on link direction
+            const isToTotalAssets = link.target.id.toLowerCase().includes('total assets');
+            const isFromTotalAssets = link.source.id.toLowerCase().includes('total assets');
+            
+            let targetNode = isToTotalAssets ? link.source : link.target;
+            const colorGroup = this.colorGroups.get(targetNode.id);
+            
+            if (colorGroup && colorGroup.groupName) {
+                this.customColors[colorGroup.groupName] = color;
+                console.log(`🎯 Set balance sheet group color via link: ${colorGroup.groupName} → ${color}`);
+                
+                // Update metadata
+                if (this.data && this.data.metadata) {
+                    if (!this.data.metadata.colorPalette) {
+                        this.data.metadata.colorPalette = {};
+                    }
+                    this.data.metadata.colorPalette[colorGroup.groupName] = color;
+                }
+                
+                // Reassign color groups and re-render
+                this.assignColorGroups();
+                this.rerenderWithNewColors();
+                return;
+            }
+        }
+        
+        // Income statement logic
+        if (this.isPreRevenueLink(link)) {
+            // For pre-revenue links, update the source node's individual color
+            this.revenueSegmentColors.set(link.source.id, color);
+            console.log(`🎯 Set revenue segment color via link: ${link.source.id} → ${color}`);
+            
+            // Update metadata
+            if (this.data && this.data.metadata) {
+                if (!this.data.metadata.revenueSegmentColors) {
+                    this.data.metadata.revenueSegmentColors = {};
+                }
+                this.data.metadata.revenueSegmentColors[link.source.id] = color;
+            }
+        } else {
+            // For post-revenue links, update target category color
+            let effectiveCategory = link.target.category;
+            if (link.target.category === 'tax') {
+                effectiveCategory = 'expense';
+            }
+            
+            this.customColors[effectiveCategory] = color;
+            console.log(`🎯 Set category color via link: ${effectiveCategory} → ${color}`);
+            
+            // Handle tax as expense alias
+            if (effectiveCategory === 'expense') {
+                this.customColors['tax'] = color;
+            }
+            
+            // Update metadata
+            if (this.data && this.data.metadata) {
+                if (!this.data.metadata.colorPalette) {
+                    this.data.metadata.colorPalette = {};
+                }
+                this.data.metadata.colorPalette[effectiveCategory] = color;
+                if (effectiveCategory === 'expense') {
+                    this.data.metadata.colorPalette['tax'] = color;
+                }
+            }
+        }
+        
+        this.rerenderWithNewColors();
+    }
+
     render(data) {
         this.data = data;
         
-        // Detect statement type from data
         this.detectStatementType(data);
-        
-        // Auto-detect and apply colors from metadata
         this.detectAndApplyColors(data);
         
-        // For balance sheets, assign color groups
         if (this.statementType === 'balance') {
             this.assignColorGroups();
         }
         
         this.processData(data);
+        this.detectRevenueHub(); // NEW: Detect revenue hub
         this.calculateLayout();
         
         this.chart.selectAll('*').remove();
@@ -176,9 +417,97 @@ class PulseSankeyChart {
     }
 
     /**
-     * Detect and apply colors from metadata
+     * NEW: Detect the revenue hub node and its layer position
      */
+    detectRevenueHub() {
+        // Strategy 1: Look for nodes with "total revenue" or similar
+        let revenueHub = this.nodes.find(node => {
+            const idLower = node.id.toLowerCase();
+            return idLower.includes('total revenue') || 
+                   idLower.includes('revenue hub') ||
+                   idLower.includes('net revenue') ||
+                   (idLower === 'revenue' && node.targetLinks.length > 3);
+        });
+
+        // Strategy 2: Find revenue category node with multiple inflows
+        if (!revenueHub) {
+            const revenueNodes = this.nodes.filter(node => 
+                node.category === 'revenue' && node.targetLinks.length > 1
+            );
+            
+            if (revenueNodes.length > 0) {
+                // Choose the one with most inflows or highest value
+                revenueHub = revenueNodes.reduce((max, node) => 
+                    (node.targetLinks.length > max.targetLinks.length || 
+                     (node.targetLinks.length === max.targetLinks.length && node.value > max.value)) ? node : max
+                );
+            }
+        }
+
+        // Strategy 3: Find middle-layer revenue node
+        if (!revenueHub) {
+            const depths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+            const middleDepth = depths[Math.floor(depths.length / 2)];
+            
+            revenueHub = this.nodes.find(node => 
+                node.depth === middleDepth && 
+                node.category === 'revenue'
+            );
+        }
+
+        if (revenueHub) {
+            this.revenueHubNode = revenueHub;
+            this.revenueHubLayer = revenueHub.depth;
+            console.log(`💰 Revenue hub detected: ${revenueHub.id} at layer ${this.revenueHubLayer}`);
+        } else {
+            // Fallback: assume layer 1 is revenue hub layer
+            this.revenueHubLayer = 1;
+            console.log(`💰 Revenue hub layer defaulted to: ${this.revenueHubLayer}`);
+        }
+    }
+
+    /**
+     * NEW: Check if a node is in the pre-revenue segment
+     */
+    isPreRevenueNode(node) {
+        if (!node || this.revenueHubLayer === null) return false;
+        
+        // Nodes to the left of or in layers before the revenue hub
+        return node.depth < this.revenueHubLayer;
+    }
+
+    /**
+     * NEW: Check if a link is a pre-revenue link (should use source coloring)
+     */
+    isPreRevenueLink(link) {
+        if (!link || this.revenueHubLayer === null) return false;
+        
+        // Links where both source and target are before revenue hub
+        // OR links flowing INTO the revenue hub from pre-revenue segments
+        return (link.source.depth < this.revenueHubLayer) ||
+               (link.source.depth < this.revenueHubLayer && link.target.depth <= this.revenueHubLayer);
+    }
+
     detectAndApplyColors(data) {
+        // Preserve existing revenue segment colors before applying new colors
+        const existingSegmentColors = new Map(this.revenueSegmentColors);
+        
+        // Apply revenue segment colors from metadata
+        if (data.metadata && data.metadata.revenueSegmentColors) {
+            console.log('🎨 Applying revenue segment colors from metadata:', data.metadata.revenueSegmentColors);
+            Object.entries(data.metadata.revenueSegmentColors).forEach(([nodeId, color]) => {
+                this.revenueSegmentColors.set(nodeId, color);
+            });
+        }
+        
+        // Restore any existing segment colors that weren't in metadata
+        existingSegmentColors.forEach((color, nodeId) => {
+            if (!this.revenueSegmentColors.has(nodeId)) {
+                this.revenueSegmentColors.set(nodeId, color);
+                console.log(`🔒 Preserved existing segment color: ${nodeId} → ${color}`);
+            }
+        });
+
         if (data.metadata && data.metadata.colorPalette) {
             console.log('🎨 Detected color palette from metadata:', data.metadata.colorPalette);
             this.customColors = { ...data.metadata.colorPalette };
@@ -189,19 +518,17 @@ class PulseSankeyChart {
             
             console.log('✅ Applied colors from metadata:', this.customColors);
         } else if (Object.keys(this.customColors).length === 0) {
-            // Initialize default colors based on statement type
             if (this.statementType === 'balance') {
                 this.customColors = {
-                    'Total Assets': '#000000',           // Black for Total Assets
-                    'Current Assets': '#3498DB',         // Blue
-                    'Non-Current Assets': '#9B59B6',     // Purple
-                    'Current Liabilities': '#E74C3C',    // Red
-                    'Non-Current Liabilities': '#C0392B', // Dark red
-                    'Shareholders Equity': '#27AE60'     // Green
+                    'Total Assets': '#000000',
+                    'Current Assets': '#3498DB',
+                    'Non-Current Assets': '#9B59B6',
+                    'Current Liabilities': '#E74C3C',
+                    'Non-Current Liabilities': '#C0392B',
+                    'Shareholders Equity': '#27AE60'
                 };
                 console.log('🎨 Applied default balance sheet colors:', this.customColors);
             } else {
-                // Income statement defaults (if needed)
                 console.log('🎨 Using default income statement color scheme');
             }
         }
@@ -210,7 +537,6 @@ class PulseSankeyChart {
     processData(data) {
         const nodeMap = new Map();
         
-        // Store existing manual positioning info
         const existingManualPositions = new Map();
         if (this.nodes) {
             this.nodes.forEach(node => {
@@ -264,11 +590,7 @@ class PulseSankeyChart {
         this.calculateFinancialMetrics();
     }
 
-    /**
-     * Calculate proper financial metrics and percentages
-     */
     calculateFinancialMetrics() {
-        // Find total revenue for percentage calculations
         const totalRevenueNode = this.nodes.find(n => 
             n.id === 'Total Revenue' || 
             n.category === 'revenue' && n.depth === 1
@@ -276,16 +598,13 @@ class PulseSankeyChart {
         
         const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
         
-        // Calculate percentages and margins for each node
         this.nodes.forEach(node => {
-            // Calculate percentage of revenue
             if (totalRevenue > 0) {
                 node.percentageOfRevenue = (node.value / totalRevenue) * 100;
             } else {
                 node.percentageOfRevenue = 0;
             }
             
-            // Calculate specific margins for profit items
             if (node.category === 'profit') {
                 if (node.id.toLowerCase().includes('gross')) {
                     node.marginType = 'Gross Margin';
@@ -299,7 +618,6 @@ class PulseSankeyChart {
                 }
             }
             
-            // Mark expense and cost items for bracket formatting
             node.isExpenseType = node.category === 'expense';
         });
         
@@ -320,7 +638,6 @@ class PulseSankeyChart {
             .domain([0, maxDepth])
             .range([0, dimensions.width - this.config.nodeWidth]);
 
-        // Always calculate X positions from depth
         this.nodes.forEach(node => {
             node.x = xScale(node.depth);
         });
@@ -334,19 +651,15 @@ class PulseSankeyChart {
             this.positionNodesAtDepth(nodesAtDepth, dimensions.height, maxDepth);
         });
 
-        // Apply saved manual positions after automatic positioning
         this.applyManualPositions();
-
         this.minimizeCrossings();
         this.calculateLinkPositions();
     }
 
-    // Apply saved manual positions after automatic positioning
     applyManualPositions() {
         this.nodes.forEach(node => {
             if (node.manuallyPositioned && node.manualY !== null) {
                 node.y = node.manualY;
-                // Force preserve layerIndex to maintain label positioning
                 if (node.preserveLabelsAbove !== null) {
                     node.originalLayerIndex = node.preserveLabelsAbove ? 0 : 1;
                 }
@@ -354,9 +667,6 @@ class PulseSankeyChart {
         });
     }
 
-    /**
-     * Enhanced node positioning with group spacing - respects manual positions
-     */
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
         const groupedNodes = this.groupAndSortNodes(nodes);
         const depth = nodes[0]?.depth ?? 0;
@@ -374,22 +684,16 @@ class PulseSankeyChart {
             layerPadding = this.config.nodePadding * this.config.middleSpacing;
         }
 
-        // Apply group spacing for leftmost and rightmost layers with multiple groups
         if ((isLeftmost || isRightmost) && groupedNodes.length > 1) {
             this.positionNodesWithGroupSpacing(groupedNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
         } else {
-            // Standard positioning for all layers - respects manual positions
             this.positionNodesStandard(groupedNodes, availableHeight, layerPadding);
         }
     }
 
-    /**
-     * Position nodes with group-to-group spacing
-     */
     positionNodesWithGroupSpacing(nodes, availableHeight, basePadding, isLeftmost, isRightmost) {
         console.log(`🔧 Applying group spacing for ${isLeftmost ? 'leftmost' : 'rightmost'} layer`);
         
-        // Separate manual and automatic nodes
         const manualNodes = nodes.filter(node => node.manuallyPositioned);
         const autoNodes = nodes.filter(node => !node.manuallyPositioned);
         
@@ -398,62 +702,50 @@ class PulseSankeyChart {
             return; 
         }
         
-        // Detect distinct groups based on naming patterns and existing group property
         const groups = this.detectNodeGroups(autoNodes);
         console.log(`📊 Detected ${groups.length} groups:`, groups.map(g => `${g.name} (${g.nodes.length} nodes)`));
         
-        // Calculate total height requirements for auto nodes only
         const totalNodeHeight = autoNodes.reduce((sum, node) => sum + node.height, 0);
         const totalBasePadding = basePadding * (autoNodes.length - 1);
         
-        // Get group gap setting
         const groupGap = isLeftmost ? this.config.leftmostGroupGap : this.config.rightmostGroupGap;
         const totalGroupGaps = groupGap * (groups.length - 1);
         
         const totalRequired = totalNodeHeight + totalBasePadding + totalGroupGaps;
         
-        // Start positioning
         const startY = Math.max(20, (availableHeight - totalRequired) / 2);
         let currentY = startY;
         
         groups.forEach((group, groupIndex) => {
             console.log(`📍 Positioning group "${group.name}" at Y: ${currentY}`);
             
-            // Position nodes within this group
             group.nodes.forEach((node, nodeIndex) => {
                 node.y = currentY;
-                node.layerIndex = groupIndex * 100 + nodeIndex; // Ensure group separation in sorting
+                node.layerIndex = groupIndex * 100 + nodeIndex;
                 currentY += node.height;
                 
-                // Add base padding between nodes within the group (but not after last node in group)
                 if (nodeIndex < group.nodes.length - 1) {
                     currentY += basePadding;
                 }
             });
             
-            // Add group gap after this group (but not after the last group)
             if (groupIndex < groups.length - 1) {
                 currentY += groupGap;
                 console.log(`📏 Added ${groupGap}px group gap after "${group.name}"`);
             }
         });
         
-        // Preserve manual node layer indices
         manualNodes.forEach((node, index) => {
-            node.layerIndex = 1000 + index; // High layer index to keep them separate
+            node.layerIndex = 1000 + index;
         });
         
         console.log(`✅ Group spacing applied. Total height used: ${currentY - startY}px`);
     }
 
-    /**
-     * Detect distinct groups within a layer based on naming patterns and properties
-     */
     detectNodeGroups(nodes) {
         const groups = [];
         const processedNodes = new Set();
         
-        // First, group by explicit 'group' property if it exists
         const explicitGroups = new Map();
         nodes.forEach(node => {
             if (node.group && !processedNodes.has(node.id)) {
@@ -465,7 +757,6 @@ class PulseSankeyChart {
             }
         });
         
-        // Add explicit groups
         explicitGroups.forEach((groupNodes, groupName) => {
             groups.push({
                 name: groupName,
@@ -473,7 +764,6 @@ class PulseSankeyChart {
             });
         });
         
-        // Then, detect groups by naming patterns for remaining nodes
         const remainingNodes = nodes.filter(node => !processedNodes.has(node.id));
         
         if (remainingNodes.length > 0) {
@@ -485,7 +775,6 @@ class PulseSankeyChart {
             });
         }
         
-        // Add any remaining ungrouped nodes as individual groups
         const ungroupedNodes = nodes.filter(node => !processedNodes.has(node.id));
         ungroupedNodes.forEach(node => {
             groups.push({
@@ -497,14 +786,10 @@ class PulseSankeyChart {
         return groups;
     }
 
-    /**
-     * Detect groups based on naming patterns (e.g., "mercado" prefix)
-     */
     detectPatternGroups(nodes) {
         const groups = [];
         const processedNodes = new Set();
         
-        // Look for common prefixes (e.g., "mercado")
         const prefixGroups = new Map();
         
         nodes.forEach(node => {
@@ -513,8 +798,7 @@ class PulseSankeyChart {
             const words = node.id.toLowerCase().split(/[\s\-_]+/);
             const firstWord = words[0];
             
-            // Only group if the first word appears in multiple nodes
-            if (firstWord.length > 3) { // Ignore very short words
+            if (firstWord.length > 3) {
                 const samePrefix = nodes.filter(n => 
                     !processedNodes.has(n.id) && 
                     n.id.toLowerCase().startsWith(firstWord)
@@ -528,7 +812,6 @@ class PulseSankeyChart {
             }
         });
         
-        // Convert prefix groups to standard format
         prefixGroups.forEach((groupNodes, groupName) => {
             groups.push({
                 name: groupName,
@@ -536,7 +819,6 @@ class PulseSankeyChart {
             });
         });
         
-        // Group remaining nodes by category if they're similar
         const remainingNodes = nodes.filter(node => !processedNodes.has(node.id));
         
         if (remainingNodes.length > 1) {
@@ -550,7 +832,6 @@ class PulseSankeyChart {
                 categoryGroups.get(category).push(node);
             });
             
-            // Only create category groups if there are multiple nodes in the category
             categoryGroups.forEach((groupNodes, category) => {
                 if (groupNodes.length > 1) {
                     groups.push({
@@ -565,15 +846,11 @@ class PulseSankeyChart {
         return groups;
     }
 
-    /**
-     * Standard positioning for layers without group spacing
-     */
     positionNodesStandard(nodes, availableHeight, layerPadding) {
-        // Skip manually positioned nodes
         const nodesToPosition = nodes.filter(node => !node.manuallyPositioned);
         const manualNodes = nodes.filter(node => node.manuallyPositioned);
         
-        if (nodesToPosition.length === 0) return; // All nodes manually positioned
+        if (nodesToPosition.length === 0) return;
         
         const totalHeight = d3.sum(nodesToPosition, d => d.height);
         const totalPadding = layerPadding * (nodesToPosition.length - 1);
@@ -588,7 +865,6 @@ class PulseSankeyChart {
             currentY += node.height + layerPadding;
         });
         
-        // Preserve manual node layer indices
         manualNodes.forEach((node, index) => {
             node.layerIndex = nodesToPosition.length + index;
         });
@@ -654,7 +930,6 @@ class PulseSankeyChart {
     recalculateYPositions(nodes) {
         if (nodes.length === 0) return;
         
-        // Skip recalculation if all nodes are manually positioned
         const manualNodes = nodes.filter(node => node.manuallyPositioned);
         const autoNodes = nodes.filter(node => !node.manuallyPositioned);
         
@@ -679,7 +954,6 @@ class PulseSankeyChart {
         
         const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
         
-        // Re-apply group spacing if this is leftmost or rightmost layer
         if ((isLeftmost || isRightmost) && autoNodes.length > 1) {
             const groups = this.detectNodeGroups(autoNodes);
             if (groups.length > 1) {
@@ -688,7 +962,6 @@ class PulseSankeyChart {
             }
         }
         
-        // Standard repositioning for auto nodes only
         const totalHeight = d3.sum(autoNodes, d => d.height);
         const totalPadding = layerPadding * (autoNodes.length - 1);
         const totalRequired = totalHeight + totalPadding;
@@ -702,7 +975,6 @@ class PulseSankeyChart {
             currentY += node.height + layerPadding;
         });
         
-        // Preserve manual node layer indices
         manualNodes.forEach((node, index) => {
             node.layerIndex = autoNodes.length + index;
         });
@@ -1004,6 +1276,18 @@ class PulseSankeyChart {
                 d3.select(event.currentTarget)
                     .attr('fill-opacity', this.config.linkOpacity);
                 this.hideTooltip();
+            })
+            .on('click', (event, d) => {
+                event.stopPropagation();
+                if (this.isPreRevenueLink(d)) {
+                    const currentColor = this.getLinkColor(d);
+                    this.showColorPicker(event.currentTarget, currentColor);
+                }
+            })
+            .on('dblclick', (event, d) => {
+                event.stopPropagation();
+                const currentColor = this.getLinkColor(d);
+                this.showColorPicker(event.currentTarget, currentColor);
             });
     }
 
@@ -1041,9 +1325,13 @@ class PulseSankeyChart {
                         .style('transform', 'scale(1)');
                     this.hideTooltip();
                 }
+            })
+            .on('dblclick', (event, d) => {
+                event.stopPropagation();
+                const currentColor = this.getNodeColor(d);
+                this.showColorPicker(event.currentTarget, currentColor);
             });
 
-        // Add drag behavior
         this.addDragBehavior(nodeGroups);
     }
 
@@ -1056,9 +1344,7 @@ class PulseSankeyChart {
                 self.isDragging = true;
                 self.hideTooltip();
                 
-                // Mark node as manually positioned and preserve label positioning
                 d.manuallyPositioned = true;
-                // Store EXACT label positioning based on current layer position and depth
                 const maxDepth = Math.max(...self.nodes.map(n => n.depth));
                 const isMiddle = d.depth !== 0 && d.depth !== maxDepth;
                 d.preserveLabelsAbove = isMiddle ? (d.layerIndex === 0) : null;
@@ -1104,9 +1390,7 @@ class PulseSankeyChart {
         nodeGroups.call(drag);
     }
 
-    // Recalculate link positions for a single node during drag
     recalculateSingleNodeLinkPositions(node) {
-        // Recalculate source links (outgoing from this node)
         if (node.sourceLinks.length > 0) {
             const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
@@ -1121,7 +1405,6 @@ class PulseSankeyChart {
             });
         }
         
-        // Recalculate target links (incoming to this node)
         if (node.targetLinks.length > 0) {
             const totalInflow = d3.sum(node.targetLinks, d => d.value);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
@@ -1138,10 +1421,8 @@ class PulseSankeyChart {
     }
 
     updateNodeLinks(draggedNode) {
-        // Recalculate link positions for real-time updates
         this.recalculateSingleNodeLinkPositions(draggedNode);
         
-        // Update source links
         draggedNode.sourceLinks.forEach(link => {
             link.path = this.createSmoothPath(link);
             
@@ -1150,7 +1431,6 @@ class PulseSankeyChart {
                 .attr('d', link.path);
         });
 
-        // Update target links  
         draggedNode.targetLinks.forEach(link => {
             link.path = this.createSmoothPath(link);
             
@@ -1165,7 +1445,6 @@ class PulseSankeyChart {
             .attr('class', 'drag-hint')
             .style('pointer-events', 'none');
 
-        // Vertical guide line
         const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
         
         this.dragHint.append('line')
@@ -1178,7 +1457,6 @@ class PulseSankeyChart {
             .attr('stroke-dasharray', '5,5')
             .attr('opacity', 0.5);
 
-        // Position indicator
         this.dragHint.append('text')
             .attr('class', 'drag-position')
             .attr('x', node.x + this.config.nodeWidth + 10)
@@ -1306,13 +1584,10 @@ class PulseSankeyChart {
         const wrappedText = this.wrapText(node.id, 18);
         const nodeColor = this.getNodeColor(node);
         
-        // More robust label positioning for manually positioned nodes
         let isTopNode;
         if (node.manuallyPositioned) {
-            // Always use preserved preference for manually positioned nodes
             isTopNode = node.preserveLabelsAbove === true;
         } else {
-            // Use layerIndex for automatically positioned nodes
             isTopNode = node.layerIndex === 0;
         }
         
@@ -1416,9 +1691,6 @@ class PulseSankeyChart {
         return lines;
     }
 
-    /**
-     * Format currency with proper brackets for expenses and percentages/margins
-     */
     formatCurrency(value, node) {
         const currency = this.data?.metadata?.currency || 'USD';
         const unit = this.data?.metadata?.unit || 'millions';
@@ -1479,12 +1751,10 @@ class PulseSankeyChart {
                 }
         }
         
-        // Add brackets for expenses and costs
         if (node && node.isExpenseType) {
             formattedValue = `(${formattedValue})`;
         }
         
-        // Add percentage/margin display for relevant nodes
         if (node) {
             if (node.marginType && node.marginValue) {
                 formattedValue += ` | ${node.marginValue.toFixed(1)}%`;
@@ -1498,9 +1768,14 @@ class PulseSankeyChart {
     }
 
     /**
-     * Get node color with custom color support
+     * ENHANCED: Get node color with revenue segment support
      */
     getNodeColor(node) {
+        // Check for individual revenue segment color first
+        if (this.isPreRevenueNode(node) && this.revenueSegmentColors.has(node.id)) {
+            return this.revenueSegmentColors.get(node.id);
+        }
+        
         let effectiveCategory = node.category;
         if (node.category === 'tax') {
             effectiveCategory = 'expense';
@@ -1519,7 +1794,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * Get link color based on TARGET node category
+     * ENHANCED: Get link color with revenue segment logic
      */
     getLinkColor(link) {
         if (this.statementType === 'balance') {
@@ -1529,7 +1804,17 @@ class PulseSankeyChart {
         }
     }
 
+    /**
+     * ENHANCED: Income statement link colors with revenue segment support
+     */
     getLinkColor_Income(link) {
+        // NEW: Pre-revenue links use SOURCE color (revenue segment logic)
+        if (this.isPreRevenueLink(link)) {
+            const sourceColor = this.getNodeColor(link.source);
+            return this.lightenColor(sourceColor, 15);
+        }
+        
+        // Existing logic: Post-revenue links use TARGET color
         const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
         
         let effectiveCategory = targetCategory;
@@ -1548,24 +1833,19 @@ class PulseSankeyChart {
         const isFromTotalAssets = link.source.id.toLowerCase().includes('total assets');
         const isToTotalAssets = link.target.id.toLowerCase().includes('total assets');
         
-        let baseColor = '#95a5a6'; // Default fallback
+        let baseColor = '#95a5a6';
         
-        // Special handling for links TO Total Assets (should use SOURCE color)
         if (isToTotalAssets) {
             if (sourceColorGroup && sourceColorGroup.baseColor) {
                 baseColor = sourceColorGroup.baseColor;
                 console.log(`🔗 Link TO Total Assets: ${link.source.id} → ${link.target.id} = ${baseColor} (source color)`);
             }
-        }
-        // Special handling for links FROM Total Assets (should use TARGET color) 
-        else if (isFromTotalAssets) {
+        } else if (isFromTotalAssets) {
             if (targetColorGroup && targetColorGroup.baseColor) {
                 baseColor = targetColorGroup.baseColor;
                 console.log(`🔗 Link FROM Total Assets: ${link.source.id} → ${link.target.id} = ${baseColor} (target color)`);
             }
-        }
-        // For all other links, prefer target color
-        else {
+        } else {
             if (targetColorGroup && targetColorGroup.baseColor) {
                 baseColor = targetColorGroup.baseColor;
             } else if (sourceColorGroup && sourceColorGroup.baseColor) {
@@ -1573,12 +1853,9 @@ class PulseSankeyChart {
             }
         }
         
-        // Apply opacity rules:
-        // Links TO/FROM Total Assets get 100% opacity
         if (isFromTotalAssets || isToTotalAssets) {
-            return baseColor; // Full opacity
+            return baseColor;
         } else {
-            // All other links get 65% opacity
             return this.hexToRgba(baseColor, 0.65);
         }
     }
@@ -1608,18 +1885,13 @@ class PulseSankeyChart {
             (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
     }
 
-    // ===== BALANCE SHEET SPECIFIC METHODS =====
-
-    /**
-     * Detect statement type from data
-     */
+    // Balance sheet specific methods
     detectStatementType(data) {
         if (!data || !data.nodes) {
             this.statementType = 'income';
             return;
         }
 
-        // Check for balance sheet keywords in node names
         const balanceSheetKeywords = [
             'assets', 'total assets', 'current assets', 'non-current assets',
             'liabilities', 'current liabilities', 'non-current liabilities',
@@ -1636,341 +1908,288 @@ class PulseSankeyChart {
         console.log(`📊 Detected statement type: ${this.statementType}`);
     }
 
-    /**
-     * Assign nodes to color groups for balance sheet hierarchy
-     * Considers flow direction: Assets are sources, Liabilities are targets
-     */
-    /**
- * DYNAMIC: Balance sheet color assignment based on data structure
- */
-assignColorGroups() {
-    if (!this.nodes || this.statementType !== 'balance') {
-        return;
+    assignColorGroups() {
+        if (!this.nodes || this.statementType !== 'balance') {
+            return;
+        }
+
+        this.colorGroups.clear();
+        
+        const balanceSheetColors = {
+            'Total Assets': this.customColors['Total Assets'] || '#2C3E50',
+            'Current Assets': this.customColors['Current Assets'] || '#3498DB',
+            'Non-Current Assets': this.customColors['Non-Current Assets'] || '#9B59B6',
+            'Current Liabilities': this.customColors['Current Liabilities'] || '#E74C3C',
+            'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#C0392B',
+            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#27AE60'
+        };
+        
+        const parentNodes = this.detectParentNodes();
+        
+        this.nodes.forEach(node => {
+            let isParent = parentNodes.has(node.id);
+            let baseColor = '#95a5a6';
+            let groupName = null;
+            let parentGroup = null;
+            
+            const nodeLower = node.id.toLowerCase();
+            
+            if (this.isExactParentGroupMatch(nodeLower, 'total assets')) {
+                groupName = 'Total Assets';
+                baseColor = balanceSheetColors['Total Assets'];
+                isParent = true;
+            } else if (this.isExactParentGroupMatch(nodeLower, 'current assets')) {
+                groupName = 'Current Assets';
+                baseColor = balanceSheetColors['Current Assets'];
+                isParent = true;
+            } else if (this.isExactParentGroupMatch(nodeLower, 'non-current assets') || 
+                       this.isExactParentGroupMatch(nodeLower, 'noncurrent assets')) {
+                groupName = 'Non-Current Assets';
+                baseColor = balanceSheetColors['Non-Current Assets'];
+                isParent = true;
+            } else if (this.isExactParentGroupMatch(nodeLower, 'current liabilities')) {
+                groupName = 'Current Liabilities';
+                baseColor = balanceSheetColors['Current Liabilities'];
+                isParent = true;
+            } else if (this.isExactParentGroupMatch(nodeLower, 'non-current liabilities') || 
+                       this.isExactParentGroupMatch(nodeLower, 'noncurrent liabilities')) {
+                groupName = 'Non-Current Liabilities';
+                baseColor = balanceSheetColors['Non-Current Liabilities'];
+                isParent = true;
+            } else if (this.isExactParentGroupMatch(nodeLower, 'shareholders equity') || 
+                       this.isExactParentGroupMatch(nodeLower, 'stockholders equity') ||
+                       this.isExactParentGroupMatch(nodeLower, "shareholders' equity") ||
+                       nodeLower === 'equity') {
+                groupName = 'Shareholders Equity';
+                baseColor = balanceSheetColors['Shareholders Equity'];
+                isParent = true;
+            } else {
+                isParent = false;
+                parentGroup = this.determineChildParentGroup(node, parentNodes);
+                if (parentGroup && balanceSheetColors[parentGroup]) {
+                    groupName = parentGroup;
+                    baseColor = balanceSheetColors[parentGroup];
+                    console.log(`🎯 Child node ${node.id} inherits from ${parentGroup} → ${baseColor} (will be 65% opacity)`);
+                } else {
+                    console.log(`❌ Child node ${node.id} failed to find parent group`);
+                }
+            }
+            
+            this.colorGroups.set(node.id, {
+                groupName: groupName,
+                baseColor: baseColor,
+                isParentGroup: isParent,
+                parentGroup: parentGroup
+            });
+            
+            console.log(`🎨 ${node.id} → ${groupName} (${isParent ? 'PARENT - 100% opacity' : 'CHILD - 65% opacity'})`);
+        });
     }
 
-    this.colorGroups.clear();
-    
-    // Balance Sheet Color Scheme - with custom color support
-    const balanceSheetColors = {
-        'Total Assets': this.customColors['Total Assets'] || '#2C3E50',
-        'Current Assets': this.customColors['Current Assets'] || '#3498DB',
-        'Non-Current Assets': this.customColors['Non-Current Assets'] || '#9B59B6',
-        'Current Liabilities': this.customColors['Current Liabilities'] || '#E74C3C',
-        'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#C0392B',
-        'Shareholders Equity': this.customColors['Shareholders Equity'] || '#27AE60'
-    };
-    
-    // Detect parent groups dynamically based on flows
-    const parentNodes = this.detectParentNodes();
-    
-    this.nodes.forEach(node => {
-        let isParent = parentNodes.has(node.id);
-        let baseColor = '#95a5a6'; // Default gray
-        let groupName = null;
-        let parentGroup = null;
+    isExactParentGroupMatch(nodeLower, groupPattern) {
+        return nodeLower === groupPattern || 
+               nodeLower === groupPattern + 's' ||
+               nodeLower.startsWith('total ' + groupPattern) ||
+               nodeLower.endsWith(' total') && nodeLower.includes(groupPattern);
+    }
+
+    determineChildParentGroup(childNode, parentNodes) {
+        console.log(`🔍 Analyzing child node: ${childNode.id}`);
+        console.log(`🔍 Available parent nodes:`, Array.from(parentNodes));
+        console.log(`🔍 Total links:`, this.links.length);
         
-        const nodeLower = node.id.toLowerCase();
+        const relevantLinks = this.links.filter(link => 
+            link.source.id === childNode.id || link.target.id === childNode.id
+        );
+        console.log(`🔍 Links involving ${childNode.id}:`, relevantLinks.map(l => `${l.source.id} → ${l.target.id}`));
         
-        // STRICT parent group matching - only exact matches and specific patterns
-        if (this.isExactParentGroupMatch(nodeLower, 'total assets')) {
-            groupName = 'Total Assets';
-            baseColor = balanceSheetColors['Total Assets'];
-            isParent = true;
-        } else if (this.isExactParentGroupMatch(nodeLower, 'current assets')) {
-            groupName = 'Current Assets';
-            baseColor = balanceSheetColors['Current Assets'];
-            isParent = true;
-        } else if (this.isExactParentGroupMatch(nodeLower, 'non-current assets') || 
-                   this.isExactParentGroupMatch(nodeLower, 'noncurrent assets')) {
-            groupName = 'Non-Current Assets';
-            baseColor = balanceSheetColors['Non-Current Assets'];
-            isParent = true;
-        } else if (this.isExactParentGroupMatch(nodeLower, 'current liabilities')) {
-            groupName = 'Current Liabilities';
-            baseColor = balanceSheetColors['Current Liabilities'];
-            isParent = true;
-        } else if (this.isExactParentGroupMatch(nodeLower, 'non-current liabilities') || 
-                   this.isExactParentGroupMatch(nodeLower, 'noncurrent liabilities')) {
-            groupName = 'Non-Current Liabilities';
-            baseColor = balanceSheetColors['Non-Current Liabilities'];
-            isParent = true;
-        } else if (this.isExactParentGroupMatch(nodeLower, 'shareholders equity') || 
-                   this.isExactParentGroupMatch(nodeLower, 'stockholders equity') ||
-                   this.isExactParentGroupMatch(nodeLower, "shareholders' equity") ||
-                   nodeLower === 'equity') {
-            groupName = 'Shareholders Equity';
-            baseColor = balanceSheetColors['Shareholders Equity'];
-            isParent = true;
-        } else {
-            // Child node - determine parent group based on flow analysis
-            isParent = false; // Force as child
-            parentGroup = this.determineChildParentGroup(node, parentNodes);
-            if (parentGroup && balanceSheetColors[parentGroup]) {
-                groupName = parentGroup; // Child inherits parent group name
-                baseColor = balanceSheetColors[parentGroup]; // Child gets parent's base color
-                console.log(`🎯 Child node ${node.id} inherits from ${parentGroup} → ${baseColor} (will be 65% opacity)`);
-            } else {
-                console.log(`❌ Child node ${node.id} failed to find parent group`);
+        for (const link of this.links) {
+            if (link.target.id === childNode.id) {
+                console.log(`🔗 ${childNode.id} receives from ${link.source.id}`);
+                
+                const sourceParentGroup = this.getParentGroupName(link.source.id);
+                if (sourceParentGroup) {
+                    console.log(`✅ Found parent group by name: ${link.source.id} → ${sourceParentGroup}`);
+                    return sourceParentGroup;
+                }
+                
+                if (parentNodes.has(link.source.id)) {
+                    const parentGroupName = this.getParentGroupName(link.source.id);
+                    console.log(`✅ Found parent group by detection: ${link.source.id} → ${parentGroupName}`);
+                    return parentGroupName;
+                }
+            }
+            
+            if (link.source.id === childNode.id) {
+                console.log(`🔗 ${childNode.id} sends to ${link.target.id}`);
+                
+                const targetParentGroup = this.getParentGroupName(link.target.id);
+                if (targetParentGroup) {
+                    console.log(`✅ Found parent group by name: ${link.target.id} → ${targetParentGroup}`);
+                    return targetParentGroup;
+                }
+                
+                if (parentNodes.has(link.target.id)) {
+                    const parentGroupName = this.getParentGroupName(link.target.id);
+                    console.log(`✅ Found parent group by detection: ${link.target.id} → ${parentGroupName}`);
+                    return parentGroupName;
+                }
             }
         }
         
-        this.colorGroups.set(node.id, {
-            groupName: groupName,
-            baseColor: baseColor,
-            isParentGroup: isParent,
-            parentGroup: parentGroup
+        console.log(`❌ No parent group found for ${childNode.id}`);
+        return null;
+    }
+
+    getParentGroupName(nodeId) {
+        const nodeLower = nodeId.toLowerCase();
+        
+        console.log(`🏷️ Getting parent group name for: ${nodeId} (lower: ${nodeLower})`);
+        
+        if (this.isExactParentGroupMatch(nodeLower, 'total assets')) {
+            console.log(`🏷️ Matched: Total Assets`);
+            return 'Total Assets';
+        }
+        if (this.isExactParentGroupMatch(nodeLower, 'current assets') || nodeLower === 'ca') {
+            console.log(`🏷️ Matched: Current Assets`);
+            return 'Current Assets';
+        }
+        if (this.isExactParentGroupMatch(nodeLower, 'non-current assets') || 
+            this.isExactParentGroupMatch(nodeLower, 'noncurrent assets') || nodeLower === 'nca') {
+            console.log(`🏷️ Matched: Non-Current Assets`);
+            return 'Non-Current Assets';
+        }
+        if (this.isExactParentGroupMatch(nodeLower, 'current liabilities') || nodeLower === 'cl') {
+            console.log(`🏷️ Matched: Current Liabilities`);
+            return 'Current Liabilities';
+        }
+        if (this.isExactParentGroupMatch(nodeLower, 'non-current liabilities') || 
+            this.isExactParentGroupMatch(nodeLower, 'noncurrent liabilities') || nodeLower === 'ncl') {
+            console.log(`🏷️ Matched: Non-Current Liabilities`);
+            return 'Non-Current Liabilities';
+        }
+        if (this.isExactParentGroupMatch(nodeLower, 'shareholders equity') || 
+            this.isExactParentGroupMatch(nodeLower, 'stockholders equity') ||
+            this.isExactParentGroupMatch(nodeLower, "shareholders' equity") || nodeLower === 'equity') {
+            console.log(`🏷️ Matched: Shareholders Equity`);
+            return 'Shareholders Equity';
+        }
+        
+        console.log(`🏷️ No match found for: ${nodeId}`);
+        return null;
+    }
+
+    detectParentNodes() {
+        const parentNodes = new Set();
+        
+        this.nodes.forEach(node => {
+            const outflowCount = this.links.filter(link => link.source.id === node.id).length;
+            const receivesFromTotal = this.links.some(link => 
+                link.target.id === node.id && link.source.id.toLowerCase().includes('total')
+            );
+            
+            if (receivesFromTotal || outflowCount >= 2) {
+                parentNodes.add(node.id);
+                console.log(`👑 Parent detected: ${node.id} (receivesFromTotal: ${receivesFromTotal}, outflowCount: ${outflowCount})`);
+            }
         });
         
-        console.log(`🎨 ${node.id} → ${groupName} (${isParent ? 'PARENT - 100% opacity' : 'CHILD - 65% opacity'})`);
-    });
-}
+        return parentNodes;
+    }
 
-/**
- * Check if a node name is an exact match for a parent group (not a child with the parent name inside)
- */
-isExactParentGroupMatch(nodeLower, groupPattern) {
-    // Only match if it's exactly the group name or has approved prefixes/suffixes
-    return nodeLower === groupPattern || 
-           nodeLower === groupPattern + 's' ||  // plurals
-           nodeLower.startsWith('total ' + groupPattern) ||  // "Total Current Assets"
-           nodeLower.endsWith(' total') && nodeLower.includes(groupPattern); // "Current Assets Total"
-}
-
-/**
- * Determine which parent group a child node belongs to based on flow analysis
- */
-determineChildParentGroup(childNode, parentNodes) {
-    console.log(`🔍 Analyzing child node: ${childNode.id}`);
-    console.log(`🔍 Available parent nodes:`, Array.from(parentNodes));
-    console.log(`🔍 Total links:`, this.links.length);
-    
-    // Check all links involving this child node
-    const relevantLinks = this.links.filter(link => 
-        link.source.id === childNode.id || link.target.id === childNode.id
-    );
-    console.log(`🔍 Links involving ${childNode.id}:`, relevantLinks.map(l => `${l.source.id} → ${l.target.id}`));
-    
-    for (const link of this.links) {
-        // Asset flow pattern: Parent Asset Group → Child Asset (child receives from parent)
-        if (link.target.id === childNode.id) {
-            console.log(`🔗 ${childNode.id} receives from ${link.source.id}`);
-            
-            // Check if source is a known parent group by name patterns
-            const sourceParentGroup = this.getParentGroupName(link.source.id);
-            if (sourceParentGroup) {
-                console.log(`✅ Found parent group by name: ${link.source.id} → ${sourceParentGroup}`);
-                return sourceParentGroup;
-            }
-            
-            // Check if source is in detected parent nodes
-            if (parentNodes.has(link.source.id)) {
-                const parentGroupName = this.getParentGroupName(link.source.id);
-                console.log(`✅ Found parent group by detection: ${link.source.id} → ${parentGroupName}`);
-                return parentGroupName;
+    getHierarchicalColor(nodeId) {
+        if (this.statementType !== 'balance') {
+            return this.getNodeColor({ id: nodeId, category: this.nodes.find(n => n.id === nodeId)?.category }); 
+        }
+        
+        const colorGroup = this.colorGroups.get(nodeId);
+        if (!colorGroup) {
+            console.warn(`⚠️ No color group found for node: ${nodeId}`);
+            return this.getNodeColor({ id: nodeId, category: this.nodes.find(n => n.id === nodeId)?.category });
+        }
+        
+        const baseColor = colorGroup.baseColor;
+        const opacity = this.getHierarchicalOpacity(nodeId);
+        
+        console.log(`🎨 Node ${nodeId}: base=${baseColor}, opacity=${opacity}, isParent=${colorGroup.isParentGroup}, group=${colorGroup.groupName}`);
+        
+        if (this.statementType === 'balance') {
+            if (colorGroup.isParentGroup) {
+                return baseColor;
+            } else {
+                return this.hexToRgba(baseColor, 0.65);
             }
         }
         
-        // Liability/Equity flow pattern: Child → Parent Group (child sends to parent)
-        if (link.source.id === childNode.id) {
-            console.log(`🔗 ${childNode.id} sends to ${link.target.id}`);
-            
-            // Check if target is a known parent group by name patterns  
-            const targetParentGroup = this.getParentGroupName(link.target.id);
-            if (targetParentGroup) {
-                console.log(`✅ Found parent group by name: ${link.target.id} → ${targetParentGroup}`);
-                return targetParentGroup;
-            }
-            
-            // Check if target is in detected parent nodes
-            if (parentNodes.has(link.target.id)) {
-                const parentGroupName = this.getParentGroupName(link.target.id);
-                console.log(`✅ Found parent group by detection: ${link.target.id} → ${parentGroupName}`);
-                return parentGroupName;
-            }
+        return this.hexToRgba(baseColor, opacity);
+    }
+
+    getHierarchicalOpacity(nodeId) {
+        if (this.statementType === 'income') {
+            return 1.0;
         }
-    }
-    
-    console.log(`❌ No parent group found for ${childNode.id}`);
-    return null;
-}
-
-/**
- * Get the parent group name for a given node ID
- */
-getParentGroupName(nodeId) {
-    const nodeLower = nodeId.toLowerCase();
-    
-    console.log(`🏷️ Getting parent group name for: ${nodeId} (lower: ${nodeLower})`);
-    
-    // Use VERY strict matching - only exact parent group names are considered parents
-    if (this.isExactParentGroupMatch(nodeLower, 'total assets')) {
-        console.log(`🏷️ Matched: Total Assets`);
-        return 'Total Assets';
-    }
-    if (this.isExactParentGroupMatch(nodeLower, 'current assets') || nodeLower === 'ca') {
-        console.log(`🏷️ Matched: Current Assets`);
-        return 'Current Assets';
-    }
-    if (this.isExactParentGroupMatch(nodeLower, 'non-current assets') || 
-        this.isExactParentGroupMatch(nodeLower, 'noncurrent assets') || nodeLower === 'nca') {
-        console.log(`🏷️ Matched: Non-Current Assets`);
-        return 'Non-Current Assets';
-    }
-    if (this.isExactParentGroupMatch(nodeLower, 'current liabilities') || nodeLower === 'cl') {
-        console.log(`🏷️ Matched: Current Liabilities`);
-        return 'Current Liabilities';
-    }
-    if (this.isExactParentGroupMatch(nodeLower, 'non-current liabilities') || 
-        this.isExactParentGroupMatch(nodeLower, 'noncurrent liabilities') || nodeLower === 'ncl') {
-        console.log(`🏷️ Matched: Non-Current Liabilities`);
-        return 'Non-Current Liabilities';
-    }
-    if (this.isExactParentGroupMatch(nodeLower, 'shareholders equity') || 
-        this.isExactParentGroupMatch(nodeLower, 'stockholders equity') ||
-        this.isExactParentGroupMatch(nodeLower, "shareholders' equity") || nodeLower === 'equity') {
-        console.log(`🏷️ Matched: Shareholders Equity`);
-        return 'Shareholders Equity';
-    }
-    
-    console.log(`🏷️ No match found for: ${nodeId}`);
-    return null;
-}
-
-/**
- * DYNAMIC: Detect parent nodes based on flow patterns
- */
-detectParentNodes() {
-    const parentNodes = new Set();
-    
-    // A node is a parent if it receives from "Total" nodes or sends to multiple children
-    this.nodes.forEach(node => {
-        const outflowCount = this.links.filter(link => link.source.id === node.id).length;
-        const receivesFromTotal = this.links.some(link => 
-            link.target.id === node.id && link.source.id.toLowerCase().includes('total')
-        );
         
-        // Parent criteria: receives from total OR sends to multiple nodes
-        if (receivesFromTotal || outflowCount >= 2) {
-            parentNodes.add(node.id);
-            console.log(`👑 Parent detected: ${node.id} (receivesFromTotal: ${receivesFromTotal}, outflowCount: ${outflowCount})`);
-        }
-    });
-    
-    return parentNodes;
-}
-
-/**
- * Get hierarchical color for balance sheet nodes
- */
-getHierarchicalColor(nodeId) {
-    if (this.statementType !== 'balance') {
-        return this.getNodeColor({ id: nodeId, category: this.nodes.find(n => n.id === nodeId)?.category }); 
-    }
-    
-    const colorGroup = this.colorGroups.get(nodeId);
-    if (!colorGroup) {
-        console.warn(`⚠️ No color group found for node: ${nodeId}`);
-        return this.getNodeColor({ id: nodeId, category: this.nodes.find(n => n.id === nodeId)?.category });
-    }
-    
-    const baseColor = colorGroup.baseColor;
-    const opacity = this.getHierarchicalOpacity(nodeId);
-    
-    console.log(`🎨 Node ${nodeId}: base=${baseColor}, opacity=${opacity}, isParent=${colorGroup.isParentGroup}, group=${colorGroup.groupName}`);
-    
-    // For balance sheet, return solid color for parent groups, rgba for children
-    if (this.statementType === 'balance') {
-        if (colorGroup.isParentGroup) {
-            return baseColor; // Solid color for parent groups
-        } else {
-            return this.hexToRgba(baseColor, 0.65); // Reduced opacity for children
-        }
-    }
-    
-    // Convert hex to RGBA with hierarchy-based opacity for other statements
-    return this.hexToRgba(baseColor, opacity);
-}
-
-/**
- * Get hierarchical opacity with balance sheet specific rules
- */
-getHierarchicalOpacity(nodeId) {
-    if (this.statementType === 'income') {
-        return 1.0; // Income statements use uniform opacity
-    }
-    
-    const colorGroup = this.colorGroups.get(nodeId);
-    if (!colorGroup) return 1.0;
-    
-    if (this.statementType === 'balance') {
-        // Balance sheet specific opacity rules
-        if (colorGroup.isParentGroup) {
-            return 1.0; // 100% opacity for parent groups (Current Assets, etc.)
-        } else {
-            return 0.65; // 65% opacity for sub-components (Cash, Receivables, etc.)
-        }
-    } else {
-        // Cash flow and other statements use level-based opacity
-        switch (colorGroup.level) {
-            case 'detail':
-                return 0.65; // 65% opacity for individual items
-            case 'summary':
-                return 0.85; // 85% opacity for group summaries
-            case 'total':
-                return 1.0;  // 100% opacity for totals
-            default:
+        const colorGroup = this.colorGroups.get(nodeId);
+        if (!colorGroup) return 1.0;
+        
+        if (this.statementType === 'balance') {
+            if (colorGroup.isParentGroup) {
                 return 1.0;
+            } else {
+                return 0.65;
+            }
+        } else {
+            switch (colorGroup.level) {
+                case 'detail':
+                    return 0.65;
+                case 'summary':
+                    return 0.85;
+                case 'total':
+                    return 1.0;
+                default:
+                    return 1.0;
+            }
         }
     }
-}
 
-/**
- * Convert hex color to RGBA with opacity
- */
-hexToRgba(hex, opacity) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!result) return hex;
-    
-    const r = parseInt(result[1], 16);
-    const g = parseInt(result[2], 16);
-    const b = parseInt(result[3], 16);
-    
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
-
-/**
- * Get node opacity for balance sheet hierarchy
- */
-getNodeOpacity(node) {
-    if (this.statementType !== 'balance') {
-        return this.config.nodeOpacity;
+    hexToRgba(hex, opacity) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (!result) return hex;
+        
+        const r = parseInt(result[1], 16);
+        const g = parseInt(result[2], 16);
+        const b = parseInt(result[3], 16);
+        
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
-    
-    return this.getHierarchicalOpacity(node.id);
-}
 
-/**
- * Get link opacity for balance sheet hierarchy
- */
-getLinkOpacity(link) {
-    if (this.statementType !== 'balance') {
-        return this.config.linkOpacity;
+    getNodeOpacity(node) {
+        if (this.statementType !== 'balance') {
+            return this.config.nodeOpacity;
+        }
+        
+        return this.getHierarchicalOpacity(node.id);
     }
-    
-    // Use target node's opacity for the link
-    return this.getHierarchicalOpacity(link.target.id);
-}
+
+    getLinkOpacity(link) {
+        if (this.statementType !== 'balance') {
+            return this.config.linkOpacity;
+        }
+        
+        return this.getHierarchicalOpacity(link.target.id);
+    }
 
     /**
-     * Set custom colors (used by control panel)
+     * ENHANCED: Set custom colors with revenue segment preservation
      */
     setCustomColors(newColors) {
         console.log('🎨 Setting custom colors:', newColors);
         
-        // Update custom colors
+        // Preserve existing individual revenue segment colors
+        const preservedSegmentColors = new Map(this.revenueSegmentColors);
+        
         this.customColors = { ...this.customColors, ...newColors };
         
-        // For balance sheets, also update metadata
         if (this.data && this.data.metadata) {
             if (!this.data.metadata.colorPalette) {
                 this.data.metadata.colorPalette = {};
@@ -1978,29 +2197,60 @@ getLinkOpacity(link) {
             this.data.metadata.colorPalette = { ...this.data.metadata.colorPalette, ...newColors };
         }
         
-        // Force reassignment of color groups
         if (this.statementType === 'balance') {
             this.assignColorGroups();
         }
         
-        // Re-render with new colors
+        // Restore individual revenue segment colors
+        this.revenueSegmentColors = preservedSegmentColors;
+        
+        this.rerenderWithNewColors();
+        
+        console.log('🔒 Preserved revenue segment colors:', Object.fromEntries(this.revenueSegmentColors));
+    }
+
+    /**
+     * ENHANCED: Set individual revenue segment color
+     */
+    setRevenueSegmentColor(nodeId, color) {
+        console.log(`🎨 Setting revenue segment color: ${nodeId} → ${color}`);
+        
+        this.revenueSegmentColors.set(nodeId, color);
+        
+        // Update metadata
+        if (this.data && this.data.metadata) {
+            if (!this.data.metadata.revenueSegmentColors) {
+                this.data.metadata.revenueSegmentColors = {};
+            }
+            this.data.metadata.revenueSegmentColors[nodeId] = color;
+        }
+        
         this.rerenderWithNewColors();
     }
 
     /**
-     * Re-render nodes and links with new colors
+     * Get all revenue segment nodes for control generation
      */
+    getRevenueSegmentNodes() {
+        return this.nodes.filter(node => this.isPreRevenueNode(node));
+    }
+
+    /**
+     * Get pre-revenue nodes (alias for control module compatibility)
+     */
+    getPreRevenueNodes() {
+        return this.getRevenueSegmentNodes();
+    }
+
     rerenderWithNewColors() {
         if (!this.chart) return;
         
-        // Update node colors
         this.chart.selectAll('.sankey-node rect')
             .transition()
             .duration(300)
             .attr('fill', d => this.statementType === 'balance' ? this.getHierarchicalColor(d.id) : this.getNodeColor(d))
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getNodeOpacity(d) : this.config.nodeOpacity);
         
-        // Update link colors
         this.chart.selectAll('.sankey-link path')
             .transition()
             .duration(300)
@@ -2018,6 +2268,8 @@ getLinkOpacity(link) {
         const marginText = d.marginType && d.marginValue ? 
             `${d.marginType}: ${d.marginValue.toFixed(1)}%` : '';
         
+        const colorableText = '<div style="font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 4px;">💡 Double-click to change color</div>';
+        
         const content = `
             <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">${d.id}</div>
             <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
@@ -2028,6 +2280,7 @@ getLinkOpacity(link) {
             <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.4;">
                 ${d.description || 'Financial component'}
             </div>
+            ${colorableText}
         `;
         
         this.tooltip
@@ -2040,6 +2293,9 @@ getLinkOpacity(link) {
     showLinkTooltip(event, d) {
         const percentage = d.source.value > 0 ? 
             ((d.value / d.source.value) * 100).toFixed(1) : '0';
+
+        const coloringInfo = this.isPreRevenueLink(d) ? 
+            'source (revenue segment)' : 'target';
             
         const content = `
             <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">
@@ -2050,7 +2306,7 @@ getLinkOpacity(link) {
             </div>
             <div style="font-size: 11px; color: rgba(255,255,255,0.8);">
                 ${percentage}% of source flow<br>
-                <em>Colored by target: ${d.target.category}</em>
+                <em>Colored by ${coloringInfo}</em>
             </div>
         `;
         
@@ -2087,7 +2343,6 @@ getLinkOpacity(link) {
         this.config.nodeOpacity = nodeOpacity;
         this.config.linkOpacity = linkOpacity;
         
-        // Force immediate visual update
         this.chart.selectAll('.sankey-node rect')
             .attr('fill-opacity', nodeOpacity)
             .style('opacity', nodeOpacity);
@@ -2237,17 +2492,15 @@ getLinkOpacity(link) {
                 let defaultColors;
                 
                 if (this.statementType === 'balance') {
-                    // Balance sheet default colors with Total Assets as black
                     defaultColors = {
-                        'Total Assets': '#000000',           // Black for Total Assets
-                        'Current Assets': '#3498DB',         // Blue
-                        'Non-Current Assets': '#9B59B6',     // Purple
-                        'Current Liabilities': '#E74C3C',    // Red
-                        'Non-Current Liabilities': '#C0392B', // Dark red
-                        'Shareholders Equity': '#27AE60'     // Green
+                        'Total Assets': '#000000',
+                        'Current Assets': '#3498DB',
+                        'Non-Current Assets': '#9B59B6',
+                        'Current Liabilities': '#E74C3C',
+                        'Non-Current Liabilities': '#C0392B',
+                        'Shareholders Equity': '#27AE60'
                     };
                 } else {
-                    // Income statement default colors
                     defaultColors = {
                         'revenue': '#3498db',
                         'profit': '#27ae60',
@@ -2372,7 +2625,6 @@ getLinkOpacity(link) {
             });
         });
         
-        // Calculate source node values
         flowData.flows.forEach(flow => {
             const sourceNode = nodeMap.get(flow.source);
             if (sourceNode.value === 0) {
@@ -2382,7 +2634,6 @@ getLinkOpacity(link) {
             }
         });
         
-        // Calculate variance for each node (for comparison mode)
         const nodes = Array.from(nodeMap.values());
         if (comparisonMode) {
             nodes.forEach(node => {
@@ -2410,7 +2661,6 @@ getLinkOpacity(link) {
         };
     }
 
-    // Generate chart data and navigate to chart view
     static generateChartFromFlows(flowData, comparisonMode = false, chartType = 'sankey', returnTo = null) {
         const sankeyData = PulseSankeyChart.generateNodesAndLinksFromFlows(flowData, comparisonMode);
         
