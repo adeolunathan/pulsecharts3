@@ -1387,7 +1387,7 @@ class PulseSankeyChart {
         });
     }
 
-    wrapText(text, maxLength = 10) {
+    wrapText(text, maxLength = 15) {
         if (text.length <= maxLength) return [text];
         
         const words = text.split(' ');

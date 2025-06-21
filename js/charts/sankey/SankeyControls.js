@@ -152,7 +152,7 @@ class SankeyControlModule {
                         label: "Flow Width Scale", 
                         min: 0.3, 
                         max: 1.0, 
-                        default: 0.65, 
+                        default: 1, 
                         step: 0.05, 
                         description: "Scale factor for flow widths" 
                     }
