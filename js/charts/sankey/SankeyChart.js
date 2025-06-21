@@ -713,9 +713,15 @@ class PulseSankeyChart {
             node.x = xScale(node.depth);
         });
 
-        this.nodes.forEach(node => {
-            node.height = Math.max(8, node.value * this.config.nodeHeightScale);
-        });
+        // ENHANCED: Apply proportional node heights for balance sheets
+        if (this.statementType === 'balance') {
+            this.calculateProportionalHeights();
+        } else {
+            // Standard height calculation for income statements
+            this.nodes.forEach(node => {
+                node.height = Math.max(8, node.value * this.config.nodeHeightScale);
+            });
+        }
 
         depths.forEach(depth => {
             const nodesAtDepth = nodesByDepth.get(depth);
@@ -725,6 +731,185 @@ class PulseSankeyChart {
         this.applyManualPositions();
         this.minimizeCrossings();
         this.calculateLinkPositions();
+    }
+
+    /**
+     * NEW: Calculate proportional node heights ensuring child nodes sum to parent height
+     */
+    calculateProportionalHeights() {
+        console.log('📏 Calculating proportional node heights for balance sheet');
+        
+        // First pass: Calculate base heights using standard formula
+        this.nodes.forEach(node => {
+            node.baseHeight = Math.max(8, node.value * this.config.nodeHeightScale);
+        });
+        
+        // Identify parent-child relationships
+        const parentChildMap = this.buildParentChildMap();
+        
+        // Second pass: Adjust heights to ensure proportionality
+        this.adjustHeightsForProportionality(parentChildMap);
+        
+        console.log('✅ Proportional heights calculated');
+    }
+
+    /**
+     * Build parent-child relationship map for balance sheet nodes
+     */
+    buildParentChildMap() {
+        const parentChildMap = new Map();
+        
+        this.links.forEach(link => {
+            const parentId = link.target.id;
+            const childId = link.source.id;
+            
+            // Check if this is a parent-child relationship (child flows into parent)
+            const isParentChild = this.isParentChildRelationship(link.source, link.target);
+            
+            if (isParentChild) {
+                if (!parentChildMap.has(parentId)) {
+                    parentChildMap.set(parentId, []);
+                }
+                parentChildMap.get(parentId).push({
+                    node: link.source,
+                    value: link.value
+                });
+                
+                console.log(`👨‍👩‍👧‍👦 Parent-child: ${childId} → ${parentId} (value: ${link.value})`);
+            }
+        });
+        
+        return parentChildMap;
+    }
+
+    /**
+     * Check if a link represents a parent-child relationship in balance sheet
+     */
+    isParentChildRelationship(source, target) {
+        const targetLower = target.id.toLowerCase();
+        const sourceLower = source.id.toLowerCase();
+        
+        // Total Assets receives from all asset components
+        if (targetLower.includes('total assets')) {
+            return sourceLower.includes('asset');
+        }
+        
+        // Current Assets receives from individual current assets
+        if (targetLower.includes('current assets') && !targetLower.includes('total')) {
+            return sourceLower.includes('cash') || 
+                   sourceLower.includes('receivable') || 
+                   sourceLower.includes('inventory') ||
+                   sourceLower.includes('prepaid');
+        }
+        
+        // Non-Current Assets receives from individual non-current assets
+        if (targetLower.includes('non-current assets') || targetLower.includes('noncurrent assets')) {
+            return sourceLower.includes('property') || 
+                   sourceLower.includes('equipment') || 
+                   sourceLower.includes('intangible') ||
+                   sourceLower.includes('fixed');
+        }
+        
+        // Similar logic for liabilities and equity
+        if (targetLower.includes('current liabilities') && !targetLower.includes('total')) {
+            return sourceLower.includes('payable') || 
+                   sourceLower.includes('accrued') ||
+                   sourceLower.includes('short-term');
+        }
+        
+        if (targetLower.includes('non-current liabilities') || targetLower.includes('noncurrent liabilities')) {
+            return sourceLower.includes('long-term') || 
+                   sourceLower.includes('bonds') ||
+                   sourceLower.includes('notes');
+        }
+        
+        if (targetLower.includes('equity') || targetLower.includes('shareholders')) {
+            return sourceLower.includes('stock') || 
+                   sourceLower.includes('retained') ||
+                   sourceLower.includes('capital');
+        }
+        
+        return false;
+    }
+
+    /**
+     * Adjust node heights to ensure child nodes sum to parent height
+     */
+    adjustHeightsForProportionality(parentChildMap) {
+        parentChildMap.forEach((children, parentId) => {
+            const parentNode = this.nodes.find(n => n.id === parentId);
+            if (!parentNode || children.length === 0) return;
+            
+            const totalChildValue = children.reduce((sum, child) => sum + child.value, 0);
+            if (totalChildValue === 0) return;
+            
+            // Calculate parent's target height based on its value
+            const parentTargetHeight = Math.max(8, parentNode.value * this.config.nodeHeightScale);
+            
+            console.log(`📏 Adjusting children of ${parentId}: parent target height=${parentTargetHeight}, total child value=${totalChildValue}`);
+            
+            // Calculate raw proportional heights
+            const rawHeights = children.map(child => {
+                const proportion = child.value / totalChildValue;
+                return {
+                    child,
+                    proportion,
+                    rawHeight: parentTargetHeight * proportion,
+                    minHeight: 8
+                };
+            });
+            
+            // Apply minimum height constraints and calculate adjustment
+            let totalRawHeight = 0;
+            let totalMinHeight = 0;
+            rawHeights.forEach(item => {
+                totalRawHeight += item.rawHeight;
+                totalMinHeight += Math.max(item.minHeight, item.rawHeight);
+            });
+            
+            // Distribute heights ensuring they sum to parent height
+            let remainingHeight = parentTargetHeight;
+            let childrenNeedingAdjustment = [...rawHeights];
+            
+            // First pass: assign minimum heights
+            childrenNeedingAdjustment.forEach(item => {
+                if (item.rawHeight < item.minHeight) {
+                    item.child.node.height = item.minHeight;
+                    remainingHeight -= item.minHeight;
+                } else {
+                    item.child.node.height = 0; // Will be set in second pass
+                }
+            });
+            
+            // Second pass: distribute remaining height proportionally among nodes that don't need minimum height boost
+            const flexibleChildren = childrenNeedingAdjustment.filter(item => item.rawHeight >= item.minHeight);
+            const totalFlexibleValue = flexibleChildren.reduce((sum, item) => sum + item.child.value, 0);
+            
+            if (totalFlexibleValue > 0 && remainingHeight > 0) {
+                flexibleChildren.forEach(item => {
+                    const flexProportion = item.child.value / totalFlexibleValue;
+                    item.child.node.height = remainingHeight * flexProportion;
+                });
+            }
+            
+            // Set the parent's height to match the sum of children
+            const actualChildSum = children.reduce((sum, child) => sum + child.node.height, 0);
+            parentNode.height = actualChildSum;
+            
+            console.log(`  📊 Parent ${parentId} height set to ${parentNode.height.toFixed(1)} (sum of children)`);
+            children.forEach(child => {
+                const proportion = totalChildValue > 0 ? child.value / totalChildValue : 0;
+                console.log(`  📐 ${child.node.id}: proportion=${(proportion*100).toFixed(1)}%, height=${child.node.height.toFixed(1)}`);
+            });
+        });
+        
+        // Set heights for nodes that aren't children (they keep their base height)
+        this.nodes.forEach(node => {
+            if (node.height === undefined) {
+                node.height = node.baseHeight;
+                console.log(`📐 ${node.id}: using base height=${node.height.toFixed(1)}`);
+            }
+        });
     }
 
     applyManualPositions() {
@@ -1230,13 +1415,19 @@ class PulseSankeyChart {
                 Z`;
     }
 
+    /**
+     * ENHANCED: Dynamic title based on statement type
+     */
     renderTitle() {
         const headerGroup = this.svg.append('g')
             .attr('class', 'chart-header');
 
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
-        const titleText = `${company} ${period} Income Statement`;
+        
+        // FIXED: Dynamic title based on statement type
+        const statementLabel = this.statementType === 'balance' ? 'Balance Sheet' : 'Income Statement';
+        const titleText = `${company} ${period} ${statementLabel}`;
 
         headerGroup.append('text')
             .attr('x', this.config.width / 2)
@@ -1247,6 +1438,8 @@ class PulseSankeyChart {
             .attr('fill', '#1f2937')
             .attr('letter-spacing', '0.5px')
             .text(titleText);
+
+        console.log(`📊 Rendered ${statementLabel} title: ${titleText}`);
     }
 
     renderBrandingFooter() {
@@ -2298,6 +2491,7 @@ class PulseSankeyChart {
             console.log(`💾 Saved manual position for ${node.id}: Y=${node.y.toFixed(1)}`);
         }
     }
+    
     getRevenueSegmentNodes() {
         return this.nodes.filter(node => this.isPreRevenueNode(node));
     }
