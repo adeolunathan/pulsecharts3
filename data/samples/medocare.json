@@ -1,0 +1,223 @@
+{
+  "metadata": {
+    "title": "Medocare Balance Sheet",
+    "subtitle": "Q3 2025 Balance Sheet",
+    "currency": "USD",
+    "unit": "millions",
+    "company": "Medocare Health Systems",
+    "period": "Q3 2025",
+    "prepared_date": "2025-01-15"
+  },
+  "nodes": [
+    {
+      "id": "Cash & Equivalents",
+      "depth": 0,
+      "value": 1500,
+      "category": "asset",
+      "description": "Cash and short-term investments",
+      "group": "current_assets",
+      "sort_order": 1
+    },
+    {
+      "id": "Accounts Receivable",
+      "depth": 0,
+      "value": 800,
+      "category": "asset",
+      "description": "Money owed by customers",
+      "group": "current_assets",
+      "sort_order": 2
+    },
+    {
+      "id": "Inventory",
+      "depth": 0,
+      "value": 400,
+      "category": "asset",
+      "description": "Products and materials",
+      "group": "current_assets",
+      "sort_order": 3
+    },
+    {
+      "id": "Property & Equipment",
+      "depth": 0,
+      "value": 2200,
+      "category": "asset",
+      "description": "Buildings, equipment, and infrastructure",
+      "group": "noncurrent_assets",
+      "sort_order": 1
+    },
+    {
+      "id": "Intangible Assets",
+      "depth": 0,
+      "value": 600,
+      "category": "asset",
+      "description": "Patents, software, and goodwill",
+      "group": "noncurrent_assets",
+      "sort_order": 2
+    },
+    {
+      "id": "Current Assets",
+      "depth": 1,
+      "value": 2700,
+      "category": "asset",
+      "description": "Sum of current assets",
+      "group": "aggregated_assets",
+      "sort_order": 1
+    },
+    {
+      "id": "Non-Current Assets",
+      "depth": 1,
+      "value": 2800,
+      "category": "asset",
+      "description": "Sum of non-current assets",
+      "group": "aggregated_assets",
+      "sort_order": 2
+    },
+    {
+      "id": "Total Assets",
+      "depth": 2,
+      "value": 5500,
+      "category": "asset",
+      "description": "Total assets of the company",
+      "group": "aggregated_assets",
+      "sort_order": 3
+    },
+    {
+      "id": "Current Liabilities",
+      "depth": 3,
+      "value": 1200,
+      "category": "liability",
+      "description": "Short-term obligations",
+      "group": "current_liabilities",
+      "sort_order": 1
+    },
+    {
+      "id": "Non-Current Liabilities",
+      "depth": 3,
+      "value": 1800,
+      "category": "liability",
+      "description": "Long-term borrowings",
+      "group": "noncurrent_liabilities",
+      "sort_order": 1
+    },
+    {
+      "id": "Shareholders Equity",
+      "depth": 3,
+      "value": 2500,
+      "category": "equity",
+      "description": "Owners' equity in the company",
+      "group": "equity_summary",
+      "sort_order": 1
+    },
+    {
+      "id": "Common Stock",
+      "depth": 4,
+      "value": 1000,
+      "category": "equity",
+      "description": "Issued common shares",
+      "group": "equity_breakdown",
+      "sort_order": 1
+    },
+    {
+      "id": "Retained Earnings",
+      "depth": 4,
+      "value": 1500,
+      "category": "equity",
+      "description": "Accumulated profits",
+      "group": "equity_breakdown",
+      "sort_order": 2
+    },
+    {
+      "id": "Payables",
+      "depth": 4,
+      "value": 300,
+      "category": "liability",
+      "description": "Accounts payable",
+      "group": "current_liabilities_breakdown",
+      "sort_order": 1
+    },
+    {
+      "id": "Current Debt",
+      "depth": 4,
+      "value": 900,
+      "category": "liability",
+      "description": "Short-term borrowings",
+      "group": "current_liabilities_breakdown",
+      "sort_order": 2
+    },
+    {
+      "id": "Long-term Debt",
+      "depth": 4,
+      "value": 1100,
+      "category": "liability",
+      "description": "Long-term financial obligations",
+      "group": "noncurrent_liabilities_breakdown",
+      "sort_order": 1
+    },
+    {
+      "id": "Other non-current liabilities",
+      "depth": 4,
+      "value": 700,
+      "category": "liability",
+      "description": "Deferred taxes and other long-term liabilities",
+      "group": "noncurrent_liabilities_breakdown",
+      "sort_order": 2
+    }
+  ],
+  "links": [
+    { "source": "Cash & Equivalents", "target": "Current Assets", "value": 1500 },
+    { "source": "Accounts Receivable", "target": "Current Assets", "value": 800 },
+    { "source": "Inventory", "target": "Current Assets", "value": 400 },
+    { "source": "Property & Equipment", "target": "Non-Current Assets", "value": 2200 },
+    { "source": "Intangible Assets", "target": "Non-Current Assets", "value": 600 },
+    { "source": "Current Assets", "target": "Total Assets", "value": 2700 },
+    { "source": "Non-Current Assets", "target": "Total Assets", "value": 2800 },
+    { "source": "Total Assets", "target": "Current Liabilities", "value": 1200 },
+    { "source": "Total Assets", "target": "Non-Current Liabilities", "value": 1800 },
+    { "source": "Total Assets", "target": "Shareholders Equity", "value": 2500 },
+    { "source": "Shareholders Equity", "target": "Common Stock", "value": 1000 },
+    { "source": "Shareholders Equity", "target": "Retained Earnings", "value": 1500 },
+    { "source": "Current Liabilities", "target": "Payables", "value": 300 },
+    { "source": "Current Liabilities", "target": "Current Debt", "value": 900 },
+    { "source": "Non-Current Liabilities", "target": "Long-term Debt", "value": 1100 },
+    { "source": "Non-Current Liabilities", "target": "Other non-current liabilities", "value": 700 }
+  ],
+  "formatting": {
+    "node_groups": {
+      "current_assets": {
+        "label": "Current Assets",
+        "color_scheme": "blues",
+        "sort_direction": "desc"
+      },
+      "noncurrent_assets": {
+        "label": "Non-Current Assets",
+        "color_scheme": "purples",
+        "sort_direction": "desc"
+      },
+      "aggregated_assets": {
+        "label": "Total Assets",
+        "color_scheme": "navy",
+        "sort_direction": "desc"
+      },
+      "current_liabilities": {
+        "label": "Current Liabilities",
+        "color_scheme": "oranges",
+        "sort_direction": "desc"
+      },
+      "noncurrent_liabilities": {
+        "label": "Non-Current Liabilities",
+        "color_scheme": "reds",
+        "sort_direction": "desc"
+      },
+      "equity_summary": {
+        "label": "Shareholders’ Equity",
+        "color_scheme": "greens",
+        "sort_direction": "desc"
+      },
+      "equity_breakdown": {
+        "label": "Equity Breakdown",
+        "color_scheme": "teals",
+        "sort_direction": "desc"
+      }
+    }
+  }
+}

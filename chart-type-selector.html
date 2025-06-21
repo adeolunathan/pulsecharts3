@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Chart Type - Pulse Analytics</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .selector-container {
+            max-width: 1000px;
+            width: 90%;
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 16px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            color: #6c757d;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .chart-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 40px;
+        }
+        
+        .chart-option {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 16px;
+            padding: 40px 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart-option:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+        
+        .chart-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .chart-option:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .preview-area {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-chart {
+            width: 80%;
+            height: 80%;
+            position: relative;
+        }
+        
+        .preview-nodes {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: absolute;
+            left: 20%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .preview-node {
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .preview-flows {
+            position: absolute;
+            top: 50%;
+            left: 45%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .preview-flow {
+            width: 60px;
+            height: 6px;
+            border-radius: 3px;
+            opacity: 0.8;
+        }
+        
+        .preview-targets {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: absolute;
+            right: 20%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        /* Income Statement Colors */
+        .income .revenue { background: #3498db; }
+        .income .profit { background: #27ae60; }
+        .income .expense { background: #e67e22; }
+        .income .flow-revenue { background: linear-gradient(90deg, #3498db, #27ae60); }
+        .income .flow-expense { background: linear-gradient(90deg, #3498db, #e67e22); }
+        
+        /* Balance Sheet Colors */
+        .balance .asset { background: #2c3e50; }
+        .balance .liability { background: #e74c3c; }
+        .balance .equity { background: #9b59b6; }
+        .balance .flow-asset { background: linear-gradient(90deg, #2c3e50, #e74c3c); }
+        .balance .flow-equity { background: linear-gradient(90deg, #2c3e50, #9b59b6); }
+        
+        .option-info h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+        }
+        
+        .option-info p {
+            color: #6c757d;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        
+        .option-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-4px);
+        }
+        
+        @media (max-width: 768px) {
+            .chart-options {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .selector-container {
+                padding: 40px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="guided.html" class="back-link">
+        ← Back to Templates
+    </a>
+    
+    <div class="selector-container">
+        <div class="header">
+            <h1>📊 Choose Your Chart Type</h1>
+            <p>Select the type of financial chart you want to create. You'll start with sample data that you can customize with your own information.</p>
+        </div>
+        
+        <div class="chart-options">
+            <div class="chart-option income" onclick="selectChartType('income')">
+                <div class="preview-area">
+                    <div class="preview-chart">
+                        <div class="preview-nodes">
+                            <div class="preview-node revenue">Revenue</div>
+                            <div class="preview-node expense">Costs</div>
+                        </div>
+                        <div class="preview-flows">
+                            <div class="preview-flow flow-revenue"></div>
+                            <div class="preview-flow flow-expense"></div>
+                        </div>
+                        <div class="preview-targets">
+                            <div class="preview-node profit">Profit</div>
+                            <div class="preview-node expense">Expenses</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="option-info">
+                    <h3>💰 Income Statement</h3>
+                    <p>Track revenue flows through costs and expenses to show profit generation. Perfect for understanding how money flows through your business operations.</p>
+                    <span class="option-badge">Recommended</span>
+                </div>
+            </div>
+            
+            <div class="chart-option balance" onclick="selectChartType('balance')">
+                <div class="preview-area">
+                    <div class="preview-chart">
+                        <div class="preview-nodes">
+                            <div class="preview-node asset">Assets</div>
+                        </div>
+                        <div class="preview-flows">
+                            <div class="preview-flow flow-asset"></div>
+                            <div class="preview-flow flow-equity"></div>
+                        </div>
+                        <div class="preview-targets">
+                            <div class="preview-node liability">Liabilities</div>
+                            <div class="preview-node equity">Equity</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="option-info">
+                    <h3>🏦 Balance Sheet</h3>
+                    <p>Visualize the relationship between assets, liabilities, and equity. Show how your organization's resources are financed and structured.</p>
+                    <span class="option-badge">Advanced</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function selectChartType(type) {
+            // Add visual feedback
+            const selectedCard = event.target.closest('.chart-option');
+            selectedCard.style.transform = 'scale(0.95)';
+            selectedCard.style.opacity = '0.8';
+            
+            // Redirect to flow builder with chart type
+            setTimeout(() => {
+                window.location.href = `chart.html?type=${type}&tab=data-builder`;
+            }, 200);
+        }
+    </script>
+</body>
+</html>

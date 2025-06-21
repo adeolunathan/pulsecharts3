@@ -3283,6 +3283,8 @@ body {
     border-color: #cf222e;
 }
 
+/* Chart type selection CSS removed - now handled by separate page */
+
 .flow-control-btn.duplicate {
     color: #0969da;
 }
@@ -4183,6 +4185,7 @@ body {
 
 .cell-editor select {
     height: 100%;
+    width: 100%;
     border: none;
     background: white;
     appearance: none;
@@ -4190,7 +4193,12 @@ body {
     background-position: right 8px center;
     background-repeat: no-repeat;
     background-size: 12px;
-    padding-right: 24px;
+    padding: 6px 24px 6px 8px;
+    font-size: 13px;
+    font-family: 'Roboto', Arial, sans-serif;
+    color: #202124;
+    cursor: pointer;
+    outline: none;
 }
 
 /* Special cell types */
@@ -4296,6 +4304,8 @@ body {
     background: #ffebee;
     border-color: #cf222e;
 }
+
+/* Chart type selection CSS removed - now handled by separate page */
 
 .flow-control-btn.duplicate {
     color: #0969da;

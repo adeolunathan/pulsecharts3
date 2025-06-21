@@ -73,13 +73,14 @@
                     
                     <div class="menu-section actions-menu">
                         <span class="menu-label">🛠️</span>
-                        <button class="menu-btn" onclick="loadCurrentChartData()">Load Data</button>
-                        <button class="menu-btn" onclick="loadCompleteTemplate()">Template</button>
-                        <button class="menu-btn" onclick="loadBlankFlows()">Blank</button>
-                        <button class="menu-btn" onclick="exportFlowsToCSV()">Export</button>
-                        <button class="menu-btn" onclick="importFlowsFromCSV()">Import</button>
+                        <button class="menu-btn" onclick="importFlowsFromCSV()">📤 Upload Data</button>
+                        <button class="menu-btn" onclick="downloadTemplate()">📋 Download Template</button>
+                        <button class="menu-btn" onclick="exportFlowsToCSV()">💾 Export</button>
+                        <button class="menu-btn" onclick="resetChart()">🔄 Reset</button>
                     </div>
                 </div>
+
+                <!-- Chart type selection removed - now handled by separate page -->
 
                 <!-- Company Information Section -->
                 <div class="collapsible-section">
@@ -468,6 +469,7 @@
     <!-- Flow Builder Implementation -->
     <script>
         let currentMainTab = 'chart-view';
+        let selectedChartType = null; // 'income' or 'balance'
         let flowData = {
             metadata: {
                 title: "Financial Flow",
@@ -481,6 +483,46 @@
         };
 
         let flowIdCounter = 0;
+
+        // Parse URL parameters to get chart type
+        function getURLParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return {
+                type: urlParams.get('type'), // 'income' or 'balance'
+                tab: urlParams.get('tab') // 'data-builder' or 'chart-view'
+            };
+        }
+
+        // Load JSON data file based on chart type
+        async function loadChartTypeData(chartType) {
+            try {
+                let dataFile = '';
+                if (chartType === 'income') {
+                    dataFile = 'data/samples/saas-company.json';
+                } else if (chartType === 'balance') {
+                    dataFile = 'data/samples/medocare.json';
+                } else {
+                    console.warn('Unknown chart type:', chartType);
+                    return null;
+                }
+
+                console.log(`📁 Loading ${chartType} data from ${dataFile}`);
+                const response = await fetch(dataFile);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${dataFile}: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log(`✅ Successfully loaded ${chartType} data:`, data);
+                return data;
+                
+            } catch (error) {
+                console.error('Error loading chart type data:', error);
+                alert(`Error loading sample data: ${error.message}`);
+                return null;
+            }
+        }
 
         // FIXED: Add missing convertSankeyDataToFlows function
         function convertSankeyDataToFlows(sankeyData) {
@@ -704,9 +746,45 @@
             }
         }
 
-        function initializeFlowBuilder() {
+        async function initializeFlowBuilder() {
             console.log('🔧 Initializing Flow Builder...');
             
+            // Check for URL parameters first
+            const urlParams = getURLParameters();
+            
+            if (urlParams.type) {
+                console.log(`🎯 Chart type specified in URL: ${urlParams.type}`);
+                selectedChartType = urlParams.type;
+                
+                // Load the appropriate sample data
+                const sampleData = await loadChartTypeData(urlParams.type);
+                if (sampleData) {
+                    // CRITICAL: Preserve existing colors before conversion
+                    const existingColors = { ...flowData.metadata.colorPalette };
+                    
+                    flowData = convertSankeyDataToFlows(sampleData);
+                    
+                    // CRITICAL: Restore colors after conversion
+                    flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
+                    
+                    updateMetadataInputs();
+                    renderFlowTable();
+                    updateAllStats();
+                    
+                    // Trigger chart update
+                    debouncedRealTimeUpdate();
+                    
+                    // Switch to the requested tab
+                    if (urlParams.tab) {
+                        setTimeout(() => switchMainTab(urlParams.tab), 100);
+                    }
+                    
+                    console.log(`✅ Flow Builder initialized with ${urlParams.type} sample data`);
+                    return;
+                }
+            }
+            
+            // Fallback to existing logic for backward compatibility
             let data = null;
             
             if (window.PulseDataBridge && window.PulseDataBridge.currentData) {
@@ -735,6 +813,8 @@
                 renderFlowTable();
                 updateAllStats();
                 
+                selectedChartType = 'income'; // Default assumption
+                
                 if (!window.PulseDataBridge.realTimeMode) {
                     toggleRealTimeMode();
                 }
@@ -742,6 +822,10 @@
                 console.log('✅ Flow Builder initialized with live data and preserved colors');
             } else {
                 console.log('⚠️ No data found - Flow Builder ready for manual input');
+                // Redirect to chart type selector if no data and no URL params
+                if (!urlParams.type) {
+                    window.location.href = 'chart-type-selector.html';
+                }
             }
         }
 
@@ -1409,20 +1493,26 @@
             
             for (let i = 1; i < lines.length; i++) {
                 const values = parseCSVLine(lines[i]);
-                // Minimum requirement: source, target, value (3 columns)
-                if (values.length >= 3 && values[columnMap.source] && values[columnMap.target] && values[columnMap.amount]) {
+                
+                // Get source and target values with fallback logic
+                const sourceValue = columnMap.source >= 0 ? values[columnMap.source] : `Flow ${i} Source`;
+                const targetValue = columnMap.target >= 0 ? values[columnMap.target] : `Flow ${i} Target`;
+                const amountValue = columnMap.amount >= 0 ? parseFloat(values[columnMap.amount]) : 100;
+                
+                // Minimum requirement: at least one meaningful value
+                if (values.length >= 1 && (sourceValue || targetValue || amountValue)) {
                     const previousValue = columnMap.previousAmount >= 0 && values[columnMap.previousAmount] 
                         ? parseFloat(values[columnMap.previousAmount]) || 0 
                         : 0;
                     
                     flows.push(new BusinessFlow({
-                        source: values[columnMap.source] || '',
-                        target: values[columnMap.target] || '',
-                        value: parseFloat(values[columnMap.amount]) || 0,
+                        source: sourceValue || `Flow ${i} Source`,
+                        target: targetValue || `Flow ${i} Target`,
+                        value: amountValue || 100,
                         previousValue: previousValue,
-                        sourceCategory: values[columnMap.sourceCategory] || 'revenue',
-                        targetCategory: values[columnMap.targetCategory] || 'revenue',
-                        description: values[columnMap.description] || ''
+                        sourceCategory: (columnMap.sourceCategory >= 0 ? values[columnMap.sourceCategory] : null) || 'revenue',
+                        targetCategory: (columnMap.targetCategory >= 0 ? values[columnMap.targetCategory] : null) || 'revenue',
+                        description: (columnMap.description >= 0 ? values[columnMap.description] : null) || `Flow from ${sourceValue || 'Source'} to ${targetValue || 'Target'}`
                         // Note: flowType, sourceLayer, targetLayer will be auto-calculated
                     }));
                 }
@@ -1448,7 +1538,22 @@
                 debouncedRealTimeUpdate();
                 
                 console.log('✅ Flow Builder refreshed successfully');
-                alert(`✅ Successfully imported ${flows.length} flows from CSV!`);
+                
+                // Provide helpful feedback about what was imported
+                let message = `✅ Successfully imported ${flows.length} flows from CSV!\n\n`;
+                
+                if (columnMap.source < 0 || columnMap.target < 0) {
+                    message += '⚠️ Note: Some source/target columns were missing and have been auto-generated. ';
+                    message += 'You can edit these in the table below.\n\n';
+                }
+                
+                if (columnMap.sourceCategory < 0 || columnMap.targetCategory < 0) {
+                    message += 'ℹ️ Categories have been set to default values. You can adjust them using the dropdown menus.\n\n';
+                }
+                
+                message += 'The chart will update automatically as you edit the data.';
+                
+                alert(message);
             } else {
                 alert('❌ No valid flows found in CSV file');
             }
@@ -1503,6 +1608,54 @@
             // Initialize spreadsheet functionality
             window.spreadsheetController = new SpreadsheetController();
         });
+
+        // ===== TEMPLATE DOWNLOAD FUNCTIONALITY =====
+
+        function downloadTemplate() {
+            if (!selectedChartType) {
+                alert('Please select a chart type first by clicking on Income Statement or Balance Sheet.');
+                return;
+            }
+            
+            let csv = '';
+            let filename = '';
+            
+            if (selectedChartType === 'income') {
+                csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
+                csv += '"Subscription Revenue","Total Revenue",300,250,"revenue","revenue","Recurring subscription income"\n';
+                csv += '"Professional Services","Total Revenue",60,55,"revenue","revenue","Implementation and consulting"\n';
+                csv += '"Total Revenue","Gross Profit",290,245,"revenue","profit","Revenue after cost of revenue"\n';
+                csv += '"Total Revenue","Cost of Revenue",70,60,"revenue","cost","Direct costs to deliver services"\n';
+                csv += '"Gross Profit","Operating Profit",120,100,"profit","profit","Profit from core operations"\n';
+                csv += '"Gross Profit","Operating Expenses",170,145,"profit","expense","Total operating expenses"\n';
+                csv += '"Operating Profit","Net Income",95,80,"profit","income","Final net income"\n';
+                csv += '"Operating Profit","Tax Expense",25,20,"profit","tax","Income tax expense"\n';
+                filename = 'income-statement-template.csv';
+            } else if (selectedChartType === 'balance') {
+                csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
+                csv += '"Current Assets","Total Assets",500,450,"revenue","revenue","Cash, receivables, inventory"\n';
+                csv += '"Non-Current Assets","Total Assets",800,750,"revenue","revenue","Property, equipment, intangibles"\n';
+                csv += '"Total Assets","Current Liabilities",300,280,"revenue","expense","Short-term obligations"\n';
+                csv += '"Total Assets","Non-Current Liabilities",400,370,"revenue","expense","Long-term debt and obligations"\n';
+                csv += '"Total Assets","Shareholders Equity",600,550,"revenue","profit","Owner\'s equity in the business"\n';
+                filename = 'balance-sheet-template.csv';
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetChart() {
+            if (confirm('This will reset the chart and return to chart type selection. Continue?')) {
+                // Redirect to chart type selector
+                window.location.href = 'chart-type-selector.html';
+            }
+        }
 
         // ===== GOOGLE SHEETS-STYLE SPREADSHEET FUNCTIONALITY =====
         class SpreadsheetController {

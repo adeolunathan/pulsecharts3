@@ -276,15 +276,8 @@
                 return;
             }
             
-            selectedChartType = chartType;
-            appState.chartType = chartType;
-            
-            document.querySelectorAll('.chart-type-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            document.querySelector(`[data-chart-type="${chartType}"]`).classList.add('selected');
-            
-            document.getElementById('step1-next').disabled = false;
+            // Redirect directly to the new chart type selector page
+            window.location.href = 'chart-type-selector.html';
         }
 
         // Step 2: Data Input Selection
