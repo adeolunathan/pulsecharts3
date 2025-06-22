@@ -70,7 +70,10 @@ class PulseSankeyChart {
             },
             backgroundColor: '#f8f9fa',
             titleFont: 'Inter',
-            titleColor: '#1f2937'
+            titleColor: '#1f2937',
+            showMargin: false,
+            showMarginFor: 'profit', // 'profit' or 'all'
+            globalFontSize: 12
         };
     }
 
@@ -674,29 +677,38 @@ class PulseSankeyChart {
         const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
         
         this.nodes.forEach(node => {
-            if (totalRevenue > 0) {
-                node.percentageOfRevenue = (node.value / totalRevenue) * 100;
-            } else {
-                node.percentageOfRevenue = 0;
-            }
-            
-            if (node.category === 'profit') {
-                if (node.id.toLowerCase().includes('gross')) {
-                    node.marginType = 'Gross Margin';
-                    node.marginValue = node.percentageOfRevenue;
-                } else if (node.id.toLowerCase().includes('operating')) {
-                    node.marginType = 'Operating Margin';
-                    node.marginValue = node.percentageOfRevenue;
-                } else if (node.id.toLowerCase().includes('net') || node.category === 'income') {
-                    node.marginType = 'Net Margin';
-                    node.marginValue = node.percentageOfRevenue;
+            // Only calculate percentageOfRevenue and marginValue if marginPercentage is not already provided from Flow Builder
+            if (!node.marginPercentage || node.marginPercentage === 'N/A') {
+                if (totalRevenue > 0) {
+                    node.percentageOfRevenue = (node.value / totalRevenue) * 100;
+                } else {
+                    node.percentageOfRevenue = 0;
                 }
+                
+                // Calculate marginPercentage for ALL nodes, not just profit
+                node.marginPercentage = node.percentageOfRevenue.toFixed(1) + '%';
+                
+                // Set specific margin types for profit nodes
+                if (node.category === 'profit') {
+                    if (node.id.toLowerCase().includes('gross')) {
+                        node.marginType = 'Gross Margin';
+                    } else if (node.id.toLowerCase().includes('operating')) {
+                        node.marginType = 'Operating Margin';
+                    } else if (node.id.toLowerCase().includes('net') || node.category === 'income') {
+                        node.marginType = 'Net Margin';
+                    }
+                } else {
+                    // For non-profit nodes, show as "% of Revenue"
+                    node.marginType = '% of Revenue';
+                }
+                
+                node.marginValue = node.percentageOfRevenue;
             }
             
             node.isExpenseType = node.category === 'expense';
         });
         
-        console.log('📊 Financial metrics calculated');
+        console.log('📊 Financial metrics calculated (prioritizing Flow Builder marginPercentage)');
     }
 
     calculateLayout() {
@@ -1771,7 +1783,7 @@ class PulseSankeyChart {
         const labelDistance = this.config.labelDistance.leftmost;
         const valueDistance = this.getValueDistance('general');
         const wrappedText = this.wrapText(node.id, 15);
-        const nodeColor = this.statementType === 'balance' ? this.getHierarchicalColor(node.id) : this.getNodeColor(node);
+        const nodeColor = this.getTextColor(node);
         
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -1782,56 +1794,48 @@ class PulseSankeyChart {
                 .attr('text-anchor', 'end')
                 .attr('dominant-baseline', 'middle')
                 .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
+                .attr('font-size', this.getFontSize(12) + 'px')
+                .attr('font-weight', 'bold')
                 .attr('font-family', this.getFontFamily())
                 .attr('fill', nodeColor)
                 .text(line);
         });
 
+        // Smart layout: check if we'll actually display any percentages to adjust positioning
+        const willShowMargin = this.statementType === 'income' && this.config.showMargin && node.marginPercentage && node.marginPercentage !== 'N/A';
+        const willShowPeriodChange = this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '';
+        const adjustedValueDistance = (!willShowMargin && !willShowPeriodChange) ? Math.max(1, valueDistance - 6) : valueDistance;
+
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - adjustedValueDistance - 2})`);
 
         // Main currency value
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'alphabetic')
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
+            .attr('font-size', this.getFontSize(11) + 'px')
+            .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+            .text(this.formatValueWithMargin(node));
 
         // Add percentage metrics if available
         if (node.hasPercentages) {
             let yOffset = 14; // Start below the main value
             
-            // Growth/Decline percentage (for both IS and BS)
-            if (node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A') {
-                valueGroup.append('text')
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 'alphabetic')
-                    .attr('y', yOffset)
-                    .attr('font-size', '9px')
-                    .attr('font-weight', '400')
-                    .attr('font-family', this.getFontFamily())
-                    .attr('fill', this.getPercentageColor(node.growthDecline))
-                    .text(`${node.growthDecline}`);
-                yOffset += 12;
-            }
             
-            // Margin percentage (Income Statement only)
-            if (this.statementType === 'income' && node.marginPercentage && node.marginPercentage !== 'N/A') {
+            // Growth/Decline percentage (for both IS and BS) - show if comparison mode is enabled
+            if (this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '') {
                 valueGroup.append('text')
                     .attr('text-anchor', 'middle')
                     .attr('dominant-baseline', 'alphabetic')
                     .attr('y', yOffset)
-                    .attr('font-size', '9px')
-                    .attr('font-weight', '400')
+                    .attr('font-size', this.getFontSize(9) + 'px')
+                    .attr('font-weight', 'bold')
                     .attr('font-family', this.getFontFamily())
-                    .attr('fill', '#666')
-                    .text(`${node.marginPercentage}`);
+                    .attr('fill', '#000000') // Always black for period change percentages
+                    .text(`${node.growthDecline}`);
             }
         }
     }
@@ -1840,7 +1844,7 @@ class PulseSankeyChart {
         const labelDistance = this.config.labelDistance.rightmost;
         const valueDistance = this.getValueDistance('general');
         const wrappedText = this.wrapText(node.id, 15);
-        const nodeColor = this.statementType === 'balance' ? this.getHierarchicalColor(node.id) : this.getNodeColor(node);
+        const nodeColor = this.getTextColor(node);
         
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -1851,56 +1855,48 @@ class PulseSankeyChart {
                 .attr('text-anchor', 'start')
                 .attr('dominant-baseline', 'middle')
                 .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
+                .attr('font-size', this.getFontSize(12) + 'px')
+                .attr('font-weight', 'bold')
                 .attr('font-family', this.getFontFamily())
                 .attr('fill', nodeColor)
                 .text(line);
         });
 
+        // Smart layout: check if we'll actually display any percentages to adjust positioning
+        const willShowMargin = this.statementType === 'income' && this.config.showMargin && node.marginPercentage && node.marginPercentage !== 'N/A';
+        const willShowPeriodChange = this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '';
+        const adjustedValueDistance = (!willShowMargin && !willShowPeriodChange) ? Math.max(1, valueDistance - 6) : valueDistance;
+
         const valueGroup = this.chart.append('g')
             .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - adjustedValueDistance - 2})`);
 
         // Main currency value
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'alphabetic')
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
+            .attr('font-size', this.getFontSize(11) + 'px')
+            .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+            .text(this.formatValueWithMargin(node));
 
         // Add percentage metrics if available
         if (node.hasPercentages) {
             let yOffset = 14; // Start below the main value
             
-            // Growth/Decline percentage (for both IS and BS)
-            if (node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A') {
-                valueGroup.append('text')
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 'alphabetic')
-                    .attr('y', yOffset)
-                    .attr('font-size', '9px')
-                    .attr('font-weight', '400')
-                    .attr('font-family', this.getFontFamily())
-                    .attr('fill', this.getPercentageColor(node.growthDecline))
-                    .text(`${node.growthDecline}`);
-                yOffset += 12;
-            }
             
-            // Margin percentage (Income Statement only)
-            if (this.statementType === 'income' && node.marginPercentage && node.marginPercentage !== 'N/A') {
+            // Growth/Decline percentage (for both IS and BS) - show if comparison mode is enabled
+            if (this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '') {
                 valueGroup.append('text')
                     .attr('text-anchor', 'middle')
                     .attr('dominant-baseline', 'alphabetic')
                     .attr('y', yOffset)
-                    .attr('font-size', '9px')
-                    .attr('font-weight', '400')
+                    .attr('font-size', this.getFontSize(9) + 'px')
+                    .attr('font-weight', 'bold')
                     .attr('font-family', this.getFontFamily())
-                    .attr('fill', '#666')
-                    .text(`${node.marginPercentage}`);
+                    .attr('fill', '#000000') // Always black for period change percentages
+                    .text(`${node.growthDecline}`);
             }
         }
     }
@@ -1918,8 +1914,8 @@ class PulseSankeyChart {
 
     renderMiddleLabels(node) {
         const labelDistance = this.config.labelDistance.middle;
-        const wrappedText = this.wrapText(node.id, 18);
-        const nodeColor = this.statementType === 'balance' ? this.getHierarchicalColor(node.id) : this.getNodeColor(node);
+        const wrappedText = [node.id]; // No text wrapping for middle labels
+        const nodeColor = this.getTextColor(node);
         
         let isTopNode;
         if (node.manuallyPositioned) {
@@ -1947,8 +1943,8 @@ class PulseSankeyChart {
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'alphabetic')
                 .attr('y', index * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
+                .attr('font-size', this.getFontSize(12) + 'px')
+                .attr('font-weight', 'bold')
                 .attr('font-family', this.getFontFamily())
                 .attr('fill', nodeColor)
                 .text(line);
@@ -1962,11 +1958,11 @@ class PulseSankeyChart {
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'alphabetic')
             .attr('y', 0)
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
+            .attr('font-size', this.getFontSize(11) + 'px')
+            .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+            .text(this.formatValueWithMargin(node));
     }
 
     renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
@@ -1980,11 +1976,11 @@ class PulseSankeyChart {
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'alphabetic')
             .attr('y', 0)
-            .attr('font-size', '11px')
-            .attr('font-weight', '500')
+            .attr('font-size', this.getFontSize(11) + 'px')
+            .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
-            .text(this.formatCurrency(node.value, node));
+            .text(this.formatValueWithMargin(node));
 
         const labelGroup = this.chart.append('g')
             .attr('class', 'node-label')
@@ -1995,8 +1991,8 @@ class PulseSankeyChart {
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'hanging')
                 .attr('y', index * 14)
-                .attr('font-size', '12px')
-                .attr('font-weight', '600')
+                .attr('font-size', this.getFontSize(12) + 'px')
+                .attr('font-weight', 'bold')
                 .attr('font-family', this.getFontFamily())
                 .attr('fill', nodeColor)
                 .text(line);
@@ -2030,6 +2026,29 @@ class PulseSankeyChart {
         }
         
         return lines;
+    }
+
+    // Format currency value with optional margin percentage
+    formatValueWithMargin(node) {
+        const baseValue = this.formatCurrency(node.value, node);
+        
+        // Add margin percentage if show margin is enabled
+        if (this.statementType === 'income' && 
+            this.config.showMargin && 
+            node.marginPercentage && 
+            node.marginPercentage !== 'N/A') {
+            
+            // Check if we should show for this node based on user preference
+            const showMarginFor = this.config.showMarginFor || 'profit';
+            const shouldShow = showMarginFor === 'all' || 
+                             (showMarginFor === 'profit' && node.category === 'profit');
+            
+            if (shouldShow) {
+                return `${baseValue} | ${node.marginPercentage}`;
+            }
+        }
+        
+        return baseValue;
     }
 
     formatCurrency(value, node) {
@@ -2096,14 +2115,9 @@ class PulseSankeyChart {
             formattedValue = `(${formattedValue})`;
         }
         
-        if (node) {
-            if (node.marginType && node.marginValue) {
-                formattedValue += ` | ${node.marginValue.toFixed(1)}%`;
-            } else if (node.percentageOfRevenue && node.percentageOfRevenue > 0 && 
-                      (node.category === 'revenue' || node.category === 'expense' || node.isExpenseType)) {
-                formattedValue += ` | ${node.percentageOfRevenue.toFixed(1)}%`;
-            }
-        }
+        // REMOVED: Margin display from formatCurrency to eliminate duplicate calculations
+        // All margin display is now handled exclusively in renderLabels method
+        // This ensures only one margin display source and respects the showMargin toggle
         
         return formattedValue;
     }
@@ -2522,6 +2536,44 @@ class PulseSankeyChart {
         const b = parseInt(result[3], 16);
         
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+
+    /**
+     * Get full opacity color for text labels (always 100% opacity)
+     */
+    getTextColor(node) {
+        if (this.statementType === 'balance') {
+            return this.getHierarchicalTextColor(node.id);
+        } else {
+            return this.getNodeColor(node);
+        }
+    }
+
+    /**
+     * Get hierarchical text color without opacity for balance sheets
+     */
+    getHierarchicalTextColor(nodeId) {
+        if (this.statementType !== 'balance') {
+            return this.getNodeColor({ id: nodeId, category: this.nodes.find(n => n.id === nodeId)?.category }); 
+        }
+        
+        const colorGroup = this.colorGroups.get(nodeId);
+        if (!colorGroup) {
+            console.warn(`⚠️ No color group found for node: ${nodeId}`);
+            return this.getNodeColor({ id: nodeId, category: this.nodes.find(n => n.id === nodeId)?.category });
+        }
+        
+        // Return base color without opacity for text
+        return colorGroup.baseColor;
+    }
+
+    /**
+     * Get scaled font size based on global font size setting
+     */
+    getFontSize(baseSize) {
+        const globalSize = this.config.globalFontSize || 12;
+        const scale = globalSize / 12; // 12 is the default base size
+        return Math.round(baseSize * scale);
     }
 
     getNodeOpacity(node) {

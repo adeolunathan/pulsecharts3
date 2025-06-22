@@ -63,7 +63,7 @@ class SankeyControlModule {
             appearance: {
                 title: "Visual Appearance",
                 icon: "🎨",
-                collapsed: false,
+                collapsed: true,
                 controls: [
                     {
                         id: "backgroundColor",
@@ -95,6 +95,17 @@ class SankeyControlModule {
                         type: "color_picker",
                         label: "Text Color",
                         default: "#1f2937"
+                    },
+                    {
+                        id: "globalFontSize",
+                        type: "slider",
+                        label: "Global Font Size",
+                        min: 8,
+                        max: 18,
+                        default: 12,
+                        step: 1,
+                        unit: "px",
+                        description: "Adjust the size of all text elements on the chart"
                     }
                 ]
             },
@@ -103,7 +114,7 @@ class SankeyControlModule {
             colors: {
                 title: "Node Colors", 
                 icon: "🎭",
-                collapsed: false,
+                collapsed: true,
                 controls: [], // Will be dynamically populated
                 isDynamic: true
             },
@@ -162,12 +173,12 @@ class SankeyControlModule {
                         type: "slider", 
                         label: "Value Distance (Left/Right)", 
                         min: 1, 
-                        max: 15, 
-                        default: 3, 
+                        max: 30, 
+                        default: 5, 
                         step: 1, 
                         unit: "px", 
                         description: "Distance of values from leftmost and rightmost nodes only" 
-                    }
+                    },
                 ]
             },
 
@@ -601,6 +612,12 @@ class SankeyControlModule {
             return;
         }
 
+        // Handle globalFontSize specially
+        if (controlId === 'globalFontSize') {
+            chart.updateConfig({ globalFontSize: value });
+            return;
+        }
+
         // Handle individual node color controls
         if (controlId.startsWith('node_') && controlId.endsWith('_color')) {
             // Extract node ID from control ID (node_nodeId_color)
@@ -749,6 +766,7 @@ class SankeyControlModule {
             chart.updateConfig({ rightmostSpacing: value });
             return;
         }
+
 
         // Handle standard controls
         chart.updateConfig({ [controlId]: value });

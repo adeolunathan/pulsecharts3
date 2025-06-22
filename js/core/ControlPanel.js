@@ -66,6 +66,13 @@ class PulseControlPanel {
         // Special handling for color section
         if (sectionKey === 'colors') {
             this.createColorSection(content, section);
+        } else if (sectionKey === 'labels') {
+            // Add regular controls first
+            section.controls.forEach(control => {
+                this.createControl(content, control);
+            });
+            // Add Show Margin toggle for Income Statement charts
+            this.createShowMarginToggle(content);
         } else {
             section.controls.forEach(control => {
                 this.createControl(content, control);
@@ -480,6 +487,77 @@ class PulseControlPanel {
         infoDiv.text(config.description || 'Information');
     }
 
+    // Create Show Margin toggle (Income Statement only)
+    createShowMarginToggle(container) {
+        // Only show for Income Statement charts
+        if (!this.chart || this.chart.statementType === 'balance') {
+            return;
+        }
+
+        const controlDiv = container.append('div').attr('class', 'control-item');
+        
+        controlDiv.append('label')
+            .attr('class', 'control-label')
+            .text('Show Margin');
+
+        const toggleContainer = controlDiv.append('div')
+            .attr('class', 'show-margin-toggle-container')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px')
+            .style('margin-top', '8px');
+
+        const checkbox = toggleContainer.append('input')
+            .attr('type', 'checkbox')
+            .attr('id', 'show-margin-toggle')
+            .property('checked', this.chart && this.chart.config ? this.chart.config.showMargin : false)
+            .on('change', (event) => {
+                this.toggleShowMargin(event.target.checked);
+            });
+
+        toggleContainer.append('label')
+            .attr('for', 'show-margin-toggle')
+            .style('font-size', '12px')
+            .style('color', '#6b7280')
+            .text('Display percentage of revenue');
+
+        // Add dropdown for choosing what to show margins for
+        const choiceContainer = controlDiv.append('div')
+            .attr('class', 'margin-choice-container')
+            .style('margin-top', '8px')
+            .style('margin-left', '16px')
+            .style('display', this.chart && this.chart.config && this.chart.config.showMargin ? 'block' : 'none');
+
+        choiceContainer.append('label')
+            .style('font-size', '11px')
+            .style('color', '#6b7280')
+            .style('margin-right', '6px')
+            .text('Show for:');
+
+        const select = choiceContainer.append('select')
+            .attr('id', 'show-margin-for-select')
+            .style('font-size', '11px')
+            .style('padding', '2px 4px')
+            .style('border', '1px solid #d1d5db')
+            .style('border-radius', '3px')
+            .property('value', this.chart && this.chart.config ? this.chart.config.showMarginFor || 'profit' : 'profit')
+            .on('change', (event) => {
+                this.updateShowMarginFor(event.target.value);
+            });
+
+        const currentChoice = this.chart && this.chart.config ? this.chart.config.showMarginFor || 'profit' : 'profit';
+
+        select.append('option')
+            .attr('value', 'profit')
+            .property('selected', currentChoice === 'profit')
+            .text('Profit Only');
+
+        select.append('option')
+            .attr('value', 'all')
+            .property('selected', currentChoice === 'all')
+            .text('All Items');
+    }
+
     // Create custom control (placeholder for extensibility)
     createCustomControl(container, config) {
         const customDiv = container.append('div')
@@ -695,6 +773,7 @@ class PulseControlPanel {
             return;
         }
 
+
         // Debounce other updates for smooth interaction
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
@@ -875,6 +954,54 @@ class PulseControlPanel {
             
             console.log('🔄 Updated dynamic controls');
         }
+    }
+
+    // Toggle Show Margin functionality (following successful pattern)
+    toggleShowMargin(enabled) {
+        console.log(`🎛️ Show Margin toggle changed to: ${enabled}`);
+        
+        if (!this.chart) {
+            console.warn('No chart available for Show Margin toggle');
+            return;
+        }
+
+        // Update chart config
+        this.chart.config.showMargin = enabled;
+        
+        // Show/hide the dropdown based on toggle state
+        const choiceContainer = d3.select('.margin-choice-container');
+        if (choiceContainer.node()) {
+            choiceContainer.style('display', enabled ? 'block' : 'none');
+        }
+        
+        // Force labels re-render by removing existing labels and re-creating them
+        if (this.chart.chart) {
+            this.chart.chart.selectAll('.node-label, .node-value').remove();
+            this.chart.renderLabels();
+        }
+        
+        console.log(`✅ Show Margin ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
+    // Update what to show margins for (profit only vs all items)
+    updateShowMarginFor(choice) {
+        console.log(`🎛️ Show Margin For changed to: ${choice}`);
+        
+        if (!this.chart) {
+            console.warn('No chart available for Show Margin For choice');
+            return;
+        }
+
+        // Update chart config
+        this.chart.config.showMarginFor = choice;
+        
+        // Force labels re-render by removing existing labels and re-creating them
+        if (this.chart.chart) {
+            this.chart.chart.selectAll('.node-label, .node-value').remove();
+            this.chart.renderLabels();
+        }
+        
+        console.log(`✅ Show Margin For set to ${choice}`);
     }
 
     // Cleanup

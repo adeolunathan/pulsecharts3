@@ -114,6 +114,13 @@
                                         <option value="billions">Billions</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period Type</label>
+                                    <select class="flow-select" id="period-type" onchange="updateMetadata()">
+                                        <option value="Q/Q">Quarter-over-Quarter (Q/Q)</option>
+                                        <option value="Y/Y">Year-over-Year (Y/Y)</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -642,7 +649,7 @@
             getVarianceDisplay() {
                 const variance = this.getVariance();
                 if (variance.trend === 'none') return '→ 0%';
-                if (variance.trend === 'new') return '🆕';
+                if (variance.trend === 'new') return ''; // Return empty string for new items (consistent with getGrowthDeclineDisplay)
                 
                 const symbol = variance.trend === 'up' ? '↗️' : '↘️';
                 const sign = variance.percentage > 0 ? '+' : '';
@@ -665,11 +672,34 @@
             // Get formatted growth/decline display (for both IS and BS)
             getGrowthDeclineDisplay() {
                 const variance = this.getVariance();
-                if (variance.trend === 'none') return '0.0%';
-                if (variance.trend === 'new') return 'New';
+                if (variance.trend === 'none') return ''; // Return empty string for no change
+                if (variance.trend === 'new') return ''; // Return empty string for new items too
                 
                 const sign = variance.percentage > 0 ? '+' : '';
-                return `${sign}${variance.percentage.toFixed(1)}%`;
+                const periodIndicator = this.getPeriodIndicator();
+                return `${sign}${variance.percentage.toFixed(1)}% ${periodIndicator}`;
+            }
+            
+            // Get period indicator (Y/Y or Q/Q) based on user selection
+            getPeriodIndicator() {
+                // Use user-selected period type if available
+                if (flowData.metadata?.periodType) {
+                    return flowData.metadata.periodType;
+                }
+                
+                // Fallback to automatic detection for backward compatibility
+                const period = flowData.metadata?.period || '';
+                const periodLower = period.toLowerCase();
+                
+                // Check for quarter indicators
+                if (periodLower.includes('q1') || periodLower.includes('q2') || 
+                    periodLower.includes('q3') || periodLower.includes('q4') || 
+                    periodLower.includes('quarter')) {
+                    return 'Q/Q';
+                }
+                
+                // Default to Q/Q for quarterly periods, Y/Y otherwise
+                return 'Y/Y';
             }
         }
 
@@ -1195,7 +1225,8 @@
                 { id: 'company-name', value: flowData.metadata.company },
                 { id: 'period', value: flowData.metadata.period },
                 { id: 'currency', value: flowData.metadata.currency },
-                { id: 'units', value: flowData.metadata.unit }
+                { id: 'units', value: flowData.metadata.unit },
+                { id: 'period-type', value: flowData.metadata.periodType || 'Q/Q' }
             ];
             
             fields.forEach(({ id, value }) => {
@@ -1470,6 +1501,7 @@
             flowData.metadata.period = document.getElementById('period').value;
             flowData.metadata.currency = document.getElementById('currency').value;
             flowData.metadata.unit = document.getElementById('units').value;
+            flowData.metadata.periodType = document.getElementById('period-type').value;
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             debouncedRealTimeUpdate();
@@ -1778,6 +1810,8 @@
                     );
                     if (matchingFlow) {
                         node.growthDecline = matchingFlow.getGrowthDeclineDisplay();
+                        // Only calculate marginPercentage if margin display is enabled
+                        // Note: We'll check the actual toggle state from the chart instance when available
                         node.marginPercentage = getFlowMarginPercentage(matchingFlow, revenueBase);
                         node.hasPercentages = true;
                     }
@@ -1944,9 +1978,59 @@
                     editor.select();
                 }
 
-                // Add event listeners
-                editor.addEventListener('blur', () => this.stopEditing(), { once: true });
-                editor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                // Add event listeners with enhanced SELECT element handling
+                if (editor.tagName === 'SELECT') {
+                    // Prevent immediate closing on focus
+                    editor.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                    });
+                    
+                    // Only close on actual selection change
+                    editor.addEventListener('change', () => {
+                        this.stopEditing();
+                    }, { once: true });
+                    
+                    editor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                    
+                    // Enhanced blur handling for SELECT stability
+                    let blurTimeout;
+                    let isInteracting = false;
+                    
+                    editor.addEventListener('mousedown', () => {
+                        isInteracting = true;
+                        if (blurTimeout) {
+                            clearTimeout(blurTimeout);
+                            blurTimeout = null;
+                        }
+                    });
+                    
+                    editor.addEventListener('mouseup', () => {
+                        setTimeout(() => {
+                            isInteracting = false;
+                        }, 50);
+                    });
+                    
+                    editor.addEventListener('blur', (e) => {
+                        if (blurTimeout) clearTimeout(blurTimeout);
+                        
+                        blurTimeout = setTimeout(() => {
+                            if (!isInteracting && document.activeElement !== editor) {
+                                this.stopEditing();
+                            }
+                        }, 300); // Increased delay for better stability
+                    }, { once: true });
+                    
+                    // Restore focus if dropdown was accidentally closed
+                    editor.addEventListener('focus', () => {
+                        if (blurTimeout) {
+                            clearTimeout(blurTimeout);
+                            blurTimeout = null;
+                        }
+                    });
+                } else {
+                    editor.addEventListener('blur', () => this.stopEditing(), { once: true });
+                    editor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                }
             }
 
             stopEditing() {

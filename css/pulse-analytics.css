@@ -4186,19 +4186,46 @@ body {
 .cell-editor select {
     height: 100%;
     width: 100%;
-    border: none;
+    border: 2px solid #4285f4;
     background: white;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 8px center;
-    background-repeat: no-repeat;
-    background-size: 12px;
-    padding: 6px 24px 6px 8px;
+    -webkit-appearance: menulist;
+    -moz-appearance: menulist;
+    appearance: menulist;
+    padding: 6px 8px;
     font-size: 13px;
     font-family: 'Roboto', Arial, sans-serif;
     color: #202124;
     cursor: pointer;
     outline: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 2px;
+    z-index: 2000;
+    position: relative;
+    /* Enhanced stability for dropdown */
+    pointer-events: all;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    min-height: 24px;
+}
+
+.cell-editor select:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+    z-index: 2001;
+    /* Keep dropdown stable when focused */
+    position: relative;
+}
+
+.cell-editor select:hover {
+    border-color: #1a73e8;
+}
+
+/* Ensure dropdown options are properly layered */
+.cell-editor select option {
+    background: white;
+    color: #333;
+    padding: 4px 8px;
 }
 
 /* Special cell types */
