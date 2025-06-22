@@ -1793,6 +1793,7 @@ class PulseSankeyChart {
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
+        // Main currency value
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'alphabetic')
@@ -1801,6 +1802,38 @@ class PulseSankeyChart {
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value, node));
+
+        // Add percentage metrics if available
+        if (node.hasPercentages) {
+            let yOffset = 14; // Start below the main value
+            
+            // Growth/Decline percentage (for both IS and BS)
+            if (node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A') {
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('y', yOffset)
+                    .attr('font-size', '9px')
+                    .attr('font-weight', '400')
+                    .attr('font-family', this.getFontFamily())
+                    .attr('fill', this.getPercentageColor(node.growthDecline))
+                    .text(`${node.growthDecline}`);
+                yOffset += 12;
+            }
+            
+            // Margin percentage (Income Statement only)
+            if (this.statementType === 'income' && node.marginPercentage && node.marginPercentage !== 'N/A') {
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('y', yOffset)
+                    .attr('font-size', '9px')
+                    .attr('font-weight', '400')
+                    .attr('font-family', this.getFontFamily())
+                    .attr('fill', '#666')
+                    .text(`${node.marginPercentage}`);
+            }
+        }
     }
 
     renderRightmostLabels(node) {
@@ -1829,6 +1862,7 @@ class PulseSankeyChart {
             .attr('class', 'node-value')
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
 
+        // Main currency value
         valueGroup.append('text')
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'alphabetic')
@@ -1837,6 +1871,49 @@ class PulseSankeyChart {
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
             .text(this.formatCurrency(node.value, node));
+
+        // Add percentage metrics if available
+        if (node.hasPercentages) {
+            let yOffset = 14; // Start below the main value
+            
+            // Growth/Decline percentage (for both IS and BS)
+            if (node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A') {
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('y', yOffset)
+                    .attr('font-size', '9px')
+                    .attr('font-weight', '400')
+                    .attr('font-family', this.getFontFamily())
+                    .attr('fill', this.getPercentageColor(node.growthDecline))
+                    .text(`${node.growthDecline}`);
+                yOffset += 12;
+            }
+            
+            // Margin percentage (Income Statement only)
+            if (this.statementType === 'income' && node.marginPercentage && node.marginPercentage !== 'N/A') {
+                valueGroup.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'alphabetic')
+                    .attr('y', yOffset)
+                    .attr('font-size', '9px')
+                    .attr('font-weight', '400')
+                    .attr('font-family', this.getFontFamily())
+                    .attr('fill', '#666')
+                    .text(`${node.marginPercentage}`);
+            }
+        }
+    }
+
+    // Helper function to determine percentage color based on value
+    getPercentageColor(percentageText) {
+        if (percentageText.includes('+') || percentageText.startsWith('+')){
+            return '#27AE60'; // Green for positive growth
+        } else if (percentageText.includes('-')) {
+            return '#E74C3C'; // Red for negative growth
+        } else {
+            return '#7F8C8D'; // Gray for neutral/no change
+        }
     }
 
     renderMiddleLabels(node) {
@@ -2168,6 +2245,14 @@ class PulseSankeyChart {
             return;
         }
 
+        // Check if statement type is explicitly provided in metadata
+        if (data.metadata && data.metadata.statementType) {
+            this.statementType = data.metadata.statementType;
+            console.log(`📊 Statement type from metadata: ${this.statementType}`);
+            return;
+        }
+
+        // Fallback to keyword detection
         const balanceSheetKeywords = [
             'assets', 'total assets', 'current assets', 'non-current assets',
             'liabilities', 'current liabilities', 'non-current liabilities',

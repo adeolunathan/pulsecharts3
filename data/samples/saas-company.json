@@ -151,6 +151,7 @@
       "source": "Subscription Revenue",
       "target": "Total Revenue",
       "value": 3000,
+      "previousValue": 2500,
       "type": "revenue_flow",
       "description": "Subscription revenue contributing to total revenue"
     },
@@ -158,6 +159,7 @@
       "source": "Professional Services",
       "target": "Total Revenue",
       "value": 600,
+      "previousValue": 550,
       "type": "revenue_flow",
       "description": "Services revenue contributing to total revenue"
     },
@@ -165,6 +167,7 @@
       "source": "Platform & Other",
       "target": "Total Revenue",
       "value": 1350,
+      "previousValue": 1200,
       "type": "revenue_flow",
       "description": "Other revenue contributing to total revenue"
     },
@@ -172,6 +175,7 @@
       "source": "Total Revenue",
       "target": "Gross Profit",
       "value": 3400,
+      "previousValue": 2950,
       "type": "profit_flow",
       "description": "Revenue after cost of goods sold"
     },
@@ -200,6 +204,7 @@
       "source": "Operating Profit",
       "target": "Net Income",
       "value": 500,
+      "previousValue": 420,
       "type": "final_income",
       "description": "Final net income after all adjustments"
     },

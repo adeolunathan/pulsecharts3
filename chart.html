@@ -648,6 +648,88 @@
                 const sign = variance.percentage > 0 ? '+' : '';
                 return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
             }
+            
+            // Calculate margin percentage (for Income Statement only)
+            getMarginPercentage(revenueBase) {
+                if (!revenueBase || revenueBase === 0) {
+                    return { percentage: 0, display: 'N/A' };
+                }
+                
+                const percentage = (this.value / revenueBase) * 100;
+                return {
+                    percentage: percentage,
+                    display: `${percentage.toFixed(1)}%`
+                };
+            }
+            
+            // Get formatted growth/decline display (for both IS and BS)
+            getGrowthDeclineDisplay() {
+                const variance = this.getVariance();
+                if (variance.trend === 'none') return '0.0%';
+                if (variance.trend === 'new') return 'New';
+                
+                const sign = variance.percentage > 0 ? '+' : '';
+                return `${sign}${variance.percentage.toFixed(1)}%`;
+            }
+        }
+
+        // Find revenue base for margin calculations (Income Statement only)
+        function findRevenueBase(flowData) {
+            if (!flowData || !flowData.flows) return 0;
+            
+            // Look for nodes that represent total revenue
+            const revenueKeywords = ['total revenue', 'revenue', 'total sales', 'sales'];
+            
+            // Create a map of all nodes with their values
+            const nodeValues = new Map();
+            
+            // Aggregate values for each unique node
+            flowData.flows.forEach(flow => {
+                // Add source node value
+                if (!nodeValues.has(flow.source)) {
+                    nodeValues.set(flow.source, 0);
+                }
+                
+                // Add target node value
+                if (!nodeValues.has(flow.target)) {
+                    nodeValues.set(flow.target, 0);
+                }
+                
+                // For targets, accumulate the incoming flow values
+                nodeValues.set(flow.target, nodeValues.get(flow.target) + flow.value);
+            });
+            
+            // Find the revenue base node
+            let revenueBase = 0;
+            let revenueNodeName = null;
+            
+            for (const [nodeName, value] of nodeValues) {
+                const lowerName = nodeName.toLowerCase();
+                for (const keyword of revenueKeywords) {
+                    if (lowerName.includes(keyword)) {
+                        // Prefer "Total Revenue" over just "Revenue"
+                        if (lowerName.includes('total') && lowerName.includes('revenue')) {
+                            revenueBase = value;
+                            revenueNodeName = nodeName;
+                            break;
+                        } else if (!revenueNodeName || !revenueNodeName.toLowerCase().includes('total')) {
+                            revenueBase = value;
+                            revenueNodeName = nodeName;
+                        }
+                    }
+                }
+            }
+            
+            console.log(`💰 Found revenue base: ${revenueNodeName} = ${revenueBase}`);
+            return revenueBase;
+        }
+
+        // Get margin percentage for a specific flow (Income Statement only)
+        function getFlowMarginPercentage(flow, revenueBase) {
+            if (!revenueBase || revenueBase === 0) return 'N/A';
+            
+            const percentage = (flow.value / revenueBase) * 100;
+            return `${percentage.toFixed(1)}%`;
         }
 
         // Debounce function for real-time updates
@@ -858,12 +940,18 @@
                         document.querySelectorAll('.main-tab').forEach(tab => {
                             tab.classList.remove('active');
                         });
-                        document.querySelector(`[onclick="switchMainTab('chart-view')"]`).classList.add('active');
+                        const chartViewTab = document.querySelector(`[onclick="switchMainTab('chart-view')"]`);
+                        if (chartViewTab) {
+                            chartViewTab.classList.add('active');
+                        }
                         
                         document.querySelectorAll('.tab-content').forEach(content => {
                             content.classList.remove('active');
                         });
-                        document.getElementById('chart-view').classList.add('active');
+                        const chartViewContent = document.getElementById('chart-view');
+                        if (chartViewContent) {
+                            chartViewContent.classList.add('active');
+                        }
                         
                         // Lock chart view to prevent automatic switching
                         lockChartView = true;
@@ -1651,7 +1739,7 @@
             return result.map(field => field.replace(/^"|"$/g, ''));
         }
 
-        // FIXED: Generate nodes and links with proper color preservation
+        // FIXED: Generate nodes and links with proper color preservation and percentage metrics
         function generateNodesAndLinksFromFlows() {
             const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
             const result = PulseSankeyChart.generateNodesAndLinksFromFlows(flowData, comparisonMode);
@@ -1659,6 +1747,46 @@
             // Preserve the comparison mode in metadata
             result.metadata.comparisonMode = comparisonMode;
             
+            // Determine chart type based on categories
+            const isBalanceSheet = flowData.flows.some(flow => 
+                flow.sourceCategory === 'asset' || flow.targetCategory === 'asset' ||
+                flow.sourceCategory === 'liability' || flow.targetCategory === 'liability' ||
+                flow.sourceCategory === 'equity' || flow.targetCategory === 'equity'
+            );
+            
+            result.metadata.statementType = isBalanceSheet ? 'balance' : 'income';
+            
+            // Calculate percentage metrics
+            if (isBalanceSheet) {
+                // For Balance Sheet: Add growth/decline percentages
+                result.nodes.forEach(node => {
+                    const matchingFlow = flowData.flows.find(flow => 
+                        flow.source === node.id || flow.target === node.id
+                    );
+                    if (matchingFlow) {
+                        node.growthDecline = matchingFlow.getGrowthDeclineDisplay();
+                        node.hasPercentages = true;
+                    }
+                });
+            } else {
+                // For Income Statement: Add both growth/decline and margin percentages
+                const revenueBase = findRevenueBase(flowData);
+                
+                result.nodes.forEach(node => {
+                    const matchingFlow = flowData.flows.find(flow => 
+                        flow.source === node.id || flow.target === node.id
+                    );
+                    if (matchingFlow) {
+                        node.growthDecline = matchingFlow.getGrowthDeclineDisplay();
+                        node.marginPercentage = getFlowMarginPercentage(matchingFlow, revenueBase);
+                        node.hasPercentages = true;
+                    }
+                });
+                
+                result.metadata.revenueBase = revenueBase;
+            }
+            
+            console.log(`📊 Generated ${result.metadata.statementType} chart data with percentage metrics`);
             return result;
         }
 
