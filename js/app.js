@@ -114,8 +114,7 @@ class PulseApplication {
                 }
                 
                 // Update status
-                const title = data.metadata?.title || 'Updated Data';
-                this.setStatus(`Updated: ${title}`, 'ready');
+                this.setStatus('Ready', 'ready');
             }
         }
     }
@@ -441,8 +440,7 @@ class PulseApplication {
             
             this.notifyDataBridgeUpdate(source);
             
-            const title = newData.metadata?.title || 'Updated Data';
-            this.setStatus(`Updated: ${title}`, 'ready');
+            this.setStatus('Ready', 'ready');
             
             return true;
         } catch (error) {

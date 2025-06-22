@@ -381,6 +381,9 @@ class PulseControlPanel {
             case 'toggle':
                 this.createToggleControl(controlDiv, config);
                 break;
+            case 'button':
+                this.createButtonControl(controlDiv, config);
+                break;
             case 'color_picker':
                 this.createColorPickerControl(controlDiv, config);
                 break;
@@ -471,6 +474,44 @@ class PulseControlPanel {
         toggleContainer.append('span').attr('class', 'toggle-slider');
     }
 
+    // Create button control
+    createButtonControl(container, config) {
+        container.append('button')
+            .attr('class', 'control-button')
+            .style('width', '100%')
+            .style('padding', '8px 16px')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('background', '#3b82f6')
+            .style('color', 'white')
+            .style('font-size', '14px')
+            .style('font-weight', '500')
+            .style('cursor', 'pointer')
+            .style('transition', 'all 0.2s ease')
+            .text(config.label)
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('background', '#2563eb')
+                    .style('transform', 'translateY(-1px)')
+                    .style('box-shadow', '0 4px 12px rgba(59, 130, 246, 0.3)');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('background', '#3b82f6')
+                    .style('transform', 'translateY(0)')
+                    .style('box-shadow', 'none');
+            })
+            .on('click', () => {
+                if (config.action && this.chart && typeof this.chart[config.action] === 'function') {
+                    // Call the action method on the chart
+                    this.chart[config.action]();
+                    console.log(`🔘 Button action executed: ${config.action}`);
+                } else {
+                    console.warn(`Button action '${config.action}' not found on chart`);
+                }
+            });
+    }
+
     // Create info control (for displaying information)
     createInfoControl(container, config) {
         const infoDiv = container.append('div')
@@ -507,7 +548,7 @@ class PulseControlPanel {
             .style('gap', '8px')
             .style('margin-top', '8px');
 
-        const checkbox = toggleContainer.append('input')
+        toggleContainer.append('input')
             .attr('type', 'checkbox')
             .attr('id', 'show-margin-toggle')
             .property('checked', this.chart && this.chart.config ? this.chart.config.showMargin : false)
@@ -560,7 +601,7 @@ class PulseControlPanel {
 
     // Create custom control (placeholder for extensibility)
     createCustomControl(container, config) {
-        const customDiv = container.append('div')
+        container.append('div')
             .attr('class', 'control-custom')
             .text(`Custom control: ${config.component || 'Unknown'}`);
         
@@ -965,20 +1006,14 @@ class PulseControlPanel {
             return;
         }
 
-        // Update chart config
-        this.chart.config.showMargin = enabled;
-        
         // Show/hide the dropdown based on toggle state
         const choiceContainer = d3.select('.margin-choice-container');
         if (choiceContainer.node()) {
             choiceContainer.style('display', enabled ? 'block' : 'none');
         }
         
-        // Force labels re-render by removing existing labels and re-creating them
-        if (this.chart.chart) {
-            this.chart.chart.selectAll('.node-label, .node-value').remove();
-            this.chart.renderLabels();
-        }
+        // Use proper chart update mechanism instead of manual manipulation
+        this.chart.updateConfig({ showMargin: enabled });
         
         console.log(`✅ Show Margin ${enabled ? 'enabled' : 'disabled'}`);
     }
@@ -992,14 +1027,8 @@ class PulseControlPanel {
             return;
         }
 
-        // Update chart config
-        this.chart.config.showMarginFor = choice;
-        
-        // Force labels re-render by removing existing labels and re-creating them
-        if (this.chart.chart) {
-            this.chart.chart.selectAll('.node-label, .node-value').remove();
-            this.chart.renderLabels();
-        }
+        // Use proper chart update mechanism instead of manual manipulation
+        this.chart.updateConfig({ showMarginFor: choice });
         
         console.log(`✅ Show Margin For set to ${choice}`);
     }

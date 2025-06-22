@@ -67,7 +67,41 @@ body {
 .header-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 20px;
+}
+
+.chart-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-selector label {
+    color: white;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.chart-selector select {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-selector select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.chart-selector select option {
+    background: #667eea;
+    color: white;
 }
 
 .chart-selector select, .data-selector select {
@@ -85,12 +119,31 @@ body {
 .app-content {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 20px;
-    padding: 20px;
-    max-width: 1600px;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+    padding: 24px;
+    max-width: 1800px;
     margin: 0 auto;
     width: 100%;
+}
+
+/* ===== MODERN CONTROL PANEL LAYOUT ===== */
+.modern-control-panel {
+    width: 340px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    height: calc(100vh - 180px);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.modern-control-panel:hover {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .main-content {
@@ -103,24 +156,125 @@ body {
 }
 
 /* ===== CHART AREA STYLES ===== */
-.chart-area {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
+/* Simplified chart container - removed redundant chart-area wrapper */
 
 .chart-container {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    flex: 1;
-    padding: 20px;
-    min-height: 600px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    height: calc(100vh - 180px);
+    overflow: visible;
     position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.chart-svg {
+    display: block;
+    margin: 0 auto;
+}
+
+.chart-container:hover {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== ENHANCED RESET BUTTON STYLING ===== */
+.reset-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.reset-all-btn:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+}
+
+.reset-all-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.reset-all-btn:focus {
+    outline: 2px solid #ef4444;
+    outline-offset: 2px;
+}
+
+/* ===== ACCESSIBILITY & DESIGN CONSISTENCY ===== */
+/* Enhanced focus states for better keyboard navigation */
+.export-trigger:focus,
+.chart-selector select:focus,
+.control-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Improved contrast ratios */
+.control-title h3 {
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 18px;
+    white-space: nowrap;
+    margin: 0;
+}
+
+/* Consistent loading states */
+.chart-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748b;
+    font-size: 16px;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Enhanced visual hierarchy */
+.control-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Subtle dividers instead of harsh borders */
+.control-group {
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    padding: 16px 24px;
+}
+
+.control-group:last-child {
+    border-bottom: none;
 }
 
 .chart-header {
@@ -258,6 +412,7 @@ body {
     text-anchor: middle;
     pointer-events: none;
     user-select: none;
+    opacity: 1 !important;
 }
 
 .sankey-label.node-name {
@@ -1111,15 +1266,36 @@ body {
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1400px) {
+    .app-content {
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+        padding: 20px;
+        max-width: 1400px;
+    }
+    
+    .modern-control-panel {
+        width: 300px;
+    }
+    
+    .chart-container {
+        height: calc(100vh - 160px);
+    }
+}
+
 @media (max-width: 1200px) {
     .app-content {
         grid-template-columns: 1fr;
         gap: 16px;
+        padding: 16px;
     }
     
-    .main-content {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
+    .modern-control-panel {
+        order: -1;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        max-height: none;
     }
     
     .control-panel {
@@ -1130,8 +1306,8 @@ body {
         max-height: none;
     }
     
-    .info-panel {
-        order: -1;
+    .chart-container {
+        height: calc(100vh - 220px);
     }
     
     .chart-wrapper {
@@ -3057,13 +3233,19 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 0;
+    gap: 24px;
+    min-height: 60px;
+    flex-wrap: nowrap;
+    width: 100%;
 }
 
 .control-title {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .control-title svg {
@@ -3079,22 +3261,25 @@ body {
 
 .control-actions {
     display: flex;
-    gap: 12px;
+    gap: 16px;
+    flex-shrink: 0;
+    align-items: center;
 }
 
 .control-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 8px;
+    padding: 10px 18px;
     border: 1px solid #e2e8f0;
     background: white;
     color: #64748b;
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: 10px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .control-btn:hover {
@@ -5098,13 +5283,19 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 0;
+    gap: 24px;
+    min-height: 60px;
+    flex-wrap: nowrap;
+    width: 100%;
 }
 
 .control-title {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .control-title svg {
@@ -5120,22 +5311,25 @@ body {
 
 .control-actions {
     display: flex;
-    gap: 12px;
+    gap: 16px;
+    flex-shrink: 0;
+    align-items: center;
 }
 
 .control-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 8px;
+    padding: 10px 18px;
     border: 1px solid #e2e8f0;
     background: white;
     color: #64748b;
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: 10px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .control-btn:hover {

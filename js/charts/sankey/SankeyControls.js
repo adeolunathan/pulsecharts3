@@ -214,6 +214,39 @@ class SankeyControlModule {
                         description: "Transparency of flow connections" 
                     }
                 ]
+            },
+            
+            viewControls: {
+                title: "View Controls",
+                icon: "🔍",
+                collapsed: true,
+                controls: [
+                    { 
+                        id: "resetZoom", 
+                        type: "button", 
+                        label: "Reset View", 
+                        action: "resetZoom",
+                        description: "Reset chart to original position and scale" 
+                    },
+                    { 
+                        id: "fitToView", 
+                        type: "button", 
+                        label: "Fit to View", 
+                        action: "fitToView",
+                        description: "Automatically fit chart to optimal view" 
+                    },
+                    { 
+                        id: "zoomLevel", 
+                        type: "slider", 
+                        label: "Zoom Level", 
+                        min: 0.1, 
+                        max: 5.0, 
+                        default: 1.0, 
+                        step: 0.05, 
+                        unit: "x", 
+                        description: "Adjust chart zoom level" 
+                    }
+                ]
             }
         };
         
@@ -715,6 +748,17 @@ class SankeyControlModule {
             return;
         }
 
+        // Handle zoomLevel slider with special setZoomLevel method
+        if (controlId === 'zoomLevel') {
+            if (chart.setZoomLevel && typeof chart.setZoomLevel === 'function') {
+                chart.setZoomLevel(value);
+                console.log(`🔍 Set zoom level to ${value}x via setZoomLevel method`);
+            } else {
+                console.warn('⚠️ Chart does not have setZoomLevel method, falling back to updateConfig');
+                chart.updateConfig({ zoomLevel: value });
+            }
+            return;
+        }
 
         // Handle standard controls
         chart.updateConfig({ [controlId]: value });

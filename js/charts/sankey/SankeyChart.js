@@ -149,12 +149,179 @@ class PulseSankeyChart {
             .attr('viewBox', `0 0 ${this.config.width} ${this.config.height}`)
             .style('background-color', this.config.backgroundColor);
 
-        this.chart = this.svg
+        // Create zoom container
+        this.zoomContainer = this.svg
             .append('g')
+            .attr('class', 'zoom-container');
+
+        this.chart = this.zoomContainer
+            .append('g')
+            .attr('class', 'chart-group')
             .attr('transform', `translate(${this.config.margin.left}, ${this.config.margin.top})`);
+
+        // Initialize zoom and pan functionality
+        this.initializeZoomPan();
 
         this.createTooltip();
         this.initializeColorPicker();
+    }
+
+    initializeZoomPan() {
+        // Initialize zoom and pan state if not already set
+        if (!this.zoomState) {
+            this.zoomState = {
+                k: 1,     // scale factor
+                x: 0,     // x translation
+                y: 0      // y translation
+            };
+        }
+
+        // Create zoom behavior
+        this.zoom = d3.zoom()
+            .scaleExtent([0.1, 5])  // Allow zooming from 10% to 500%
+            .on('zoom', (event) => {
+                const { transform } = event;
+                
+                // Update zoom state
+                this.zoomState.k = transform.k;
+                this.zoomState.x = transform.x;
+                this.zoomState.y = transform.y;
+                
+                // Apply transform to zoom container
+                this.zoomContainer.attr('transform', transform);
+                
+                // Update zoom slider if it exists
+                this.updateZoomSlider(transform.k);
+                
+                // Optionally emit zoom event for external handlers
+                if (this.onZoomChange) {
+                    this.onZoomChange(this.zoomState);
+                }
+            });
+
+        // Apply zoom behavior to SVG
+        this.svg.call(this.zoom);
+
+        // Set initial transform if we have saved state
+        if (this.zoomState.k !== 1 || this.zoomState.x !== 0 || this.zoomState.y !== 0) {
+            this.svg.call(
+                this.zoom.transform,
+                d3.zoomIdentity
+                    .translate(this.zoomState.x, this.zoomState.y)
+                    .scale(this.zoomState.k)
+            );
+        }
+    }
+
+    // Reset zoom and pan to default position
+    resetZoom() {
+        this.zoomState = { k: 1, x: 0, y: 0 };
+        this.svg.transition()
+            .duration(500)
+            .call(
+                this.zoom.transform,
+                d3.zoomIdentity
+            );
+    }
+
+    // Zoom in by a factor
+    zoomIn(factor = 1.5) {
+        this.svg.transition()
+            .duration(300)
+            .call(
+                this.zoom.scaleBy,
+                factor
+            );
+    }
+
+    // Zoom out by a factor  
+    zoomOut(factor = 1.5) {
+        this.svg.transition()
+            .duration(300)
+            .call(
+                this.zoom.scaleBy,
+                1 / factor
+            );
+    }
+
+    // Fit chart to view and center it
+    fitToView() {
+        // Get the actual chart content bounds (from the zoom container)
+        const bounds = this.zoomContainer.node().getBBox();
+        const svgRect = this.svg.node().getBoundingClientRect();
+        const containerWidth = svgRect.width;
+        const containerHeight = svgRect.height;
+        
+        if (bounds.width === 0 || bounds.height === 0) return;
+        
+        // Calculate optimal scale to fit chart with padding
+        const scale = Math.min(
+            (containerWidth * 0.9) / bounds.width,  // 90% of container width
+            (containerHeight * 0.9) / bounds.height // 90% of container height
+        );
+        
+        // Calculate the chart's center point in its own coordinate system
+        const chartCenterX = bounds.x + bounds.width / 2;
+        const chartCenterY = bounds.y + bounds.height / 2;
+        
+        // Calculate translation to center the chart in the container
+        const translateX = containerWidth / 2 - scale * chartCenterX;
+        const translateY = containerHeight / 2 - scale * chartCenterY;
+        
+        // Apply the transform with smooth transition
+        this.svg.transition()
+            .duration(750)
+            .call(
+                this.zoom.transform,
+                d3.zoomIdentity
+                    .translate(translateX, translateY)
+                    .scale(scale)
+            );
+            
+        console.log(`🎯 Fit to view: scale=${scale.toFixed(2)}, translate=(${translateX.toFixed(1)}, ${translateY.toFixed(1)})`);
+    }
+
+    // Set zoom level from slider (0.1 to 5.0)
+    setZoomLevel(zoomLevel) {
+        // Get current center point of the visible area
+        const svgRect = this.svg.node().getBoundingClientRect();
+        const centerX = svgRect.width / 2;
+        const centerY = svgRect.height / 2;
+        
+        // Get current transform
+        const currentTransform = d3.zoomTransform(this.svg.node());
+        
+        // Calculate the point in chart coordinates that corresponds to the center
+        const chartCenterX = (centerX - currentTransform.x) / currentTransform.k;
+        const chartCenterY = (centerY - currentTransform.y) / currentTransform.k;
+        
+        // Calculate new translation to keep the same center point
+        const newTranslateX = centerX - zoomLevel * chartCenterX;
+        const newTranslateY = centerY - zoomLevel * chartCenterY;
+        
+        this.svg.transition()
+            .duration(200)
+            .call(
+                this.zoom.transform,
+                d3.zoomIdentity
+                    .translate(newTranslateX, newTranslateY)
+                    .scale(zoomLevel)
+            );
+    }
+
+    // Update zoom slider to match current zoom level
+    updateZoomSlider(zoomLevel) {
+        // Find the zoom level slider and update its value
+        const zoomSlider = document.querySelector('input[data-control-id="zoomLevel"]');
+        if (zoomSlider) {
+            zoomSlider.value = zoomLevel;
+            
+            // Update the display value if it exists
+            const valueDisplay = document.querySelector('.control-value[data-control-id="zoomLevel"]');
+            if (valueDisplay) {
+                valueDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
+            }
+        }
     }
 
     createTooltip() {
@@ -473,6 +640,7 @@ class PulseSankeyChart {
         
         this.processData(data);
         this.detectRevenueHub(); // NEW: Detect revenue hub
+        this.calculateFinancialMetrics(); // Calculate margins using detected revenue hub
         this.calculateLayout();
         
         this.chart.selectAll('*').remove();
@@ -714,17 +882,48 @@ class PulseSankeyChart {
         
         this.nodes = Array.from(nodeMap.values());
         this.links = processedLinks;
-        
-        this.calculateFinancialMetrics();
     }
 
     calculateFinancialMetrics() {
-        const totalRevenueNode = this.nodes.find(n => 
-            n.id === 'Total Revenue' || 
-            n.category === 'revenue' && n.depth === 1
-        );
+        // Use the dynamically detected revenue hub node if available
+        let totalRevenueNode = this.revenueHubNode;
+        
+        // If no revenue hub was detected, use more sophisticated fallback logic
+        if (!totalRevenueNode) {
+            // Strategy 1: Look for nodes with "total revenue" in name
+            totalRevenueNode = this.nodes.find(n => 
+                n.id && n.id.toLowerCase().includes('total revenue')
+            );
+            
+            // Strategy 2: Find the revenue node with the highest value
+            if (!totalRevenueNode) {
+                const revenueNodes = this.nodes.filter(n => n.category === 'revenue');
+                if (revenueNodes.length > 0) {
+                    totalRevenueNode = revenueNodes.reduce((max, node) => 
+                        node.value > max.value ? node : max
+                    );
+                }
+            }
+            
+            // Strategy 3: Find revenue node that has the most outgoing flows (acts as a hub)
+            if (!totalRevenueNode) {
+                const revenueNodes = this.nodes.filter(n => n.category === 'revenue');
+                if (revenueNodes.length > 0) {
+                    totalRevenueNode = revenueNodes.reduce((max, node) => 
+                        node.sourceLinks.length > max.sourceLinks.length ? node : max
+                    );
+                }
+            }
+        }
         
         const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
+        
+        // Log which revenue node is being used for margin calculations
+        if (totalRevenueNode) {
+            console.log(`💰 Using revenue node for margin calculations: "${totalRevenueNode.id}" (${this.formatCurrency(totalRevenue)}) at depth ${totalRevenueNode.depth}`);
+        } else {
+            console.warn('⚠️ No revenue node found for margin calculations - margins will be 0%');
+        }
         
         this.nodes.forEach(node => {
             // Only calculate percentageOfRevenue and marginValue if marginPercentage is not already provided from Flow Builder
@@ -1534,7 +1733,7 @@ class PulseSankeyChart {
             .text('PULSE ANALYTICS');
 
         footerGroup.append('text')
-            .attr('x', this.config.width - 20)
+            .attr('x', this.config.width - 10)
             .attr('y', -25)
             .attr('text-anchor', 'end')
             .attr('font-size', '16px')
@@ -1542,7 +1741,7 @@ class PulseSankeyChart {
             .attr('font-family', this.getFontFamily())
             .attr('fill', '#667eea')
             .attr('opacity', 0.7)
-            .text('Generated by Pulse Chart');
+            .text('Generated by Pulse Charts');
     }
 
     renderFootnotes() {
@@ -2127,9 +2326,9 @@ class PulseSankeyChart {
             } else {
                 if (currentLine) {
                     lines.push(currentLine);
-                    currentLine = word;
+                    currentLine = word.length > maxLength ? word.substring(0, maxLength - 3) + '...' : word;
                 } else {
-                    lines.push(word);
+                    lines.push(word.length > maxLength ? word.substring(0, maxLength - 3) + '...' : word);
                 }
             }
         });
@@ -2140,6 +2339,7 @@ class PulseSankeyChart {
         
         return lines;
     }
+
 
     // Format currency value with optional margin percentage
     formatValueWithMargin(node) {
@@ -3021,7 +3221,7 @@ class PulseSankeyChart {
     }
 
     configRequiresLabelsUpdate(oldConfig, newConfig) {
-        const labelKeys = ['labelDistance', 'valueDistance'];
+        const labelKeys = ['labelDistance', 'valueDistance', 'textDistance', 'showMargin', 'showMarginFor'];
         return labelKeys.some(key => 
             JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
         );
