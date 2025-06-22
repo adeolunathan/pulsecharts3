@@ -393,6 +393,9 @@ class PulseControlPanel {
             case 'custom':
                 this.createCustomControl(controlDiv, config);
                 break;
+            case 'file_upload':
+                this.createFileUploadControl(controlDiv, config);
+                break;
             default:
                 console.warn(`Unknown control type: ${config.type}`);
         }
@@ -606,6 +609,77 @@ class PulseControlPanel {
             .text(`Custom control: ${config.component || 'Unknown'}`);
         
         console.warn(`Custom control type '${config.component}' not implemented`);
+    }
+
+    // Create file upload control
+    createFileUploadControl(container, config) {
+        const uploadContainer = container.append('div')
+            .attr('class', 'file-upload-container')
+            .style('position', 'relative');
+
+        // Hidden file input
+        const fileInput = uploadContainer.append('input')
+            .attr('type', 'file')
+            .attr('id', `file-${config.id}`)
+            .attr('accept', config.accept || 'image/*')
+            .style('position', 'absolute')
+            .style('opacity', '0')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('cursor', 'pointer')
+            .on('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    this.handleChange(config.id, file);
+                    // Update button text to show file name
+                    uploadButton.text(`📁 ${file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name}`);
+                }
+            });
+
+        // Upload button
+        const uploadButton = uploadContainer.append('button')
+            .attr('class', 'file-upload-button')
+            .style('width', '100%')
+            .style('padding', '12px 16px')
+            .style('border', '2px dashed #d1d5db')
+            .style('border-radius', '8px')
+            .style('background', '#f9fafb')
+            .style('color', '#374151')
+            .style('font-size', '14px')
+            .style('font-weight', '500')
+            .style('cursor', 'pointer')
+            .style('transition', 'all 0.2s ease')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('gap', '8px')
+            .text('📁 Choose File')
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('border-color', '#6366f1')
+                    .style('background', '#f8faff')
+                    .style('color', '#6366f1');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('border-color', '#d1d5db')
+                    .style('background', '#f9fafb')
+                    .style('color', '#374151');
+            })
+            .on('click', () => {
+                fileInput.node().click();
+            });
+
+        // File info display
+        if (config.maxSize || config.accept) {
+            uploadContainer.append('div')
+                .attr('class', 'file-upload-info')
+                .style('margin-top', '8px')
+                .style('font-size', '11px')
+                .style('color', '#6b7280')
+                .style('text-align', 'center')
+                .text(`${config.accept || 'All files'} • ${config.maxSize || 'No size limit'}`);
+        }
     }
 
     // Create color picker control with modern compact design

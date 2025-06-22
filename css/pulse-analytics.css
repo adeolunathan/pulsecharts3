@@ -762,7 +762,39 @@ body {
 .color-picker:active {
     transform: translateY(-1px) scale(1.01) !important;
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1) !important;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Position Button Grid */
+.position-btn {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    user-select: none;
+}
+
+.position-btn:hover {
+    background: #f3f4f6;
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.position-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.position-btn:active {
+    transform: translateY(0);
 }
 
 .color-picker:focus {

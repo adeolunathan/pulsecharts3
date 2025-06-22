@@ -118,6 +118,7 @@
                         <button class="menu-btn" onclick="importFlowsFromCSV()">📤 Upload Data</button>
                         <button class="menu-btn" onclick="downloadTemplate()">📋 Download Template</button>
                         <button class="menu-btn" onclick="exportFlowsToCSV()">💾 Export</button>
+                        <button class="menu-btn clear-data-btn" onclick="clearAllFlowData()">🗑️ Clear All</button>
                         <button class="menu-btn" onclick="resetChart()">🔄 Reset</button>
                     </div>
                 </div>
@@ -167,6 +168,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 <!-- Business Flows Section -->
                 <div class="collapsible-section">
@@ -288,6 +290,7 @@
 
     <!-- Core Scripts -->
     <script src="js/utils/ExportUtils.js"></script>
+    <script src="js/utils/ChartBranding.js"></script>
     <script src="js/core/DataManager.js"></script>
     <script src="js/core/ControlPanel.js"></script>
     <script src="js/charts/sankey/SankeyChart.js"></script>
@@ -1586,6 +1589,7 @@
             debouncedRealTimeUpdate();
         }
 
+
         function updateAllStats() {
             const nodeMap = new Map();
             
@@ -2016,6 +2020,99 @@
                 // Redirect to sankey chart type selector
                 window.location.href = 'js/charts/sankey/sankey-type-selector.html';
             }
+        }
+
+        function clearAllFlowData() {
+            if (confirm('⚠️ This will permanently delete all flow data. Are you sure you want to continue?')) {
+                // Clear all flows
+                flowData.flows = [];
+                
+                // Reset metadata to defaults
+                flowData.metadata = {
+                    title: "Financial Flow Analysis",
+                    currency: "USD",
+                    unit: "millions",
+                    company: "Your Company",
+                    period: "Current Period",
+                    colorPalette: {
+                        revenue: "#3498db",
+                        profit: "#27ae60",
+                        expense: "#e67e22"
+                    }
+                };
+                
+                // Update form fields with correct IDs
+                document.getElementById('company-name').value = flowData.metadata.company;
+                document.getElementById('period').value = flowData.metadata.period;
+                document.getElementById('currency').value = flowData.metadata.currency;
+                document.getElementById('units').value = flowData.metadata.unit;
+                
+                // Re-render the table (which will show empty state)
+                renderFlowTable();
+                
+                // Update statistics
+                updateAllStats();
+                
+                // Clear the chart
+                if (window.chart) {
+                    try {
+                        // Clear chart by rendering empty data
+                        const emptyData = generateNodesAndLinksFromFlows();
+                        window.chart.render(emptyData);
+                    } catch (error) {
+                        console.log('Chart cleared due to empty data');
+                    }
+                }
+                
+                // Show success notification
+                showNotification('✅ All flow data cleared successfully', 'success');
+                
+                console.log('🗑️ All flow data cleared');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create a notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            
+            // Add styles
+            Object.assign(notification.style, {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                background: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6',
+                color: 'white',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                zIndex: '10000',
+                opacity: '0',
+                transform: 'translateX(100%)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+            
+            // Animate out and remove
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
         }
 
         // ===== GOOGLE SHEETS-STYLE SPREADSHEET FUNCTIONALITY =====
@@ -2512,13 +2609,20 @@
                     rowsProcessed++;
                 }
 
-                // Refresh the entire table to show the pasted data
-                renderFlowTable();
-                
-                // Update statistics and chart
+                // Update statistics and chart first
                 autoCalculateFlowProperties();
                 updateAllStats();
+                
+                // Force refresh the entire table to show the pasted data
+                // Clear any cached state and force a complete re-render
+                document.getElementById('flows-tbody').innerHTML = '';
+                renderFlowTable();
+                
+                // Trigger chart update
                 debouncedRealTimeUpdate();
+                
+                // Additional debug: log table state
+                console.log(`🔍 Table state after paste: ${document.getElementById('flows-tbody').children.length} rows visible`);
                 
                 // Show success message
                 this.showPasteSuccess(rowsProcessed, cellsUpdated);

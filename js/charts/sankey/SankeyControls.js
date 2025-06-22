@@ -247,6 +247,29 @@ class SankeyControlModule {
                         description: "Adjust chart zoom level" 
                     }
                 ]
+            },
+            
+            branding: {
+                title: "Company Branding",
+                icon: "🏢",
+                collapsed: true,
+                controls: [
+                    {
+                        id: "brandUpload",
+                        type: "file_upload",
+                        label: "Company Logo",
+                        accept: "image/*",
+                        description: "Upload company logo (PNG, JPG, GIF, SVG)",
+                        maxSize: "2MB"
+                    },
+                    {
+                        id: "clearBrand",
+                        type: "button",
+                        label: "🗑️ Clear Logo",
+                        action: "clearBrand",
+                        description: "Remove company logo from chart"
+                    }
+                ]
             }
         };
         
@@ -792,6 +815,19 @@ class SankeyControlModule {
             return;
         }
 
+        // Handle brand logo upload
+        if (controlId === 'brandUpload') {
+            this.handleBrandUpload(chart, value);
+            return;
+        }
+
+        // Handle brand logo clear
+        if (controlId === 'clearBrand') {
+            this.handleClearBrand(chart);
+            return;
+        }
+
+
         // Handle standard controls
         chart.updateConfig({ [controlId]: value });
     }
@@ -888,6 +924,83 @@ class SankeyControlModule {
     }
 
     /**
+     * Handle brand logo upload
+     */
+    handleBrandUpload(chart, file) {
+        if (!file || !(file instanceof File)) {
+            console.warn('⚠️ Invalid file provided for brand upload');
+            return;
+        }
+
+        // Check file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size too large. Please choose a file smaller than 2MB.');
+            return;
+        }
+
+        // Check file type
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Invalid file type. Please choose PNG, JPG, GIF, or SVG.');
+            return;
+        }
+
+        console.log('🏢 Processing brand logo upload:', file.name);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const imageUrl = e.target.result;
+            
+            // Initialize brand logo metadata
+            if (!chart.data.metadata) {
+                chart.data.metadata = {};
+            }
+            
+            chart.data.metadata.brandLogo = {
+                url: imageUrl,
+                x: 50,
+                y: 50,
+                width: 100,
+                height: 60,
+                opacity: 1.0,
+                selected: false
+            };
+
+            // Re-render chart to show logo
+            if (chart.render && chart.data) {
+                chart.render(chart.data);
+            }
+
+            console.log('✅ Brand logo uploaded successfully');
+        };
+
+        reader.onerror = () => {
+            console.error('❌ Failed to read brand logo file');
+            alert('Failed to read the selected file. Please try again.');
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * Handle brand logo clear
+     */
+    handleClearBrand(chart) {
+        console.log('🗑️ Clearing brand logo');
+        
+        if (chart.data && chart.data.metadata && chart.data.metadata.brandLogo) {
+            delete chart.data.metadata.brandLogo;
+            
+            // Re-render chart to remove logo
+            if (chart.render && chart.data) {
+                chart.render(chart.data);
+            }
+            
+            console.log('✅ Brand logo cleared successfully');
+        }
+    }
+
+    /**
      * ENHANCED: Get current values with balance sheet group support
      */
     getCurrentValue(controlId, chart) {
@@ -927,6 +1040,7 @@ class SankeyControlModule {
             
             return this.getCurrentColorForCategory(category, chart);
         }
+
 
         if (chart && chart.config) {
             // Handle unified text distance configs

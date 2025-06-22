@@ -57,6 +57,11 @@ class PulseSankeyChart {
                 middle: 12,
                 rightmost: 15
             },
+            nodeSorting: {
+                enabled: true,
+                method: 'value', // 'value', 'alphabetical', 'none'
+                direction: 'descending' // 'ascending', 'descending'
+            },
             valueDistance: {
                 general: 8,
                 middle: 8
@@ -464,6 +469,249 @@ class PulseSankeyChart {
         this.colorPicker.style('display', 'none');
     }
 
+    showOpacityPicker(element, currentOpacity, onApply, position = null) {
+        // Remove existing opacity picker
+        d3.select('.opacity-picker-modal').remove();
+        
+        // Determine position
+        let left = '50%';
+        let top = '50%';
+        let transform = 'translate(-50%, -50%)';
+        
+        if (position) {
+            left = (position.x + 20) + 'px';
+            top = (position.y - 50) + 'px';
+            transform = 'none';
+        }
+        
+        // Create simplified opacity picker modal
+        const opacityPicker = d3.select('body')
+            .append('div')
+            .attr('class', 'opacity-picker-modal')
+            .style('position', 'fixed')
+            .style('top', top)
+            .style('left', left)
+            .style('transform', transform)
+            .style('width', '160px')
+            .style('background', 'white')
+            .style('border-radius', '8px')
+            .style('box-shadow', '0 8px 32px rgba(0,0,0,0.15)')
+            .style('z-index', '1000')
+            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
+            .style('padding', '12px')
+            .style('border', '1px solid rgba(0,0,0,0.08)');
+
+        // Simple title
+        opacityPicker.append('div')
+            .text('Opacity')
+            .style('font-weight', '600')
+            .style('font-size', '14px')
+            .style('color', '#374151')
+            .style('margin-bottom', '12px')
+            .style('text-align', 'center');
+
+        // Range slider
+        const opacitySlider = opacityPicker.append('input')
+            .attr('type', 'range')
+            .attr('min', '0.1')
+            .attr('max', '1')
+            .attr('step', '0.05')
+            .attr('value', currentOpacity)
+            .style('width', '100%')
+            .style('margin-bottom', '8px');
+
+        // Value display
+        const valueDisplay = opacityPicker.append('div')
+            .style('text-align', 'center')
+            .style('font-size', '12px')
+            .style('color', '#6b7280')
+            .style('margin-bottom', '12px')
+            .text(`${Math.round(currentOpacity * 100)}%`);
+
+        // Update value display on slider change
+        opacitySlider.on('input', function() {
+            const value = parseFloat(this.value);
+            valueDisplay.text(`${Math.round(value * 100)}%`);
+            // Apply immediately for real-time preview
+            onApply(value);
+        });
+
+        // Close when clicking outside
+        const closeOnOutsideClick = (event) => {
+            if (!opacityPicker.node().contains(event.target)) {
+                opacityPicker.remove();
+                document.removeEventListener('click', closeOnOutsideClick);
+            }
+        };
+        
+        // Add delay to prevent immediate closing
+        setTimeout(() => {
+            document.addEventListener('click', closeOnOutsideClick);
+        }, 100);
+    }
+
+    showNodeConfigModal(element, nodeData) {
+        // Remove any existing modal
+        d3.select('.node-config-modal').remove();
+        
+        console.log('🎨 Opening node configuration modal for:', nodeData.id, 'Group:', nodeData.group);
+        
+        // Get nodes in the same layer AND group
+        const groupNodes = this.nodes.filter(n => 
+            n.depth === nodeData.depth && 
+            (n.group || 'default') === (nodeData.group || 'default')
+        );
+        const currentColor = this.getNodeColor(nodeData);
+        const groupName = nodeData.group || 'default';
+        
+        // Create compact modal
+        const modal = d3.select('body')
+            .append('div')
+            .attr('class', 'node-config-modal')
+            .style('position', 'fixed')
+            .style('top', '50%')
+            .style('left', '50%')
+            .style('transform', 'translate(-50%, -50%)')
+            .style('width', '280px')
+            .style('background', 'white')
+            .style('border-radius', '8px')
+            .style('box-shadow', '0 8px 32px rgba(0,0,0,0.15)')
+            .style('z-index', '1001')
+            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
+            .style('border', '1px solid rgba(0,0,0,0.08)');
+
+        // Header
+        const header = modal.append('div')
+            .style('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)')
+            .style('color', 'white')
+            .style('padding', '12px 16px')
+            .style('position', 'relative')
+            .style('border-radius', '8px 8px 0 0');
+
+        header.append('h3')
+            .text(nodeData.id)
+            .style('margin', '0')
+            .style('font-size', '14px')
+            .style('font-weight', '600');
+
+        // Close button
+        header.append('button')
+            .text('×')
+            .style('position', 'absolute')
+            .style('top', '8px')
+            .style('right', '12px')
+            .style('width', '20px')
+            .style('height', '20px')
+            .style('background', 'rgba(255,255,255,0.2)')
+            .style('border', 'none')
+            .style('border-radius', '50%')
+            .style('color', 'white')
+            .style('font-size', '14px')
+            .style('cursor', 'pointer')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .on('click', () => modal.remove());
+
+        // Content
+        const content = modal.append('div')
+            .style('padding', '16px');
+
+        // Color Section
+        const colorSection = content.append('div')
+            .style('margin-bottom', '16px');
+
+        colorSection.append('label')
+            .text('Color')
+            .style('display', 'block')
+            .style('font-weight', '500')
+            .style('font-size', '12px')
+            .style('margin-bottom', '6px')
+            .style('color', '#374151');
+
+        const colorPicker = colorSection.append('input')
+            .attr('type', 'color')
+            .attr('value', currentColor)
+            .style('width', '100%')
+            .style('height', '32px')
+            .style('border', '1px solid #d1d5db')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer');
+
+        // Sorting Section
+        const sortingSection = content.append('div')
+            .style('margin-bottom', '16px');
+
+        const groupDisplayName = this.getGroupDisplayName(groupName);
+        sortingSection.append('label')
+            .text(`Sort ${groupDisplayName}`)
+            .style('display', 'block')
+            .style('font-weight', '500')
+            .style('font-size', '12px')
+            .style('margin-bottom', '8px')
+            .style('color', '#374151');
+
+        // Sort Method
+        const sortMethod = sortingSection.append('select')
+            .style('width', '100%')
+            .style('padding', '6px')
+            .style('border', '1px solid #d1d5db')
+            .style('border-radius', '4px')
+            .style('font-size', '12px')
+            .style('margin-bottom', '8px');
+
+        sortMethod.append('option').attr('value', 'value').text('By Value');
+        sortMethod.append('option').attr('value', 'alphabetical').text('Alphabetical');
+        sortMethod.append('option').attr('value', 'none').text('Current Order');
+
+        // Sort Direction
+        const sortDirection = sortingSection.append('select')
+            .style('width', '100%')
+            .style('padding', '6px')
+            .style('border', '1px solid #d1d5db')
+            .style('border-radius', '4px')
+            .style('font-size', '12px');
+
+        sortDirection.append('option').attr('value', 'descending').text('Largest First');
+        sortDirection.append('option').attr('value', 'ascending').text('Smallest First');
+
+        // Set current values
+        const currentSorting = this.config.nodeSorting || { method: 'value', direction: 'descending' };
+        sortMethod.property('value', currentSorting.method);
+        sortDirection.property('value', currentSorting.direction);
+
+        // Apply button
+        content.append('button')
+            .text('Apply')
+            .style('width', '100%')
+            .style('padding', '10px')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('background', '#667eea')
+            .style('color', 'white')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('cursor', 'pointer')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#5a67d8');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#667eea');
+            })
+            .on('click', () => {
+                // Apply color change
+                const newColor = colorPicker.property('value');
+                this.updateNodeColor(nodeData, newColor);
+                
+                // Apply sorting to group within layer
+                const method = sortMethod.property('value');
+                const direction = sortDirection.property('value');
+                this.applySortingToGroup(nodeData.depth, nodeData.group || 'default', method, direction);
+                
+                modal.remove();
+            });
+    }
+
     applySelectedColor() {
         if (!this.selectedElement) return;
         
@@ -651,7 +899,14 @@ class PulseSankeyChart {
         this.renderNodes();
         this.renderLabels();
         this.renderFootnotes();
-        this.renderBrandingFooter();
+        // Use global branding component
+        if (window.ChartBranding) {
+            window.ChartBranding.renderBranding(this.svg, this.config, this.data?.metadata);
+        } else {
+            console.warn('⚠️ ChartBranding utility not loaded, falling back to local branding');
+            this.renderBrandingFooter();
+        }
+        this.renderBrandLogo();
         
         return this;
     }
@@ -1535,18 +1790,8 @@ class PulseSankeyChart {
             if (groups.has(groupName)) {
                 const groupNodes = groups.get(groupName);
                 
-                groupNodes.sort((a, b) => {
-                    if (a.sort_order !== undefined && b.sort_order !== undefined) {
-                        return a.sort_order - b.sort_order;
-                    }
-                    
-                    const categoryPriority = this.getCategoryPriority(a.category, b.category, groupName);
-                    if (categoryPriority !== 0) {
-                        return categoryPriority;
-                    }
-                    
-                    return a.value - b.value;
-                });
+                // Apply configurable sorting within each group
+                this.sortNodesInGroup(groupNodes, groupName);
                 
                 sortedNodes.push(...groupNodes);
             }
@@ -1561,6 +1806,198 @@ class PulseSankeyChart {
         });
         
         return sortedNodes;
+    }
+
+    /**
+     * Sort nodes within a group based on configured sorting method
+     */
+    sortNodesInGroup(groupNodes, groupName) {
+        if (!this.config.nodeSorting.enabled || groupNodes.length <= 1) {
+            return groupNodes;
+        }
+
+        const { method, direction } = this.config.nodeSorting;
+        
+        console.log(`🔤 Sorting ${groupNodes.length} nodes in group '${groupName}' by ${method} (${direction})`);
+
+        // Preserve manual sort order if explicitly set
+        const hasManualOrder = groupNodes.some(node => node.sort_order !== undefined);
+        if (hasManualOrder) {
+            console.log('📌 Manual sort order detected, preserving...');
+            groupNodes.sort((a, b) => {
+                if (a.sort_order !== undefined && b.sort_order !== undefined) {
+                    return a.sort_order - b.sort_order;
+                }
+                if (a.sort_order !== undefined) return -1;
+                if (b.sort_order !== undefined) return 1;
+                return this.applySortingMethod(a, b, method, direction, groupName);
+            });
+            return groupNodes;
+        }
+
+        // Apply configurable sorting method
+        groupNodes.sort((a, b) => this.applySortingMethod(a, b, method, direction, groupName));
+        
+        return groupNodes;
+    }
+
+    /**
+     * Apply specific sorting method to two nodes
+     */
+    applySortingMethod(nodeA, nodeB, method, direction, groupName) {
+        let result = 0;
+
+        switch (method) {
+            case 'value':
+                result = nodeA.value - nodeB.value;
+                break;
+                
+            case 'alphabetical':
+                result = nodeA.id.localeCompare(nodeB.id, undefined, { 
+                    numeric: true, 
+                    sensitivity: 'base' 
+                });
+                break;
+                
+            case 'category':
+                // First sort by category priority, then by value
+                const categoryPriority = this.getCategoryPriority(nodeA.category, nodeB.category, groupName);
+                if (categoryPriority !== 0) {
+                    result = categoryPriority;
+                } else {
+                    result = nodeA.value - nodeB.value;
+                }
+                break;
+                
+            case 'none':
+            default:
+                // Maintain original order or sort by category if available
+                const defaultCategoryPriority = this.getCategoryPriority(nodeA.category, nodeB.category, groupName);
+                if (defaultCategoryPriority !== 0) {
+                    result = defaultCategoryPriority;
+                } else {
+                    result = nodeA.value - nodeB.value;
+                }
+                break;
+        }
+
+        // Apply direction (ascending/descending)
+        return direction === 'ascending' ? result : -result;
+    }
+
+    /**
+     * Get user-friendly display name for a group
+     */
+    getGroupDisplayName(groupName) {
+        const groupNames = {
+            'operating_expenses': 'Operating Expenses',
+            'revenue_sources': 'Revenue Sources',
+            'aggregated_revenue': 'Revenue',
+            'gross_metrics': 'Gross Metrics',
+            'operating_metrics': 'Operating Metrics',
+            'final_results': 'Final Results',
+            'final_adjustments': 'Adjustments',
+            'default': 'Items'
+        };
+        return groupNames[groupName] || groupName.replace(/_/g, ' ');
+    }
+
+    /**
+     * Apply sorting to a specific group within a layer and re-render the chart
+     */
+    applySortingToGroup(layerDepth, groupName, method, direction) {
+        console.log(`🔤 Applying ${method} sorting (${direction}) to group '${groupName}' in layer ${layerDepth}`);
+        
+        // Get nodes in the specified layer and group
+        const groupNodes = this.nodes.filter(n => 
+            n.depth === layerDepth && 
+            (n.group || 'default') === groupName
+        );
+        
+        if (groupNodes.length <= 1) {
+            console.log('Group has only one node, no sorting needed');
+            return;
+        }
+
+        // Update config for this group
+        if (!this.config.nodeSorting) {
+            this.config.nodeSorting = {};
+        }
+        this.config.nodeSorting.method = method;
+        this.config.nodeSorting.direction = direction;
+
+        // Apply sorting to the group nodes
+        this.sortGroupNodes(groupNodes, method, direction);
+        
+        // Recalculate layout and re-render
+        this.calculateLayout();
+        this.rerenderChart();
+        
+        console.log(`✅ Group '${groupName}' in layer ${layerDepth} sorted by ${method} (${direction})`);
+    }
+
+    /**
+     * Sort nodes within a specific group
+     */
+    sortGroupNodes(groupNodes, method, direction) {
+        console.log(`🔀 Sorting ${groupNodes.length} nodes in group by ${method} (${direction})`);
+        
+        // Sort the nodes using the same logic as applySortingMethod
+        groupNodes.sort((a, b) => {
+            // Preserve manual sort order if explicitly set
+            if (a.sort_order !== undefined && b.sort_order !== undefined) {
+                return a.sort_order - b.sort_order;
+            }
+            if (a.sort_order !== undefined) return -1;
+            if (b.sort_order !== undefined) return 1;
+            
+            // Apply the specified sorting method
+            let result = 0;
+            switch (method) {
+                case 'value':
+                    result = a.value - b.value;
+                    break;
+                case 'alphabetical':
+                    result = a.id.localeCompare(b.id, undefined, { 
+                        numeric: true, 
+                        sensitivity: 'base' 
+                    });
+                    break;
+                case 'category':
+                    const categoryPriority = this.getCategoryPriority(a.category, b.category, a.group || 'default');
+                    if (categoryPriority !== 0) {
+                        result = categoryPriority;
+                    } else {
+                        result = a.value - b.value;
+                    }
+                    break;
+                case 'none':
+                default:
+                    // Keep current order - no sorting
+                    return 0;
+            }
+            
+            // Apply direction
+            return direction === 'ascending' ? result : -result;
+        });
+        
+        console.log(`✅ Group nodes sorted:`, groupNodes.map(n => n.id));
+    }
+
+    /**
+     * Re-render the chart after sorting changes
+     */
+    rerenderChart() {
+        // Clear existing chart elements
+        this.chart.selectAll('.sankey-link').remove();
+        this.chart.selectAll('.sankey-node').remove();
+        
+        // Re-render with new positions
+        this.renderLinks();
+        this.renderNodes();
+        this.renderLabels();
+        
+        console.log('✅ Chart re-rendered with new node positions');
     }
 
     sortFinalLayerBySource(nodes) {
@@ -1713,35 +2150,326 @@ class PulseSankeyChart {
             .attr('class', 'chart-branding')
             .attr('transform', `translate(0, ${this.config.height - 35})`);
 
-        const logoUrl = this.data?.metadata?.logoUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8dGV4dCB4PSIxMCIgeT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UDwvdGV4dD4KPC9zdmc+';
+        // Priority order: backend logo file -> user uploaded logo -> default logo
+        const backendLogoUrl = 'assets/images/logo.png';
+        const userLogoUrl = this.data?.metadata?.customLogoUrl;
+        const defaultLogoUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8dGV4dCB4PSIxMCIgeT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UDwvdGV4dD4KPC9zdmc+';
         
-        footerGroup.append('image')
-            .attr('x', 20)
-            .attr('y', -40)
-            .attr('width', 24)
-            .attr('height', 24)
-            .attr('href', logoUrl)
-            .attr('opacity', 0.8);
+        // First try backend logo, then user logo, then default
+        const primaryLogoUrl = this.data?.metadata?.logoUrl || backendLogoUrl;
+        const fallbackLogoUrl = userLogoUrl || defaultLogoUrl;
+        
+        // Check if we have custom branding (backend logo or user logo)
+        const hasBackendLogo = !this.data?.metadata?.logoUrl; // Will try backend logo first
+        const hasCustomBranding = userLogoUrl || this.data?.metadata?.company;
+        
+        const logoImage = footerGroup.append('image')
+            .attr('x', 10)
+            .attr('y', -100)  // Moved up slightly for larger logo
+            .attr('width', hasBackendLogo ? 200 : 32)  // Much larger for backend logo: 72px
+            .attr('height', hasBackendLogo ? 200 : 32)
+            .attr('href', primaryLogoUrl)
+            .attr('opacity', 1.0)  // Full opacity
+            .style('cursor', 'pointer')
+            .on('error', function() {
+                console.log('⚠️ Primary logo failed to load, trying fallback');
+                // Try fallback logo
+                d3.select(this)
+                    .attr('href', fallbackLogoUrl)
+                    .attr('width', userLogoUrl ? 32 : 24)
+                    .attr('height', userLogoUrl ? 32 : 24)
+                    .on('error', function() {
+                        console.log('⚠️ Fallback logo failed, using default');
+                        // Final fallback to default
+                        d3.select(this)
+                            .attr('href', defaultLogoUrl)
+                            .attr('width', 24)
+                            .attr('height', 24);
+                    });
+            });
 
-        footerGroup.append('text')
-            .attr('x', 50)
-            .attr('y', -25)
-            .attr('font-size', '16px')
-            .attr('font-weight', '800')
-            .attr('font-family', this.getFontFamily())
-            .attr('fill', '#667eea')
-            .text('PULSE ANALYTICS');
+        // Only show text branding if no backend logo
+        if (!hasBackendLogo || primaryLogoUrl === defaultLogoUrl) {
+            // Custom company name or default text
+            const companyName = this.data?.metadata?.company || 'PULSE ANALYTICS';
+            
+            footerGroup.append('text')
+                .attr('x', hasCustomBranding ? 65 : 50)  // Adjust position for larger custom logo
+                .attr('y', -25)
+                .attr('font-size', '16px')
+                .attr('font-weight', '800')
+                .attr('font-family', this.getFontFamily())
+                .attr('fill', '#667eea')
+                .text(companyName);
 
-        footerGroup.append('text')
-            .attr('x', this.config.width - 10)
-            .attr('y', -25)
-            .attr('text-anchor', 'end')
-            .attr('font-size', '16px')
-            .attr('font-weight', '800')
-            .attr('font-family', this.getFontFamily())
-            .attr('fill', '#667eea')
-            .attr('opacity', 0.7)
-            .text('Generated by Pulse Charts');
+            // Right side attribution - only show if not using custom branding
+            if (!hasCustomBranding) {
+                footerGroup.append('text')
+                    .attr('x', this.config.width - 10)
+                    .attr('y', -25)
+                    .attr('text-anchor', 'end')
+                    .attr('font-size', '16px')
+                    .attr('font-weight', '800')
+                    .attr('font-family', this.getFontFamily())
+                    .attr('fill', '#667eea')
+                    .attr('opacity', 0.7)
+                    .text('Generated by Pulse Charts');
+            } else {
+                // Show subtle attribution for custom branding
+                footerGroup.append('text')
+                    .attr('x', this.config.width - 10)
+                    .attr('y', -25)
+                    .attr('text-anchor', 'end')
+                    .attr('font-size', '12px')
+                    .attr('font-weight', '400')
+                    .attr('font-family', this.getFontFamily())
+                    .attr('fill', '#94a3b8')
+                    .attr('opacity', 0.6)
+                    .text('Powered by Pulse Charts');
+            }
+        } else {
+            // Backend logo exists - show larger attribution
+            footerGroup.append('text')
+                .attr('x', this.config.width - 10)
+                .attr('y', 10)  // Moved up slightly
+                .attr('text-anchor', 'end')
+                .attr('font-size', '16px')  // Increased from 10px to 14px
+                .attr('font-weight', '400')  // Slightly bolder
+                .attr('font-family', this.getFontFamily())
+                .attr('fill', '#6b7280')  // Darker gray for better visibility
+                .attr('opacity', 0.7)  // Increased opacity from 0.4 to 0.7
+                .text('chart by pulse');
+        }
+    }
+
+    renderBrandLogo() {
+        // Remove any existing brand logo
+        this.svg.selectAll('.chart-brand-logo').remove();
+        
+        // Check if brand logo is configured
+        const brandLogo = this.data?.metadata?.brandLogo;
+        if (!brandLogo || !brandLogo.url) {
+            return;
+        }
+
+        console.log('🏢 Rendering brand logo with hover-based resize functionality:', brandLogo);
+
+        // Create brand logo group
+        const logoGroup = this.svg.append('g')
+            .attr('class', 'chart-brand-logo');
+
+        // Add selection rectangle (only visible on hover)
+        const selectionRect = logoGroup.append('rect')
+            .attr('class', 'logo-selection')
+            .attr('x', brandLogo.x - 5)
+            .attr('y', brandLogo.y - 5)
+            .attr('width', brandLogo.width + 10)
+            .attr('height', brandLogo.height + 10)
+            .attr('fill', 'none')
+            .attr('stroke', '#667eea')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '5,5')
+            .attr('opacity', 0)
+            .style('pointer-events', 'none');
+
+        // Add brand logo image
+        const logoImage = logoGroup.append('image')
+            .attr('class', 'brand-image')
+            .attr('href', brandLogo.url)
+            .attr('x', brandLogo.x)
+            .attr('y', brandLogo.y)
+            .attr('width', brandLogo.width)
+            .attr('height', brandLogo.height)
+            .attr('opacity', brandLogo.opacity)
+            .style('cursor', 'move')
+            .on('error', function() {
+                console.error('❌ Failed to load brand logo image');
+                d3.select(this).remove();
+            });
+
+        // Add resize handles (only visible on hover)
+        const handles = ['nw', 'ne', 'sw', 'se'];
+        const resizeHandles = [];
+        
+        handles.forEach(handle => {
+            let x, y;
+            switch(handle) {
+                case 'nw': x = brandLogo.x - 5; y = brandLogo.y - 5; break;
+                case 'ne': x = brandLogo.x + brandLogo.width - 3; y = brandLogo.y - 5; break;
+                case 'sw': x = brandLogo.x - 5; y = brandLogo.y + brandLogo.height - 3; break;
+                case 'se': x = brandLogo.x + brandLogo.width - 3; y = brandLogo.y + brandLogo.height - 3; break;
+            }
+            
+            const handleRect = logoGroup.append('rect')
+                .attr('class', `resize-handle resize-${handle}`)
+                .attr('x', x)
+                .attr('y', y)
+                .attr('width', 8)
+                .attr('height', 8)
+                .attr('fill', '#667eea')
+                .attr('stroke', 'white')
+                .attr('stroke-width', 1)
+                .attr('opacity', 0)
+                .style('cursor', `${handle}-resize`)
+                .style('pointer-events', 'none');
+                
+            resizeHandles.push(handleRect);
+        });
+
+        // Hover functionality to show/hide resize handles
+        logoGroup
+            .on('mouseenter', () => {
+                // Show selection rectangle and handles on hover
+                selectionRect.attr('opacity', 1);
+                resizeHandles.forEach(handle => {
+                    handle.attr('opacity', 1).style('pointer-events', 'all');
+                });
+            })
+            .on('mouseleave', () => {
+                // Hide selection rectangle and handles when not hovering
+                if (!brandLogo.isDragging && !brandLogo.isResizing) {
+                    selectionRect.attr('opacity', 0);
+                    resizeHandles.forEach(handle => {
+                        handle.attr('opacity', 0).style('pointer-events', 'none');
+                    });
+                }
+            });
+
+        // Drag and drop functionality
+        const drag = d3.drag()
+            .on('start', () => {
+                brandLogo.isDragging = true;
+                console.log('🖱️ Logo drag started');
+            })
+            .on('drag', (event) => {
+                const newX = Math.max(0, Math.min(this.config.width - brandLogo.width, brandLogo.x + event.dx));
+                const newY = Math.max(0, Math.min(this.config.height - brandLogo.height, brandLogo.y + event.dy));
+                
+                brandLogo.x = newX;
+                brandLogo.y = newY;
+                
+                this.updateLogoPosition(logoGroup, brandLogo);
+            })
+            .on('end', () => {
+                brandLogo.isDragging = false;
+                console.log(`🎯 Logo positioned at (${brandLogo.x}, ${brandLogo.y})`);
+            });
+
+        // Apply drag to logo image
+        logoImage.call(drag);
+
+        // Double-click to adjust opacity
+        logoImage.on('dblclick', (event) => {
+            event.stopPropagation();
+            const rect = logoImage.node().getBoundingClientRect();
+            this.showOpacityPicker(logoImage, brandLogo.opacity, (newOpacity) => {
+                brandLogo.opacity = newOpacity;
+                logoImage.attr('opacity', newOpacity);
+                console.log(`💫 Logo opacity set to ${newOpacity}`);
+            }, { x: rect.x, y: rect.y });
+        });
+
+        // Resize functionality for handles
+        resizeHandles.forEach((handleRect, index) => {
+            const handleType = handles[index];
+            
+            const resizeDrag = d3.drag()
+                .on('start', () => {
+                    brandLogo.isResizing = true;
+                    console.log(`📏 Resize started from ${handleType} corner`);
+                })
+                .on('drag', (event) => {
+                    const minSize = 20;
+                    let newWidth = brandLogo.width;
+                    let newHeight = brandLogo.height;
+                    let newX = brandLogo.x;
+                    let newY = brandLogo.y;
+                    
+                    switch(handleType) {
+                        case 'se': // Bottom-right
+                            newWidth = Math.max(minSize, brandLogo.width + event.dx);
+                            newHeight = Math.max(minSize, brandLogo.height + event.dy);
+                            break;
+                        case 'sw': // Bottom-left
+                            newWidth = Math.max(minSize, brandLogo.width - event.dx);
+                            newHeight = Math.max(minSize, brandLogo.height + event.dy);
+                            newX = brandLogo.x + (brandLogo.width - newWidth);
+                            break;
+                        case 'ne': // Top-right
+                            newWidth = Math.max(minSize, brandLogo.width + event.dx);
+                            newHeight = Math.max(minSize, brandLogo.height - event.dy);
+                            newY = brandLogo.y + (brandLogo.height - newHeight);
+                            break;
+                        case 'nw': // Top-left
+                            newWidth = Math.max(minSize, brandLogo.width - event.dx);
+                            newHeight = Math.max(minSize, brandLogo.height - event.dy);
+                            newX = brandLogo.x + (brandLogo.width - newWidth);
+                            newY = brandLogo.y + (brandLogo.height - newHeight);
+                            break;
+                    }
+                    
+                    // Ensure boundaries
+                    newX = Math.max(0, Math.min(this.config.width - newWidth, newX));
+                    newY = Math.max(0, Math.min(this.config.height - newHeight, newY));
+                    
+                    // Update brand logo dimensions immediately
+                    brandLogo.x = newX;
+                    brandLogo.y = newY;
+                    brandLogo.width = newWidth;
+                    brandLogo.height = newHeight;
+                    
+                    // Immediate visual update for real-time feedback
+                    this.updateLogoPosition(logoGroup, brandLogo);
+                })
+                .on('end', () => {
+                    brandLogo.isResizing = false;
+                    console.log(`📐 Logo resized to ${brandLogo.width}x${brandLogo.height}`);
+                });
+            
+            handleRect.call(resizeDrag);
+        });
+
+        console.log(`🏢 Brand logo rendered at (${brandLogo.x}, ${brandLogo.y}) size ${brandLogo.width}x${brandLogo.height}`);
+    }
+
+    updateLogoPosition(logoGroup, brandLogo) {
+        // Update image position and size
+        logoGroup.select('.brand-image')
+            .attr('x', brandLogo.x)
+            .attr('y', brandLogo.y)
+            .attr('width', brandLogo.width)
+            .attr('height', brandLogo.height);
+        
+        // Update selection rectangle
+        logoGroup.select('.logo-selection')
+            .attr('x', brandLogo.x - 5)
+            .attr('y', brandLogo.y - 5)
+            .attr('width', brandLogo.width + 10)
+            .attr('height', brandLogo.height + 10);
+        
+        // Update resize handles
+        const handles = [
+            {class: 'resize-nw', x: brandLogo.x - 5, y: brandLogo.y - 5},
+            {class: 'resize-ne', x: brandLogo.x + brandLogo.width - 3, y: brandLogo.y - 5},
+            {class: 'resize-sw', x: brandLogo.x - 5, y: brandLogo.y + brandLogo.height - 3},
+            {class: 'resize-se', x: brandLogo.x + brandLogo.width - 3, y: brandLogo.y + brandLogo.height - 3}
+        ];
+        
+        handles.forEach(handle => {
+            logoGroup.select(`.${handle.class}`)
+                .attr('x', handle.x)
+                .attr('y', handle.y);
+        });
+    }
+
+    updateLogoSelection(logoGroup, brandLogo) {
+        const opacity = brandLogo.selected ? 1 : 0;
+        const pointerEvents = brandLogo.selected ? 'all' : 'none';
+        
+        logoGroup.select('.logo-selection').attr('opacity', opacity);
+        logoGroup.selectAll('.resize-handle')
+            .attr('opacity', opacity)
+            .style('pointer-events', pointerEvents);
     }
 
     renderFootnotes() {
@@ -1841,8 +2569,7 @@ class PulseSankeyChart {
             })
             .on('dblclick', (event, d) => {
                 event.stopPropagation();
-                const currentColor = this.getNodeColor(d);
-                this.showColorPicker(event.currentTarget, currentColor);
+                this.showNodeConfigModal(event.currentTarget, d);
             });
 
         this.addDragBehavior(nodeGroups);
@@ -3519,6 +4246,22 @@ class PulseSankeyChart {
         } else {
             console.error('ExportUtils not loaded');
             alert('Export functionality not available. Please ensure ExportUtils.js is loaded.');
+        }
+    }
+
+    // Clear brand logo
+    clearBrand() {
+        console.log('🗑️ Clearing brand logo from chart');
+        
+        if (this.data && this.data.metadata && this.data.metadata.brandLogo) {
+            delete this.data.metadata.brandLogo;
+            
+            // Remove brand logo from SVG
+            this.svg.selectAll('.chart-brand-logo').remove();
+            
+            console.log('✅ Brand logo cleared successfully');
+        } else {
+            console.log('ℹ️ No brand logo to clear');
         }
     }
 }
