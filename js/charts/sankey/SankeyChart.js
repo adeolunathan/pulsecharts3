@@ -57,11 +57,6 @@ class PulseSankeyChart {
                 middle: 12,
                 rightmost: 15
             },
-            nodeSorting: {
-                enabled: true,
-                method: 'value', // 'value', 'alphabetical', 'none'
-                direction: 'descending' // 'ascending', 'descending'
-            },
             valueDistance: {
                 general: 8,
                 middle: 8
@@ -106,7 +101,7 @@ class PulseSankeyChart {
             };
         }
 
-        const depths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+        const depths = [...new Set(this.nodes.map(n => n.depth))];
         const maxDepth = Math.max(...depths);
         const minDepth = Math.min(...depths);
         
@@ -397,7 +392,7 @@ class PulseSankeyChart {
             .style('margin-bottom', '8px');
 
         const presetColors = [
-            '#3498db', '#27ae60', '#e67e22', 
+            '#3498db', '#28A745', '#E74C3C', 
             '#e74c3c', '#9b59b6', '#34495e'
         ];
 
@@ -548,168 +543,6 @@ class PulseSankeyChart {
         setTimeout(() => {
             document.addEventListener('click', closeOnOutsideClick);
         }, 100);
-    }
-
-    showNodeConfigModal(element, nodeData) {
-        // Remove any existing modal
-        d3.select('.node-config-modal').remove();
-        
-        console.log('🎨 Opening node configuration modal for:', nodeData.id, 'Group:', nodeData.group);
-        
-        // Get nodes in the same layer AND group
-        const groupNodes = this.nodes.filter(n => 
-            n.depth === nodeData.depth && 
-            (n.group || 'default') === (nodeData.group || 'default')
-        );
-        const currentColor = this.getNodeColor(nodeData);
-        const groupName = nodeData.group || 'default';
-        
-        // Create compact modal
-        const modal = d3.select('body')
-            .append('div')
-            .attr('class', 'node-config-modal')
-            .style('position', 'fixed')
-            .style('top', '50%')
-            .style('left', '50%')
-            .style('transform', 'translate(-50%, -50%)')
-            .style('width', '280px')
-            .style('background', 'white')
-            .style('border-radius', '8px')
-            .style('box-shadow', '0 8px 32px rgba(0,0,0,0.15)')
-            .style('z-index', '1001')
-            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-            .style('border', '1px solid rgba(0,0,0,0.08)');
-
-        // Header
-        const header = modal.append('div')
-            .style('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)')
-            .style('color', 'white')
-            .style('padding', '12px 16px')
-            .style('position', 'relative')
-            .style('border-radius', '8px 8px 0 0');
-
-        header.append('h3')
-            .text(nodeData.id)
-            .style('margin', '0')
-            .style('font-size', '14px')
-            .style('font-weight', '600');
-
-        // Close button
-        header.append('button')
-            .text('×')
-            .style('position', 'absolute')
-            .style('top', '8px')
-            .style('right', '12px')
-            .style('width', '20px')
-            .style('height', '20px')
-            .style('background', 'rgba(255,255,255,0.2)')
-            .style('border', 'none')
-            .style('border-radius', '50%')
-            .style('color', 'white')
-            .style('font-size', '14px')
-            .style('cursor', 'pointer')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('justify-content', 'center')
-            .on('click', () => modal.remove());
-
-        // Content
-        const content = modal.append('div')
-            .style('padding', '16px');
-
-        // Color Section
-        const colorSection = content.append('div')
-            .style('margin-bottom', '16px');
-
-        colorSection.append('label')
-            .text('Color')
-            .style('display', 'block')
-            .style('font-weight', '500')
-            .style('font-size', '12px')
-            .style('margin-bottom', '6px')
-            .style('color', '#374151');
-
-        const colorPicker = colorSection.append('input')
-            .attr('type', 'color')
-            .attr('value', currentColor)
-            .style('width', '100%')
-            .style('height', '32px')
-            .style('border', '1px solid #d1d5db')
-            .style('border-radius', '6px')
-            .style('cursor', 'pointer');
-
-        // Sorting Section
-        const sortingSection = content.append('div')
-            .style('margin-bottom', '16px');
-
-        const groupDisplayName = this.getGroupDisplayName(groupName);
-        sortingSection.append('label')
-            .text(`Sort ${groupDisplayName}`)
-            .style('display', 'block')
-            .style('font-weight', '500')
-            .style('font-size', '12px')
-            .style('margin-bottom', '8px')
-            .style('color', '#374151');
-
-        // Sort Method
-        const sortMethod = sortingSection.append('select')
-            .style('width', '100%')
-            .style('padding', '6px')
-            .style('border', '1px solid #d1d5db')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
-            .style('margin-bottom', '8px');
-
-        sortMethod.append('option').attr('value', 'value').text('By Value');
-        sortMethod.append('option').attr('value', 'alphabetical').text('Alphabetical');
-        sortMethod.append('option').attr('value', 'none').text('Current Order');
-
-        // Sort Direction
-        const sortDirection = sortingSection.append('select')
-            .style('width', '100%')
-            .style('padding', '6px')
-            .style('border', '1px solid #d1d5db')
-            .style('border-radius', '4px')
-            .style('font-size', '12px');
-
-        sortDirection.append('option').attr('value', 'descending').text('Largest First');
-        sortDirection.append('option').attr('value', 'ascending').text('Smallest First');
-
-        // Set current values
-        const currentSorting = this.config.nodeSorting || { method: 'value', direction: 'descending' };
-        sortMethod.property('value', currentSorting.method);
-        sortDirection.property('value', currentSorting.direction);
-
-        // Apply button
-        content.append('button')
-            .text('Apply')
-            .style('width', '100%')
-            .style('padding', '10px')
-            .style('border', 'none')
-            .style('border-radius', '6px')
-            .style('background', '#667eea')
-            .style('color', 'white')
-            .style('font-size', '12px')
-            .style('font-weight', '500')
-            .style('cursor', 'pointer')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#5a67d8');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', '#667eea');
-            })
-            .on('click', () => {
-                // Apply color change
-                const newColor = colorPicker.property('value');
-                this.updateNodeColor(nodeData, newColor);
-                
-                // Apply sorting to group within layer
-                const method = sortMethod.property('value');
-                const direction = sortDirection.property('value');
-                this.applySortingToGroup(nodeData.depth, nodeData.group || 'default', method, direction);
-                
-                modal.remove();
-            });
     }
 
     applySelectedColor() {
@@ -941,7 +774,7 @@ class PulseSankeyChart {
 
         // Strategy 3: Find middle-layer revenue node
         if (!revenueHub) {
-            const depths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+            const depths = [...new Set(this.nodes.map(n => n.depth))];
             const middleDepth = depths[Math.floor(depths.length / 2)];
             
             revenueHub = this.nodes.find(node => 
@@ -1020,7 +853,7 @@ class PulseSankeyChart {
                     'Non-Current Assets': '#9B59B6',
                     'Current Liabilities': '#E74C3C',
                     'Non-Current Liabilities': '#C0392B',
-                    'Shareholders Equity': '#27AE60'
+                    'Shareholders Equity': '#28A745'
                 };
                 console.log('🎨 Applied default balance sheet colors:', this.customColors);
             } else {
@@ -1222,7 +1055,7 @@ class PulseSankeyChart {
         };
 
         const nodesByDepth = d3.group(this.nodes, d => d.depth);
-        const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
+        const depths = Array.from(nodesByDepth.keys());
         const maxDepth = Math.max(...depths);
 
         const xScale = d3.scaleLinear()
@@ -1444,7 +1277,7 @@ class PulseSankeyChart {
     }
 
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
-        const groupedNodes = this.groupAndSortNodes(nodes);
+        const groupedNodes = this.groupNodes(nodes);
         const depth = nodes[0]?.depth ?? 0;
         
         const isLeftmost = depth === 0;
@@ -1478,8 +1311,12 @@ class PulseSankeyChart {
             return; 
         }
         
-        const groups = this.detectNodeGroups(autoNodes);
-        console.log(`📊 Detected ${groups.length} groups:`, groups.map(g => `${g.name} (${g.nodes.length} nodes)`));
+        // Create individual groups to maintain data order
+        const groups = autoNodes.map(node => ({
+            name: `Individual: ${node.id}`,
+            nodes: [node]
+        }));
+        console.log(`📊 Positioning ${groups.length} nodes in data order`);
         
         const totalNodeHeight = autoNodes.reduce((sum, node) => sum + node.height, 0);
         const totalBasePadding = basePadding * (autoNodes.length - 1);
@@ -1489,7 +1326,9 @@ class PulseSankeyChart {
         
         const totalRequired = totalNodeHeight + totalBasePadding + totalGroupGaps;
         
-        const startY = Math.max(20, (availableHeight - totalRequired) / 2);
+        // Better centering: add offset to push content toward center
+        const centeredY = (availableHeight - totalRequired) / 2;
+        const startY = Math.max(30, centeredY + 20);
         let currentY = startY;
         
         groups.forEach((group, groupIndex) => {
@@ -1518,109 +1357,9 @@ class PulseSankeyChart {
         console.log(`✅ Group spacing applied. Total height used: ${currentY - startY}px`);
     }
 
-    detectNodeGroups(nodes) {
-        const groups = [];
-        const processedNodes = new Set();
-        
-        const explicitGroups = new Map();
-        nodes.forEach(node => {
-            if (node.group && !processedNodes.has(node.id)) {
-                if (!explicitGroups.has(node.group)) {
-                    explicitGroups.set(node.group, []);
-                }
-                explicitGroups.get(node.group).push(node);
-                processedNodes.add(node.id);
-            }
-        });
-        
-        explicitGroups.forEach((groupNodes, groupName) => {
-            groups.push({
-                name: groupName,
-                nodes: groupNodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-            });
-        });
-        
-        const remainingNodes = nodes.filter(node => !processedNodes.has(node.id));
-        
-        if (remainingNodes.length > 0) {
-            const patternGroups = this.detectPatternGroups(remainingNodes);
-            groups.push(...patternGroups);
-            
-            patternGroups.forEach(group => {
-                group.nodes.forEach(node => processedNodes.add(node.id));
-            });
-        }
-        
-        const ungroupedNodes = nodes.filter(node => !processedNodes.has(node.id));
-        ungroupedNodes.forEach(node => {
-            groups.push({
-                name: `Individual: ${node.id}`,
-                nodes: [node]
-            });
-        });
-        
-        return groups;
-    }
+    // detectNodeGroups function removed - maintaining data order
 
-    detectPatternGroups(nodes) {
-        const groups = [];
-        const processedNodes = new Set();
-        
-        const prefixGroups = new Map();
-        
-        nodes.forEach(node => {
-            if (processedNodes.has(node.id)) return;
-            
-            const words = node.id.toLowerCase().split(/[\s\-_]+/);
-            const firstWord = words[0];
-            
-            if (firstWord.length > 3) {
-                const samePrefix = nodes.filter(n => 
-                    !processedNodes.has(n.id) && 
-                    n.id.toLowerCase().startsWith(firstWord)
-                );
-                
-                if (samePrefix.length > 1) {
-                    const groupName = firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
-                    prefixGroups.set(groupName, samePrefix);
-                    samePrefix.forEach(n => processedNodes.add(n.id));
-                }
-            }
-        });
-        
-        prefixGroups.forEach((groupNodes, groupName) => {
-            groups.push({
-                name: groupName,
-                nodes: groupNodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-            });
-        });
-        
-        const remainingNodes = nodes.filter(node => !processedNodes.has(node.id));
-        
-        if (remainingNodes.length > 1) {
-            const categoryGroups = new Map();
-            
-            remainingNodes.forEach(node => {
-                const category = node.category || 'Other';
-                if (!categoryGroups.has(category)) {
-                    categoryGroups.set(category, []);
-                }
-                categoryGroups.get(category).push(node);
-            });
-            
-            categoryGroups.forEach((groupNodes, category) => {
-                if (groupNodes.length > 1) {
-                    groups.push({
-                        name: `${category.charAt(0).toUpperCase() + category.slice(1)} Group`,
-                        nodes: groupNodes.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-                    });
-                    groupNodes.forEach(n => processedNodes.add(n.id));
-                }
-            });
-        }
-        
-        return groups;
-    }
+    // detectPatternGroups function removed - maintaining data order
 
     positionNodesStandard(nodes, availableHeight, layerPadding) {
         const nodesToPosition = nodes.filter(node => !node.manuallyPositioned);
@@ -1632,7 +1371,9 @@ class PulseSankeyChart {
         const totalPadding = layerPadding * (nodesToPosition.length - 1);
         const totalRequired = totalHeight + totalPadding;
         
-        const startY = Math.max(20, (availableHeight - totalRequired) / 2);
+        // Better centering: add offset to push content toward center
+        const centeredY = (availableHeight - totalRequired) / 2;
+        const startY = Math.max(30, centeredY + 20);
         let currentY = startY;
         
         nodesToPosition.forEach((node, index) => {
@@ -1648,19 +1389,19 @@ class PulseSankeyChart {
 
     minimizeCrossings() {
         const nodesByDepth = d3.group(this.nodes, d => d.depth);
-        const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
+        const depths = Array.from(nodesByDepth.keys());
         
         for (let iteration = 0; iteration < 4; iteration++) {
             for (let i = 1; i < depths.length; i++) {
                 const currentDepth = depths[i];
                 const nodes = nodesByDepth.get(currentDepth);
-                this.sortNodesByBarycenter(nodes, 'target');
+                // Sorting removed - maintain original data order
             }
             
             for (let i = depths.length - 2; i >= 0; i--) {
                 const currentDepth = depths[i];
                 const nodes = nodesByDepth.get(currentDepth);
-                this.sortNodesByBarycenter(nodes, 'source');
+                // Sorting removed - maintain original data order
             }
         }
         
@@ -1670,38 +1411,7 @@ class PulseSankeyChart {
         });
     }
 
-    sortNodesByBarycenter(nodes, direction) {
-        nodes.forEach(node => {
-            const links = direction === 'source' ? node.sourceLinks : node.targetLinks;
-            
-            if (links.length === 0) {
-                node.barycenter = node.y + node.height / 2;
-                return;
-            }
-            
-            let weightedSum = 0;
-            let totalWeight = 0;
-            
-            links.forEach(link => {
-                const connectedNode = direction === 'source' ? link.target : link.source;
-                const weight = link.value;
-                const position = connectedNode.y + connectedNode.height / 2;
-                
-                weightedSum += position * weight;
-                totalWeight += weight;
-            });
-            
-            node.barycenter = totalWeight > 0 ? weightedSum / totalWeight : node.y + node.height / 2;
-        });
-        
-        nodes.sort((a, b) => {
-            const groupDiff = (a.group || 'z').localeCompare(b.group || 'z');
-            if (Math.abs(a.barycenter - b.barycenter) < 20 && groupDiff !== 0) {
-                return groupDiff;
-            }
-            return a.barycenter - b.barycenter;
-        });
-    }
+    // sortNodesByBarycenter function removed - maintaining original data order
 
     recalculateYPositions(nodes) {
         if (nodes.length === 0) return;
@@ -1731,18 +1441,18 @@ class PulseSankeyChart {
         const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
         
         if ((isLeftmost || isRightmost) && autoNodes.length > 1) {
-            const groups = this.detectNodeGroups(autoNodes);
-            if (groups.length > 1) {
-                this.positionNodesWithGroupSpacing(autoNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
-                return;
-            }
+            // Use group spacing for leftmost/rightmost layers but maintain data order
+            this.positionNodesWithGroupSpacing(autoNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
+            return;
         }
         
         const totalHeight = d3.sum(autoNodes, d => d.height);
         const totalPadding = layerPadding * (autoNodes.length - 1);
         const totalRequired = totalHeight + totalPadding;
         
-        const startY = Math.max(20, (availableHeight - totalRequired) / 2);
+        // Better centering: add offset to push content toward center
+        const centeredY = (availableHeight - totalRequired) / 2;
+        const startY = Math.max(30, centeredY + 20);
         let currentY = startY;
         
         autoNodes.forEach((node, index) => {
@@ -1756,287 +1466,19 @@ class PulseSankeyChart {
         });
     }
 
-    groupAndSortNodes(nodes) {
-        const depth = nodes[0]?.depth;
-        
-        if (depth === 4) {
-            return this.sortFinalLayerBySource(nodes);
-        }
-        
-        const groups = new Map();
-        
-        nodes.forEach(node => {
-            const group = node.group || 'default';
-            if (!groups.has(group)) {
-                groups.set(group, []);
-            }
-            groups.get(group).push(node);
-        });
-
-        const groupOrder = [
-            'revenue_sources',      
-            'aggregated_revenue',   
-            'gross_metrics',        
-            'operating_metrics',    
-            'final_results',        
-            'operating_expenses',   
-            'final_adjustments',    
-            'default'               
-        ];
-
-        const sortedNodes = [];
-        
-        groupOrder.forEach(groupName => {
-            if (groups.has(groupName)) {
-                const groupNodes = groups.get(groupName);
-                
-                // Apply configurable sorting within each group
-                this.sortNodesInGroup(groupNodes, groupName);
-                
-                sortedNodes.push(...groupNodes);
-            }
-        });
-
-        const processedGroups = new Set(groupOrder);
-        groups.forEach((groupNodes, groupName) => {
-            if (!processedGroups.has(groupName)) {
-                groupNodes.sort((a, b) => a.value - b.value);
-                sortedNodes.push(...groupNodes);
-            }
-        });
-        
-        return sortedNodes;
+    groupNodes(nodes) {
+        // Return nodes as individual groups to maintain data order
+        return nodes.map(node => ({
+            name: `Individual: ${node.id}`,
+            nodes: [node]
+        }));
     }
 
-    /**
-     * Sort nodes within a group based on configured sorting method
-     */
-    sortNodesInGroup(groupNodes, groupName) {
-        if (!this.config.nodeSorting.enabled || groupNodes.length <= 1) {
-            return groupNodes;
-        }
+    // sortNodesInGroup function removed - maintaining original data order
 
-        const { method, direction } = this.config.nodeSorting;
-        
-        console.log(`🔤 Sorting ${groupNodes.length} nodes in group '${groupName}' by ${method} (${direction})`);
+    // applySortingMethod function removed - maintaining original data order
 
-        // Preserve manual sort order if explicitly set
-        const hasManualOrder = groupNodes.some(node => node.sort_order !== undefined);
-        if (hasManualOrder) {
-            console.log('📌 Manual sort order detected, preserving...');
-            groupNodes.sort((a, b) => {
-                if (a.sort_order !== undefined && b.sort_order !== undefined) {
-                    return a.sort_order - b.sort_order;
-                }
-                if (a.sort_order !== undefined) return -1;
-                if (b.sort_order !== undefined) return 1;
-                return this.applySortingMethod(a, b, method, direction, groupName);
-            });
-            return groupNodes;
-        }
-
-        // Apply configurable sorting method
-        groupNodes.sort((a, b) => this.applySortingMethod(a, b, method, direction, groupName));
-        
-        return groupNodes;
-    }
-
-    /**
-     * Apply specific sorting method to two nodes
-     */
-    applySortingMethod(nodeA, nodeB, method, direction, groupName) {
-        let result = 0;
-
-        switch (method) {
-            case 'value':
-                result = nodeA.value - nodeB.value;
-                break;
-                
-            case 'alphabetical':
-                result = nodeA.id.localeCompare(nodeB.id, undefined, { 
-                    numeric: true, 
-                    sensitivity: 'base' 
-                });
-                break;
-                
-            case 'category':
-                // First sort by category priority, then by value
-                const categoryPriority = this.getCategoryPriority(nodeA.category, nodeB.category, groupName);
-                if (categoryPriority !== 0) {
-                    result = categoryPriority;
-                } else {
-                    result = nodeA.value - nodeB.value;
-                }
-                break;
-                
-            case 'none':
-            default:
-                // Maintain original order or sort by category if available
-                const defaultCategoryPriority = this.getCategoryPriority(nodeA.category, nodeB.category, groupName);
-                if (defaultCategoryPriority !== 0) {
-                    result = defaultCategoryPriority;
-                } else {
-                    result = nodeA.value - nodeB.value;
-                }
-                break;
-        }
-
-        // Apply direction (ascending/descending)
-        return direction === 'ascending' ? result : -result;
-    }
-
-    /**
-     * Get user-friendly display name for a group
-     */
-    getGroupDisplayName(groupName) {
-        const groupNames = {
-            'operating_expenses': 'Operating Expenses',
-            'revenue_sources': 'Revenue Sources',
-            'aggregated_revenue': 'Revenue',
-            'gross_metrics': 'Gross Metrics',
-            'operating_metrics': 'Operating Metrics',
-            'final_results': 'Final Results',
-            'final_adjustments': 'Adjustments',
-            'default': 'Items'
-        };
-        return groupNames[groupName] || groupName.replace(/_/g, ' ');
-    }
-
-    /**
-     * Apply sorting to a specific group within a layer and re-render the chart
-     */
-    applySortingToGroup(layerDepth, groupName, method, direction) {
-        console.log(`🔤 Applying ${method} sorting (${direction}) to group '${groupName}' in layer ${layerDepth}`);
-        
-        // Get nodes in the specified layer and group
-        const groupNodes = this.nodes.filter(n => 
-            n.depth === layerDepth && 
-            (n.group || 'default') === groupName
-        );
-        
-        if (groupNodes.length <= 1) {
-            console.log('Group has only one node, no sorting needed');
-            return;
-        }
-
-        // Update config for this group
-        if (!this.config.nodeSorting) {
-            this.config.nodeSorting = {};
-        }
-        this.config.nodeSorting.method = method;
-        this.config.nodeSorting.direction = direction;
-
-        // Apply sorting to the group nodes
-        this.sortGroupNodes(groupNodes, method, direction);
-        
-        // Recalculate layout and re-render
-        this.calculateLayout();
-        this.rerenderChart();
-        
-        console.log(`✅ Group '${groupName}' in layer ${layerDepth} sorted by ${method} (${direction})`);
-    }
-
-    /**
-     * Sort nodes within a specific group
-     */
-    sortGroupNodes(groupNodes, method, direction) {
-        console.log(`🔀 Sorting ${groupNodes.length} nodes in group by ${method} (${direction})`);
-        
-        // Sort the nodes using the same logic as applySortingMethod
-        groupNodes.sort((a, b) => {
-            // Preserve manual sort order if explicitly set
-            if (a.sort_order !== undefined && b.sort_order !== undefined) {
-                return a.sort_order - b.sort_order;
-            }
-            if (a.sort_order !== undefined) return -1;
-            if (b.sort_order !== undefined) return 1;
-            
-            // Apply the specified sorting method
-            let result = 0;
-            switch (method) {
-                case 'value':
-                    result = a.value - b.value;
-                    break;
-                case 'alphabetical':
-                    result = a.id.localeCompare(b.id, undefined, { 
-                        numeric: true, 
-                        sensitivity: 'base' 
-                    });
-                    break;
-                case 'category':
-                    const categoryPriority = this.getCategoryPriority(a.category, b.category, a.group || 'default');
-                    if (categoryPriority !== 0) {
-                        result = categoryPriority;
-                    } else {
-                        result = a.value - b.value;
-                    }
-                    break;
-                case 'none':
-                default:
-                    // Keep current order - no sorting
-                    return 0;
-            }
-            
-            // Apply direction
-            return direction === 'ascending' ? result : -result;
-        });
-        
-        console.log(`✅ Group nodes sorted:`, groupNodes.map(n => n.id));
-    }
-
-    /**
-     * Re-render the chart after sorting changes
-     */
-    rerenderChart() {
-        // Clear existing chart elements
-        this.chart.selectAll('.sankey-link').remove();
-        this.chart.selectAll('.sankey-node').remove();
-        
-        // Re-render with new positions
-        this.renderLinks();
-        this.renderNodes();
-        this.renderLabels();
-        
-        console.log('✅ Chart re-rendered with new node positions');
-    }
-
-    sortFinalLayerBySource(nodes) {
-        const sourceGroups = new Map();
-        
-        nodes.forEach(node => {
-            let sourceParent = 'unknown';
-            let sourceNode = null;
-            
-            this.links.forEach(link => {
-                if (link.target.id === node.id) {
-                    sourceParent = link.source.id;
-                    sourceNode = link.source;
-                }
-            });
-            
-            if (!sourceGroups.has(sourceParent)) {
-                sourceGroups.set(sourceParent, { nodes: [], sourceNode: sourceNode });
-            }
-            sourceGroups.get(sourceParent).nodes.push(node);
-        });
-        
-        const sortedSourceGroups = Array.from(sourceGroups.entries())
-            .sort((a, b) => {
-                const aSourceY = a[1].sourceNode?.y || 0;
-                const bSourceY = b[1].sourceNode?.y || 0;
-                return aSourceY - bSourceY;
-            });
-        
-        const sortedNodes = [];
-        
-        sortedSourceGroups.forEach(([sourceName, groupData]) => {
-            const sourceNodes = groupData.nodes;
-            sourceNodes.sort((a, b) => b.value - a.value);
-            sortedNodes.push(...sourceNodes);
-        });
-        
-        return sortedNodes;
-    }
+    // sortFinalLayerBySource function removed - maintaining original data order
 
     calculateLinkPositions() {
         this.links.forEach(link => {
@@ -2046,7 +1488,7 @@ class PulseSankeyChart {
         this.nodes.forEach(node => {
             if (node.sourceLinks.length === 0) return;
             
-            node.sourceLinks.sort((a, b) => a.target.y - b.target.y);
+            // Sorting removed - maintain original link order
             
             const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
@@ -2070,7 +1512,7 @@ class PulseSankeyChart {
         this.nodes.forEach(node => {
             if (node.targetLinks.length === 0) return;
             
-            node.targetLinks.sort((a, b) => a.source.y - b.source.y);
+            // Sorting removed - maintain original link order
             
             const totalInflow = d3.sum(node.targetLinks, d => d.value);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
@@ -2569,7 +2011,8 @@ class PulseSankeyChart {
             })
             .on('dblclick', (event, d) => {
                 event.stopPropagation();
-                this.showNodeConfigModal(event.currentTarget, d);
+                const currentColor = this.getNodeColor(d);
+                this.showColorPicker(event.currentTarget, currentColor);
             });
 
         this.addDragBehavior(nodeGroups);
@@ -2893,7 +2336,7 @@ class PulseSankeyChart {
     // Helper function to determine percentage color based on value
     getPercentageColor(percentageText) {
         if (percentageText.includes('+') || percentageText.startsWith('+')){
-            return '#27AE60'; // Green for positive growth
+            return '#28A745'; // Green for positive growth
         } else if (percentageText.includes('-')) {
             return '#E74C3C'; // Red for negative growth
         } else {
@@ -3194,8 +2637,8 @@ class PulseSankeyChart {
         
         const defaultColors = {
             revenue: '#3498db',
-            profit: '#27ae60',
-            expense: '#e67e22'
+            profit: '#28A745',
+            expense: '#E74C3C'
         };
         return defaultColors[node.category] || '#95a5a6';
     }
@@ -3274,8 +2717,8 @@ class PulseSankeyChart {
         
         const defaultColors = {
             revenue: '#3498db',
-            profit: '#27ae60',
-            expense: '#e67e22'
+            profit: '#28A745',
+            expense: '#E74C3C'
         };
         
         return defaultColors[category] || '#95a5a6';
@@ -3336,7 +2779,7 @@ class PulseSankeyChart {
             'Non-Current Assets': this.customColors['Non-Current Assets'] || '#9B59B6',
             'Current Liabilities': this.customColors['Current Liabilities'] || '#E74C3C',
             'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#C0392B',
-            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#27AE60'
+            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#28A745'
         };
         
         const parentNodes = this.detectParentNodes();
@@ -4020,13 +3463,13 @@ class PulseSankeyChart {
                         'Non-Current Assets': '#9B59B6',
                         'Current Liabilities': '#E74C3C',
                         'Non-Current Liabilities': '#C0392B',
-                        'Shareholders Equity': '#27AE60'
+                        'Shareholders Equity': '#28A745'
                     };
                 } else {
                     defaultColors = {
                         'revenue': '#3498db',
-                        'profit': '#27ae60',
-                        'expense': '#e67e22'
+                        'profit': '#28A745',
+                        'expense': '#E74C3C'
                     };
                 }
                 
@@ -4045,7 +3488,7 @@ class PulseSankeyChart {
                 return colors;
             },
             professional: (categories) => {
-                const professionalColors = ['#2c3e50', '#95a5a6', '#27ae60', '#e67e22', '#3498db'];
+                const professionalColors = ['#2c3e50', '#95a5a6', '#28A745', '#E74C3C', '#3498db'];
                 const colors = {};
                 categories.forEach((cat, index) => {
                     colors[cat] = professionalColors[index % professionalColors.length];

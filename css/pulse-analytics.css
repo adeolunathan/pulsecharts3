@@ -3540,6 +3540,26 @@ body {
     margin: 0 auto;
 }
 
+/* ===== GLOBAL CHART BRANDING ===== */
+.global-branding {
+    position: absolute;
+    bottom: 70px;
+    right: 70px;
+    transform: none;
+    z-index: 100;
+    pointer-events: none;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.global-branding span {
+    font-size: 16px;
+    font-weight: 600;
+    color: #94a3b8;
+    opacity: 0.2;
+    letter-spacing: 0.5px;
+    text-transform: lowercase;
+}
+
 /* ===== ADDITIONAL UTILITY CLASSES FOR INLINE STYLES ===== */
 
 /* Common form labels */

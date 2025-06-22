@@ -229,13 +229,6 @@ class SankeyControlModule {
                         description: "Reset chart to original position and scale" 
                     },
                     { 
-                        id: "fitToView", 
-                        type: "button", 
-                        label: "Fit to View", 
-                        action: "fitToView",
-                        description: "Automatically fit chart to optimal view" 
-                    },
-                    { 
                         id: "zoomLevel", 
                         type: "slider", 
                         label: "Zoom Level", 
@@ -579,8 +572,8 @@ class SankeyControlModule {
             // Income statement colors (default)
             const incomeColors = {
                 revenue: '#3498db',
-                profit: '#27ae60',
-                expense: '#e67e22',
+                profit: '#28A745',
+                expense: '#E74C3C',
                 default: '#95a5a6'
             };
             return incomeColors[category] || incomeColors.default;
