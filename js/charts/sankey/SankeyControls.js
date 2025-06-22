@@ -674,20 +674,52 @@ class SankeyControlModule {
 
         // Handle opacity controls with immediate visual feedback
         if (controlId === 'nodeOpacity') {
+            console.log(`🎛️ Setting nodeOpacity to ${value} for ${chart.statementType || 'income'} statement`);
             chart.config.nodeOpacity = value;
-            chart.chart.selectAll('.sankey-node rect')
-                .transition()
-                .duration(150)
-                .attr('fill-opacity', d => chart.getNodeOpacity ? chart.getNodeOpacity(d) : value);
+            
+            // Debug: Check if chart and nodes exist
+            if (!chart.chart) {
+                console.error('❌ chart.chart is null - chart may not be initialized');
+                return;
+            }
+            
+            const nodeSelection = chart.chart.selectAll('.sankey-node rect');
+            console.log(`🔍 Found ${nodeSelection.size()} nodes to update opacity`);
+            
+            // For Income Statement charts, apply opacity directly
+            // For Balance Sheet charts, use the hierarchical opacity method
+            if (chart.statementType === 'balance') {
+                nodeSelection
+                    .transition()
+                    .duration(150)
+                    .attr('fill-opacity', d => chart.getNodeOpacity ? chart.getNodeOpacity(d) : value)
+                    .style('opacity', d => chart.getNodeOpacity ? chart.getNodeOpacity(d) : value);
+            } else {
+                // Income Statement - apply opacity directly to all nodes
+                nodeSelection
+                    .transition()
+                    .duration(150)
+                    .attr('fill-opacity', value)
+                    .style('opacity', value);
+            }
+            
+            console.log(`✅ Applied opacity ${value} to nodes`);
             return;
         }
 
         if (controlId === 'linkOpacity') {
+            console.log(`🎛️ Setting linkOpacity to ${value}`);
             chart.config.linkOpacity = value;
-            chart.chart.selectAll('.sankey-link path')
+            
+            const linkSelection = chart.chart.selectAll('.sankey-link path');
+            console.log(`🔍 Found ${linkSelection.size()} links to update opacity`);
+            
+            linkSelection
                 .transition()
                 .duration(150)
                 .attr('fill-opacity', d => chart.getLinkOpacity ? chart.getLinkOpacity(d) : value);
+                
+            console.log(`✅ Applied opacity ${value} to links`);
             return;
         }
 

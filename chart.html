@@ -2031,6 +2031,7 @@
                 document.addEventListener('click', this.handleCellClick.bind(this));
                 document.addEventListener('keydown', this.handleKeyNavigation.bind(this));
                 document.addEventListener('dblclick', this.handleCellDoubleClick.bind(this));
+                document.addEventListener('paste', this.handlePaste.bind(this));
             }
 
             handleCellClick(event) {
@@ -2401,6 +2402,276 @@
                     updateAllStats();
                     debouncedRealTimeUpdate();
                 }
+            }
+
+            // ===== EXCEL/CSV PASTE FUNCTIONALITY =====
+            handlePaste(event) {
+                // Only handle paste if we're focused on a spreadsheet cell or the table
+                const target = event.target;
+                const cell = target.closest('.spreadsheet-cell');
+                const table = target.closest('.flow-table');
+                
+                if (!cell && !table) {
+                    return; // Not in our spreadsheet
+                }
+
+                event.preventDefault();
+                
+                // Get clipboard data
+                const clipboardData = event.clipboardData || window.clipboardData;
+                const pastedText = clipboardData.getData('text');
+                
+                if (!pastedText) {
+                    console.log('📋 No text data in clipboard');
+                    return;
+                }
+
+                console.log('📋 Processing paste data:', pastedText);
+                
+                // Determine starting cell
+                let startCell = cell || this.selectedCell;
+                if (!startCell) {
+                    // Find first cell if none selected
+                    startCell = document.querySelector('.spreadsheet-cell[data-row="0"][data-col="source"]');
+                }
+                
+                if (!startCell) {
+                    console.error('❌ No starting cell found for paste operation');
+                    return;
+                }
+
+                try {
+                    this.pasteDataToTable(pastedText, startCell);
+                } catch (error) {
+                    console.error('❌ Paste operation failed:', error);
+                    this.showPasteError(error.message);
+                }
+            }
+
+            pasteDataToTable(pastedText, startCell) {
+                // Parse the pasted data (could be CSV, TSV, or simple text)
+                const parsedData = this.parseClipboardData(pastedText);
+                
+                if (parsedData.length === 0) {
+                    throw new Error('No valid data found in clipboard');
+                }
+
+                console.log('📊 Parsed clipboard data:', parsedData);
+
+                // Get starting position
+                const startRow = parseInt(startCell.dataset.row);
+                const startCol = startCell.dataset.col;
+                
+                // Define column mapping for flow data
+                const columnMap = {
+                    'source': 0,
+                    'target': 1, 
+                    'value': 2,
+                    'previousValue': 3,
+                    'sourceCategory': 4,
+                    'targetCategory': 5,
+                    'description': 6
+                };
+                
+                const columnOrder = ['source', 'target', 'value', 'previousValue', 'sourceCategory', 'targetCategory', 'description'];
+                const startColIndex = columnOrder.indexOf(startCol);
+                
+                if (startColIndex === -1) {
+                    throw new Error(`Invalid starting column: ${startCol}`);
+                }
+
+                // Process each row of pasted data
+                let rowsProcessed = 0;
+                let cellsUpdated = 0;
+
+                for (let i = 0; i < parsedData.length; i++) {
+                    const dataRow = parsedData[i];
+                    const targetRowIndex = startRow + i;
+                    
+                    // Ensure we have enough flow rows
+                    while (flowData.flows.length <= targetRowIndex) {
+                        this.addNewFlowRow();
+                    }
+                    
+                    // Process each column in the data row
+                    for (let j = 0; j < dataRow.length; j++) {
+                        const targetColIndex = startColIndex + j;
+                        
+                        if (targetColIndex >= columnOrder.length) {
+                            continue; // Skip columns beyond our table
+                        }
+                        
+                        const targetCol = columnOrder[targetColIndex];
+                        const cellValue = dataRow[j];
+                        
+                        if (cellValue !== null && cellValue !== '') {
+                            this.updateCellValue(targetRowIndex, targetCol, cellValue);
+                            cellsUpdated++;
+                        }
+                    }
+                    rowsProcessed++;
+                }
+
+                // Refresh the entire table to show the pasted data
+                renderFlowTable();
+                
+                // Update statistics and chart
+                autoCalculateFlowProperties();
+                updateAllStats();
+                debouncedRealTimeUpdate();
+                
+                // Show success message
+                this.showPasteSuccess(rowsProcessed, cellsUpdated);
+                
+                console.log(`✅ Paste complete: ${rowsProcessed} rows, ${cellsUpdated} cells updated`);
+            }
+
+            parseClipboardData(text) {
+                // Split into lines and remove empty lines
+                const lines = text.split(/\r?\n/).filter(line => line.trim());
+                
+                if (lines.length === 0) {
+                    return [];
+                }
+
+                // Detect delimiter (tab, comma, or semicolon)
+                const firstLine = lines[0];
+                let delimiter = '\t'; // Default to tab (Excel/Google Sheets)
+                
+                if (firstLine.includes('\t')) {
+                    delimiter = '\t';
+                } else if (firstLine.includes(',')) {
+                    delimiter = ',';
+                } else if (firstLine.includes(';')) {
+                    delimiter = ';';
+                }
+
+                console.log(`📋 Detected delimiter: "${delimiter === '\t' ? 'TAB' : delimiter}"`);
+
+                // Parse each line
+                return lines.map(line => {
+                    return line.split(delimiter).map(cell => {
+                        // Clean up the cell value
+                        let value = cell.trim();
+                        
+                        // Remove quotes if present
+                        if ((value.startsWith('"') && value.endsWith('"')) || 
+                            (value.startsWith("'") && value.endsWith("'"))) {
+                            value = value.slice(1, -1);
+                        }
+                        
+                        // Convert numeric values
+                        if (/^\d+\.?\d*$/.test(value)) {
+                            return parseFloat(value);
+                        }
+                        
+                        return value;
+                    });
+                });
+            }
+
+            updateCellValue(rowIndex, columnName, value) {
+                // Validate the value based on column type
+                let processedValue = value;
+                
+                switch (columnName) {
+                    case 'value':
+                    case 'previousValue':
+                        processedValue = parseFloat(value) || 0;
+                        break;
+                    case 'sourceCategory':
+                    case 'targetCategory':
+                        // Validate against allowed categories
+                        const allowedCategories = ['revenue', 'expense', 'profit', 'asset', 'liability', 'equity'];
+                        const normalizedValue = value.toString().toLowerCase();
+                        if (allowedCategories.includes(normalizedValue)) {
+                            processedValue = normalizedValue;
+                        } else {
+                            processedValue = 'revenue'; // Default fallback
+                        }
+                        break;
+                    default:
+                        processedValue = value.toString();
+                }
+                
+                // Update the flow data
+                if (flowData.flows[rowIndex]) {
+                    flowData.flows[rowIndex][columnName] = processedValue;
+                }
+            }
+
+            addNewFlowRow() {
+                // Add a new empty flow to the data
+                const newFlow = new BusinessFlow({
+                    id: `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    source: '',
+                    target: '',
+                    value: 0,
+                    flowType: 'revenue_flow',
+                    sourceLayer: 0,
+                    targetLayer: 1,
+                    sourceOrder: 1,
+                    targetOrder: 1,
+                    sourceCategory: 'revenue',
+                    targetCategory: 'revenue',
+                    description: ''
+                });
+                
+                flowData.flows.push(newFlow);
+            }
+
+            showPasteSuccess(rows, cells) {
+                const message = `✅ Successfully pasted ${rows} row${rows !== 1 ? 's' : ''} and updated ${cells} cell${cells !== 1 ? 's' : ''}`;
+                this.showToast(message, 'success');
+            }
+
+            showPasteError(errorMessage) {
+                const message = `❌ Paste failed: ${errorMessage}`;
+                this.showToast(message, 'error');
+            }
+
+            showToast(message, type = 'info') {
+                // Create a toast notification
+                const toast = document.createElement('div');
+                toast.className = `paste-toast paste-toast-${type}`;
+                toast.textContent = message;
+                
+                // Add styles
+                Object.assign(toast.style, {
+                    position: 'fixed',
+                    top: '20px',
+                    right: '20px',
+                    background: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    zIndex: '10000',
+                    opacity: '0',
+                    transform: 'translateX(100%)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                });
+                
+                document.body.appendChild(toast);
+                
+                // Animate in
+                setTimeout(() => {
+                    toast.style.opacity = '1';
+                    toast.style.transform = 'translateX(0)';
+                }, 10);
+                
+                // Animate out and remove
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
             }
         }
     </script>
