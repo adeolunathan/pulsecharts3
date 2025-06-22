@@ -125,59 +125,37 @@ class SankeyControlModule {
                 collapsed: true,
                 controls: [
                     { 
-                        id: "labelDistanceLeftmost", 
+                        id: "textDistanceLeftmost", 
                         type: "slider", 
-                        label: "Leftmost Label Distance", 
-                        min: 5, 
-                        max: 30, 
-                        default: 5, 
-                        step: 1, 
-                        unit: "px", 
-                        description: "Distance of leftmost labels from nodes" 
-                    },
-                    { 
-                        id: "labelDistanceMiddle", 
-                        type: "slider", 
-                        label: "Middle Label Distance", 
-                        min: 5, 
-                        max: 30, 
+                        label: "Leftmost Text Distance", 
+                        min: 1, 
+                        max: 40, 
                         default: 15, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of middle layer labels from nodes" 
+                        description: "Distance of all text (labels, values, percentages) from leftmost nodes" 
                     },
                     { 
-                        id: "valueDistanceMiddle", 
+                        id: "textDistanceMiddle", 
                         type: "slider", 
-                        label: "Middle Value Distance", 
+                        label: "Middle Text Distance", 
                         min: 1, 
-                        max: 30, 
+                        max: 40, 
                         default: 1, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of middle layer values from nodes" 
+                        description: "Distance of all text (labels, values, percentages) from middle nodes" 
                     },
                     { 
-                        id: "labelDistanceRightmost", 
+                        id: "textDistanceRightmost", 
                         type: "slider", 
-                        label: "Rightmost Label Distance", 
+                        label: "Rightmost Text Distance", 
                         min: 1, 
-                        max: 30, 
-                        default: 1, 
+                        max: 40, 
+                        default: 15, 
                         step: 1, 
                         unit: "px", 
-                        description: "Distance of rightmost labels from nodes" 
-                    },
-                    { 
-                        id: "valueDistance", 
-                        type: "slider", 
-                        label: "Value Distance (Left/Right)", 
-                        min: 1, 
-                        max: 30, 
-                        default: 5, 
-                        step: 1, 
-                        unit: "px", 
-                        description: "Distance of values from leftmost and rightmost nodes only" 
+                        description: "Distance of all text (labels, values, percentages) from rightmost nodes" 
                     },
                 ]
             },
@@ -691,55 +669,25 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle layer-specific label distance controls
-        if (controlId === 'labelDistanceLeftmost') {
-            const labelDistance = chart.config.labelDistance || {};
-            labelDistance.leftmost = value;
-            chart.updateConfig({ labelDistance });
+        // Handle unified text distance controls
+        if (controlId === 'textDistanceLeftmost') {
+            const textDistance = chart.config.textDistance || {};
+            textDistance.leftmost = value;
+            chart.updateConfig({ textDistance });
             return;
         }
         
-        if (controlId === 'labelDistanceMiddle') {
-            const labelDistance = chart.config.labelDistance || {};
-            labelDistance.middle = value;
-            chart.updateConfig({ labelDistance });
+        if (controlId === 'textDistanceMiddle') {
+            const textDistance = chart.config.textDistance || {};
+            textDistance.middle = value;
+            chart.updateConfig({ textDistance });
             return;
         }
         
-        if (controlId === 'valueDistanceMiddle') {
-            const valueDistance = chart.config.valueDistance || {};
-            if (typeof valueDistance === 'number') {
-                chart.config.valueDistance = {
-                    general: valueDistance,
-                    middle: value
-                };
-            } else {
-                valueDistance.middle = value;
-                chart.updateConfig({ valueDistance });
-            }
-            return;
-        }
-
-        if (controlId === 'valueDistance') {
-            const currentValueDistance = chart.config.valueDistance || {};
-            if (typeof currentValueDistance === 'object') {
-                currentValueDistance.general = value;
-                chart.updateConfig({ valueDistance: currentValueDistance });
-            } else {
-                chart.updateConfig({ 
-                    valueDistance: {
-                        general: value,
-                        middle: currentValueDistance
-                    }
-                });
-            }
-            return;
-        }
-        
-        if (controlId === 'labelDistanceRightmost') {
-            const labelDistance = chart.config.labelDistance || {};
-            labelDistance.rightmost = value;
-            chart.updateConfig({ labelDistance });
+        if (controlId === 'textDistanceRightmost') {
+            const textDistance = chart.config.textDistance || {};
+            textDistance.rightmost = value;
+            chart.updateConfig({ textDistance });
             return;
         }
 
@@ -905,22 +853,16 @@ class SankeyControlModule {
         }
 
         if (chart && chart.config) {
-            // Handle complex nested configs
-            if (controlId.includes('Distance')) {
-                if (controlId === 'labelDistanceLeftmost' && chart.config.labelDistance) {
-                    return chart.config.labelDistance.leftmost;
+            // Handle unified text distance configs
+            if (controlId.includes('textDistance')) {
+                if (controlId === 'textDistanceLeftmost' && chart.config.textDistance) {
+                    return chart.config.textDistance.leftmost;
                 }
-                if (controlId === 'labelDistanceMiddle' && chart.config.labelDistance) {
-                    return chart.config.labelDistance.middle;
+                if (controlId === 'textDistanceMiddle' && chart.config.textDistance) {
+                    return chart.config.textDistance.middle;
                 }
-                if (controlId === 'labelDistanceRightmost' && chart.config.labelDistance) {
-                    return chart.config.labelDistance.rightmost;
-                }
-                if (controlId === 'valueDistanceMiddle' && chart.config.valueDistance) {
-                    return chart.config.valueDistance.middle;
-                }
-                if (controlId === 'valueDistance' && chart.config.valueDistance) {
-                    return chart.config.valueDistance.general;
+                if (controlId === 'textDistanceRightmost' && chart.config.textDistance) {
+                    return chart.config.textDistance.rightmost;
                 }
             }
 

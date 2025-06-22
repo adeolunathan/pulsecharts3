@@ -185,16 +185,59 @@
             <div class="app-content">
                 <!-- Chart Area -->
                 <div class="chart-area">
-                    <!-- Chart Toolbar -->
-                    <div class="chart-toolbar">
-                        <div class="data-controls">
-                            <span id="data-status" class="status-indicator status-loading">Loading...</span>
+                    <!-- Modern Chart Header -->
+                    <div class="chart-header">
+                        <div class="chart-info">
+                            <span id="data-status" class="status-indicator status-loading">
+                                <div class="status-dot"></div>
+                                <span class="status-text">Loading...</span>
+                            </span>
                         </div>
                         
-                        <div class="export-controls">
-                            <button id="export-png" class="btn btn-primary">🖼️ PNG</button>
-                            <button id="export-svg" class="btn btn-primary">📐 SVG</button>
-                            <button id="export-data" class="btn btn-primary">📊 CSV</button>
+                        <!-- Redesigned Export Controls -->
+                        <div class="export-section">
+                            <div class="export-dropdown">
+                                <button class="export-trigger" id="export-trigger">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7,10 12,15 17,10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    <span>Export</span>
+                                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"/>
+                                    </svg>
+                                </button>
+                                <div class="export-menu" id="export-menu">
+                                    <button class="export-option" id="export-png">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                            <polyline points="21,15 16,10 5,21"/>
+                                        </svg>
+                                        <span>PNG Image</span>
+                                        <span class="export-desc">High-quality raster image</span>
+                                    </button>
+                                    <button class="export-option" id="export-svg">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
+                                        </svg>
+                                        <span>SVG Vector</span>
+                                        <span class="export-desc">Scalable vector format</span>
+                                    </button>
+                                    <button class="export-option" id="export-data">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14,2 14,8 20,8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10,9 9,9 8,9"/>
+                                        </svg>
+                                        <span>CSV Data</span>
+                                        <span class="export-desc">Raw data for analysis</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -207,17 +250,41 @@
                     </div>
                 </div>
 
-                <!-- Enhanced Control Panel -->
+                <!-- Redesigned Control Panel -->
                 <div class="control-panel">
                     <div class="control-panel-header">
-                        <h3>Chart Controls</h3>
-                        <button id="reset-defaults" class="btn btn-outline">🔄 Reset</button>
+                        <div class="control-header-content">
+                            <div class="control-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="m12 1 2.09 6.26L22 9l-6.26 2.09L14 23l-2.09-6.26L2 15l6.26-2.09L10 1Z"/>
+                                </svg>
+                                <h3>Chart Controls</h3>
+                            </div>
+                            <div class="control-actions">
+                                <button id="reset-defaults" class="control-btn reset-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                        <path d="M21 3v5h-5"/>
+                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                        <path d="M8 16H3v5"/>
+                                    </svg>
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="dynamic-controls" class="control-panel-content">
-                        <div style="padding: 40px 20px; text-align: center; color: #6b7280;">
-                            <div style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
-                            <p>Loading chart controls...</p>
+                        <div class="controls-loading">
+                            <div class="loading-pulse"></div>
+                            <div class="loading-content">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="m12 1 2.09 6.26L22 9l-6.26 2.09L14 23l-2.09-6.26L2 15l6.26-2.09L10 1Z"/>
+                                </svg>
+                                <p>Loading chart controls...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -703,62 +770,90 @@
             }
         }
 
-        // Find revenue base for margin calculations (Income Statement only)
+        // Find revenue base by looking for Total Revenue node (calculated sum)
         function findRevenueBase(flowData) {
             if (!flowData || !flowData.flows) return 0;
             
-            // Look for nodes that represent total revenue
-            const revenueKeywords = ['total revenue', 'revenue', 'total sales', 'sales'];
+            // Build a map of nodes and their incoming flows to find the aggregated total
+            const nodeInflows = new Map();
             
-            // Create a map of all nodes with their values
-            const nodeValues = new Map();
-            
-            // Aggregate values for each unique node
             flowData.flows.forEach(flow => {
-                // Add source node value
-                if (!nodeValues.has(flow.source)) {
-                    nodeValues.set(flow.source, 0);
+                if (!nodeInflows.has(flow.target)) {
+                    nodeInflows.set(flow.target, []);
                 }
-                
-                // Add target node value
-                if (!nodeValues.has(flow.target)) {
-                    nodeValues.set(flow.target, 0);
-                }
-                
-                // For targets, accumulate the incoming flow values
-                nodeValues.set(flow.target, nodeValues.get(flow.target) + flow.value);
+                nodeInflows.get(flow.target).push({
+                    source: flow.source,
+                    value: flow.value
+                });
             });
             
-            // Find the revenue base node
+            // Look for "Total Revenue" node or a node that aggregates multiple revenue sources
             let revenueBase = 0;
             let revenueNodeName = null;
             
-            for (const [nodeName, value] of nodeValues) {
+            for (const [nodeName, inflows] of nodeInflows) {
                 const lowerName = nodeName.toLowerCase();
-                for (const keyword of revenueKeywords) {
-                    if (lowerName.includes(keyword)) {
-                        // Prefer "Total Revenue" over just "Revenue"
-                        if (lowerName.includes('total') && lowerName.includes('revenue')) {
-                            revenueBase = value;
+                
+                // Check if this is "Total Revenue" or aggregates multiple revenue sources
+                if (lowerName.includes('total') && lowerName.includes('revenue')) {
+                    // Calculate the sum of incoming revenue flows
+                    const totalIncoming = inflows.reduce((sum, inflow) => sum + inflow.value, 0);
+                    revenueBase = totalIncoming;
+                    revenueNodeName = nodeName;
+                    console.log(`✅ Found Total Revenue node: ${nodeName} = ${totalIncoming}`);
+                    break;
+                } else if (lowerName.includes('revenue') && inflows.length >= 2) {
+                    // Revenue node with multiple inputs (likely an aggregation)
+                    const revenueInflows = inflows.filter(inflow => {
+                        const sourceLower = inflow.source.toLowerCase();
+                        return sourceLower.includes('revenue') || 
+                               sourceLower.includes('subscription') ||
+                               sourceLower.includes('service') ||
+                               sourceLower.includes('platform') ||
+                               sourceLower.includes('sales');
+                    });
+                    
+                    if (revenueInflows.length >= 2) {
+                        const totalIncoming = revenueInflows.reduce((sum, inflow) => sum + inflow.value, 0);
+                        if (totalIncoming > revenueBase) {
+                            revenueBase = totalIncoming;
                             revenueNodeName = nodeName;
-                            break;
-                        } else if (!revenueNodeName || !revenueNodeName.toLowerCase().includes('total')) {
-                            revenueBase = value;
-                            revenueNodeName = nodeName;
+                            console.log(`✅ Found revenue aggregation node: ${nodeName} = ${totalIncoming}`);
                         }
                     }
                 }
             }
             
-            console.log(`💰 Found revenue base: ${revenueNodeName} = ${revenueBase}`);
+            // Fallback: if no aggregation found, sum all primary revenue sources
+            if (revenueBase === 0) {
+                console.log('🔍 No total revenue node found, summing primary revenue sources...');
+                const primarySources = flowData.flows.filter(flow => {
+                    const sourceLower = flow.source.toLowerCase();
+                    return (sourceLower.includes('revenue') || 
+                           sourceLower.includes('subscription') ||
+                           sourceLower.includes('service') ||
+                           sourceLower.includes('platform')) &&
+                           !nodeInflows.has(flow.source); // Primary source (no inputs)
+                });
+                
+                revenueBase = primarySources.reduce((sum, flow) => sum + flow.value, 0);
+                revenueNodeName = `Calculated from ${primarySources.length} primary sources`;
+            }
+            
+            console.log(`💰 Revenue base: ${revenueNodeName} = ${revenueBase}`);
             return revenueBase;
         }
 
-        // Get margin percentage for a specific flow (Income Statement only)
-        function getFlowMarginPercentage(flow, revenueBase) {
+        // Get percentage of revenue for any node value
+        function getRevenuePercentage(nodeValue, revenueBase) {
             if (!revenueBase || revenueBase === 0) return 'N/A';
             
-            const percentage = (flow.value / revenueBase) * 100;
+            // If this is the revenue base itself, it's 100%
+            if (nodeValue === revenueBase) {
+                return '100.0%';
+            }
+            
+            const percentage = (nodeValue / revenueBase) * 100;
             return `${percentage.toFixed(1)}%`;
         }
 
@@ -1810,9 +1905,8 @@
                     );
                     if (matchingFlow) {
                         node.growthDecline = matchingFlow.getGrowthDeclineDisplay();
-                        // Only calculate marginPercentage if margin display is enabled
-                        // Note: We'll check the actual toggle state from the chart instance when available
-                        node.marginPercentage = getFlowMarginPercentage(matchingFlow, revenueBase);
+                        // Calculate percentage of revenue for this node's value
+                        node.marginPercentage = getRevenuePercentage(node.value, revenueBase);
                         node.hasPercentages = true;
                     }
                 });
@@ -1840,11 +1934,57 @@
             // Initialize spreadsheet functionality
             window.spreadsheetController = new SpreadsheetController();
             
+            // Initialize modern export dropdown
+            initializeExportDropdown();
+            
             // CRITICAL: Initialize flow builder on page load to handle URL parameters
             setTimeout(() => {
                 initializeFlowBuilder();
             }, 200);
         });
+
+        // Modern Export Dropdown Functionality
+        function initializeExportDropdown() {
+            const exportTrigger = document.getElementById('export-trigger');
+            const exportMenu = document.getElementById('export-menu');
+            
+            if (!exportTrigger || !exportMenu) return;
+            
+            // Toggle dropdown
+            exportTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportMenu.classList.toggle('active');
+                exportTrigger.classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!exportTrigger.contains(e.target) && !exportMenu.contains(e.target)) {
+                    exportMenu.classList.remove('active');
+                    exportTrigger.classList.remove('active');
+                }
+            });
+            
+            // Handle export option clicks with visual feedback
+            const exportOptions = exportMenu.querySelectorAll('.export-option');
+            exportOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // Add loading state
+                    option.classList.add('loading');
+                    
+                    // Close dropdown
+                    exportMenu.classList.remove('active');
+                    exportTrigger.classList.remove('active');
+                    
+                    // Remove loading state after brief delay
+                    setTimeout(() => {
+                        option.classList.remove('loading');
+                    }, 1000);
+                });
+            });
+        }
 
         // ===== TEMPLATE DOWNLOAD FUNCTIONALITY =====
 
@@ -1916,7 +2056,18 @@
                     return;
                 }
 
+                // Check if this is a SELECT type cell for immediate editing
+                const isSelectCell = cell.dataset.type === 'select';
+                
                 this.selectCell(cell);
+                
+                // For SELECT elements, start editing immediately on single click
+                if (isSelectCell) {
+                    // Prevent the double-click requirement for dropdowns
+                    setTimeout(() => {
+                        this.startEditing(cell);
+                    }, 10);
+                }
             }
 
             handleCellDoubleClick(event) {
@@ -1978,14 +2129,45 @@
                     editor.select();
                 }
 
-                // Add event listeners with enhanced SELECT element handling
+                // Add event listeners with enhanced cross-browser SELECT element handling
                 if (editor.tagName === 'SELECT') {
-                    // Prevent immediate closing on focus
+                    // Cross-browser dropdown fix: Force dropdown to open and stay open
+                    const openDropdown = () => {
+                        // Force focus first
+                        editor.focus();
+                        
+                        // For WebKit browsers (Safari, Chrome), trigger the dropdown
+                        if (editor.showPicker && typeof editor.showPicker === 'function') {
+                            try {
+                                editor.showPicker();
+                            } catch (e) {
+                                // Fallback for older browsers
+                                editor.click();
+                            }
+                        } else {
+                            // Fallback: simulate click to open dropdown
+                            const clickEvent = new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            editor.dispatchEvent(clickEvent);
+                        }
+                    };
+                    
+                    // Delay opening to ensure proper rendering
+                    setTimeout(openDropdown, 20);
+                    
+                    // Prevent event bubbling that could close the dropdown
                     editor.addEventListener('mousedown', (e) => {
                         e.stopPropagation();
                     });
                     
-                    // Only close on actual selection change
+                    editor.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    });
+                    
+                    // Handle selection change
                     editor.addEventListener('change', () => {
                         this.stopEditing();
                     }, { once: true });

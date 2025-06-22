@@ -76,7 +76,7 @@
     {
       "id": "Operating Expenses",
       "depth": 3,
-      "value": 1550,
+      "value": 2750,
       "category": "expense",
       "description": "Total operating expenses excluding COGS",
       "group": "operating_metrics",
@@ -121,7 +121,7 @@
     {
       "id": "R&D",
       "depth": 4,
-      "value": 450,
+      "value": 1000,
       "category": "expense",
       "description": "Research and development investments",
       "group": "operating_expenses",
@@ -139,7 +139,7 @@
     {
       "id": "Restructuring",
       "depth": 4,
-      "value": 50,
+      "value": 700,
       "category": "expense",
       "description": "One-time restructuring costs",
       "group": "operating_expenses",
@@ -196,7 +196,7 @@
     {
       "source": "Gross Profit",
       "target": "Operating Expenses",
-      "value": 1550,
+      "value": 2750,
       "type": "expense_flow",
       "description": "Operating expenses reducing gross profit"
     },
@@ -232,7 +232,7 @@
     {
       "source": "Operating Expenses",
       "target": "R&D",
-      "value": 450,
+      "value": 1000,
       "type": "expense_breakdown",
       "description": "R&D portion of operating expenses"
     },
@@ -246,7 +246,7 @@
     {
       "source": "Operating Expenses",
       "target": "Restructuring",
-      "value": 50,
+      "value": 700,
       "type": "expense_breakdown",
       "description": "Restructuring portion of operating expenses"
     }

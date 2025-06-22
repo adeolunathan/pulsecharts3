@@ -82,6 +82,11 @@ class PulseSankeyChart {
             const controlDefaults = controlModule.getDefaultConfig();
             this.config = { ...this.config, ...controlDefaults };
             console.log('✅ Applied control module defaults to chart config');
+            
+            // Apply auto-scaling AFTER control defaults to prevent override
+            if (this.data) {
+                this.autoScaleNodeHeight(this.data);
+            }
         }
     }
 
@@ -601,8 +606,53 @@ class PulseSankeyChart {
         }
     }
 
+    /**
+     * Enhanced auto-scale node height with user input interpretation for scaling only
+     * Rule: 3000 = 3 Billion, 300 = 300 Million (affects node height scaling, not display values)
+     */
+    autoScaleNodeHeight(data) {
+        if (!data || !data.nodes) return;
+
+        // ========== CONFIGURATION SECTION - CHANGE THESE NUMBERS ==========
+        const BILLION_THRESHOLD = 1000;      // Values ≥ this are treated as billions (e.g., 3000 = 3B)
+        const BILLION_SCALE = 0.04;          // Scale for billion-range values (smaller scale for big numbers)
+        const MILLION_SCALE = 0.5;          // Scale for million-range values (bigger scale for smaller numbers)
+        // =====================================================================
+
+        const values = data.nodes.map(node => Math.abs(node.value || 0)).filter(v => v > 0);
+        if (values.length === 0) return;
+
+        const maxValue = Math.max(...values);
+        let optimalScale;
+
+        // Simple logic: bigger numbers need smaller scale, smaller numbers need bigger scale
+        if (maxValue >= BILLION_THRESHOLD) {
+            // User input like 3000+ → treat as billions → use smaller scale
+            optimalScale = BILLION_SCALE;
+            console.log('📏 Billions scale applied (user input ≥' + BILLION_THRESHOLD + '): ' + optimalScale);
+        } else {
+            // User input like 300 → treat as millions → use bigger scale  
+            optimalScale = MILLION_SCALE;
+            console.log('📏 Millions scale applied (user input <' + BILLION_THRESHOLD + '): ' + optimalScale);
+        }
+
+        // Only auto-scale if user hasn't manually adjusted nodeHeightScale
+        const defaultScales = [0.65, 0.05, 0.01, 0.00008, 0.00000008, 0.0002, 0.15];
+        const isDefaultScale = defaultScales.some(scale => Math.abs(this.config.nodeHeightScale - scale) < 0.0001);
+        
+        console.log('📏 Current nodeHeightScale:', this.config.nodeHeightScale, 'isDefault:', isDefaultScale);
+        
+        if (isDefaultScale) {
+            this.config.nodeHeightScale = optimalScale;
+            console.log('📏 Applied auto-scale:', optimalScale);
+        }
+    }
+
     processData(data) {
         const nodeMap = new Map();
+        
+        // Auto-scale node height based on data magnitude with input interpretation
+        this.autoScaleNodeHeight(data);
         
         // Store existing manual positioning info from current nodes AND metadata
         const existingManualPositions = new Map();
@@ -1644,7 +1694,7 @@ class PulseSankeyChart {
                 self.hideDragHint();
                 
                 self.calculateLinkPositions();
-                self.chart.selectAll('.node-label, .node-value').remove();
+                self.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
                 self.renderLabels();
                 self.renderLinks();
                 
@@ -1779,125 +1829,138 @@ class PulseSankeyChart {
         return layerType === 'middle' ? 8 : (this.config.valueDistance || 8);
     }
 
+    /**
+     * Check if node has period change data to display
+     */
+    hasPeriodChangeData(node) {
+        return node.hasPercentages && 
+               this.data?.metadata?.comparisonMode && 
+               node.growthDecline && 
+               node.growthDecline !== '0.0%' && 
+               node.growthDecline !== 'N/A' && 
+               node.growthDecline !== '';
+    }
+
+
     renderLeftmostLabels(node) {
-        const labelDistance = this.config.labelDistance.leftmost;
-        const valueDistance = this.getValueDistance('general');
-        const wrappedText = this.wrapText(node.id, 15);
+        // Use unified textDistance controls
+        const textDistance = this.config.textDistance?.leftmost || this.config.labelDistance?.leftmost || 15;
         const nodeColor = this.getTextColor(node);
+        const hasPeriodChange = this.hasPeriodChangeData(node);
         
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x - labelDistance}, ${node.y + node.height/2})`);
+        // Create unified text group positioned beside node and centered vertically
+        const textGroup = this.chart.append('g')
+            .attr('class', 'node-text-group')
+            .attr('transform', `translate(${node.x - textDistance}, ${node.y + node.height/2})`);
 
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
-                .attr('text-anchor', 'end')
-                .attr('dominant-baseline', 'middle')
-                .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
-                .attr('font-size', this.getFontSize(12) + 'px')
-                .attr('font-weight', 'bold')
-                .attr('font-family', this.getFontFamily())
-                .attr('fill', nodeColor)
-                .text(line);
-        });
+        // Smart layout: adjust positioning based on whether period change will be shown
+        let labelY, valueY, periodY;
+        
+        if (hasPeriodChange) {
+            // Three lines: spread them out evenly
+            labelY = -16;  // Above center
+            valueY = 0;    // Center
+            periodY = 16;  // Below center
+        } else {
+            // Two lines: center them closer to the node
+            labelY = -8;   // Slightly above center
+            valueY = 8;    // Slightly below center
+        }
 
-        // Smart layout: check if we'll actually display any percentages to adjust positioning
-        const willShowMargin = this.statementType === 'income' && this.config.showMargin && node.marginPercentage && node.marginPercentage !== 'N/A';
-        const willShowPeriodChange = this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '';
-        const adjustedValueDistance = (!willShowMargin && !willShowPeriodChange) ? Math.max(1, valueDistance - 6) : valueDistance;
+        // 1. Label first
+        textGroup.append('text')
+            .attr('text-anchor', 'end')
+            .attr('dominant-baseline', 'middle')
+            .attr('y', labelY)
+            .attr('font-size', this.getFontSize(12) + 'px')
+            .attr('font-weight', 'bold')
+            .attr('font-family', this.getFontFamily())
+            .attr('fill', nodeColor)
+            .text(node.id);
 
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - adjustedValueDistance - 2})`);
-
-        // Main currency value
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
+        // 2. Value second
+        textGroup.append('text')
+            .attr('text-anchor', 'end')
+            .attr('dominant-baseline', 'middle')
+            .attr('y', valueY)
             .attr('font-size', this.getFontSize(11) + 'px')
             .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
             .text(this.formatValueWithMargin(node));
 
-        // Add percentage metrics if available
-        if (node.hasPercentages) {
-            let yOffset = 14; // Start below the main value
-            
-            
-            // Growth/Decline percentage (for both IS and BS) - show if comparison mode is enabled
-            if (this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '') {
-                valueGroup.append('text')
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 'alphabetic')
-                    .attr('y', yOffset)
-                    .attr('font-size', this.getFontSize(9) + 'px')
-                    .attr('font-weight', 'bold')
-                    .attr('font-family', this.getFontFamily())
-                    .attr('fill', '#000000') // Always black for period change percentages
-                    .text(`${node.growthDecline}`);
-            }
+        // 3. Period comparison third (only if data exists)
+        if (hasPeriodChange) {
+            textGroup.append('text')
+                .attr('text-anchor', 'end')
+                .attr('dominant-baseline', 'middle')
+                .attr('y', periodY)
+                .attr('font-size', this.getFontSize(11) + 'px')
+                .attr('font-weight', 'bold')
+                .attr('font-family', this.getFontFamily())
+                .attr('fill', '#000000')
+                .text(`${node.growthDecline}`);
         }
     }
 
     renderRightmostLabels(node) {
-        const labelDistance = this.config.labelDistance.rightmost;
-        const valueDistance = this.getValueDistance('general');
-        const wrappedText = this.wrapText(node.id, 15);
+        // Use unified textDistance controls
+        const textDistance = this.config.textDistance?.rightmost || this.config.labelDistance?.rightmost || 15;
         const nodeColor = this.getTextColor(node);
+        const hasPeriodChange = this.hasPeriodChangeData(node);
         
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth + labelDistance}, ${node.y + node.height/2})`);
+        // Create unified text group positioned beside node and centered vertically
+        const textGroup = this.chart.append('g')
+            .attr('class', 'node-text-group')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth + textDistance}, ${node.y + node.height/2})`);
 
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
-                .attr('text-anchor', 'start')
-                .attr('dominant-baseline', 'middle')
-                .attr('y', (index - (wrappedText.length - 1) / 2) * 14)
-                .attr('font-size', this.getFontSize(12) + 'px')
-                .attr('font-weight', 'bold')
-                .attr('font-family', this.getFontFamily())
-                .attr('fill', nodeColor)
-                .text(line);
-        });
+        // Smart layout: adjust positioning based on whether period change will be shown
+        let labelY, valueY, periodY;
+        
+        if (hasPeriodChange) {
+            // Three lines: spread them out evenly
+            labelY = -16;  // Above center
+            valueY = 0;    // Center
+            periodY = 16;  // Below center
+        } else {
+            // Two lines: center them closer to the node
+            labelY = -8;   // Slightly above center
+            valueY = 8;    // Slightly below center
+        }
 
-        // Smart layout: check if we'll actually display any percentages to adjust positioning
-        const willShowMargin = this.statementType === 'income' && this.config.showMargin && node.marginPercentage && node.marginPercentage !== 'N/A';
-        const willShowPeriodChange = this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '';
-        const adjustedValueDistance = (!willShowMargin && !willShowPeriodChange) ? Math.max(1, valueDistance - 6) : valueDistance;
+        // 1. Label first
+        textGroup.append('text')
+            .attr('text-anchor', 'start')
+            .attr('dominant-baseline', 'middle')
+            .attr('y', labelY)
+            .attr('font-size', this.getFontSize(12) + 'px')
+            .attr('font-weight', 'bold')
+            .attr('font-family', this.getFontFamily())
+            .attr('fill', nodeColor)
+            .text(node.id);
 
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - adjustedValueDistance - 2})`);
-
-        // Main currency value
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
+        // 2. Value second
+        textGroup.append('text')
+            .attr('text-anchor', 'start')
+            .attr('dominant-baseline', 'middle')
+            .attr('y', valueY)
             .attr('font-size', this.getFontSize(11) + 'px')
             .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
             .text(this.formatValueWithMargin(node));
 
-        // Add percentage metrics if available
-        if (node.hasPercentages) {
-            let yOffset = 14; // Start below the main value
-            
-            
-            // Growth/Decline percentage (for both IS and BS) - show if comparison mode is enabled
-            if (this.data?.metadata?.comparisonMode && node.growthDecline && node.growthDecline !== '0.0%' && node.growthDecline !== 'N/A' && node.growthDecline !== '') {
-                valueGroup.append('text')
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 'alphabetic')
-                    .attr('y', yOffset)
-                    .attr('font-size', this.getFontSize(9) + 'px')
-                    .attr('font-weight', 'bold')
-                    .attr('font-family', this.getFontFamily())
-                    .attr('fill', '#000000') // Always black for period change percentages
-                    .text(`${node.growthDecline}`);
-            }
+        // 3. Period comparison third (only if data exists)
+        if (hasPeriodChange) {
+            textGroup.append('text')
+                .attr('text-anchor', 'start')
+                .attr('dominant-baseline', 'middle')
+                .attr('y', periodY)
+                .attr('font-size', this.getFontSize(11) + 'px')
+                .attr('font-weight', 'bold')
+                .attr('font-family', this.getFontFamily())
+                .attr('fill', '#000000')
+                .text(`${node.growthDecline}`);
         }
     }
 
@@ -1913,8 +1976,8 @@ class PulseSankeyChart {
     }
 
     renderMiddleLabels(node) {
-        const labelDistance = this.config.labelDistance.middle;
-        const wrappedText = [node.id]; // No text wrapping for middle labels
+        // Use unified textDistance controls
+        const textDistance = this.config.textDistance?.middle || this.config.labelDistance?.middle || 12;
         const nodeColor = this.getTextColor(node);
         
         let isTopNode;
@@ -1925,78 +1988,128 @@ class PulseSankeyChart {
         }
         
         if (isTopNode) {
-            this.renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor);
+            this.renderMiddleLabelsAbove(node, textDistance, nodeColor);
         } else {
-            this.renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor);
+            this.renderMiddleLabelsBelow(node, textDistance, nodeColor);
         }
     }
 
-    renderMiddleLabelsAbove(node, labelDistance, wrappedText, nodeColor) {
-        const valueDistance = this.getValueDistance('middle');
+    renderMiddleLabelsAbove(node, textDistance, nodeColor) {
+        // Use unified textDistance for both labels and values
+        // Order: label first, value second, period comparison third (all above node)
+        const hasPeriodChange = this.hasPeriodChangeData(node);
         
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - labelDistance})`);
+        const textGroup = this.chart.append('g')
+            .attr('class', 'node-text-group')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - textDistance})`);
 
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
+        // Smart layout: adjust positioning based on whether period change will be shown
+        let labelY, valueY, periodY;
+        
+        if (hasPeriodChange) {
+            // Three lines: spread them out
+            labelY = -28;  // Topmost
+            valueY = -14;  // Middle
+            periodY = 0;   // Bottom (closest to node)
+        } else {
+            // Two lines: center them closer to the node
+            labelY = -20;  // Above
+            valueY = -6;   // Below (closer to node)
+        }
+
+        // 1. Label first
+        textGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', labelY)
+            .attr('font-size', this.getFontSize(12) + 'px')
+            .attr('font-weight', 'bold')
+            .attr('font-family', this.getFontFamily())
+            .attr('fill', nodeColor)
+            .text(node.id);
+
+        // 2. Value second
+        textGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('y', valueY)
+            .attr('font-size', this.getFontSize(11) + 'px')
+            .attr('font-weight', 'bold')
+            .attr('font-family', this.getFontFamily())
+            .attr('fill', nodeColor)
+            .text(this.formatValueWithMargin(node));
+
+        // 3. Period comparison third (only if data exists)
+        if (hasPeriodChange) {
+            textGroup.append('text')
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'alphabetic')
-                .attr('y', index * 14)
-                .attr('font-size', this.getFontSize(12) + 'px')
+                .attr('y', periodY)
+                .attr('font-size', this.getFontSize(11) + 'px')
                 .attr('font-weight', 'bold')
                 .attr('font-family', this.getFontFamily())
-                .attr('fill', nodeColor)
-                .text(line);
-        });
-
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - valueDistance - 2})`);
-
-        valueGroup.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
-            .attr('y', 0)
-            .attr('font-size', this.getFontSize(11) + 'px')
-            .attr('font-weight', 'bold')
-            .attr('font-family', this.getFontFamily())
-            .attr('fill', nodeColor)
-            .text(this.formatValueWithMargin(node));
+                .attr('fill', '#000000')
+                .text(`${node.growthDecline}`);
+        }
     }
 
-    renderMiddleLabelsBelow(node, labelDistance, wrappedText, nodeColor) {
-        const valueDistance = this.getValueDistance('middle');
+    renderMiddleLabelsBelow(node, textDistance, nodeColor) {
+        // Use unified textDistance for both labels and values
+        // Order: label first, value second, period comparison third (all below node)
+        const hasPeriodChange = this.hasPeriodChangeData(node);
         
-        const valueGroup = this.chart.append('g')
-            .attr('class', 'node-value')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + valueDistance + 11})`);
+        const textGroup = this.chart.append('g')
+            .attr('class', 'node-text-group')
+            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + textDistance})`);
 
-        valueGroup.append('text')
+        // Smart layout: adjust positioning based on whether period change will be shown
+        let labelY, valueY, periodY;
+        
+        if (hasPeriodChange) {
+            // Three lines: spread them out
+            labelY = 0;   // Closest to node
+            valueY = 16;  // Middle
+            periodY = 32; // Bottom
+        } else {
+            // Two lines: center them closer to the node
+            labelY = 6;   // Closer to node
+            valueY = 22;  // Below
+        }
+
+        // 1. Label first (closest to node)
+        textGroup.append('text')
             .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'alphabetic')
-            .attr('y', 0)
+            .attr('dominant-baseline', 'hanging')
+            .attr('y', labelY)
+            .attr('font-size', this.getFontSize(12) + 'px')
+            .attr('font-weight', 'bold')
+            .attr('font-family', this.getFontFamily())
+            .attr('fill', nodeColor)
+            .text(node.id);
+
+        // 2. Value second
+        textGroup.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'hanging')
+            .attr('y', valueY)
             .attr('font-size', this.getFontSize(11) + 'px')
             .attr('font-weight', 'bold')
             .attr('font-family', this.getFontFamily())
             .attr('fill', nodeColor)
             .text(this.formatValueWithMargin(node));
 
-        const labelGroup = this.chart.append('g')
-            .attr('class', 'node-label')
-            .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + labelDistance})`);
-
-        wrappedText.forEach((line, index) => {
-            labelGroup.append('text')
+        // 3. Period comparison third (only if data exists)
+        if (hasPeriodChange) {
+            textGroup.append('text')
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'hanging')
-                .attr('y', index * 14)
-                .attr('font-size', this.getFontSize(12) + 'px')
+                .attr('y', periodY)
+                .attr('font-size', this.getFontSize(11) + 'px')
                 .attr('font-weight', 'bold')
                 .attr('font-family', this.getFontFamily())
-                .attr('fill', nodeColor)
-                .text(line);
-        });
+                .attr('fill', '#000000')
+                .text(`${node.growthDecline}`);
+        }
     }
 
     wrapText(text, maxLength = 15) {
@@ -2687,7 +2800,7 @@ class PulseSankeyChart {
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getLinkOpacity(d) : this.config.linkOpacity);
         
         // Re-render labels with new colors (immediate update)
-        this.chart.selectAll('.node-label, .node-value').remove();
+        this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
         this.renderLabels();
         
         console.log('🔄 Re-rendered chart with new colors');
@@ -2788,7 +2901,7 @@ class PulseSankeyChart {
     setLabelPositioning(labelDistance, valueDistance) {
         this.config.labelDistance = labelDistance;
         this.config.valueDistance = valueDistance;
-        this.chart.selectAll('.node-label, .node-value').remove();
+        this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
         this.renderLabels();
         return this;
     }
@@ -2875,7 +2988,7 @@ class PulseSankeyChart {
             this.renderLabels();
             this.renderLinks();
         } else if (needsLabelsUpdate) {
-            this.chart.selectAll('.node-label, .node-value').remove();
+            this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
             this.renderLabels();
         } else {
             if (newConfig.nodeOpacity !== undefined) {
