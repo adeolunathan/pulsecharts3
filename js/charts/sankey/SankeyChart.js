@@ -392,8 +392,8 @@ class PulseSankeyChart {
             .style('margin-bottom', '8px');
 
         const presetColors = [
-            '#3498db', '#28A745', '#E74C3C', 
-            '#e74c3c', '#9b59b6', '#34495e'
+            '#3498db', '#2BA02D', '#CC0100', 
+            '#CC0100', '#9b59b6', '#34495e'
         ];
 
         // Horizontal preset row
@@ -851,9 +851,9 @@ class PulseSankeyChart {
                     'Total Assets': '#000000',
                     'Current Assets': '#3498DB',
                     'Non-Current Assets': '#9B59B6',
-                    'Current Liabilities': '#E74C3C',
+                    'Current Liabilities': '#CC0100',
                     'Non-Current Liabilities': '#C0392B',
-                    'Shareholders Equity': '#28A745'
+                    'Shareholders Equity': '#2BA02D'
                 };
                 console.log('🎨 Applied default balance sheet colors:', this.customColors);
             } else {
@@ -2336,9 +2336,9 @@ class PulseSankeyChart {
     // Helper function to determine percentage color based on value
     getPercentageColor(percentageText) {
         if (percentageText.includes('+') || percentageText.startsWith('+')){
-            return '#28A745'; // Green for positive growth
+            return '#2BA02D'; // Green for positive growth
         } else if (percentageText.includes('-')) {
-            return '#E74C3C'; // Red for negative growth
+            return '#CC0100'; // Red for negative growth
         } else {
             return '#7F8C8D'; // Gray for neutral/no change
         }
@@ -2637,8 +2637,8 @@ class PulseSankeyChart {
         
         const defaultColors = {
             revenue: '#3498db',
-            profit: '#28A745',
-            expense: '#E74C3C'
+            profit: '#2BA02D',
+            expense: '#CC0100'
         };
         return defaultColors[node.category] || '#95a5a6';
     }
@@ -2717,7 +2717,7 @@ class PulseSankeyChart {
         
         const defaultColors = {
             revenue: '#3498db',
-            profit: '#28A745',
+            profit: '#2BA02D',
             expense: '#E74C3C'
         };
         
@@ -2777,9 +2777,9 @@ class PulseSankeyChart {
             'Total Assets': this.customColors['Total Assets'] || '#2C3E50',
             'Current Assets': this.customColors['Current Assets'] || '#3498DB',
             'Non-Current Assets': this.customColors['Non-Current Assets'] || '#9B59B6',
-            'Current Liabilities': this.customColors['Current Liabilities'] || '#E74C3C',
+            'Current Liabilities': this.customColors['Current Liabilities'] || '#CC0100',
             'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#C0392B',
-            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#28A745'
+            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#2BA02D'
         };
         
         const parentNodes = this.detectParentNodes();
@@ -3461,15 +3461,15 @@ class PulseSankeyChart {
                         'Total Assets': '#000000',
                         'Current Assets': '#3498DB',
                         'Non-Current Assets': '#9B59B6',
-                        'Current Liabilities': '#E74C3C',
+                        'Current Liabilities': '#CC0100',
                         'Non-Current Liabilities': '#C0392B',
-                        'Shareholders Equity': '#28A745'
+                        'Shareholders Equity': '#2BA02D'
                     };
                 } else {
                     defaultColors = {
                         'revenue': '#3498db',
-                        'profit': '#28A745',
-                        'expense': '#E74C3C'
+                        'profit': '#2BA02D',
+                        'expense': '#CC0100'
                     };
                 }
                 
@@ -3488,7 +3488,7 @@ class PulseSankeyChart {
                 return colors;
             },
             professional: (categories) => {
-                const professionalColors = ['#2c3e50', '#95a5a6', '#28A745', '#E74C3C', '#3498db'];
+                const professionalColors = ['#2c3e50', '#95a5a6', '#2BA02D', '#CC0100', '#3498db'];
                 const colors = {};
                 categories.forEach((cat, index) => {
                     colors[cat] = professionalColors[index % professionalColors.length];

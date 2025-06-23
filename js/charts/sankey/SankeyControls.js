@@ -199,7 +199,7 @@ class SankeyControlModule {
                         label: "Node Opacity", 
                         min: 0.5, 
                         max: 1.0, 
-                        default: 0.6, 
+                        default: 1, 
                         step: 0.05, 
                         description: "Transparency of node rectangles" 
                     },
@@ -209,7 +209,7 @@ class SankeyControlModule {
                         label: "Flow Opacity", 
                         min: 0.3, 
                         max: 1.0, 
-                        default: 1.0, 
+                        default: 0.65, 
                         step: 0.05, 
                         description: "Transparency of flow connections" 
                     }
