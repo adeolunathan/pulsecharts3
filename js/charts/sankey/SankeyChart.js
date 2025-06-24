@@ -149,6 +149,7 @@ class PulseSankeyChart {
             .attr('viewBox', `0 0 ${this.config.width} ${this.config.height}`)
             .style('background-color', this.config.backgroundColor);
 
+
         // Create zoom container
         this.zoomContainer = this.svg
             .append('g')
@@ -165,6 +166,11 @@ class PulseSankeyChart {
         this.createTooltip();
         this.initializeColorPicker();
     }
+
+
+
+
+
 
     initializeZoomPan() {
         // Initialize zoom and pan state if not already set
@@ -741,6 +747,7 @@ class PulseSankeyChart {
         }
         this.renderBrandLogo();
         
+        
         return this;
     }
 
@@ -847,17 +854,18 @@ class PulseSankeyChart {
             console.log('✅ Applied colors from metadata:', this.customColors);
         } else if (Object.keys(this.customColors).length === 0) {
             if (this.statementType === 'balance') {
+                // Enhanced vibrant default balance sheet colors
                 this.customColors = {
-                    'Total Assets': '#000000',
-                    'Current Assets': '#3498DB',
-                    'Non-Current Assets': '#9B59B6',
-                    'Current Liabilities': '#CC0100',
-                    'Non-Current Liabilities': '#C0392B',
-                    'Shareholders Equity': '#2BA02D'
+                    'Total Assets': '#1e293b',        // Deep slate
+                    'Current Assets': '#1e40af',      // Vibrant blue
+                    'Non-Current Assets': '#7c3aed',  // Vibrant purple
+                    'Current Liabilities': '#dc2626', // Sharp red
+                    'Non-Current Liabilities': '#b91c1c', // Deep red
+                    'Shareholders Equity': '#059669'  // Vibrant emerald
                 };
-                console.log('🎨 Applied default balance sheet colors:', this.customColors);
+                console.log('🎨 Applied enhanced vibrant balance sheet colors:', this.customColors);
             } else {
-                console.log('🎨 Using default income statement color scheme');
+                console.log('🎨 Using enhanced vibrant income statement color scheme');
             }
         }
     }
@@ -2617,10 +2625,10 @@ class PulseSankeyChart {
         // FIXED: Revenue segments should use their own default colors, not category colors
         // This prevents "Total Revenue" color changes from affecting revenue segments
         if (this.isPreRevenueNode(node) && node.category === 'revenue') {
-            // Use default revenue segment color palette instead of falling back to category color
+            // Enhanced vibrant revenue segment color palette
             const defaultSegmentColors = [
-                '#3498db', '#2980b9', '#5dade2', '#85c1e9', '#aed6f1', 
-                '#d5e8f3', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'
+                '#1e40af', '#2563eb', '#3b82f6', '#0ea5e9', '#06b6d4', 
+                '#14b8a6', '#10b981', '#059669', '#0d9488', '#0f766e'
             ];
             const segmentIndex = this.getRevenueSegmentNodes().findIndex(n => n.id === node.id);
             return defaultSegmentColors[segmentIndex % defaultSegmentColors.length];
@@ -2635,12 +2643,13 @@ class PulseSankeyChart {
             return this.customColors[effectiveCategory];
         }
         
+        // Enhanced vibrant default colors
         const defaultColors = {
-            revenue: '#3498db',
-            profit: '#2BA02D',
-            expense: '#CC0100'
+            revenue: '#1e40af',    // Deep vibrant blue
+            profit: '#059669',     // Vibrant emerald green
+            expense: '#dc2626'     // Sharp red
         };
-        return defaultColors[node.category] || '#95a5a6';
+        return defaultColors[node.category] || '#6b7280';
     }
 
     /**
@@ -2715,13 +2724,14 @@ class PulseSankeyChart {
             return this.customColors[category];
         }
         
+        // Enhanced vibrant category colors
         const defaultColors = {
-            revenue: '#3498db',
-            profit: '#2BA02D',
-            expense: '#E74C3C'
+            revenue: '#1e40af',    // Deep vibrant blue
+            profit: '#059669',     // Vibrant emerald green
+            expense: '#dc2626'     // Sharp red
         };
         
-        return defaultColors[category] || '#95a5a6';
+        return defaultColors[category] || '#6b7280';
     }
 
     lightenColor(hex, percent) {
@@ -2773,13 +2783,14 @@ class PulseSankeyChart {
 
         this.colorGroups.clear();
         
+        // Enhanced vibrant balance sheet colors
         const balanceSheetColors = {
-            'Total Assets': this.customColors['Total Assets'] || '#2C3E50',
-            'Current Assets': this.customColors['Current Assets'] || '#3498DB',
-            'Non-Current Assets': this.customColors['Non-Current Assets'] || '#9B59B6',
-            'Current Liabilities': this.customColors['Current Liabilities'] || '#CC0100',
-            'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#C0392B',
-            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#2BA02D'
+            'Total Assets': this.customColors['Total Assets'] || '#1e293b',        // Deep slate
+            'Current Assets': this.customColors['Current Assets'] || '#1e40af',    // Vibrant blue
+            'Non-Current Assets': this.customColors['Non-Current Assets'] || '#7c3aed',  // Vibrant purple
+            'Current Liabilities': this.customColors['Current Liabilities'] || '#dc2626',  // Sharp red
+            'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#b91c1c',  // Deep red
+            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#059669'   // Vibrant emerald
         };
         
         const parentNodes = this.detectParentNodes();
@@ -3172,6 +3183,14 @@ class PulseSankeyChart {
         // Re-render labels with new colors (immediate update)
         this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
         this.renderLabels();
+        
+        // Reapply texture effects if enabled
+        if (this.config.textureEnabled) {
+            // Use setTimeout to ensure color transitions complete first
+            setTimeout(() => {
+                this.applyTextureEffects();
+            }, 300);
+        }
         
         console.log('🔄 Re-rendered chart with new colors');
     }

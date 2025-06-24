@@ -212,7 +212,7 @@ class SankeyControlModule {
                         default: 0.65, 
                         step: 0.05, 
                         description: "Transparency of flow connections" 
-                    }
+                    },
                 ]
             },
             
@@ -556,25 +556,25 @@ class SankeyControlModule {
      * ENHANCED: Get default color for a category with balance sheet group awareness
      */
     getDefaultColorForCategory(category) {
-        // Statement-specific color schemes
+        // Enhanced vibrant color schemes
         if (this.statementType === 'balance') {
             const balanceSheetColors = {
-                'Total Assets': '#2C3E50',           // Distinct dark blue-gray for Total Assets
-                'Current Assets': '#3498DB',         // Blue for current assets
-                'Non-Current Assets': '#9B59B6',     // Purple for non-current assets  
-                'Current Liabilities': '#E74C3C',    // Red for current liabilities
-                'Non-Current Liabilities': '#C0392B', // Dark red for non-current liabilities
-                'Shareholders Equity': '#27AE60',     // Green for equity
-                default: '#95a5a6'
+                'Total Assets': '#1e293b',           // Deep slate for Total Assets
+                'Current Assets': '#1e40af',         // Vibrant blue for current assets
+                'Non-Current Assets': '#7c3aed',     // Vibrant purple for non-current assets  
+                'Current Liabilities': '#dc2626',    // Sharp red for current liabilities
+                'Non-Current Liabilities': '#b91c1c', // Deep red for non-current liabilities
+                'Shareholders Equity': '#059669',     // Vibrant emerald for equity
+                default: '#6b7280'
             };
             return balanceSheetColors[category] || balanceSheetColors.default;
         } else {
-            // Income statement colors (default)
+            // Enhanced vibrant income statement colors
             const incomeColors = {
-                revenue: '#3498db',
-                profit: '#28A745',
-                expense: '#E74C3C',
-                default: '#95a5a6'
+                revenue: '#1e40af',    // Deep vibrant blue
+                profit: '#059669',     // Vibrant emerald green
+                expense: '#dc2626',    // Sharp red
+                default: '#6b7280'
             };
             return incomeColors[category] || incomeColors.default;
         }
@@ -819,7 +819,6 @@ class SankeyControlModule {
             this.handleClearBrand(chart);
             return;
         }
-
 
         // Handle standard controls
         chart.updateConfig({ [controlId]: value });

@@ -4,7 +4,7 @@
 window.ExportUtils = (function() {
     'use strict';
 
-    // Export chart as PNG using canvas conversion
+    // Export chart as PNG using canvas conversion with improved reliability
     function exportToPNG(svgElement, filename = 'pulse-chart.png', options = {}) {
         const settings = {
             scale: options.scale || 2, // High DPI for crisp images
@@ -14,10 +14,23 @@ window.ExportUtils = (function() {
         };
 
         try {
+            console.log('🖼️ Starting PNG export process...');
+            
             // Get SVG dimensions
             const svgNode = svgElement.node ? svgElement.node() : svgElement;
             const svgRect = svgNode.getBoundingClientRect();
-            const svgData = new XMLSerializer().serializeToString(svgNode);
+            
+            // Clone SVG to avoid modifying original
+            const clonedSvg = svgNode.cloneNode(true);
+            
+            // Ensure SVG has proper namespace
+            clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            
+            // Inline styles to make SVG standalone
+            inlineStyles(clonedSvg);
+            
+            const svgData = new XMLSerializer().serializeToString(clonedSvg);
             
             // Create canvas
             const canvas = document.createElement('canvas');
@@ -29,39 +42,79 @@ window.ExportUtils = (function() {
             canvas.height = svgRect.height * settings.scale;
             
             img.onload = function() {
-                // Fill background
-                ctx.fillStyle = settings.backgroundColor;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw image scaled
-                ctx.scale(settings.scale, settings.scale);
-                ctx.drawImage(img, 0, 0);
-                
-                // Convert to PNG and download
-                canvas.toBlob(function(blob) {
-                    downloadBlob(blob, filename);
-                }, 'image/png', settings.quality);
+                try {
+                    console.log('🎨 SVG loaded, rendering to canvas...');
+                    
+                    // Fill background
+                    ctx.fillStyle = settings.backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw image scaled
+                    ctx.scale(settings.scale, settings.scale);
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Convert to PNG and download
+                    canvas.toBlob(function(blob) {
+                        if (blob) {
+                            console.log('✅ PNG export successful');
+                            downloadBlob(blob, filename);
+                        } else {
+                            console.error('❌ Failed to create PNG blob');
+                            alert('PNG export failed. Please try SVG export instead.');
+                        }
+                    }, 'image/png', settings.quality);
+                    
+                } catch (canvasError) {
+                    console.error('❌ Canvas rendering error:', canvasError);
+                    alert('PNG export failed during canvas rendering. Please try SVG export instead.');
+                }
             };
             
             img.onerror = function(error) {
-                console.error('Error converting SVG to PNG:', error);
-                alert('Export failed. Please try SVG export instead.');
+                console.error('❌ SVG image loading error:', error);
+                alert('PNG export failed - could not load SVG. Please try SVG export instead.');
             };
             
-            // Convert SVG to data URL
+            // Convert SVG to data URL with proper encoding
             const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(svgBlob);
+            
+            console.log('📝 SVG data prepared, loading image...');
             img.src = url;
             
+            // Clean up URL after a delay
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 5000);
+            
         } catch (error) {
-            console.error('PNG Export Error:', error);
+            console.error('❌ PNG Export Error:', error);
             alert('PNG export failed. Please try SVG export instead.');
         }
     }
 
-    // Enhanced SVG export with proper styling
+    // Helper function to inline critical styles
+    function inlineStyles(svgElement) {
+        try {
+            // Add essential styles directly to SVG
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+            style.textContent = `
+                .sankey-node rect { stroke: none; }
+                .sankey-link path { stroke: none; }
+                text { font-family: Inter, Arial, sans-serif; }
+                .chart-branding text { font-family: Inter, Arial, sans-serif; }
+            `;
+            svgElement.insertBefore(style, svgElement.firstChild);
+        } catch (error) {
+            console.warn('Could not inline styles:', error);
+        }
+    }
+
+    // Enhanced SVG export with improved reliability
     function exportToSVG(svgElement, filename = 'pulse-chart.svg', options = {}) {
         try {
+            console.log('📄 Starting SVG export process...');
+            
             const svgNode = svgElement.node ? svgElement.node() : svgElement;
             
             // Clone the SVG to avoid modifying the original
@@ -85,14 +138,20 @@ window.ExportUtils = (function() {
                 clonedSvg.insertBefore(background, clonedSvg.firstChild);
             }
             
-            // Serialize and download
+            // Process images inline for better compatibility
+            const images = clonedSvg.querySelectorAll('image');
+            console.log(`🖼️ Found ${images.length} images to process`);
+            
+            // Serialize and download immediately (simplified approach)
             const serializer = new XMLSerializer();
             const svgString = serializer.serializeToString(clonedSvg);
             const blob = new Blob([svgString], { type: 'image/svg+xml' });
             downloadBlob(blob, filename);
             
+            console.log('✅ SVG export completed');
+            
         } catch (error) {
-            console.error('SVG Export Error:', error);
+            console.error('❌ SVG Export Error:', error);
             alert('SVG export failed. Please check console for details.');
         }
     }
@@ -455,6 +514,78 @@ window.ExportUtils = (function() {
         };
         
         return support;
+    }
+
+    // Convert external image references to embedded data URLs for exports
+    function convertExternalImagesToDataURLs(svgElement) {
+        return new Promise((resolve, reject) => {
+            try {
+                const images = svgElement.querySelectorAll('image');
+                
+                if (images.length === 0) {
+                    resolve(svgElement);
+                    return;
+                }
+
+                let processedCount = 0;
+                const totalImages = images.length;
+
+                images.forEach((img, index) => {
+                    const href = img.getAttribute('href') || img.getAttribute('xlink:href');
+                    
+                    if (!href || href.startsWith('data:')) {
+                        // Already a data URL or no href, skip
+                        processedCount++;
+                        if (processedCount === totalImages) {
+                            resolve(svgElement);
+                        }
+                        return;
+                    }
+
+                    // Convert external URL to data URL
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const image = new Image();
+                    
+                    image.crossOrigin = 'anonymous'; // Enable CORS
+                    
+                    image.onload = function() {
+                        try {
+                            canvas.width = image.width;
+                            canvas.height = image.height;
+                            ctx.drawImage(image, 0, 0);
+                            
+                            const dataURL = canvas.toDataURL('image/png');
+                            img.setAttribute('href', dataURL);
+                            img.setAttribute('xlink:href', dataURL);
+                            
+                            console.log(`🖼️ Converted image ${index + 1}/${totalImages} to data URL`);
+                        } catch (error) {
+                            console.warn(`⚠️ Failed to convert image ${index + 1} to data URL:`, error);
+                        }
+                        
+                        processedCount++;
+                        if (processedCount === totalImages) {
+                            resolve(svgElement);
+                        }
+                    };
+                    
+                    image.onerror = function(error) {
+                        console.warn(`⚠️ Failed to load image ${index + 1} for conversion:`, error);
+                        processedCount++;
+                        if (processedCount === totalImages) {
+                            resolve(svgElement);
+                        }
+                    };
+                    
+                    image.src = href;
+                });
+                
+            } catch (error) {
+                console.error('Error in convertExternalImagesToDataURLs:', error);
+                reject(error);
+            }
+        });
     }
 
     // Export public API
