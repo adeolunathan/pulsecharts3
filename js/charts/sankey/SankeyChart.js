@@ -727,8 +727,8 @@ class PulseSankeyChart {
         
         this.processData(data);
         this.detectRevenueHub(); // NEW: Detect revenue hub
-        this.calculateFinancialMetrics(); // Calculate margins using detected revenue hub
-        this.calculateLayout();
+        this.calculateLayout();  // Layout first
+        this.calculateFinancialMetrics(); // THEN calculate margins
         
         this.chart.selectAll('*').remove();
         this.svg.selectAll('.chart-header, .chart-footnotes, .chart-branding').remove();
@@ -747,6 +747,20 @@ class PulseSankeyChart {
         }
         this.renderBrandLogo();
         
+        // Add attribution text directly to SVG for export visibility
+        this.svg.selectAll('.chart-attribution').remove(); // Remove any existing
+
+        const attributionText = this.svg.append('text')
+            .attr('class', 'chart-attribution')
+            .attr('x', this.config.width - 20)  // 20px from right edge
+            .attr('y', this.config.height - 20) // 20px from bottom edge  
+            .attr('text-anchor', 'end')
+            .attr('font-size', '14px')
+            .attr('font-weight', 'bold')
+            .attr('font-family', 'Arial, sans-serif')
+            .attr('fill', '#94a3b8')  // Grey color
+            .attr('opacity', 0.6)     // 60% opacity
+            .text('chart by pulse analytics');
         
         return this;
     }
@@ -3197,11 +3211,10 @@ class PulseSankeyChart {
 
     // Tooltip methods
     showNodeTooltip(event, d) {
-        console.log('Node tooltip data:', {marginType: d.marginType, marginPercentage: d.marginPercentage, percentageOfRevenue: d.percentageOfRevenue});
-        
+        // Use existing calculated margin values (no recalculation needed)
         const marginText = d.marginType && d.marginPercentage && d.marginPercentage !== 'N/A' ? 
             `${d.marginType}: ${d.marginPercentage}` : '';
-        
+
         const content = `
             <div style="font-size: 16px; color: #60a5fa; margin-bottom: 8px; font-weight: 600;">
                 ${this.formatCurrency(d.value, d)}
@@ -3211,18 +3224,15 @@ class PulseSankeyChart {
                 ${d.description || 'Financial component'}
             </div>
         `;
-        
-        this.tooltip
-            .html(content)
+
+        this.tooltip.html(content)
             .style('left', (event.pageX) + 'px')
             .style('top', (event.pageY - 10) + 'px')
             .style('opacity', 1);
     }
 
     showLinkTooltip(event, d) {
-        console.log('Link tooltip data:', {target: d.target, marginType: d.target.marginType, marginPercentage: d.target.marginPercentage});
-        
-        // Get margin information for the target node if available
+        // Use existing calculated margin values for target node (no recalculation needed)
         const marginText = d.target.marginType && d.target.marginPercentage && d.target.marginPercentage !== 'N/A' ? 
             `${d.target.marginType}: ${d.target.marginPercentage}` : '';
             
@@ -3571,7 +3581,7 @@ class PulseSankeyChart {
                     value: 0,
                     previousValue: 0,
                     category: flow.sourceCategory,
-                    description: `Source: ${flow.description}`,
+                    description: flow.description,
                     sort_order: flow.sourceOrder || 1
                 });
             }
@@ -3583,7 +3593,7 @@ class PulseSankeyChart {
                     value: 0,
                     previousValue: 0,
                     category: flow.targetCategory,
-                    description: `Target: ${flow.description}`,
+                    description: flow.description,
                     sort_order: flow.targetOrder || 1
                 });
             }

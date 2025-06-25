@@ -498,22 +498,9 @@ window.ExportUtils = (function() {
             brandingGroup.style.visibility = 'visible';
             brandingGroup.setAttribute('data-export-ready', 'true');
             
-            // For export: hide text elements and show image elements for attribution
-            const textElements = brandingGroup.querySelectorAll('text[data-branding-element="attribution"]');
+            // Handle text elements normally
+            const textElements = brandingGroup.querySelectorAll('text');
             textElements.forEach(text => {
-                text.style.display = 'none'; // Hide text version for export
-            });
-            
-            const attributionImages = brandingGroup.querySelectorAll('image[data-branding-element="attribution-image"]');
-            attributionImages.forEach(img => {
-                img.style.display = 'block'; // Show image version for export
-                img.style.opacity = '1';
-                img.style.visibility = 'visible';
-            });
-            
-            // Handle other text elements normally
-            const otherTextElements = brandingGroup.querySelectorAll('text:not([data-branding-element="attribution"])');
-            otherTextElements.forEach(text => {
                 if (!text.getAttribute('font-family')) {
                     text.setAttribute('font-family', 'Inter, Arial, sans-serif');
                 }
@@ -544,6 +531,15 @@ window.ExportUtils = (function() {
                     }
                 }
             });
+        });
+        
+        // Handle attribution text for export visibility
+        const allAttributionElements = svgElement.querySelectorAll('.chart-attribution');
+
+        allAttributionElements.forEach(text => {
+            text.style.display = 'block';
+            text.style.visibility = 'visible';
+            // DON'T override fill color to keep it grey in exports
         });
         
         console.log('✅ Branding visibility ensured for export');

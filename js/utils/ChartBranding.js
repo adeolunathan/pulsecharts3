@@ -208,37 +208,6 @@ class ChartBranding {
 
         // Right side attribution - always show
         console.log('🏷️ Branding debug:', {hasCustom: logoInfo.hasCustom, isBackend: logoInfo.isBackend});
-        // Always show attribution text regardless of custom branding
-        {
-            // Try direct text approach first
-            const attributionText = brandingGroup.append('text')
-                .attr('x', config.width - 20)
-                .attr('y', -20)
-                .attr('text-anchor', 'end')
-                .attr('font-size', '14px')
-                .attr('font-weight', 'bold')
-                .attr('font-family', 'Arial, sans-serif')
-                .attr('fill', '#000000')
-                .attr('opacity', 1)
-                .attr('data-branding-element', 'attribution')
-                .text('chart by pulse');
-                
-            // Also create as image for export compatibility
-            const textSvg = `<svg width="120" height="20" xmlns="http://www.w3.org/2000/svg"><text x="115" y="15" text-anchor="end" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#000000">chart by pulse</text></svg>`;
-            const textDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(textSvg);
-            
-            brandingGroup.append('image')
-                .attr('x', config.width - 125)
-                .attr('y', -35)
-                .attr('width', 120)
-                .attr('height', 20)
-                .attr('href', textDataUrl)
-                .attr('opacity', 1)
-                .attr('data-branding-element', 'attribution-image')
-                .style('display', 'none'); // Hide by default, show only in export
-                
-            console.log(`📍 Attribution text positioned at x:${config.width - 20}, y:-20`);
-        }
     }
 
     /**
