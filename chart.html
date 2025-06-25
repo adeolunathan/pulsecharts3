@@ -41,6 +41,22 @@
             transform: scale(1.05) !important;
             box-shadow: 0 25px 50px rgba(102, 126, 234, 0.4) !important;
         }
+        
+        /* Variance color styling */
+        .variance-positive {
+            color: #16a34a !important;
+            font-weight: 700 !important;
+        }
+        
+        .variance-negative {
+            color: #dc2626 !important;
+            font-weight: 700 !important;
+        }
+        
+        .variance-neutral {
+            color: #6b7280 !important;
+            font-weight: 600 !important;
+        }
     </style>
 </head>
 <body>
@@ -228,8 +244,8 @@
                                         <th style="width: 80px;">Actions</th>
                                         <th style="width: 200px;">From (Source)</th>
                                         <th style="width: 200px;">To (Target)</th>
-                                        <th style="width: 100px;">Current Value</th>
                                         <th style="width: 100px;" id="previous-value-col">Previous Value</th>
+                                        <th style="width: 100px;">Current Value</th>
                                         <th style="width: 80px;" id="variance-col">Variance</th>
                                         <th style="width: 120px;">Source Category</th>
                                         <th style="width: 120px;">Target Category</th>
@@ -848,7 +864,7 @@
                 const primarySources = flowData.flows.filter(flow => {
                     const sourceLower = flow.source.toLowerCase();
                     return (sourceLower.includes('revenue') || 
-                           sourceLower.includes('subscription') ||
+                           sourceLower.includes('') ||
                            sourceLower.includes('service') ||
                            sourceLower.includes('platform')) &&
                            !nodeInflows.has(flow.source); // Primary source (no inputs)
@@ -1143,7 +1159,7 @@
                     source: "Subscription Revenue",
                     target: "Total Revenue",
                     value: 300,
-                    previousValue: 250,
+                    previousValue: 305,
                     flowType: "revenue_flow",
                     sourceLayer: 0,
                     targetLayer: 1,
@@ -1364,6 +1380,9 @@
                 const row = createFlowRow(flow, index);
                 tbody.appendChild(row);
             });
+            
+            // Apply variance colors after all rows are added
+            applyVarianceColors();
         }
 
         function createFlowRow(flow, index) {
@@ -1389,20 +1408,29 @@
                     <div class="cell-content">${flow.target}</div>
                     <input type="text" class="cell-editor" style="display: none;">
                 </td>
+`;
+            
+            // Add previous value column if comparison mode is enabled (BEFORE current value)
+            if (comparisonMode) {
+                rowHTML += `
+                <td class="spreadsheet-cell" data-col="previousValue" data-row="${index}" data-type="number">
+                    <div class="cell-content">${flow.previousValue || ''}</div>
+                    <input type="number" class="cell-editor" style="display: none;" placeholder="0">
+                </td>`;
+            }
+            
+            // Add current value column (AFTER previous value when comparison mode is on)
+            rowHTML += `
                 <td class="spreadsheet-cell" data-col="value" data-row="${index}" data-type="number">
                     <div class="cell-content">${flow.value}</div>
                     <input type="number" class="cell-editor" style="display: none;">
                 </td>`;
             
-            // Add previous value and variance columns if comparison mode is enabled
+            // Add variance column if comparison mode is enabled
             if (comparisonMode) {
                 rowHTML += `
-                <td class="spreadsheet-cell" data-col="previousValue" data-row="${index}" data-type="number">
-                    <div class="cell-content">${flow.previousValue || 0}</div>
-                    <input type="number" class="cell-editor" style="display: none;">
-                </td>
                 <td class="variance-cell">
-                    <div style="font-size: 11px; text-align: center; ${getVarianceStyle(flow)}">${flow.getVarianceDisplay()}</div>
+                    <div style="font-size: 11px; text-align: center;">${flow.getVarianceDisplay()}</div>
                 </td>`;
             }
             
@@ -1453,16 +1481,49 @@
             return category.charAt(0).toUpperCase() + category.slice(1);
         }
 
-        function getVarianceStyle(flow) {
+        function getVarianceClass(flow) {
             const variance = flow.getVariance();
             
             if (variance.trend === 'up') {
-                return 'color: #16a34a !important; font-weight: 700;'; // Green for positive
+                return 'variance-positive';
             } else if (variance.trend === 'down') {
-                return 'color: #dc2626 !important; font-weight: 700;'; // Red for negative
+                return 'variance-negative';
             } else {
-                return 'color: #6b7280 !important; font-weight: 600;'; // Gray for no change
+                return 'variance-neutral';
             }
+        }
+        
+        function applyVarianceColors() {
+            const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
+            if (!comparisonMode) return;
+            
+            // Use setTimeout to ensure DOM is fully rendered
+            setTimeout(() => {
+                const varianceCells = document.querySelectorAll('.variance-cell div');
+                varianceCells.forEach((cell, index) => {
+                    if (index < flowData.flows.length) {
+                        const flow = flowData.flows[index];
+                        const variance = flow.getVariance();
+                        
+                        // Apply colors using CSS classes first, then inline styles as backup
+                        cell.className = ''; // Clear existing classes
+                        
+                        if (variance.trend === 'up') {
+                            cell.classList.add('variance-positive');
+                            cell.style.color = '#16a34a';
+                            cell.style.fontWeight = '700';
+                        } else if (variance.trend === 'down') {
+                            cell.classList.add('variance-negative');
+                            cell.style.color = '#dc2626';
+                            cell.style.fontWeight = '700';
+                        } else {
+                            cell.classList.add('variance-neutral');
+                            cell.style.color = '#6b7280';
+                            cell.style.fontWeight = '600';
+                        }
+                    }
+                });
+            }, 50); // Small delay to ensure DOM is ready
         }
 
         // Auto-calculate layers and flow types when flows are updated
@@ -1713,10 +1774,10 @@
         }
 
         function exportFlowsToCSV() {
-            let csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
+            let csv = 'Source,Target,Previous Value,Current Value,Source Category,Target Category,Description\n';
             
             flowData.flows.forEach(flow => {
-                csv += `"${flow.source}","${flow.target}",${flow.value},${flow.previousValue || 0},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
+                csv += `"${flow.source}","${flow.target}",${flow.previousValue || 0},${flow.value},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -2019,7 +2080,7 @@
             let filename = '';
             
             if (selectedChartType === 'income') {
-                csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
+                csv = 'Source,Target,Previous Value,Current Value,Source Category,Target Category,Description\n';
                 csv += '"Subscription Revenue","Total Revenue",300,250,"revenue","revenue","Recurring subscription income"\n';
                 csv += '"Professional Services","Total Revenue",60,55,"revenue","revenue","Implementation and consulting"\n';
                 csv += '"Total Revenue","Gross Profit",290,245,"revenue","profit","Revenue after cost of revenue"\n';
@@ -2030,7 +2091,7 @@
                 csv += '"Operating Profit","Tax Expense",25,20,"profit","tax","Income tax expense"\n';
                 filename = 'income-statement-template.csv';
             } else if (selectedChartType === 'balance') {
-                csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
+                csv = 'Source,Target,Previous Value,Current Value,Source Category,Target Category,Description\n';
                 csv += '"Current Assets","Total Assets",500,450,"revenue","revenue","Cash, receivables, inventory"\n';
                 csv += '"Non-Current Assets","Total Assets",800,750,"revenue","revenue","Property, equipment, intangibles"\n';
                 csv += '"Total Assets","Current Liabilities",300,280,"revenue","expense","Short-term obligations"\n';
@@ -2231,7 +2292,18 @@
                 if (editor.tagName === 'SELECT') {
                     editor.value = currentFlow[col];
                 } else {
-                    editor.value = currentFlow[col];
+                    // For number inputs, handle the 0 default value issue
+                    if (editor.type === 'number' && (col === 'value' || col === 'previousValue')) {
+                        const currentValue = currentFlow[col];
+                        // If the value is 0 and it's a previousValue, set empty string
+                        if (currentValue === 0 && col === 'previousValue') {
+                            editor.value = '';
+                        } else {
+                            editor.value = currentValue;
+                        }
+                    } else {
+                        editor.value = currentFlow[col];
+                    }
                 }
                 
                 // Show editor and hide content
@@ -2239,9 +2311,14 @@
                 editor.style.display = 'block';
                 editor.focus();
                 
-                // Select all text for quick editing
-                if (editor.type !== 'number' && editor.tagName !== 'SELECT') {
-                    editor.select();
+                // Select all text for quick editing - now works for number inputs too
+                if (editor.tagName !== 'SELECT') {
+                    // For number inputs, select all text
+                    if (editor.type === 'number') {
+                        editor.select();
+                    } else {
+                        editor.select();
+                    }
                 }
 
                 // Add event listeners with enhanced cross-browser SELECT element handling
@@ -2370,6 +2447,23 @@
                         const varianceCell = cell.closest('tr').querySelector('.variance-cell div');
                         if (varianceCell) {
                             varianceCell.textContent = flowData.flows[row].getVarianceDisplay();
+                            // Apply colors immediately after updating variance display
+                            const variance = flowData.flows[row].getVariance();
+                            varianceCell.className = ''; // Clear existing classes
+                            
+                            if (variance.trend === 'up') {
+                                varianceCell.classList.add('variance-positive');
+                                varianceCell.style.color = '#16a34a';
+                                varianceCell.style.fontWeight = '700';
+                            } else if (variance.trend === 'down') {
+                                varianceCell.classList.add('variance-negative');
+                                varianceCell.style.color = '#dc2626';
+                                varianceCell.style.fontWeight = '700';
+                            } else {
+                                varianceCell.classList.add('variance-neutral');
+                                varianceCell.style.color = '#6b7280';
+                                varianceCell.style.fontWeight = '600';
+                            }
                         }
                     }
                 }

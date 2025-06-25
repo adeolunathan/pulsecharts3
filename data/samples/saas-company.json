@@ -159,7 +159,7 @@
       "source": "Professional Services",
       "target": "Total Revenue",
       "value": 600,
-      "previousValue": 550,
+      "previousValue": 605,
       "type": "revenue_flow",
       "description": "Services revenue contributing to total revenue"
     },
