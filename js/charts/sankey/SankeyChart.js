@@ -1053,8 +1053,10 @@ class PulseSankeyChart {
                         node.marginType = 'Gross Margin';
                     } else if (node.id.toLowerCase().includes('operating')) {
                         node.marginType = 'Operating Margin';
-                    } else if (node.id.toLowerCase().includes('net') || node.category === 'income') {
+                    } else if (node.id.toLowerCase().includes('net')) {
                         node.marginType = 'Net Margin';
+                    } else {
+                        node.marginType = 'Margin';
                     }
                 } else {
                     // For non-profit nodes, show as "% of Revenue"
@@ -3212,8 +3214,11 @@ class PulseSankeyChart {
     // Tooltip methods
     showNodeTooltip(event, d) {
         // Use existing calculated margin values (no recalculation needed)
-        const marginText = d.marginType && d.marginPercentage && d.marginPercentage !== 'N/A' ? 
-            `${d.marginType}: ${d.marginPercentage}` : '';
+        let marginText = '';
+        if (d.marginPercentage && d.marginPercentage !== 'N/A' && d.marginPercentage !== '0.0%') {
+            const displayType = d.marginType || (d.category === 'profit' ? 'Margin' : '% of Revenue');
+            marginText = `${displayType}: ${d.marginPercentage}`;
+        }
 
         const content = `
             <div style="font-size: 16px; color: #60a5fa; margin-bottom: 8px; font-weight: 600;">
@@ -3233,8 +3238,11 @@ class PulseSankeyChart {
 
     showLinkTooltip(event, d) {
         // Use existing calculated margin values for target node (no recalculation needed)
-        const marginText = d.target.marginType && d.target.marginPercentage && d.target.marginPercentage !== 'N/A' ? 
-            `${d.target.marginType}: ${d.target.marginPercentage}` : '';
+        let marginText = '';
+        if (d.target.marginPercentage && d.target.marginPercentage !== 'N/A' && d.target.marginPercentage !== '0.0%') {
+            const displayType = d.target.marginType || (d.target.category === 'profit' ? 'Margin' : '% of Revenue');
+            marginText = `${displayType}: ${d.target.marginPercentage}`;
+        }
             
         const content = `
             <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">
