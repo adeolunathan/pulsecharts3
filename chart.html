@@ -17,7 +17,31 @@
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
     
-    <!-- Styles moved to css/pulse-analytics.css -->
+    <!-- Modern UI Enhancements -->
+    <style>
+        .modern-action-btn {
+            transition: all 0.2s ease !important;
+        }
+        
+        .modern-action-btn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+            background: rgba(255,255,255,0.3) !important;
+        }
+        
+        .modern-action-btn:active {
+            transform: translateY(0) !important;
+        }
+        
+        .featured-card {
+            transition: all 0.3s ease !important;
+        }
+        
+        .featured-card:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 25px 50px rgba(102, 126, 234, 0.4) !important;
+        }
+    </style>
 </head>
 <body>
     <div class="pulse-app">
@@ -91,49 +115,55 @@
         <!-- Flow Builder Tab -->
         <div id="data-builder" class="tab-content">
             <div class="flow-builder-container">
-                <!-- Top Menu Bar -->
-                <div class="top-menu-bar">
-                    <div class="menu-section stats-menu">
-                        <span class="menu-label">📊</span>
-                        <div class="stat-item">
-                            <span class="stat-value" id="flow-count">0</span>
-                            <span class="stat-label">Flows</span>
+                <!-- Compact Header Section -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin-bottom: 24px; color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div>
+                            <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0 0 4px 0; color: white;">Flow Builder</h1>
+                            <p style="font-size: 0.9rem; margin: 0; opacity: 0.9;">Design your financial flow visualizations</p>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-value" id="node-count">0</span>
-                            <span class="stat-label">Nodes</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value" id="layer-count">0</span>
-                            <span class="stat-label">Layers</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value" id="balance-score">0%</span>
-                            <span class="stat-label">Balance</span>
+                        
+                        <!-- Chart Actions -->
+                        <div style="display: flex; gap: 8px;">
+                            <button class="modern-action-btn" onclick="applyFlowChanges()" style="background: rgba(34,197,94,0.3); border: 1px solid rgba(34,197,94,0.5); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                🚀 Apply
+                            </button>
+                            <button class="modern-action-btn" onclick="validateFlows()" style="background: rgba(59,130,246,0.3); border: 1px solid rgba(59,130,246,0.5); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                ✅ Validate
+                            </button>
+                            <button class="modern-action-btn" onclick="resetToChartData()" style="background: rgba(245,158,11,0.3); border: 1px solid rgba(245,158,11,0.5); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                🔄 Reset
+                            </button>
                         </div>
                     </div>
                     
-                    <div class="menu-section actions-menu">
-                        <span class="menu-label">🛠️</span>
-                        <button class="menu-btn" onclick="importFlowsFromCSV()">📤 Upload Data</button>
-                        <button class="menu-btn" onclick="downloadTemplate()">📋 Download Template</button>
-                        <button class="menu-btn" onclick="exportFlowsToCSV()">💾 Export</button>
-                        <button class="menu-btn clear-data-btn" onclick="clearAllFlowData()">🗑️ Clear All</button>
-                        <button class="menu-btn" onclick="resetChart()">🔄 Reset</button>
+                    <!-- Compact Actions Panel -->
+                    <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="modern-action-btn" onclick="importFlowsFromCSV()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                📤 Upload
+                            </button>
+                            <button class="modern-action-btn" onclick="downloadTemplate()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                📋 Download Template
+                            </button>
+                            <button class="modern-action-btn" onclick="exportFlowsToCSV()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                💾 Export
+                            </button>
+                            <button class="modern-action-btn" onclick="clearAllFlowData()" style="background: rgba(239,68,68,0.3); border: 1px solid rgba(239,68,68,0.5); color: white; padding: 6px 10px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 12px;">
+                                🗑️ Clear
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Chart type selection removed - now handled by separate page -->
-
                 <!-- Company Information Section -->
-                <div class="collapsible-section">
-                    <div class="collapsible-header" onclick="toggleSection('company')">
-                        <h3 class="collapsible-title">🏢 Company Information</h3>
-                        <span class="collapsible-chevron">▼</span>
+                <div class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">🏢 Company Information</h3>
                     </div>
-                    <div class="collapsible-content" id="company-content">
-                        <div style="padding: 20px;">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div class="section-content">
+                        <div style="padding: 8px 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
                                 <div>
                                     <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
                                     <input type="text" class="flow-input" id="company-name" value="TechFlow Corporation" onchange="updateMetadata()">
@@ -171,27 +201,26 @@
 
 
                 <!-- Business Flows Section -->
-                <div class="collapsible-section">
-                    <div class="collapsible-header" onclick="toggleSection('flows')">
-                        <h3 class="collapsible-title">
-                            💰 Business Flows
-                            <div class="flow-controls-group">
-                                <button id="flows-update-toggle" class="update-mode-toggle live" onclick="toggleFlowsUpdateMode()" title="Toggle between Live and Manual update modes">
-                                    <span class="mode-indicator"></span>
-                                    <span class="mode-text">Live</span>
-                                </button>
-                                <div class="period-comparison-toggle">
-                                    <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()">
-                                    <label for="comparison-mode-toggle" title="Shows variance % and trends between periods">📈</label>
+                <div class="section">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; border-bottom: 1px solid #e1e5e9;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <h3 class="section-title" style="margin: 0; display: flex; align-items: center; gap: 12px;">
+                                💰 Business Flows
+                                <div class="flow-controls-group">
+                                    <button id="flows-update-toggle" class="update-mode-toggle live" onclick="toggleFlowsUpdateMode()" title="Toggle between Live and Manual update modes">
+                                        <span class="mode-indicator"></span>
+                                        <span class="mode-text">Live</span>
+                                    </button>
+                                    <div class="period-comparison-toggle">
+                                        <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()">
+                                        <label for="comparison-mode-toggle" title="Shows variance % and trends between periods">📈</label>
+                                    </div>
                                 </div>
-                            </div>
-                        </h3>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
-                            <span class="collapsible-chevron">▼</span>
+                            </h3>
                         </div>
+                        <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
                     </div>
-                    <div class="collapsible-content" id="flows-content">
+                    <div class="section-content">
                         <div style="overflow-x: auto;">
                             <table class="flow-table">
                                 <thead>
@@ -215,12 +244,7 @@
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="applyFlowChanges()">🚀 Apply Changes</button>
-                    <button class="btn btn-secondary" onclick="validateFlows()">✅ Validate</button>
-                    <button class="btn btn-secondary" onclick="resetToChartData()">🔄 Reset to Chart</button>
-                </div>
+                <!-- Action buttons moved to header -->
             </div>
         </div>
 
@@ -712,7 +736,7 @@
                 if (variance.trend === 'none') return '→ 0%';
                 if (variance.trend === 'new') return ''; // Return empty string for new items (consistent with getGrowthDeclineDisplay)
                 
-                const symbol = variance.trend === 'up' ? '↗️' : '↘️';
+                const symbol = variance.trend === 'up' ? '▲' : '▼';
                 const sign = variance.percentage > 0 ? '+' : '';
                 return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
             }
@@ -873,21 +897,10 @@
         }, 500);
 
         // Collapsible Section Management
+        // Collapsible functionality removed - sections now always expanded
         function toggleSection(sectionName) {
-            const header = document.querySelector(`[onclick="toggleSection('${sectionName}')"]`);
-            const content = document.getElementById(`${sectionName}-content`);
-            
-            if (content.classList.contains('collapsed')) {
-                content.classList.remove('collapsed');
-                content.style.height = 'auto';
-                header.classList.remove('collapsed');
-            } else {
-                content.style.height = content.scrollHeight + 'px';
-                setTimeout(() => {
-                    content.classList.add('collapsed');
-                    header.classList.add('collapsed');
-                }, 10);
-            }
+            // Function kept for compatibility but does nothing
+            console.log('Section collapse functionality has been removed');
         }
 
         // Toggle function for the compact Business Flows update mode button
@@ -1389,7 +1402,7 @@
                     <input type="number" class="cell-editor" style="display: none;">
                 </td>
                 <td class="variance-cell">
-                    <div style="font-size: 11px; font-weight: 600; text-align: center;">${flow.getVarianceDisplay()}</div>
+                    <div style="font-size: 11px; text-align: center; ${getVarianceStyle(flow)}">${flow.getVarianceDisplay()}</div>
                 </td>`;
             }
             
@@ -1438,6 +1451,18 @@
 
         function getCategoryDisplay(category) {
             return category.charAt(0).toUpperCase() + category.slice(1);
+        }
+
+        function getVarianceStyle(flow) {
+            const variance = flow.getVariance();
+            
+            if (variance.trend === 'up') {
+                return 'color: #16a34a !important; font-weight: 700;'; // Green for positive
+            } else if (variance.trend === 'down') {
+                return 'color: #dc2626 !important; font-weight: 700;'; // Red for negative
+            } else {
+                return 'color: #6b7280 !important; font-weight: 600;'; // Gray for no change
+            }
         }
 
         // Auto-calculate layers and flow types when flows are updated
@@ -1611,10 +1636,11 @@
             
             const balanceScore = flowCount > 0 ? Math.round((balancedFlows / flowCount) * 100) : 0;
             
-            document.getElementById('flow-count').textContent = flowCount;
-            document.getElementById('node-count').textContent = nodeCount;
-            document.getElementById('layer-count').textContent = layerCount;
-            document.getElementById('balance-score').textContent = balanceScore + '%';
+            // Chart stats UI removed - keeping calculations for internal use only
+            // document.getElementById('flow-count').textContent = flowCount;
+            // document.getElementById('node-count').textContent = nodeCount;
+            // document.getElementById('layer-count').textContent = layerCount;
+            // document.getElementById('balance-score').textContent = balanceScore + '%';
         }
 
         function applyFlowChanges() {
@@ -1674,8 +1700,14 @@
                 message += 'Perfect! All flows are valid.\n\n';
             }
             
-            const balanceScore = document.getElementById('balance-score').textContent;
-            message += `📊 Summary:\n• ${flowData.flows.length} flows\n• Balance Score: ${balanceScore}`;
+            // Calculate balance score locally since UI element was removed
+            let balancedFlows = 0;
+            flowData.flows.forEach(flow => {
+                const isValid = flow.source && flow.target && flow.value > 0 && flow.sourceLayer < flow.targetLayer;
+                if (isValid) balancedFlows++;
+            });
+            const balanceScore = flowData.flows.length > 0 ? Math.round((balancedFlows / flowData.flows.length) * 100) : 0;
+            message += `📊 Summary:\n• ${flowData.flows.length} flows\n• Balance Score: ${balanceScore}%`;
             
             alert(message);
         }

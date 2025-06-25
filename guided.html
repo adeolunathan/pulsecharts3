@@ -41,36 +41,52 @@
         <!-- Step 1: Chart Type Selection -->
         <div class="step-content active" data-step="1">
             <div class="chart-selection">
-                <h1>What type of chart would you like to build?</h1>
-                <p class="subtitle">Choose the visualization that best represents your data</p>
+                <div style="text-align: center; margin-bottom: 48px;">
+                    <h1 style="color: #1f2937; font-size: 2.5rem; margin-bottom: 16px;">Choose Your Chart Type</h1>
+                    <p style="color: #6b7280; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Select the visualization that best represents your financial data</p>
+                </div>
                 
-                <div class="chart-types">
-                    <div class="chart-type-card" data-chart-type="sankey" onclick="selectChartType('sankey')">
-                        <span class="chart-icon">🌊</span>
-                        <h3 class="chart-name">Sankey Flow Chart</h3>
-                        <p class="chart-description">Visualize financial flows and relationships between revenue, costs, and profits</p>
-                        <span class="chart-status status-available">Available</span>
+                <!-- Featured Chart (Sankey) -->
+                <div style="margin-bottom: 40px;">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <h2 style="color: #374151; font-size: 1.5rem; margin-bottom: 8px;">✨ Recommended</h2>
+                        <p style="color: #6b7280; font-size: 0.95rem;">Perfect for financial flow analysis</p>
                     </div>
                     
-                    <div class="chart-type-card" data-chart-type="bar" onclick="selectChartType('bar')">
-                        <span class="chart-icon">📊</span>
-                        <h3 class="chart-name">Bar Chart</h3>
-                        <p class="chart-description">Compare values across categories with horizontal or vertical bars</p>
-                        <span class="chart-status status-coming-soon">Coming Soon</span>
+                    <div class="chart-type-card featured-card" data-chart-type="sankey" onclick="selectChartType('sankey')" style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3); transform: scale(1.02);">
+                        <span class="chart-icon" style="font-size: 3rem; margin-bottom: 16px; display: block;">🌊</span>
+                        <h3 class="chart-name" style="font-size: 1.8rem; margin-bottom: 12px; color: white;">Sankey Flow Chart</h3>
+                        <p class="chart-description" style="font-size: 1.1rem; color: rgba(255,255,255,0.9); margin-bottom: 16px;">Visualize financial flows and relationships between revenue, costs, and profits with elegant flow diagrams</p>
+                        <span class="chart-status" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 8px 16px; border-radius: 20px; font-weight: 600;">✅ Available Now</span>
+                    </div>
+                </div>
+                
+                <!-- Coming Soon Charts -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h3 style="color: #6b7280; font-size: 1.2rem; margin-bottom: 8px;">Coming Soon</h3>
+                    <p style="color: #9ca3af; font-size: 0.9rem;">More chart types in development</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; opacity: 0.6;">
+                    <div class="chart-type-card" style="background: #f9fafb; border: 2px dashed #d1d5db; cursor: not-allowed;">
+                        <span class="chart-icon" style="opacity: 0.5;">📊</span>
+                        <h3 class="chart-name" style="color: #6b7280;">Bar Chart</h3>
+                        <p class="chart-description" style="color: #9ca3af;">Compare values across categories</p>
+                        <span class="chart-status" style="background: #fef3c7; color: #92400e;">🚧 Coming Soon</span>
                     </div>
                     
-                    <div class="chart-type-card" data-chart-type="line" onclick="selectChartType('line')">
-                        <span class="chart-icon">📈</span>
-                        <h3 class="chart-name">Line Chart</h3>
-                        <p class="chart-description">Track trends and changes over time periods</p>
-                        <span class="chart-status status-coming-soon">Coming Soon</span>
+                    <div class="chart-type-card" style="background: #f9fafb; border: 2px dashed #d1d5db; cursor: not-allowed;">
+                        <span class="chart-icon" style="opacity: 0.5;">📈</span>
+                        <h3 class="chart-name" style="color: #6b7280;">Line Chart</h3>
+                        <p class="chart-description" style="color: #9ca3af;">Track trends over time</p>
+                        <span class="chart-status" style="background: #fef3c7; color: #92400e;">🚧 Coming Soon</span>
                     </div>
                     
-                    <div class="chart-type-card" data-chart-type="treemap" onclick="selectChartType('treemap')">
-                        <span class="chart-icon">🗂️</span>
-                        <h3 class="chart-name">Treemap</h3>
-                        <p class="chart-description">Display hierarchical data with nested rectangles</p>
-                        <span class="chart-status status-coming-soon">Coming Soon</span>
+                    <div class="chart-type-card" style="background: #f9fafb; border: 2px dashed #d1d5db; cursor: not-allowed;">
+                        <span class="chart-icon" style="opacity: 0.5;">🗂️</span>
+                        <h3 class="chart-name" style="color: #6b7280;">Treemap</h3>
+                        <p class="chart-description" style="color: #9ca3af;">Hierarchical data visualization</p>
+                        <span class="chart-status" style="background: #fef3c7; color: #92400e;">🚧 Coming Soon</span>
                     </div>
                 </div>
             </div>
