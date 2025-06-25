@@ -3197,25 +3197,19 @@ class PulseSankeyChart {
 
     // Tooltip methods
     showNodeTooltip(event, d) {
-        const percentageText = d.percentageOfRevenue ? 
-            `${d.percentageOfRevenue.toFixed(1)}% of revenue` : '';
+        console.log('Node tooltip data:', {marginType: d.marginType, marginPercentage: d.marginPercentage, percentageOfRevenue: d.percentageOfRevenue});
         
-        const marginText = d.marginType && d.marginValue ? 
-            `${d.marginType}: ${d.marginValue.toFixed(1)}%` : '';
-        
-        const colorableText = '<div style="font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 4px;">💡 Double-click to change color</div>';
+        const marginText = d.marginType && d.marginPercentage && d.marginPercentage !== 'N/A' ? 
+            `${d.marginType}: ${d.marginPercentage}` : '';
         
         const content = `
-            <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">${d.id}</div>
-            <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
+            <div style="font-size: 16px; color: #60a5fa; margin-bottom: 8px; font-weight: 600;">
                 ${this.formatCurrency(d.value, d)}
             </div>
-            ${percentageText ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9); margin-bottom: 4px;">${percentageText}</div>` : ''}
-            ${marginText ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9); margin-bottom: 4px;">${marginText}</div>` : ''}
-            <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.4;">
+            ${marginText ? `<div style="font-size: 12px; color: #e2e8f0; margin-bottom: 4px;">${marginText}</div>` : ''}
+            <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
                 ${d.description || 'Financial component'}
             </div>
-            ${colorableText}
         `;
         
         this.tooltip
@@ -3226,22 +3220,22 @@ class PulseSankeyChart {
     }
 
     showLinkTooltip(event, d) {
-        const percentage = d.source.value > 0 ? 
-            ((d.value / d.source.value) * 100).toFixed(1) : '0';
-
-        const coloringInfo = this.isPreRevenueLink(d) ? 
-            'source (revenue segment)' : 'target';
+        console.log('Link tooltip data:', {target: d.target, marginType: d.target.marginType, marginPercentage: d.target.marginPercentage});
+        
+        // Get margin information for the target node if available
+        const marginText = d.target.marginType && d.target.marginPercentage && d.target.marginPercentage !== 'N/A' ? 
+            `${d.target.marginType}: ${d.target.marginPercentage}` : '';
             
         const content = `
             <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">
                 ${d.source.id} → ${d.target.id}
             </div>
-            <div style="font-size: 16px; color: #3b82f6; margin-bottom: 8px; font-weight: 600;">
+            <div style="font-size: 16px; color: #60a5fa; margin-bottom: 8px; font-weight: 600;">
                 ${this.formatCurrency(d.value, d.target)}
             </div>
-            <div style="font-size: 11px; color: rgba(255,255,255,0.8);">
-                ${percentage}% of source flow<br>
-                <em>Colored by ${coloringInfo}</em>
+            ${marginText ? `<div style="font-size: 12px; color: #e2e8f0; margin-bottom: 4px;">${marginText}</div>` : ''}
+            <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+                ${d.target.description || 'Flow connection'}
             </div>
         `;
         

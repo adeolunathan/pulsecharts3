@@ -30,6 +30,13 @@ window.ExportUtils = (function() {
             // Inline styles to make SVG standalone
             inlineStyles(clonedSvg);
             
+            // Process images in cloned SVG
+            const pngImages = clonedSvg.querySelectorAll('image');
+            processImagesForExport(clonedSvg, pngImages);
+            
+            // Ensure branding elements are visible in PNG export
+            ensureBrandingVisibility(clonedSvg);
+            
             const svgData = new XMLSerializer().serializeToString(clonedSvg);
             
             // Create canvas
@@ -102,7 +109,17 @@ window.ExportUtils = (function() {
                 .sankey-node rect { stroke: none; }
                 .sankey-link path { stroke: none; }
                 text { font-family: Inter, Arial, sans-serif; }
-                .chart-branding text { font-family: Inter, Arial, sans-serif; }
+                .chart-branding text { 
+                    font-family: Inter, Arial, sans-serif !important; 
+                    fill: #000000 !important;
+                    font-weight: bold !important;
+                    font-size: 14px !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }
+                .chart-branding { opacity: 1 !important; visibility: visible !important; }
+                .chart-brand-logo { opacity: 1 !important; visibility: visible !important; }
+                .chart-brand-logo image { opacity: 1 !important; visibility: visible !important; }
             `;
             svgElement.insertBefore(style, svgElement.firstChild);
         } catch (error) {
@@ -141,6 +158,12 @@ window.ExportUtils = (function() {
             // Process images inline for better compatibility
             const images = clonedSvg.querySelectorAll('image');
             console.log(`🖼️ Found ${images.length} images to process`);
+            
+            // Convert external image URLs to data URLs for better PNG export compatibility
+            processImagesForExport(clonedSvg, images);
+            
+            // Ensure branding elements are visible in export
+            ensureBrandingVisibility(clonedSvg);
             
             // Serialize and download immediately (simplified approach)
             const serializer = new XMLSerializer();
@@ -421,6 +444,27 @@ window.ExportUtils = (function() {
                         display: block;
                         margin: 0 auto;
                     }
+                    .chart-branding {
+                        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                    .chart-branding text {
+                        font-family: "Inter", "Segoe UI", system-ui, sans-serif !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                        fill: #000000 !important;
+                        font-weight: bold !important;
+                        font-size: 14px !important;
+                    }
+                    .chart-brand-logo {
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                    .chart-brand-logo image {
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
                 </style>
             `;
             
@@ -428,6 +472,81 @@ window.ExportUtils = (function() {
             styleElement.innerHTML = styles;
             svgElement.insertBefore(styleElement, svgElement.firstChild);
         }
+    }
+
+    // Process images to ensure they're embedded properly for exports
+    function processImagesForExport(svgElement, images) {
+        // For now, ensure all images have proper attributes for export
+        images.forEach(img => {
+            const href = img.getAttribute('href') || img.getAttribute('xlink:href');
+            if (href && !href.startsWith('data:')) {
+                // Mark external images for potential conversion
+                img.setAttribute('data-external-url', href);
+                console.log(`🔗 External image found: ${href}`);
+            }
+        });
+    }
+
+    // Ensure branding elements are visible and properly styled for export
+    function ensureBrandingVisibility(svgElement) {
+        const brandingGroups = svgElement.querySelectorAll('.chart-branding, .chart-brand-logo');
+        console.log(`🏷️ Found ${brandingGroups.length} branding elements to verify`);
+        
+        brandingGroups.forEach(brandingGroup => {
+            // Ensure branding group is visible
+            brandingGroup.style.opacity = '1';
+            brandingGroup.style.visibility = 'visible';
+            brandingGroup.setAttribute('data-export-ready', 'true');
+            
+            // For export: hide text elements and show image elements for attribution
+            const textElements = brandingGroup.querySelectorAll('text[data-branding-element="attribution"]');
+            textElements.forEach(text => {
+                text.style.display = 'none'; // Hide text version for export
+            });
+            
+            const attributionImages = brandingGroup.querySelectorAll('image[data-branding-element="attribution-image"]');
+            attributionImages.forEach(img => {
+                img.style.display = 'block'; // Show image version for export
+                img.style.opacity = '1';
+                img.style.visibility = 'visible';
+            });
+            
+            // Handle other text elements normally
+            const otherTextElements = brandingGroup.querySelectorAll('text:not([data-branding-element="attribution"])');
+            otherTextElements.forEach(text => {
+                if (!text.getAttribute('font-family')) {
+                    text.setAttribute('font-family', 'Inter, Arial, sans-serif');
+                }
+                text.style.opacity = '1';
+                text.style.visibility = 'visible';
+                text.style.fill = '#000000';
+                text.style.fontWeight = 'bold';
+                text.style.fontSize = '14px';
+                text.setAttribute('data-export-element', 'text');
+                text.setAttribute('fill', '#000000');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('font-size', '14px');
+            });
+            
+            // Ensure all image elements within branding are visible and verify URLs
+            const imageElements = brandingGroup.querySelectorAll('image');
+            imageElements.forEach(img => {
+                img.style.opacity = '1';
+                img.style.visibility = 'visible';
+                img.setAttribute('data-export-element', 'image');
+                
+                // Log image URL for debugging
+                const href = img.getAttribute('href') || img.getAttribute('xlink:href');
+                if (href) {
+                    console.log(`🖼️ Branding image URL: ${href.substring(0, 50)}${href.length > 50 ? '...' : ''}`);
+                    if (!href.startsWith('data:') && !href.startsWith('http')) {
+                        console.warn(`⚠️ Relative URL detected in branding image: ${href}`);
+                    }
+                }
+            });
+        });
+        
+        console.log('✅ Branding visibility ensured for export');
     }
 
     // Utility: Download blob as file
