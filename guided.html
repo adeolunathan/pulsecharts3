@@ -85,6 +85,11 @@
 
         <!-- Step 2: Data Input/Template Selection -->
         <div class="step-content" data-step="2">
+            <div style="text-align: center; margin-bottom: 48px;">
+                <h1 style="color: #1f2937; font-size: 2.5rem; margin-bottom: 16px;">Add Your Data</h1>
+                <p style="color: #6b7280; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Choose how you'd like to provide your financial data for visualization</p>
+            </div>
+            
             <div class="data-input">
                 <div class="input-option" onclick="selectDataInput('template')">
                     <span class="option-icon">📋</span>
@@ -100,18 +105,9 @@
             </div>
 
             <!-- Data Upload Preview Section (initially hidden) -->
-            <div id="upload-preview" style="display: none; margin-top: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
-                <div style="background: #f8f9fa; padding: 16px 20px; border-bottom: 1px solid #e1e5e9;">
-                    <h3 style="margin: 0; color: #1f2937; font-size: 16px;">📊 Business Flows Preview</h3>
-                </div>
-                <div style="padding: 20px;">
-                    <div id="preview-content" style="max-height: 400px; overflow-y: auto;">
-                        <!-- Preview content will be inserted here -->
-                    </div>
-                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e1e5e9; display: flex; gap: 12px; justify-content: end;">
-                        <button class="btn btn-secondary" onclick="clearUploadPreview()">🗑️ Clear</button>
-                        <button class="btn btn-primary" onclick="acceptUploadedData()">✅ Use This Data</button>
-                    </div>
+            <div id="upload-preview" style="display: none; margin-top: 24px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); overflow: hidden;">
+                <div id="preview-content">
+                    <!-- Preview content will be inserted here -->
                 </div>
             </div>
             
@@ -138,13 +134,32 @@
                 
                 <div class="chart-controls">
                     <div class="controls-header">
-                        <h3 class="controls-title">Chart Controls</h3>
-                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">Reset</button>
+                        <h3 class="controls-title">Chart Actions</h3>
                     </div>
                     
-                    <div style="color: #6b7280; text-align: center; margin-top: 40px;">
-                        <span style="font-size: 2rem; display: block; margin-bottom: 12px;">⚙️</span>
-                        <p>Chart-specific controls will appear here based on your selected chart type</p>
+                    <!-- Quick Actions -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                        <button class="btn btn-primary" onclick="exportChart()" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px;">
+                            📁 Export Chart
+                        </button>
+                        <button class="btn btn-secondary" onclick="startOver()" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px;">
+                            🔄 Start Over
+                        </button>
+                    </div>
+                    
+                    <!-- Apply/Validate/Reset Actions -->
+                    <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 14px; color: #374151; font-weight: 600;">Chart Management</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                            <button class="btn btn-primary" style="font-size: 12px; padding: 8px 12px;">🚀 Apply Changes</button>
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 8px 12px;">✅ Validate</button>
+                            <button class="btn btn-secondary" style="font-size: 12px; padding: 8px 12px;">🔄 Reset to Chart</button>
+                        </div>
+                    </div>
+                    
+                    <div style="color: #6b7280; text-align: center; margin-top: 20px;">
+                        <span style="font-size: 1.5rem; display: block; margin-bottom: 8px;">⚙️</span>
+                        <p style="font-size: 13px;">Additional chart controls will appear here</p>
                     </div>
                 </div>
             </div>
@@ -161,13 +176,8 @@
                 <button class="btn btn-secondary" onclick="previousStep()">
                     <span>←</span> Back to Data
                 </button>
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="exportChart()">
-                        📁 Export
-                    </button>
-                    <button class="btn btn-primary" onclick="startOver()">
-                        🔄 Start Over
-                    </button>
+                <div style="color: #6b7280; font-size: 14px; text-align: center;">
+                    Chart ready for viewing and export
                 </div>
             </div>
         </div>
@@ -591,52 +601,37 @@
             const previewDiv = document.getElementById('upload-preview');
             const contentDiv = document.getElementById('preview-content');
             
-            // Create summary
+            // Create simple summary
             const summary = `
-                <div style="background: #f0f9ff; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                    <div style="font-weight: 600; color: #0369a1; margin-bottom: 8px;">💰 Business Flows Summary</div>
-                    <div style="font-size: 13px; color: #374151;">
-                        <strong>Source:</strong> ${source}<br>
-                        <strong>Business Flows:</strong> ${flowData.flows?.length || 0}<br>
-                        <strong>Company:</strong> ${flowData.metadata?.company || 'Not specified'}<br>
-                        <strong>Currency:</strong> ${flowData.metadata?.currency || 'USD'} (${flowData.metadata?.unit || 'millions'})
+                <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <div style="font-size: 18px; font-weight: 600; color: #0369a1; margin-bottom: 8px;">📊 Data Ready</div>
+                    <div style="font-size: 14px; color: #374151;">
+                        ${flowData.metadata?.company || 'Company'} • ${flowData.metadata?.currency || 'USD'} (${flowData.metadata?.unit || 'millions'})
                     </div>
                 </div>
             `;
 
-            // Create flows table
-            const flowsTable = `
-                <div>
-                    <h4 style="margin: 0 0 8px 0; color: #1f2937;">Business Flows (${flowData.flows?.length || 0})</h4>
-                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e1e5e9; border-radius: 4px;">
-                        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
-                                <tr>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e1e5e9;">From</th>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e1e5e9;">To</th>
-                                    <th style="padding: 8px; text-align: right; border-bottom: 1px solid #e1e5e9;">Amount</th>
-                                    <th style="padding: 8px; text-align: center; border-bottom: 1px solid #e1e5e9;">Layers</th>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e1e5e9;">Type</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${flowData.flows?.slice(0, 15).map(flow => `
-                                    <tr>
-                                        <td style="padding: 6px 8px; border-bottom: 1px solid #f1f3f4;">${flow.source}</td>
-                                        <td style="padding: 6px 8px; border-bottom: 1px solid #f1f3f4;">${flow.target}</td>
-                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid #f1f3f4;">${flow.value?.toFixed(1) || 0}</td>
-                                        <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f1f3f4;">${flow.sourceLayer}→${flow.targetLayer}</td>
-                                        <td style="padding: 6px 8px; border-bottom: 1px solid #f1f3f4;">${flow.flowType || 'flow'}</td>
-                                    </tr>
-                                `).join('')}
-                                ${flowData.flows?.length > 15 ? `<tr><td colspan="5" style="padding: 8px; text-align: center; font-style: italic; color: #6b7280;">... and ${flowData.flows.length - 15} more flows</td></tr>` : ''}
-                            </tbody>
-                        </table>
+            // Create simple action area
+            const actionArea = `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h4 style="margin: 0 0 12px 0; color: #1f2937; font-size: 16px;">✅ Data Successfully Loaded</h4>
+                    <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 14px;">Your financial data is ready to be visualized. Continue to customize and view your chart.</p>
+                    
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="showUploadDialog()" style="display: inline-flex; align-items: center; gap: 8px;">
+                            📁 Upload Different File
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadTemplate()" style="display: inline-flex; align-items: center; gap: 8px;">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-primary" onclick="acceptUploadedData()" style="display: inline-flex; align-items: center; gap: 8px;">
+                            ✅ Use This Data
+                        </button>
                     </div>
                 </div>
             `;
 
-            contentDiv.innerHTML = summary + flowsTable;
+            contentDiv.innerHTML = summary + actionArea;
             previewDiv.style.display = 'block';
             
             // Scroll to preview
@@ -781,6 +776,18 @@
                 
                 updateStepProgress();
             }
+        }
+
+        // Download template function
+        function downloadTemplate() {
+            const templateUrl = 'data/templates/income-statement-template.json';
+            const link = document.createElement('a');
+            link.href = templateUrl;
+            link.download = 'financial-flow-template.json';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // Initialize on page load
