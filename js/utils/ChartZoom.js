@@ -208,5 +208,12 @@
     // Debug: Confirm ChartZoom is loaded
     console.log('✅ ChartZoom utility loaded successfully');
     console.log('🔍 d3 available:', typeof d3);
+    
+    // Verify export worked
+    if (typeof window.ChartZoom === 'undefined') {
+        console.error('❌ ChartZoom export failed - window.ChartZoom is undefined');
+    } else {
+        console.log('✅ ChartZoom exported successfully with', Object.keys(window.ChartZoom).length, 'functions');
+    }
 
 })();

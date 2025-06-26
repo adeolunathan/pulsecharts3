@@ -117,37 +117,21 @@ class PulseSankeyChart {
             .attr('transform', `translate(${this.config.margin.left}, ${this.config.margin.top})`);
 
         // Initialize zoom and pan functionality
-        // Initialize zoom with fallback check
-        if (window.ChartZoom && window.ChartZoom.initializeZoomPan) {
-            ChartZoom.initializeZoomPan.call(this);
-        } else {
-            console.error('❌ ChartZoom utility not available. Please ensure ChartZoom.js is loaded before SankeyChart.js');
-            // Fallback: create basic zoom without ChartZoom utility
-            this.initializeBasicZoom();
-        }
+        // Initialize zoom with utility check and retry
+        this.initializeZoomWithRetry();
 
         this.createTooltip();
-        this.initializeColorPicker();
+        this.initializeColorPickerWithRetry();
     }
 
-    // Initialize color picker with chart-specific callback
-    initializeColorPicker() {
-        if (window.ChartColorPicker && window.ChartColorPicker.initializeColorPicker) {
-            // Create callback that handles both node and link color updates
-            const colorUpdateCallback = (elementData, newColor, element) => {
-                if (elementData.id) {
-                    // Node color update
-                    this.updateNodeColor(elementData, newColor);
-                } else if (elementData.source && elementData.target) {
-                    // Link color update
-                    this.updateLinkColor(elementData, newColor);
-                }
-            };
-            
-            ChartColorPicker.initializeColorPicker.call(this, colorUpdateCallback);
-        } else {
-            console.warn('⚠️ ChartColorPicker utility not available, using fallback implementation');
-            this.initializeColorPickerFallback();
+    // Handle color changes from color picker
+    handleColorChange(elementData, newColor, element) {
+        if (elementData.id) {
+            // Node color update
+            this.updateNodeColor(elementData, newColor);
+        } else if (elementData.source && elementData.target) {
+            // Link color update
+            this.updateLinkColor(elementData, newColor);
         }
     }
 
@@ -202,6 +186,53 @@ class PulseSankeyChart {
             ChartColorPicker.showOpacityPicker.call(this, element, currentOpacity, onApply, position);
         } else {
             this.showOpacityPickerFallback(element, currentOpacity, onApply, position);
+        }
+    }
+
+    // Retry utility initialization with timeout
+    initializeZoomWithRetry() {
+        const attemptZoom = () => {
+            if (window.ChartZoom && window.ChartZoom.initializeZoomPan) {
+                ChartZoom.initializeZoomPan.call(this);
+                console.log('✅ ChartZoom utility connected successfully');
+                return true;
+            }
+            return false;
+        };
+
+        // Try immediately first
+        if (!attemptZoom()) {
+            // If immediate attempt fails, try once more after a short delay
+            setTimeout(() => {
+                if (!attemptZoom()) {
+                    console.warn('⚠️ ChartZoom utility not available after retry, using fallback');
+                    this.initializeBasicZoom();
+                }
+            }, 100);
+        }
+    }
+
+    initializeColorPickerWithRetry() {
+        const attemptColorPicker = () => {
+            if (window.ChartColorPicker && window.ChartColorPicker.initializeColorPicker) {
+                ChartColorPicker.initializeColorPicker.call(this, (elementData, newColor, element) => {
+                    this.handleColorChange(elementData, newColor, element);
+                });
+                console.log('✅ ChartColorPicker utility connected successfully');
+                return true;
+            }
+            return false;
+        };
+
+        // Try immediately first
+        if (!attemptColorPicker()) {
+            // If immediate attempt fails, try once more after a short delay
+            setTimeout(() => {
+                if (!attemptColorPicker()) {
+                    console.warn('⚠️ ChartColorPicker utility not available after retry, using fallback');
+                    this.initializeColorPickerFallback();
+                }
+            }, 100);
         }
     }
 
@@ -535,7 +566,7 @@ class PulseSankeyChart {
         }
         
         // Income statement logic
-        if (this.isPreRevenueNode(node)) {
+        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer)) {
             // Individual revenue segment color
             this.revenueSegmentColors.set(node.id, color);
             console.log(`🎯 Set revenue segment color: ${node.id} → ${color}`);
@@ -614,7 +645,7 @@ class PulseSankeyChart {
         }
         
         // Income statement logic
-        if (this.isPreRevenueLink(link)) {
+        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
             // For pre-revenue links, update the source node's individual color
             this.revenueSegmentColors.set(link.source.id, color);
             console.log(`🎯 Set revenue segment color via link: ${link.source.id} → ${color}`);
@@ -659,17 +690,45 @@ class PulseSankeyChart {
     render(data) {
         this.data = data;
         
-        this.detectStatementType(data);
+        // Use FinancialDataProcessor for financial analysis
+        if (window.FinancialDataProcessor) {
+            this.statementType = FinancialDataProcessor.detectStatementType(data);
+        } else {
+            console.warn('⚠️ FinancialDataProcessor not available, using fallback');
+            this.detectStatementTypeFallback(data);
+        }
+        
         this.detectAndApplyColors(data);
         
         if (this.statementType === 'balance') {
-            this.assignColorGroups();
+            if (window.FinancialDataProcessor) {
+                this.colorGroups = FinancialDataProcessor.assignColorGroups(this.nodes, this.links, this.customColors);
+            } else {
+                console.warn('⚠️ FinancialDataProcessor not available for color groups');
+            }
         }
         
         this.processData(data);
-        this.detectRevenueHub(); // NEW: Detect revenue hub
+        
+        // Use FinancialDataProcessor for revenue hub detection
+        if (window.FinancialDataProcessor) {
+            const revenueHubResult = FinancialDataProcessor.detectRevenueHub(this.nodes, this.links);
+            this.revenueHubNode = revenueHubResult.node;
+            this.revenueHubLayer = revenueHubResult.layer;
+        } else {
+            console.warn('⚠️ FinancialDataProcessor not available, using fallback revenue hub detection');
+            this.detectRevenueHubFallback();
+        }
+        
         this.calculateLayout();  // Layout first
-        this.calculateFinancialMetrics(); // THEN calculate margins
+        
+        // Use FinancialDataProcessor for financial metrics
+        if (window.FinancialDataProcessor) {
+            FinancialDataProcessor.calculateFinancialMetrics(this.nodes, this.revenueHubNode, this.formatCurrency.bind(this));
+        } else {
+            console.warn('⚠️ FinancialDataProcessor not available, using fallback metrics calculation');
+            this.calculateFinancialMetricsFallback();
+        }
         
         this.chart.selectAll('*').remove();
         this.svg.selectAll('.chart-header, .chart-footnotes, .chart-branding').remove();
@@ -698,76 +757,19 @@ class PulseSankeyChart {
         return this;
     }
 
-    /**
-     * NEW: Detect the revenue hub node and its layer position
-     */
     detectRevenueHub() {
-        // Strategy 1: Look for nodes with "total revenue" or similar
-        let revenueHub = this.nodes.find(node => {
-            const idLower = node.id.toLowerCase();
-            return idLower.includes('total revenue') || 
-                   idLower.includes('revenue hub') ||
-                   idLower.includes('net revenue') ||
-                   (idLower === 'revenue' && node.targetLinks.length > 3);
-        });
-
-        // Strategy 2: Find revenue category node with multiple inflows
-        if (!revenueHub) {
-            const revenueNodes = this.nodes.filter(node => 
-                node.category === 'revenue' && node.targetLinks.length > 1
-            );
-            
-            if (revenueNodes.length > 0) {
-                // Choose the one with most inflows or highest value
-                revenueHub = revenueNodes.reduce((max, node) => 
-                    (node.targetLinks.length > max.targetLinks.length || 
-                     (node.targetLinks.length === max.targetLinks.length && node.value > max.value)) ? node : max
-                );
-            }
-        }
-
-        // Strategy 3: Find middle-layer revenue node
-        if (!revenueHub) {
-            const depths = [...new Set(this.nodes.map(n => n.depth))];
-            const middleDepth = depths[Math.floor(depths.length / 2)];
-            
-            revenueHub = this.nodes.find(node => 
-                node.depth === middleDepth && 
-                node.category === 'revenue'
-            );
-        }
-
-        if (revenueHub) {
-            this.revenueHubNode = revenueHub;
-            this.revenueHubLayer = revenueHub.depth;
-            console.log(`💰 Revenue hub detected: ${revenueHub.id} at layer ${this.revenueHubLayer}`);
-        } else {
-            // Fallback: assume layer 1 is revenue hub layer
-            this.revenueHubLayer = 1;
-            console.log(`💰 Revenue hub layer defaulted to: ${this.revenueHubLayer}`);
-        }
+        console.warn('detectRevenueHub() has been moved to FinancialDataProcessor - using fallback');
+        this.revenueHubLayer = 1;
     }
 
-    /**
-     * NEW: Check if a node is in the pre-revenue segment
-     */
     isPreRevenueNode(node) {
-        if (!node || this.revenueHubLayer === null) return false;
-        
-        // Nodes to the left of or in layers before the revenue hub
-        return node.depth < this.revenueHubLayer;
+        console.warn('isPreRevenueNode() has been moved to FinancialDataProcessor - using fallback');
+        return false;
     }
 
-    /**
-     * NEW: Check if a link is a pre-revenue link (should use source coloring)
-     */
     isPreRevenueLink(link) {
-        if (!link || this.revenueHubLayer === null) return false;
-        
-        // Links where both source and target are before revenue hub
-        // OR links flowing INTO the revenue hub from pre-revenue segments
-        return (link.source.depth < this.revenueHubLayer) ||
-               (link.source.depth < this.revenueHubLayer && link.target.depth <= this.revenueHubLayer);
+        console.warn('isPreRevenueLink() has been moved to FinancialDataProcessor - using fallback');
+        return false;
     }
 
     detectAndApplyColors(data) {
@@ -928,81 +930,8 @@ class PulseSankeyChart {
     }
 
     calculateFinancialMetrics() {
-        // Use the dynamically detected revenue hub node if available
-        let totalRevenueNode = this.revenueHubNode;
-        
-        // If no revenue hub was detected, use more sophisticated fallback logic
-        if (!totalRevenueNode) {
-            // Strategy 1: Look for nodes with "total revenue" in name
-            totalRevenueNode = this.nodes.find(n => 
-                n.id && n.id.toLowerCase().includes('total revenue')
-            );
-            
-            // Strategy 2: Find the revenue node with the highest value
-            if (!totalRevenueNode) {
-                const revenueNodes = this.nodes.filter(n => n.category === 'revenue');
-                if (revenueNodes.length > 0) {
-                    totalRevenueNode = revenueNodes.reduce((max, node) => 
-                        node.value > max.value ? node : max
-                    );
-                }
-            }
-            
-            // Strategy 3: Find revenue node that has the most outgoing flows (acts as a hub)
-            if (!totalRevenueNode) {
-                const revenueNodes = this.nodes.filter(n => n.category === 'revenue');
-                if (revenueNodes.length > 0) {
-                    totalRevenueNode = revenueNodes.reduce((max, node) => 
-                        node.sourceLinks.length > max.sourceLinks.length ? node : max
-                    );
-                }
-            }
-        }
-        
-        const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
-        
-        // Log which revenue node is being used for margin calculations
-        if (totalRevenueNode) {
-            console.log(`💰 Using revenue node for margin calculations: "${totalRevenueNode.id}" (${this.formatCurrency(totalRevenue)}) at depth ${totalRevenueNode.depth}`);
-        } else {
-            console.warn('⚠️ No revenue node found for margin calculations - margins will be 0%');
-        }
-        
-        this.nodes.forEach(node => {
-            // Only calculate percentageOfRevenue and marginValue if marginPercentage is not already provided from Flow Builder
-            if (!node.marginPercentage || node.marginPercentage === 'N/A') {
-                if (totalRevenue > 0) {
-                    node.percentageOfRevenue = (node.value / totalRevenue) * 100;
-                } else {
-                    node.percentageOfRevenue = 0;
-                }
-                
-                // Calculate marginPercentage for ALL nodes, not just profit
-                node.marginPercentage = node.percentageOfRevenue.toFixed(1) + '%';
-                
-                // Set specific margin types for profit nodes
-                if (node.category === 'profit') {
-                    if (node.id.toLowerCase().includes('gross')) {
-                        node.marginType = 'Gross Margin';
-                    } else if (node.id.toLowerCase().includes('operating')) {
-                        node.marginType = 'Operating Margin';
-                    } else if (node.id.toLowerCase().includes('net')) {
-                        node.marginType = 'Net Margin';
-                    } else {
-                        node.marginType = 'Margin';
-                    }
-                } else {
-                    // For non-profit nodes, show as "% of Revenue"
-                    node.marginType = '% of Revenue';
-                }
-                
-                node.marginValue = node.percentageOfRevenue;
-            }
-            
-            node.isExpenseType = node.category === 'expense';
-        });
-        
-        console.log('📊 Financial metrics calculated (prioritizing Flow Builder marginPercentage)');
+        console.warn('calculateFinancialMetrics() has been moved to FinancialDataProcessor - using fallback');
+        this.nodes.forEach(node => { node.marginPercentage = '0%'; node.marginType = 'N/A'; });
     }
 
     calculateLayout() {
@@ -1799,7 +1728,7 @@ class PulseSankeyChart {
             })
             .on('click', (event, d) => {
                 event.stopPropagation();
-                if (this.isPreRevenueLink(d)) {
+                if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(d, this.revenueHubLayer)) {
                     const currentColor = this.getLinkColor(d);
                     this.showColorPicker(event.currentTarget, currentColor);
                 }
@@ -2419,19 +2348,22 @@ class PulseSankeyChart {
      */
     getNodeColor(node) {
         // Check for individual revenue segment color first
-        if (this.isPreRevenueNode(node) && this.revenueSegmentColors.has(node.id)) {
+        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && this.revenueSegmentColors.has(node.id)) {
             return this.revenueSegmentColors.get(node.id);
         }
         
         // FIXED: Revenue segments should use their own default colors, not category colors
         // This prevents "Total Revenue" color changes from affecting revenue segments
-        if (this.isPreRevenueNode(node) && node.category === 'revenue') {
+        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && node.category === 'revenue') {
             // Enhanced vibrant revenue segment color palette
             const defaultSegmentColors = [
                 '#1e40af', '#2563eb', '#3b82f6', '#0ea5e9', '#06b6d4', 
                 '#14b8a6', '#10b981', '#059669', '#0d9488', '#0f766e'
             ];
-            const segmentIndex = this.getRevenueSegmentNodes().findIndex(n => n.id === node.id);
+            const revenueSegmentNodes = window.FinancialDataProcessor ? 
+                FinancialDataProcessor.getRevenueSegmentNodes(this.nodes, this.revenueHubLayer) : 
+                this.getRevenueSegmentNodesFallback();
+            const segmentIndex = revenueSegmentNodes.findIndex(n => n.id === node.id);
             return defaultSegmentColors[segmentIndex % defaultSegmentColors.length];
         }
         
@@ -2469,7 +2401,7 @@ class PulseSankeyChart {
      */
     getLinkColor_Income(link) {
         // NEW: Pre-revenue links use SOURCE color (revenue segment logic)
-        if (this.isPreRevenueLink(link)) {
+        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
             const sourceColor = this.getNodeColor(link.source);
             return ChartUtils.lightenColor(sourceColor, 15);
         }
@@ -2537,224 +2469,38 @@ class PulseSankeyChart {
 
 
     // Balance sheet specific methods
-    detectStatementType(data) {
-        if (!data || !data.nodes) {
-            this.statementType = 'income';
-            return;
-        }
-
-        // Check if statement type is explicitly provided in metadata
-        if (data.metadata && data.metadata.statementType) {
+    // Fallback method when FinancialDataProcessor is not available
+    detectStatementTypeFallback(data) {
+        console.warn('⚠️ Using fallback statement type detection');
+        this.statementType = 'income';
+        if (data && data.metadata && data.metadata.statementType) {
             this.statementType = data.metadata.statementType;
-            console.log(`📊 Statement type from metadata: ${this.statementType}`);
-            return;
         }
-
-        // Fallback to keyword detection
-        const balanceSheetKeywords = [
-            'assets', 'total assets', 'current assets', 'non-current assets',
-            'liabilities', 'current liabilities', 'non-current liabilities',
-            'equity', 'shareholders equity', 'stockholders equity'
-        ];
-
-        const hasBalanceSheetNodes = data.nodes.some(node => 
-            balanceSheetKeywords.some(keyword => 
-                node.id.toLowerCase().includes(keyword.toLowerCase())
-            )
-        );
-
-        this.statementType = hasBalanceSheetNodes ? 'balance' : 'income';
-        console.log(`📊 Detected statement type: ${this.statementType}`);
     }
 
     assignColorGroups() {
-        if (!this.nodes || this.statementType !== 'balance') {
-            return;
-        }
-
-        this.colorGroups.clear();
-        
-        // Enhanced vibrant balance sheet colors
-        const balanceSheetColors = {
-            'Total Assets': this.customColors['Total Assets'] || '#1e293b',        // Deep slate
-            'Current Assets': this.customColors['Current Assets'] || '#1e40af',    // Vibrant blue
-            'Non-Current Assets': this.customColors['Non-Current Assets'] || '#7c3aed',  // Vibrant purple
-            'Current Liabilities': this.customColors['Current Liabilities'] || '#dc2626',  // Sharp red
-            'Non-Current Liabilities': this.customColors['Non-Current Liabilities'] || '#b91c1c',  // Deep red
-            'Shareholders Equity': this.customColors['Shareholders Equity'] || '#059669'   // Vibrant emerald
-        };
-        
-        const parentNodes = this.detectParentNodes();
-        
-        this.nodes.forEach(node => {
-            let isParent = parentNodes.has(node.id);
-            let baseColor = '#95a5a6';
-            let groupName = null;
-            let parentGroup = null;
-            
-            const nodeLower = node.id.toLowerCase();
-            
-            if (this.isExactParentGroupMatch(nodeLower, 'total assets')) {
-                groupName = 'Total Assets';
-                baseColor = balanceSheetColors['Total Assets'];
-                isParent = true;
-            } else if (this.isExactParentGroupMatch(nodeLower, 'current assets')) {
-                groupName = 'Current Assets';
-                baseColor = balanceSheetColors['Current Assets'];
-                isParent = true;
-            } else if (this.isExactParentGroupMatch(nodeLower, 'non-current assets') || 
-                       this.isExactParentGroupMatch(nodeLower, 'noncurrent assets')) {
-                groupName = 'Non-Current Assets';
-                baseColor = balanceSheetColors['Non-Current Assets'];
-                isParent = true;
-            } else if (this.isExactParentGroupMatch(nodeLower, 'current liabilities')) {
-                groupName = 'Current Liabilities';
-                baseColor = balanceSheetColors['Current Liabilities'];
-                isParent = true;
-            } else if (this.isExactParentGroupMatch(nodeLower, 'non-current liabilities') || 
-                       this.isExactParentGroupMatch(nodeLower, 'noncurrent liabilities')) {
-                groupName = 'Non-Current Liabilities';
-                baseColor = balanceSheetColors['Non-Current Liabilities'];
-                isParent = true;
-            } else if (this.isExactParentGroupMatch(nodeLower, 'shareholders equity') || 
-                       this.isExactParentGroupMatch(nodeLower, 'stockholders equity') ||
-                       this.isExactParentGroupMatch(nodeLower, "shareholders' equity") ||
-                       nodeLower === 'equity') {
-                groupName = 'Shareholders Equity';
-                baseColor = balanceSheetColors['Shareholders Equity'];
-                isParent = true;
-            } else {
-                isParent = false;
-                parentGroup = this.determineChildParentGroup(node, parentNodes);
-                if (parentGroup && balanceSheetColors[parentGroup]) {
-                    groupName = parentGroup;
-                    baseColor = balanceSheetColors[parentGroup];
-                    console.log(`🎯 Child node ${node.id} inherits from ${parentGroup} → ${baseColor} (will be 65% opacity)`);
-                } else {
-                    console.log(`❌ Child node ${node.id} failed to find parent group`);
-                }
-            }
-            
-            this.colorGroups.set(node.id, {
-                groupName: groupName,
-                baseColor: baseColor,
-                isParentGroup: isParent,
-                parentGroup: parentGroup
-            });
-            
-            console.log(`🎨 ${node.id} → ${groupName} (${isParent ? 'PARENT - 100% opacity' : 'CHILD - 65% opacity'})`);
-        });
+        console.warn('assignColorGroups() has been moved to FinancialDataProcessor - using fallback');
+        this.colorGroups = this.colorGroups || new Map();
     }
 
     isExactParentGroupMatch(nodeLower, groupPattern) {
-        return nodeLower === groupPattern || 
-               nodeLower === groupPattern + 's' ||
-               nodeLower.startsWith('total ' + groupPattern) ||
-               nodeLower.endsWith(' total') && nodeLower.includes(groupPattern);
+        console.warn('isExactParentGroupMatch() has been moved to FinancialDataProcessor - using fallback');
+        return false;
     }
 
     determineChildParentGroup(childNode, parentNodes) {
-        console.log(`🔍 Analyzing child node: ${childNode.id}`);
-        console.log(`🔍 Available parent nodes:`, Array.from(parentNodes));
-        console.log(`🔍 Total links:`, this.links.length);
-        
-        const relevantLinks = this.links.filter(link => 
-            link.source.id === childNode.id || link.target.id === childNode.id
-        );
-        console.log(`🔍 Links involving ${childNode.id}:`, relevantLinks.map(l => `${l.source.id} → ${l.target.id}`));
-        
-        for (const link of this.links) {
-            if (link.target.id === childNode.id) {
-                console.log(`🔗 ${childNode.id} receives from ${link.source.id}`);
-                
-                const sourceParentGroup = this.getParentGroupName(link.source.id);
-                if (sourceParentGroup) {
-                    console.log(`✅ Found parent group by name: ${link.source.id} → ${sourceParentGroup}`);
-                    return sourceParentGroup;
-                }
-                
-                if (parentNodes.has(link.source.id)) {
-                    const parentGroupName = this.getParentGroupName(link.source.id);
-                    console.log(`✅ Found parent group by detection: ${link.source.id} → ${parentGroupName}`);
-                    return parentGroupName;
-                }
-            }
-            
-            if (link.source.id === childNode.id) {
-                console.log(`🔗 ${childNode.id} sends to ${link.target.id}`);
-                
-                const targetParentGroup = this.getParentGroupName(link.target.id);
-                if (targetParentGroup) {
-                    console.log(`✅ Found parent group by name: ${link.target.id} → ${targetParentGroup}`);
-                    return targetParentGroup;
-                }
-                
-                if (parentNodes.has(link.target.id)) {
-                    const parentGroupName = this.getParentGroupName(link.target.id);
-                    console.log(`✅ Found parent group by detection: ${link.target.id} → ${parentGroupName}`);
-                    return parentGroupName;
-                }
-            }
-        }
-        
-        console.log(`❌ No parent group found for ${childNode.id}`);
+        console.warn('determineChildParentGroup() has been moved to FinancialDataProcessor - using fallback');
         return null;
     }
 
     getParentGroupName(nodeId) {
-        const nodeLower = nodeId.toLowerCase();
-        
-        console.log(`🏷️ Getting parent group name for: ${nodeId} (lower: ${nodeLower})`);
-        
-        if (this.isExactParentGroupMatch(nodeLower, 'total assets')) {
-            console.log(`🏷️ Matched: Total Assets`);
-            return 'Total Assets';
-        }
-        if (this.isExactParentGroupMatch(nodeLower, 'current assets') || nodeLower === 'ca') {
-            console.log(`🏷️ Matched: Current Assets`);
-            return 'Current Assets';
-        }
-        if (this.isExactParentGroupMatch(nodeLower, 'non-current assets') || 
-            this.isExactParentGroupMatch(nodeLower, 'noncurrent assets') || nodeLower === 'nca') {
-            console.log(`🏷️ Matched: Non-Current Assets`);
-            return 'Non-Current Assets';
-        }
-        if (this.isExactParentGroupMatch(nodeLower, 'current liabilities') || nodeLower === 'cl') {
-            console.log(`🏷️ Matched: Current Liabilities`);
-            return 'Current Liabilities';
-        }
-        if (this.isExactParentGroupMatch(nodeLower, 'non-current liabilities') || 
-            this.isExactParentGroupMatch(nodeLower, 'noncurrent liabilities') || nodeLower === 'ncl') {
-            console.log(`🏷️ Matched: Non-Current Liabilities`);
-            return 'Non-Current Liabilities';
-        }
-        if (this.isExactParentGroupMatch(nodeLower, 'shareholders equity') || 
-            this.isExactParentGroupMatch(nodeLower, 'stockholders equity') ||
-            this.isExactParentGroupMatch(nodeLower, "shareholders' equity") || nodeLower === 'equity') {
-            console.log(`🏷️ Matched: Shareholders Equity`);
-            return 'Shareholders Equity';
-        }
-        
-        console.log(`🏷️ No match found for: ${nodeId}`);
+        console.warn('getParentGroupName() has been moved to FinancialDataProcessor - using fallback');
         return null;
     }
 
     detectParentNodes() {
-        const parentNodes = new Set();
-        
-        this.nodes.forEach(node => {
-            const outflowCount = this.links.filter(link => link.source.id === node.id).length;
-            const receivesFromTotal = this.links.some(link => 
-                link.target.id === node.id && link.source.id.toLowerCase().includes('total')
-            );
-            
-            if (receivesFromTotal || outflowCount >= 2) {
-                parentNodes.add(node.id);
-                console.log(`👑 Parent detected: ${node.id} (receivesFromTotal: ${receivesFromTotal}, outflowCount: ${outflowCount})`);
-            }
-        });
-        
-        return parentNodes;
+        console.warn('detectParentNodes() has been moved to FinancialDataProcessor - using fallback');
+        return new Set();
     }
 
     getHierarchicalColor(nodeId) {
@@ -2934,14 +2680,13 @@ class PulseSankeyChart {
     }
     
     getRevenueSegmentNodes() {
-        return this.nodes.filter(node => this.isPreRevenueNode(node));
+        console.warn('getRevenueSegmentNodes() has been moved to FinancialDataProcessor - using fallback');
+        return [];
     }
 
-    /**
-     * Get pre-revenue nodes (alias for control module compatibility)
-     */
     getPreRevenueNodes() {
-        return this.getRevenueSegmentNodes();
+        console.warn('getPreRevenueNodes() has been moved to FinancialDataProcessor - using fallback');
+        return [];
     }
 
     rerenderWithNewColors() {

@@ -464,5 +464,12 @@
     // Debug: Confirm ChartBrandingUtils is loaded
     console.log('✅ ChartBrandingUtils utility loaded successfully');
     console.log('🔍 d3 available:', typeof d3);
+    
+    // Verify export worked
+    if (typeof window.ChartBrandingUtils === 'undefined') {
+        console.error('❌ ChartBrandingUtils export failed - window.ChartBrandingUtils is undefined');
+    } else {
+        console.log('✅ ChartBrandingUtils exported successfully with', Object.keys(window.ChartBrandingUtils).length, 'functions');
+    }
 
 })();

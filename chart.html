@@ -352,8 +352,19 @@
     <script src="js/core/DataManager.js"></script>
     <script src="js/core/ControlPanel.js"></script>
     <script src="js/charts/sankey/SankeyChartConfig.js"></script>
+    <script src="js/charts/sankey/FinancialDataProcessor.js"></script>
     <script src="js/charts/sankey/SankeyChart.js"></script>
     <script src="js/charts/sankey/SankeyControls.js"></script>
+    
+    <!-- Verify utilities before app loads -->
+    <script>
+        console.log('🔍 Final utility check before app initialization:');
+        console.log('- ChartZoom:', typeof window.ChartZoom, window.ChartZoom ? 'AVAILABLE' : 'MISSING');
+        console.log('- ChartColorPicker:', typeof window.ChartColorPicker, window.ChartColorPicker ? 'AVAILABLE' : 'MISSING');
+        console.log('- ChartBrandingUtils:', typeof window.ChartBrandingUtils, window.ChartBrandingUtils ? 'AVAILABLE' : 'MISSING');
+        console.log('- FinancialDataProcessor:', typeof window.FinancialDataProcessor, window.FinancialDataProcessor ? 'AVAILABLE' : 'MISSING');
+        console.log('- d3:', typeof d3, d3 ? 'AVAILABLE' : 'MISSING');
+    </script>
     
     <!-- Enhanced app.js -->
     <script src="js/app.js"></script>
