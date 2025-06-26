@@ -30,23 +30,43 @@ window.ExportUtils = (function() {
             // Inline styles to make SVG standalone
             inlineStyles(clonedSvg);
             
-            // Process images in cloned SVG
-            const pngImages = clonedSvg.querySelectorAll('image');
-            processImagesForExport(clonedSvg, pngImages);
-            
-            // Ensure branding elements are visible in PNG export
-            ensureBrandingVisibility(clonedSvg);
-            
-            const svgData = new XMLSerializer().serializeToString(clonedSvg);
-            
             // Create canvas
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const img = new Image();
             
             // Set canvas size with scaling
             canvas.width = svgRect.width * settings.scale;
             canvas.height = svgRect.height * settings.scale;
+            
+            // Convert external images to data URLs for proper export
+            console.log('🔄 Starting image conversion for export...');
+            convertExternalImagesToDataURLs(clonedSvg).then(() => {
+                console.log('✅ Image conversion completed successfully');
+                // Ensure branding elements are visible in PNG export
+                ensureBrandingVisibility(clonedSvg);
+                
+                const svgData = new XMLSerializer().serializeToString(clonedSvg);
+                
+                renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgRect);
+            }).catch(error => {
+                console.warn('⚠️ Image conversion failed, proceeding with original images:', error);
+                
+                // Fallback: proceed without converted images
+                ensureBrandingVisibility(clonedSvg);
+                const svgData = new XMLSerializer().serializeToString(clonedSvg);
+                renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgRect);
+            });
+            
+        } catch (error) {
+            console.error('❌ PNG Export Error:', error);
+            alert('PNG export failed. Please check console for details.');
+        }
+    }
+    
+    // Helper function to render PNG from SVG data
+    function renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgRect) {
+        try {
+            const img = new Image();
             
             img.onload = function() {
                 try {
@@ -489,6 +509,7 @@ window.ExportUtils = (function() {
 
     // Ensure branding elements are visible and properly styled for export
     function ensureBrandingVisibility(svgElement) {
+        console.log('🏷️ Ensuring branding visibility for export...');
         const brandingGroups = svgElement.querySelectorAll('.chart-branding, .chart-brand-logo');
         console.log(`🏷️ Found ${brandingGroups.length} branding elements to verify`);
         
@@ -506,13 +527,17 @@ window.ExportUtils = (function() {
                 }
                 text.style.opacity = '1';
                 text.style.visibility = 'visible';
-                text.style.fill = '#000000';
-                text.style.fontWeight = 'bold';
-                text.style.fontSize = '14px';
+                
+                // Keep original colors and styles for branding text
+                const currentFill = text.getAttribute('fill') || text.style.fill;
+                if (currentFill && currentFill !== 'none') {
+                    text.setAttribute('fill', currentFill);
+                } else {
+                    text.setAttribute('fill', '#667eea'); // Default branding color
+                }
+                
                 text.setAttribute('data-export-element', 'text');
-                text.setAttribute('fill', '#000000');
-                text.setAttribute('font-weight', 'bold');
-                text.setAttribute('font-size', '14px');
+                console.log(`📝 Branding text preserved: "${text.textContent}" with fill: ${text.getAttribute('fill')}`);
             });
             
             // Ensure all image elements within branding are visible and verify URLs
@@ -539,7 +564,17 @@ window.ExportUtils = (function() {
         allAttributionElements.forEach(text => {
             text.style.display = 'block';
             text.style.visibility = 'visible';
-            // DON'T override fill color to keep it grey in exports
+            text.style.opacity = '1';
+            
+            // Ensure the attribution text is properly styled
+            const currentFill = text.getAttribute('fill') || text.style.fill;
+            if (currentFill) {
+                text.setAttribute('fill', currentFill);
+            } else {
+                text.setAttribute('fill', '#94a3b8'); // Default attribution color
+            }
+            
+            console.log(`📋 Attribution text preserved: "${text.textContent}" with fill: ${text.getAttribute('fill')}`);
         });
         
         console.log('✅ Branding visibility ensured for export');
@@ -658,11 +693,15 @@ window.ExportUtils = (function() {
                     }
 
                     // Convert external URL to data URL
+                    console.log(`🔄 Converting image ${index + 1}/${totalImages}: ${href}`);
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     const image = new Image();
                     
-                    image.crossOrigin = 'anonymous'; // Enable CORS
+                    // Handle CORS for external images
+                    if (href.startsWith('http') && !href.startsWith(window.location.origin)) {
+                        image.crossOrigin = 'anonymous';
+                    }
                     
                     image.onload = function() {
                         try {
@@ -674,7 +713,7 @@ window.ExportUtils = (function() {
                             img.setAttribute('href', dataURL);
                             img.setAttribute('xlink:href', dataURL);
                             
-                            console.log(`🖼️ Converted image ${index + 1}/${totalImages} to data URL`);
+                            console.log(`🖼️ Converted image ${index + 1}/${totalImages} to data URL (${dataURL.substring(0, 50)}...)`);
                         } catch (error) {
                             console.warn(`⚠️ Failed to convert image ${index + 1} to data URL:`, error);
                         }

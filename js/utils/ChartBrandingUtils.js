@@ -48,7 +48,7 @@
             .attr('transform', `translate(0, ${this.config.height - 35})`);
 
         // Priority order: backend logo file -> user uploaded logo -> default logo
-        const backendLogoUrl = 'assets/images/logo.png';
+        const backendLogoUrl = window.location.origin + '/assets/images/logo.png';
         const userLogoUrl = this.data?.metadata?.customLogoUrl;
         const defaultLogoUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8dGV4dCB4PSIxMCIgeT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UDwvdGV4dD4KPC9zdmc+';
         
@@ -124,18 +124,6 @@
                     .attr('opacity', 0.6)
                     .text('Powered by Pulse Charts');
             }
-        } else {
-            // Backend logo exists - show larger attribution
-            footerGroup.append('text')
-                .attr('x', this.config.width - 10)
-                .attr('y', 10)  // Moved up slightly
-                .attr('text-anchor', 'end')
-                .attr('font-size', '16px')  // Increased from 10px to 14px
-                .attr('font-weight', '400')  // Slightly bolder
-                .attr('font-family', this.getFontFamily ? this.getFontFamily() : 'Inter, sans-serif')
-                .attr('fill', '#6b7280')  // Darker gray for better visibility
-                .attr('opacity', 0.7)  // Increased opacity from 0.4 to 0.7
-                .text('chart by pulse');
         }
     }
 

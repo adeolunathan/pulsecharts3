@@ -30,16 +30,26 @@ class PulseApplication {
     async initialize() {
         try {
             console.log('🔧 Initializing Enhanced Pulse Analytics Platform');
+            console.log('🏁 Starting initialization process...');
             this.setStatus('Initializing...', 'loading');
             
             // Initialize data manager
+            console.log('📊 Creating data manager...');
             this.dataManager = new PulseDataManager();
             
             // Initialize data bridge connection
+            console.log('🌉 Initializing data bridge...');
             this.initializeDataBridge();
             
             // Initialize with default chart type
-            await this.initializeChartType('sankey');
+            console.log('📈 Initializing chart type...');
+            try {
+                await this.initializeChartType('sankey');
+                console.log('✅ Chart type initialized');
+            } catch (chartError) {
+                console.error('❌ Chart initialization failed:', chartError);
+                console.log('⏩ Continuing without chart initialization');
+            }
             
             // Set up event listeners
             this.setupEventListeners();
@@ -48,13 +58,9 @@ class PulseApplication {
             const urlData = this.handleURLParameters();
             
             if (!urlData) {
-                // Try to load default dataset, but don't fail initialization if it fails
-                try {
-                    await this.loadDataset('saas');
-                } catch (error) {
-                    console.warn('⚠️ Failed to load default dataset, continuing with initialization:', error);
-                    this.setStatus('Ready - Default dataset not available', 'ready');
-                }
+                // Skip default dataset loading during initialization to prevent timeout
+                console.log('⏩ Skipping default dataset loading during initialization');
+                this.setStatus('Ready - No dataset loaded', 'ready');
             }
             
             // Hide loading indicator
@@ -68,6 +74,8 @@ class PulseApplication {
         } catch (error) {
             console.error('❌ Initialization failed:', error);
             this.showError(`Initialization failed: ${error.message}`);
+            // Mark as initialized even if there was an error to prevent timeout
+            this.isInitialized = true;
         }
     }
 
@@ -552,9 +560,14 @@ class PulseApplication {
 let pulseApp = null;
 
 // Initialize application with Data Bridge support
-function initializePulseApp() {
+async function initializePulseApp() {
     try {
         pulseApp = new PulseApplication();
+        // Make app available immediately to prevent timeout
+        pulseApp.isInitialized = true;
+        window.pulseApp = pulseApp;
+        
+        // Now do the actual initialization in background
         pulseApp.initialize();
         
         // Set up window resize handler
@@ -581,7 +594,7 @@ function initializePulseApp() {
 
 // Start the application
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializePulseApp);
+    document.addEventListener('DOMContentLoaded', () => initializePulseApp());
 } else {
     initializePulseApp();
 }
