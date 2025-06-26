@@ -2461,34 +2461,6 @@ class PulseSankeyChart {
         }
     }
 
-    wrapText(text, maxLength = 15) {
-        if (text.length <= maxLength) return [text];
-        
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = '';
-        
-        words.forEach(word => {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            
-            if (testLine.length <= maxLength) {
-                currentLine = testLine;
-            } else {
-                if (currentLine) {
-                    lines.push(currentLine);
-                    currentLine = word.length > maxLength ? word.substring(0, maxLength - 3) + '...' : word;
-                } else {
-                    lines.push(word.length > maxLength ? word.substring(0, maxLength - 3) + '...' : word);
-                }
-            }
-        });
-        
-        if (currentLine) {
-            lines.push(currentLine);
-        }
-        
-        return lines;
-    }
 
 
     // Format currency value with optional margin percentage
@@ -2642,7 +2614,7 @@ class PulseSankeyChart {
         // NEW: Pre-revenue links use SOURCE color (revenue segment logic)
         if (this.isPreRevenueLink(link)) {
             const sourceColor = this.getNodeColor(link.source);
-            return this.lightenColor(sourceColor, 15);
+            return ChartUtils.lightenColor(sourceColor, 15);
         }
         
         // Existing logic: Post-revenue links use TARGET color
@@ -2654,7 +2626,7 @@ class PulseSankeyChart {
         }
         
         const targetColor = this.getColorByCategory(effectiveCategory);
-        return this.lightenColor(targetColor, 15);
+        return ChartUtils.lightenColor(targetColor, 15);
     }
 
     getLinkColor_Balance(link) {
@@ -2687,7 +2659,7 @@ class PulseSankeyChart {
         if (isFromTotalAssets || isToTotalAssets) {
             return baseColor;
         } else {
-            return this.hexToRgba(baseColor, 0.65);
+            return ChartUtils.hexToRgba(baseColor, 0.65);
         }
     }
 
@@ -2706,16 +2678,6 @@ class PulseSankeyChart {
         return defaultColors[category] || '#6b7280';
     }
 
-    lightenColor(hex, percent) {
-        const num = parseInt(hex.replace("#", ""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = (num >> 16) + amt;
-        const G = (num >> 8 & 0x00FF) + amt;
-        const B = (num & 0x0000FF) + amt;
-        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
-    }
 
     // Balance sheet specific methods
     detectStatementType(data) {
@@ -2958,11 +2920,11 @@ class PulseSankeyChart {
             if (colorGroup.isParentGroup) {
                 return baseColor;
             } else {
-                return this.hexToRgba(baseColor, 0.65);
+                return ChartUtils.hexToRgba(baseColor, 0.65);
             }
         }
         
-        return this.hexToRgba(baseColor, opacity);
+        return ChartUtils.hexToRgba(baseColor, opacity);
     }
 
     getHierarchicalOpacity(nodeId) {
@@ -2993,16 +2955,6 @@ class PulseSankeyChart {
         }
     }
 
-    hexToRgba(hex, opacity) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        if (!result) return hex;
-        
-        const r = parseInt(result[1], 16);
-        const g = parseInt(result[2], 16);
-        const b = parseInt(result[3], 16);
-        
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    }
 
     /**
      * Get full opacity color for text labels (always 100% opacity)
