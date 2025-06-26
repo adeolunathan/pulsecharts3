@@ -274,5 +274,6 @@
 
     // Debug: Confirm ChartColorPicker is loaded
     console.log('✅ ChartColorPicker utility loaded successfully');
+    console.log('🔍 d3 available:', typeof d3);
 
 })();

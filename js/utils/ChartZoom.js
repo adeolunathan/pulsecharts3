@@ -207,5 +207,6 @@
 
     // Debug: Confirm ChartZoom is loaded
     console.log('✅ ChartZoom utility loaded successfully');
+    console.log('🔍 d3 available:', typeof d3);
 
 })();

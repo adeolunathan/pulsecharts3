@@ -13,6 +13,16 @@
     <script src="js/utils/ChartZoom.js"></script>
     <!-- Load ChartColorPicker early to ensure availability -->
     <script src="js/utils/ChartColorPicker.js"></script>
+    <!-- Load ChartBrandingUtils early to ensure availability -->
+    <script src="js/utils/ChartBrandingUtils.js"></script>
+    
+    <!-- Debug: Check if utilities loaded -->
+    <script>
+        console.log('🔍 Checking utility availability:');
+        console.log('- ChartZoom:', typeof window.ChartZoom);
+        console.log('- ChartColorPicker:', typeof window.ChartColorPicker);
+        console.log('- ChartBrandingUtils:', typeof window.ChartBrandingUtils);
+    </script>
     
     <!-- Google Fonts for Title Font Control -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
