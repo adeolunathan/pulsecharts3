@@ -130,6 +130,52 @@ class PulseSankeyChart {
         this.initializeColorPicker();
     }
 
+    // Initialize color picker with chart-specific callback
+    initializeColorPicker() {
+        if (window.ChartColorPicker && window.ChartColorPicker.initializeColorPicker) {
+            // Create callback that handles both node and link color updates
+            const colorUpdateCallback = (elementData, newColor, element) => {
+                if (elementData.id) {
+                    // Node color update
+                    this.updateNodeColor(elementData, newColor);
+                } else if (elementData.source && elementData.target) {
+                    // Link color update
+                    this.updateLinkColor(elementData, newColor);
+                }
+            };
+            
+            ChartColorPicker.initializeColorPicker.call(this, colorUpdateCallback);
+        } else {
+            console.warn('⚠️ ChartColorPicker utility not available, using fallback implementation');
+            this.initializeColorPickerFallback();
+        }
+    }
+
+    // Wrapper methods for compatibility with both ChartColorPicker and fallback
+    showColorPicker(element, currentColor) {
+        if (window.ChartColorPicker && window.ChartColorPicker.showColorPicker) {
+            ChartColorPicker.showColorPicker.call(this, element, currentColor);
+        } else {
+            this.showColorPickerFallback(element, currentColor);
+        }
+    }
+
+    hideColorPicker() {
+        if (window.ChartColorPicker && window.ChartColorPicker.hideColorPicker) {
+            ChartColorPicker.hideColorPicker.call(this);
+        } else {
+            this.hideColorPickerFallback();
+        }
+    }
+
+    showOpacityPicker(element, currentOpacity, onApply, position = null) {
+        if (window.ChartColorPicker && window.ChartColorPicker.showOpacityPicker) {
+            ChartColorPicker.showOpacityPicker.call(this, element, currentOpacity, onApply, position);
+        } else {
+            this.showOpacityPickerFallback(element, currentOpacity, onApply, position);
+        }
+    }
+
     // Fallback basic zoom initialization if ChartZoom utility is not available
     initializeBasicZoom() {
         console.warn('⚠️ Using fallback basic zoom implementation');
@@ -236,234 +282,39 @@ class PulseSankeyChart {
             .attr('class', 'pulse-sankey-tooltip');
     }
 
-    initializeColorPicker() {
-        // Remove existing color picker
-        d3.select('.color-picker-modal').remove();
-        
-        // Create color picker modal
-        this.colorPicker = d3.select('body')
-            .append('div')
-            .attr('class', 'color-picker-modal')
-            .style('position', 'fixed')
-            .style('top', '50%')
-            .style('left', '50%')
-            .style('transform', 'translate(-50%, -50%)')
-            .style('width', '160px')
-            .style('background', 'white')
-            .style('border-radius', '6px')
-            .style('box-shadow', '0 8px 32px rgba(0,0,0,0.12)')
-            .style('z-index', '1000')
-            .style('display', 'none')
-            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-            .style('padding', '8px')
-            .style('border', '1px solid rgba(0,0,0,0.08)');
-
-        // Close button (absolute positioned to avoid interference)
-        this.colorPicker.append('button')
-            .text('×')
-            .style('position', 'absolute')
-            .style('top', '-8px')
-            .style('right', '-8px')
-            .style('width', '20px')
-            .style('height', '20px')
-            .style('background', 'white')
-            .style('border', '1px solid #ddd')
-            .style('border-radius', '50%')
-            .style('font-size', '12px')
-            .style('cursor', 'pointer')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('justify-content', 'center')
-            .style('color', '#666')
-            .style('box-shadow', '0 2px 8px rgba(0,0,0,0.1)')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#f8f9fa');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', 'white');
-            })
-            .on('click', () => this.hideColorPicker());
-
-        // Native color picker
-        const colorInput = this.colorPicker.append('input')
-            .attr('type', 'color')
-            .attr('id', 'color-picker-input')
-            .style('width', '100%')
-            .style('height', '28px')
-            .style('border', '1px solid #ddd')
-            .style('border-radius', '3px')
-            .style('cursor', 'pointer')
-            .style('margin-bottom', '8px');
-
-        const presetColors = [
-            '#3498db', '#2BA02D', '#CC0100', 
-            '#CC0100', '#9b59b6', '#34495e'
-        ];
-
-        // Horizontal preset row
-        const presetRow = this.colorPicker.append('div')
-            .style('display', 'flex')
-            .style('gap', '4px')
-            .style('margin-bottom', '8px');
-
-        presetColors.forEach(color => {
-            presetRow.append('div')
-                .style('width', '20px')
-                .style('height', '20px')
-                .style('background', color)
-                .style('border', '1px solid rgba(0,0,0,0.1)')
-                .style('border-radius', '2px')
-                .style('cursor', 'pointer')
-                .style('transition', 'all 0.15s ease')
-                .on('mouseover', function() {
-                    d3.select(this)
-                        .style('transform', 'scale(1.15)')
-                        .style('border-color', '#333');
-                })
-                .on('mouseout', function() {
-                    d3.select(this)
-                        .style('transform', 'scale(1)')
-                        .style('border-color', 'rgba(0,0,0,0.1)');
-                })
-                .on('click', () => {
-                    colorInput.property('value', color);
-                });
-        });
-
-        // Apply button
-        this.colorPicker.append('button')
-            .text('Apply')
-            .style('width', '100%')
-            .style('padding', '6px')
-            .style('background', '#3498db')
-            .style('color', 'white')
-            .style('border', 'none')
-            .style('border-radius', '3px')
-            .style('font-size', '12px')
-            .style('font-weight', '500')
-            .style('cursor', 'pointer')
-            .style('transition', 'background 0.15s ease')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#2980b9');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', '#3498db');
-            })
-            .on('click', () => this.applySelectedColor());
+    // Fallback color picker implementations (simplified versions)
+    initializeColorPickerFallback() {
+        console.warn('⚠️ Using fallback color picker implementation');
+        // Basic fallback - you could implement a simpler version here if needed
+        this.colorPicker = null;
     }
 
-    showColorPicker(element, currentColor) {
-        this.selectedElement = element;
-        this.isColorPickerActive = true;
-        
-        this.colorPicker.select('#color-picker-input')
-            .property('value', currentColor || '#3498db');
-        
-        this.colorPicker.style('display', 'block');
-    }
-
-    hideColorPicker() {
-        this.isColorPickerActive = false;
-        this.selectedElement = null;
-        this.colorPicker.style('display', 'none');
-    }
-
-    showOpacityPicker(element, currentOpacity, onApply, position = null) {
-        // Remove existing opacity picker
-        d3.select('.opacity-picker-modal').remove();
-        
-        // Determine position
-        let left = '50%';
-        let top = '50%';
-        let transform = 'translate(-50%, -50%)';
-        
-        if (position) {
-            left = (position.x + 20) + 'px';
-            top = (position.y - 50) + 'px';
-            transform = 'none';
-        }
-        
-        // Create simplified opacity picker modal
-        const opacityPicker = d3.select('body')
-            .append('div')
-            .attr('class', 'opacity-picker-modal')
-            .style('position', 'fixed')
-            .style('top', top)
-            .style('left', left)
-            .style('transform', transform)
-            .style('width', '160px')
-            .style('background', 'white')
-            .style('border-radius', '8px')
-            .style('box-shadow', '0 8px 32px rgba(0,0,0,0.15)')
-            .style('z-index', '1000')
-            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-            .style('padding', '12px')
-            .style('border', '1px solid rgba(0,0,0,0.08)');
-
-        // Simple title
-        opacityPicker.append('div')
-            .text('Opacity')
-            .style('font-weight', '600')
-            .style('font-size', '14px')
-            .style('color', '#374151')
-            .style('margin-bottom', '12px')
-            .style('text-align', 'center');
-
-        // Range slider
-        const opacitySlider = opacityPicker.append('input')
-            .attr('type', 'range')
-            .attr('min', '0.1')
-            .attr('max', '1')
-            .attr('step', '0.05')
-            .attr('value', currentOpacity)
-            .style('width', '100%')
-            .style('margin-bottom', '8px');
-
-        // Value display
-        const valueDisplay = opacityPicker.append('div')
-            .style('text-align', 'center')
-            .style('font-size', '12px')
-            .style('color', '#6b7280')
-            .style('margin-bottom', '12px')
-            .text(`${Math.round(currentOpacity * 100)}%`);
-
-        // Update value display on slider change
-        opacitySlider.on('input', function() {
-            const value = parseFloat(this.value);
-            valueDisplay.text(`${Math.round(value * 100)}%`);
-            // Apply immediately for real-time preview
-            onApply(value);
-        });
-
-        // Close when clicking outside
-        const closeOnOutsideClick = (event) => {
-            if (!opacityPicker.node().contains(event.target)) {
-                opacityPicker.remove();
-                document.removeEventListener('click', closeOnOutsideClick);
+    showColorPickerFallback(element, currentColor) {
+        // Simple fallback using native color input
+        const color = prompt('Enter color (hex format):', currentColor || '#3498db');
+        if (color) {
+            const elementData = d3.select(element).datum();
+            if (elementData.id) {
+                this.updateNodeColor(elementData, color);
+            } else if (elementData.source && elementData.target) {
+                this.updateLinkColor(elementData, color);
             }
-        };
-        
-        // Add delay to prevent immediate closing
-        setTimeout(() => {
-            document.addEventListener('click', closeOnOutsideClick);
-        }, 100);
+        }
     }
 
-    applySelectedColor() {
-        if (!this.selectedElement) return;
-        
-        const newColor = this.colorPicker.select('#color-picker-input').property('value');
-        const elementData = d3.select(this.selectedElement).datum();
-        
-        if (elementData.id) {
-            // Node color update
-            this.updateNodeColor(elementData, newColor);
-        } else if (elementData.source && elementData.target) {
-            // Link color update (if needed)
-            this.updateLinkColor(elementData, newColor);
+    hideColorPickerFallback() {
+        // No-op for fallback
+    }
+
+    showOpacityPickerFallback(element, currentOpacity, onApply, position = null) {
+        // Simple fallback using native prompt
+        const opacity = prompt('Enter opacity (0.0 to 1.0):', currentOpacity);
+        if (opacity !== null) {
+            const value = parseFloat(opacity);
+            if (!isNaN(value) && value >= 0 && value <= 1) {
+                onApply(value);
+            }
         }
-        
-        this.hideColorPicker();
     }
 
     updateNodeColor(node, color) {
