@@ -3371,22 +3371,7 @@ class PulseSankeyChart {
     }
 
     generateFileName(extension = 'png') {
-        const metadata = this.data?.metadata || {};
-        
-        let company = metadata.company || metadata.title || 'Chart';
-        company = company.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
-        
-        let period = metadata.period || 'Period';
-        period = period.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 10);
-        
-        const now = new Date();
-        const timestamp = now.getFullYear().toString() +
-                         (now.getMonth() + 1).toString().padStart(2, '0') +
-                         now.getDate().toString().padStart(2, '0') + '-' +
-                         now.getHours().toString().padStart(2, '0') +
-                         now.getMinutes().toString().padStart(2, '0');
-        
-        return `${company}_${period}_${timestamp}.${extension}`;
+        return ChartExports.generateFileName.call(this, extension);
     }
 
     // Chart-specific color management methods
@@ -3584,51 +3569,17 @@ class PulseSankeyChart {
         return sankeyData;
     }
 
-    // Export methods using ExportUtils for consistency across all charts
+    // Export methods using ChartExports for consistency across all charts
     exportToPNG() {
-        const filename = this.generateFileName('png');
-        const options = {
-            scale: 2,
-            quality: 0.95,
-            backgroundColor: this.config.backgroundColor // Match the chart background
-        };
-        
-        if (window.ExportUtils) {
-            window.ExportUtils.exportToPNG(this.svg, filename, options);
-        } else {
-            console.error('ExportUtils not loaded');
-            alert('Export functionality not available. Please ensure ExportUtils.js is loaded.');
-        }
+        return ChartExports.exportToPNG.call(this);
     }
 
     exportToSVG() {
-        const filename = this.generateFileName('svg');
-        const options = {
-            includeStyles: true,
-            backgroundColor: this.config.backgroundColor // Match the chart background
-        };
-        
-        if (window.ExportUtils) {
-            window.ExportUtils.exportToSVG(this.svg, filename, options);
-        } else {
-            console.error('ExportUtils not loaded');
-            alert('Export functionality not available. Please ensure ExportUtils.js is loaded.');
-        }
+        return ChartExports.exportToSVG.call(this);
     }
 
     exportDataToCSV(data) {
-        const filename = this.generateFileName('csv');
-        const options = {
-            includeHeaders: true,
-            includeMetadata: true
-        };
-        
-        if (window.ExportUtils) {
-            window.ExportUtils.exportDataToCSV(data, filename, options);
-        } else {
-            console.error('ExportUtils not loaded');
-            alert('Export functionality not available. Please ensure ExportUtils.js is loaded.');
-        }
+        return ChartExports.exportDataToCSV.call(this, data);
     }
 
     // Clear brand logo
