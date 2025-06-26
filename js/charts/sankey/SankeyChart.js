@@ -2469,13 +2469,37 @@ class PulseSankeyChart {
 
 
     // Balance sheet specific methods
-    // Fallback method when FinancialDataProcessor is not available
+    // Fallback methods when FinancialDataProcessor is not available
     detectStatementTypeFallback(data) {
         console.warn('⚠️ Using fallback statement type detection');
         this.statementType = 'income';
         if (data && data.metadata && data.metadata.statementType) {
             this.statementType = data.metadata.statementType;
         }
+    }
+
+    detectRevenueHubFallback() {
+        console.warn('⚠️ detectRevenueHub() has been moved to FinancialDataProcessor - using fallback');
+        this.revenueHubNode = null;
+        this.revenueHubLayer = 1;
+    }
+
+    calculateFinancialMetricsFallback() {
+        console.warn('⚠️ calculateFinancialMetrics() has been moved to FinancialDataProcessor - using fallback');
+        // Basic fallback - just ensure required properties exist
+        if (this.nodes) {
+            this.nodes.forEach(node => {
+                if (!node.marginPercentage) node.marginPercentage = 'N/A';
+                if (!node.marginType) node.marginType = 'Margin';
+                if (!node.percentageOfRevenue) node.percentageOfRevenue = 0;
+                node.isExpenseType = node.category === 'expense';
+            });
+        }
+    }
+
+    getRevenueSegmentNodesFallback() {
+        console.warn('⚠️ getRevenueSegmentNodes() has been moved to FinancialDataProcessor - using fallback');
+        return [];
     }
 
     assignColorGroups() {
