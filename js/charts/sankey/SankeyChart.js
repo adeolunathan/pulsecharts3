@@ -117,18 +117,23 @@ class PulseSankeyChart {
             .attr('transform', `translate(${this.config.margin.left}, ${this.config.margin.top})`);
 
         // Initialize zoom and pan functionality
-        this.initializeZoomPan();
+        // Initialize zoom with fallback check
+        if (window.ChartZoom && window.ChartZoom.initializeZoomPan) {
+            ChartZoom.initializeZoomPan.call(this);
+        } else {
+            console.error('❌ ChartZoom utility not available. Please ensure ChartZoom.js is loaded before SankeyChart.js');
+            // Fallback: create basic zoom without ChartZoom utility
+            this.initializeBasicZoom();
+        }
 
         this.createTooltip();
         this.initializeColorPicker();
     }
 
-
-
-
-
-
-    initializeZoomPan() {
+    // Fallback basic zoom initialization if ChartZoom utility is not available
+    initializeBasicZoom() {
+        console.warn('⚠️ Using fallback basic zoom implementation');
+        
         // Initialize zoom and pan state if not already set
         if (!this.zoomState) {
             this.zoomState = {
@@ -153,7 +158,7 @@ class PulseSankeyChart {
                 this.zoomContainer.attr('transform', transform);
                 
                 // Update zoom slider if it exists
-                this.updateZoomSlider(transform.k);
+                this.updateZoomSliderFallback(transform.k);
                 
                 // Optionally emit zoom event for external handlers
                 if (this.onZoomChange) {
@@ -163,128 +168,65 @@ class PulseSankeyChart {
 
         // Apply zoom behavior to SVG
         this.svg.call(this.zoom);
-
-        // Set initial transform if we have saved state
-        if (this.zoomState.k !== 1 || this.zoomState.x !== 0 || this.zoomState.y !== 0) {
-            this.svg.call(
-                this.zoom.transform,
-                d3.zoomIdentity
-                    .translate(this.zoomState.x, this.zoomState.y)
-                    .scale(this.zoomState.k)
-            );
-        }
     }
 
-    // Reset zoom and pan to default position
-    resetZoom() {
-        this.zoomState = { k: 1, x: 0, y: 0 };
-        this.svg.transition()
-            .duration(500)
-            .call(
-                this.zoom.transform,
-                d3.zoomIdentity
-            );
-    }
-
-    // Zoom in by a factor
-    zoomIn(factor = 1.5) {
-        this.svg.transition()
-            .duration(300)
-            .call(
-                this.zoom.scaleBy,
-                factor
-            );
-    }
-
-    // Zoom out by a factor  
-    zoomOut(factor = 1.5) {
-        this.svg.transition()
-            .duration(300)
-            .call(
-                this.zoom.scaleBy,
-                1 / factor
-            );
-    }
-
-    // Fit chart to view and center it
-    fitToView() {
-        // Get the actual chart content bounds (from the zoom container)
-        const bounds = this.zoomContainer.node().getBBox();
-        const svgRect = this.svg.node().getBoundingClientRect();
-        const containerWidth = svgRect.width;
-        const containerHeight = svgRect.height;
-        
-        if (bounds.width === 0 || bounds.height === 0) return;
-        
-        // Calculate optimal scale to fit chart with padding
-        const scale = Math.min(
-            (containerWidth * 0.9) / bounds.width,  // 90% of container width
-            (containerHeight * 0.9) / bounds.height // 90% of container height
-        );
-        
-        // Calculate the chart's center point in its own coordinate system
-        const chartCenterX = bounds.x + bounds.width / 2;
-        const chartCenterY = bounds.y + bounds.height / 2;
-        
-        // Calculate translation to center the chart in the container
-        const translateX = containerWidth / 2 - scale * chartCenterX;
-        const translateY = containerHeight / 2 - scale * chartCenterY;
-        
-        // Apply the transform with smooth transition
-        this.svg.transition()
-            .duration(750)
-            .call(
-                this.zoom.transform,
-                d3.zoomIdentity
-                    .translate(translateX, translateY)
-                    .scale(scale)
-            );
-            
-        console.log(`🎯 Fit to view: scale=${scale.toFixed(2)}, translate=(${translateX.toFixed(1)}, ${translateY.toFixed(1)})`);
-    }
-
-    // Set zoom level from slider (0.1 to 5.0)
-    setZoomLevel(zoomLevel) {
-        // Get current center point of the visible area
-        const svgRect = this.svg.node().getBoundingClientRect();
-        const centerX = svgRect.width / 2;
-        const centerY = svgRect.height / 2;
-        
-        // Get current transform
-        const currentTransform = d3.zoomTransform(this.svg.node());
-        
-        // Calculate the point in chart coordinates that corresponds to the center
-        const chartCenterX = (centerX - currentTransform.x) / currentTransform.k;
-        const chartCenterY = (centerY - currentTransform.y) / currentTransform.k;
-        
-        // Calculate new translation to keep the same center point
-        const newTranslateX = centerX - zoomLevel * chartCenterX;
-        const newTranslateY = centerY - zoomLevel * chartCenterY;
-        
-        this.svg.transition()
-            .duration(200)
-            .call(
-                this.zoom.transform,
-                d3.zoomIdentity
-                    .translate(newTranslateX, newTranslateY)
-                    .scale(zoomLevel)
-            );
-    }
-
-    // Update zoom slider to match current zoom level
-    updateZoomSlider(zoomLevel) {
-        // Find the zoom level slider and update its value
+    // Fallback zoom slider update
+    updateZoomSliderFallback(zoomLevel) {
         const zoomSlider = document.querySelector('input[data-control-id="zoomLevel"]');
         if (zoomSlider) {
             zoomSlider.value = zoomLevel;
-            
-            // Update the display value if it exists
             const valueDisplay = document.querySelector('.control-value[data-control-id="zoomLevel"]');
             if (valueDisplay) {
                 valueDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
             }
         }
     }
+
+    // Fallback zoom methods for compatibility
+    resetZoom() {
+        if (window.ChartZoom && window.ChartZoom.resetZoom) {
+            ChartZoom.resetZoom.call(this);
+        } else {
+            this.zoomState = { k: 1, x: 0, y: 0 };
+            this.svg.transition()
+                .duration(500)
+                .call(
+                    this.zoom.transform,
+                    d3.zoomIdentity
+                );
+        }
+    }
+
+    setZoomLevel(zoomLevel) {
+        if (window.ChartZoom && window.ChartZoom.setZoomLevel) {
+            ChartZoom.setZoomLevel.call(this, zoomLevel);
+        } else {
+            // Fallback implementation
+            const svgRect = this.svg.node().getBoundingClientRect();
+            const centerX = svgRect.width / 2;
+            const centerY = svgRect.height / 2;
+            const currentTransform = d3.zoomTransform(this.svg.node());
+            const chartCenterX = (centerX - currentTransform.x) / currentTransform.k;
+            const chartCenterY = (centerY - currentTransform.y) / currentTransform.k;
+            const newTranslateX = centerX - zoomLevel * chartCenterX;
+            const newTranslateY = centerY - zoomLevel * chartCenterY;
+            
+            this.svg.transition()
+                .duration(200)
+                .call(
+                    this.zoom.transform,
+                    d3.zoomIdentity
+                        .translate(newTranslateX, newTranslateY)
+                        .scale(zoomLevel)
+                );
+        }
+    }
+
+
+
+
+
+
 
     createTooltip() {
         d3.select('.pulse-sankey-tooltip').remove();

@@ -796,13 +796,16 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle zoomLevel slider with special setZoomLevel method
+        // Handle zoomLevel slider with ChartZoom utility or fallback
         if (controlId === 'zoomLevel') {
-            if (chart.setZoomLevel && typeof chart.setZoomLevel === 'function') {
+            if (window.ChartZoom && window.ChartZoom.setZoomLevel) {
+                ChartZoom.setZoomLevel.call(chart, value);
+                console.log(`🔍 Set zoom level to ${value}x via ChartZoom.setZoomLevel method`);
+            } else if (chart.setZoomLevel && typeof chart.setZoomLevel === 'function') {
                 chart.setZoomLevel(value);
-                console.log(`🔍 Set zoom level to ${value}x via setZoomLevel method`);
+                console.log(`🔍 Set zoom level to ${value}x via chart.setZoomLevel method`);
             } else {
-                console.warn('⚠️ Chart does not have setZoomLevel method, falling back to updateConfig');
+                console.warn('⚠️ No zoom level method available, falling back to updateConfig');
                 chart.updateConfig({ zoomLevel: value });
             }
             return;

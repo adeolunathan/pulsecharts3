@@ -505,7 +505,18 @@ class PulseControlPanel {
                     .style('box-shadow', 'none');
             })
             .on('click', () => {
-                if (config.action && this.chart && typeof this.chart[config.action] === 'function') {
+                if (config.action === 'resetZoom') {
+                    // Use ChartZoom utility for resetZoom action with fallback
+                    if (window.ChartZoom && window.ChartZoom.resetZoom) {
+                        ChartZoom.resetZoom.call(this.chart);
+                        console.log(`🔘 Button action executed: ${config.action} via ChartZoom`);
+                    } else if (this.chart && typeof this.chart.resetZoom === 'function') {
+                        this.chart.resetZoom();
+                        console.log(`🔘 Button action executed: ${config.action} via chart method`);
+                    } else {
+                        console.warn('No resetZoom method available');
+                    }
+                } else if (config.action && this.chart && typeof this.chart[config.action] === 'function') {
                     // Call the action method on the chart
                     this.chart[config.action]();
                     console.log(`🔘 Button action executed: ${config.action}`);
