@@ -21,6 +21,12 @@ class PulseApplication {
                 chartClass: PulseSankeyChart,
                 controlModuleClass: SankeyControlModule,
                 description: 'Financial flow visualization'
+            },
+            bar: {
+                name: 'Bar Chart',
+                chartClass: PulseBarChart,
+                controlModuleClass: BarControlModule,
+                description: 'Categorical data visualization'
             }
         };
         
