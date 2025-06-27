@@ -631,4 +631,51 @@ class PulseBarChart {
         console.log('📁 Using CSV export fallback implementation');
         // Basic CSV export
     }
+
+    // Configuration management methods required by controls
+    updateConfig(newConfig) {
+        console.log('🔧 Updating bar chart configuration:', newConfig);
+        this.config = { ...this.config, ...newConfig };
+        
+        // Apply background color immediately if changed
+        if (newConfig.backgroundColor && this.svg) {
+            this.svg.style('background-color', newConfig.backgroundColor);
+        }
+        
+        // Re-render if data exists and significant changes were made
+        const significantChanges = ['orientation', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis', 'colorScheme'];
+        const hasSignificantChange = significantChanges.some(key => newConfig.hasOwnProperty(key));
+        
+        if (hasSignificantChange && this.data) {
+            console.log('🔄 Re-rendering bar chart due to significant config changes');
+            this.render();
+        }
+    }
+
+    getInitialConfig() {
+        return BarChartConfig.getInitialConfig();
+    }
+
+    setCustomColors(colors) {
+        console.log('🎨 Setting custom colors for bar chart:', colors);
+        this.customColors = { ...this.customColors, ...colors };
+        
+        // Update existing bars if rendered
+        if (this.chart && this.data) {
+            this.chart.selectAll('.bar')
+                .transition()
+                .duration(300)
+                .attr('fill', (d, i) => {
+                    return this.customColors[d.category] || this.getBarColors()[i % this.getBarColors().length];
+                });
+        }
+    }
+
+    // Get bar colors (used by controls)
+    getBarColors() {
+        if (this.config.customColors && this.config.customColors.length > 0) {
+            return this.config.customColors;
+        }
+        return BarChartConfig.getColorScheme(this.config.colorScheme);
+    }
 }

@@ -104,19 +104,19 @@ class BarControlModule {
                 controls: [
                     {
                         id: "showXAxis",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Show X Axis",
                         default: true
                     },
                     {
                         id: "showYAxis",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Show Y Axis",
                         default: true
                     },
                     {
                         id: "showGrid",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Show Grid Lines",
                         default: true
                     },
@@ -153,13 +153,13 @@ class BarControlModule {
                 controls: [
                     {
                         id: "showBarLabels",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Show Bar Labels",
                         default: true
                     },
                     {
                         id: "showValues",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Show Values",
                         default: true
                     },
@@ -252,19 +252,19 @@ class BarControlModule {
                 controls: [
                     {
                         id: "enableHover",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Enable Hover Effects",
                         default: true
                     },
                     {
                         id: "enableClick",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Enable Click to Color",
                         default: true
                     },
                     {
                         id: "enableTooltip",
-                        type: "checkbox",
+                        type: "toggle",
                         label: "Show Tooltips",
                         default: true
                     },
@@ -473,8 +473,8 @@ class BarControlModule {
         console.log('✅ Dynamic bar colors populated:', this.capabilities.colors.controls.length, 'colors');
     }
 
-    // Apply control changes to the chart
-    applyControlChange(controlId, value, chart) {
+    // Handle control changes (required by ControlPanel)
+    handleControlChange(controlId, value, chart) {
         if (!chart) {
             console.warn('⚠️ No chart reference available for control change');
             return;
@@ -500,6 +500,26 @@ class BarControlModule {
             }
         }
 
+        // Handle color picker controls
+        if (controlId.endsWith('Color') && !controlId.startsWith('barColor_')) {
+            // Update chart configuration
+            chart.config[controlId] = value;
+            
+            // Handle specific color types
+            if (controlId === 'backgroundColor') {
+                chart.svg.style('background-color', value);
+            } else if (controlId === 'titleColor') {
+                chart.svg.selectAll('text').style('fill', value);
+            } else if (controlId === 'labelColor') {
+                chart.chart.selectAll('.bar-label').style('fill', value);
+            } else if (controlId === 'axisColor') {
+                chart.svg.selectAll('.x-axis, .y-axis').selectAll('path, line, text').style('stroke', value).style('fill', value);
+            } else if (controlId === 'gridColor') {
+                chart.chart.selectAll('.grid line').style('stroke', value);
+            }
+            return;
+        }
+
         // Update chart configuration
         chart.config[controlId] = value;
 
@@ -509,21 +529,10 @@ class BarControlModule {
             chart.render();
         }
         
-        // Handle background color changes
-        else if (controlId === 'backgroundColor') {
-            chart.svg.style('background-color', value);
-        }
-        
         // Handle font changes
         else if (controlId === 'titleFont') {
             chart.svg.selectAll('text')
                 .style('font-family', chart.getFontFamily());
-        }
-        
-        // Handle title color changes
-        else if (controlId === 'titleColor') {
-            chart.svg.selectAll('text')
-                .style('fill', value);
         }
         
         // Handle global font size changes
@@ -549,6 +558,124 @@ class BarControlModule {
         }
 
         console.log(`✅ Applied bar chart control: ${controlId}`);
+    }
+
+    // Legacy method name for backwards compatibility
+    applyControlChange(controlId, value, chart) {
+        return this.handleControlChange(controlId, value, chart);
+    }
+
+    // Get current value for a control (required by ControlPanel)
+    getCurrentValue(controlId, chart) {
+        // Handle bar-specific color controls
+        if (controlId.startsWith('barColor_')) {
+            const colorControl = this.capabilities.colors.controls.find(c => c.id === controlId);
+            if (colorControl && colorControl.category) {
+                return chart.customColors[colorControl.category] || this.getDefaultBarColor(colorControl.category);
+            }
+        }
+
+        // Handle color picker controls
+        if (controlId.endsWith('Color')) {
+            if (chart && chart.config && chart.config[controlId] !== undefined) {
+                return chart.config[controlId];
+            }
+            // Return default from capabilities
+            const control = this.findControlById(controlId);
+            return control ? control.default : '#000000';
+        }
+
+        // Handle standard controls
+        if (chart && chart.config && chart.config[controlId] !== undefined) {
+            return chart.config[controlId];
+        }
+
+        // Fallback to default from capabilities
+        const control = this.findControlById(controlId);
+        return control ? control.default : 0;
+    }
+
+    // Find control definition by ID
+    findControlById(controlId) {
+        for (const section of Object.values(this.capabilities)) {
+            if (section.controls && Array.isArray(section.controls)) {
+                const control = section.controls.find(c => c.id === controlId);
+                if (control) return control;
+            }
+        }
+        return null;
+    }
+
+    // Get default color for a bar category
+    getDefaultBarColor(category) {
+        const colors = this.getDefaultBarColors();
+        // Simple hash function to assign consistent colors to categories
+        const hash = Array.from(category).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[hash % colors.length];
+    }
+
+    // Get default color palette for bars
+    getDefaultBarColors() {
+        return ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#34495e', '#e67e22'];
+    }
+
+    // Apply color preset (required by ControlPanel)
+    applyColorPreset(chart, presetName) {
+        if (!chart || !chart.data) {
+            console.warn('Cannot apply color preset - no chart or data available');
+            return;
+        }
+
+        console.log(`🎨 Applying ${presetName} color preset to bar chart`);
+
+        let colors = [];
+        switch (presetName) {
+            case 'vibrant':
+                colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe'];
+                break;
+            case 'monochrome':
+                colors = ['#2c3e50', '#7f8c8d', '#34495e', '#95a5a6', '#2c3e50', '#bdc3c7'];
+                break;
+            case 'professional':
+                colors = ['#2c3e50', '#95a5a6', '#27ae60', '#e67e22', '#3498db', '#9b59b6'];
+                break;
+            default:
+                colors = this.getDefaultBarColors();
+        }
+
+        // Apply colors to bars
+        chart.data.forEach((barData, index) => {
+            chart.customColors[barData.category] = colors[index % colors.length];
+        });
+
+        // Update dynamic color tracking
+        this.dynamicColors.clear();
+        chart.data.forEach((barData, index) => {
+            this.dynamicColors.set(barData.category, colors[index % colors.length]);
+        });
+
+        // Re-render chart with new colors
+        chart.render();
+    }
+
+    // Randomize colors (required by ControlPanel)
+    randomizeColors(chart) {
+        if (!chart || !chart.data) {
+            console.warn('Cannot randomize colors - no chart or data available');
+            return;
+        }
+
+        console.log('🎲 Randomizing bar chart colors');
+
+        // Generate random colors for each bar
+        chart.data.forEach(barData => {
+            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            chart.customColors[barData.category] = randomColor;
+            this.dynamicColors.set(barData.category, randomColor);
+        });
+
+        // Re-render chart with new colors
+        chart.render();
     }
 
     // Get capabilities for the control panel
