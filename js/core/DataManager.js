@@ -18,10 +18,14 @@ class PulseDataManager {
                 name: 'Retail Chain',
                 file: 'data/samples/retail-chain.json',
                 description: 'Retail business financial structure'
+            },
+            'bar-chart-sample': {
+                name: 'Bar Chart Sample Data',
+                file: 'data/samples/bar-chart-sample.json',
+                description: 'Sample bar chart data with 5 categories'
             }
         };
         this.cache = new Map();
-        this.simulationMode = false;
     }
 
     async loadDataset(key) {
@@ -55,78 +59,11 @@ class PulseDataManager {
             return data;
             
         } catch (error) {
-            console.error(`❌ Failed to load external file: ${error.message}`);
-            
-            // Check if we're in a restricted environment
-            if (error.message.includes('fetch') || error.message.includes('CORS') || error.message.includes('file://')) {
-                console.warn('🚧 External file loading not available in this environment');
-                console.warn('💡 In production, files would be loaded from: ' + datasetInfo.file);
-                
-                // Offer simulation mode for demo
-                if (confirm(`Cannot load external files in this environment.\n\nWould you like to simulate loading from ${datasetInfo.file} for demo purposes?\n\n(In production, this would load the actual external file)`)) {
-                    return this.simulateExternalLoad(key);
-                }
-            }
-            
+            console.error(`❌ Failed to load dataset '${key}' from ${datasetInfo.file}: ${error.message}`);
             throw new Error(`Failed to load dataset '${key}' from ${datasetInfo.file}: ${error.message}`);
         }
     }
 
-    // Simulation only for demo when external files can't be loaded
-    simulateExternalLoad(key) {
-        console.log(`🎭 SIMULATION MODE: Loading ${key} (would normally come from external file)`);
-        
-        if (key === 'saas') {
-            const simulatedData = {
-                metadata: {
-                    title: "SaaS Company Financial Flow",
-                    currency: "USD",
-                    unit: "millions",
-                    source: "data/samples/saas-company.json",
-                    loaded_at: new Date().toISOString()
-                },
-                nodes: [
-                    { id: "Subscription Revenue", depth: 0, value: 180, category: "revenue", group: "revenue_sources", sort_order: 1 },
-                    { id: "Professional Services", depth: 0, value: 60, category: "revenue", group: "revenue_sources", sort_order: 2 },
-                    { id: "Platform & Other", depth: 0, value: 35, category: "revenue", group: "revenue_sources", sort_order: 3 },
-                    { id: "Total Revenue", depth: 1, value: 275, category: "revenue", group: "aggregated_revenue", sort_order: 1 },
-                    { id: "Gross Profit", depth: 2, value: 220, category: "profit", group: "gross_metrics", sort_order: 1 },
-                    { id: "Cost of Revenue", depth: 2, value: 55, category: "cost", group: "gross_metrics", sort_order: 2 },
-                    { id: "Operating Profit", depth: 3, value: 65, category: "profit", group: "operating_metrics", sort_order: 1 },
-                    { id: "Operating Expenses", depth: 3, value: 155, category: "expense", group: "operating_metrics", sort_order: 2 },
-                    { id: "Net Income", depth: 4, value: 50, category: "income", group: "final_results", sort_order: 1 },
-                    { id: "Sales & Marketing", depth: 4, value: 85, category: "expense", group: "operating_expenses", sort_order: 1 },
-                    { id: "R&D", depth: 4, value: 45, category: "expense", group: "operating_expenses", sort_order: 2 },
-                    { id: "G&A", depth: 4, value: 20, category: "expense", group: "operating_expenses", sort_order: 3 },
-                    { id: "Restructuring", depth: 4, value: 5, category: "expense", group: "operating_expenses", sort_order: 4 },
-                    { id: "Tax Expense", depth: 4, value: 12, category: "expense", group: "final_adjustments", sort_order: 1 },
-                    { id: "Other Expense", depth: 4, value: 3, category: "expense", group: "final_adjustments", sort_order: 2 }
-                ],
-                links: [
-                    { source: "Subscription Revenue", target: "Total Revenue", value: 180, type: "revenue" },
-                    { source: "Professional Services", target: "Total Revenue", value: 60, type: "revenue" },
-                    { source: "Platform & Other", target: "Total Revenue", value: 35, type: "revenue" },
-                    { source: "Total Revenue", target: "Gross Profit", value: 220, type: "profit" },
-                    { source: "Total Revenue", target: "Cost of Revenue", value: 55, type: "cost" },
-                    { source: "Gross Profit", target: "Operating Profit", value: 65, type: "profit" },
-                    { source: "Gross Profit", target: "Operating Expenses", value: 155, type: "expense" },
-                    { source: "Operating Expenses", target: "Sales & Marketing", value: 85, type: "expense" },
-                    { source: "Operating Expenses", target: "R&D", value: 45, type: "expense" },
-                    { source: "Operating Expenses", target: "G&A", value: 20, type: "expense" },
-                    { source: "Operating Expenses", target: "Restructuring", value: 5, type: "expense" },
-                    { source: "Operating Profit", target: "Net Income", value: 50, type: "income" },
-                    { source: "Operating Profit", target: "Tax Expense", value: 12, type: "expense" },
-                    { source: "Operating Profit", target: "Other Expense", value: 3, type: "expense" }
-                ]
-            };
-            
-            console.log('🎭 Simulation data prepared (represents external file content)');
-            this.cache.set(key, simulatedData);
-            return simulatedData;
-        }
-        
-        throw new Error(`No simulation available for dataset: ${key}`);
-    }
 
     // Transform standard income statement format to Sankey format
     transformIncomeStatement(incomeStatement) {

@@ -11,6 +11,7 @@ class PulseApplication {
         this.currentDataset = 'saas';
         this.currentChartType = 'sankey';
         this.isInitialized = false;
+        this.isInitializing = true; // Start in initializing mode to prevent flicker
         
         // Data Bridge integration
         this.dataBridge = null;
@@ -72,8 +73,9 @@ class PulseApplication {
             // Hide loading indicator
             this.hideLoadingIndicator();
             
-            // Mark as initialized
+            // Mark as initialized and disable initializing mode
             this.isInitialized = true;
+            this.isInitializing = false;
             
             console.log('✅ Enhanced Platform initialized successfully');
             
@@ -203,15 +205,7 @@ class PulseApplication {
             this.dataBridge.setChartInstance(this.chart);
         }
         
-        if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
-            if (this.currentData) {
-                if (typeof this.chart.processData === 'function') {
-                    this.chart.processData(this.currentData);
-                }
-                this.controlModule.initializeDynamicControls(this.chart);
-            }
-        }
-        
+        // **CLEAN: Don't process data here - let the chart type setup handle it**
         this.controlPanel = new PulseControlPanel('dynamic-controls');
         this.controlPanel.init(this.chart, this.controlModule);
         
@@ -227,6 +221,9 @@ class PulseApplication {
         console.log(`🔄 Switching from ${this.currentChartType} to ${newChartType}`);
         
         try {
+            // **PREVENT FLICKER: Set initializing flag to prevent multiple control refreshes**
+            this.isInitializing = true;
+            
             // **CRITICAL FIX: Store current data before destroying control panel**
             const preservedData = this.currentData;
             
@@ -242,34 +239,26 @@ class PulseApplication {
 
             await this.initializeChartType(newChartType);
             
-            // **CRITICAL FIX: For bar charts, ensure we have data before final setup**
+            // **SIMPLIFIED: Clean bar chart setup with single data source**
             if (newChartType === 'bar') {
-                console.log('📊 Setting up bar chart with proper data flow');
+                console.log('📊 Setting up bar chart with clean data flow');
                 
-                // If we have preserved data, convert and use it
-                if (preservedData) {
-                    console.log('✅ Using preserved data for bar chart');
-                    const convertedData = this.convertDataForChartType(preservedData, 'bar');
-                    this.currentData = convertedData;
-                    this.chart.render(convertedData);
-                } else {
-                    console.log('📊 No preserved data, will use default bar chart data');
-                    // Create default data for bar chart to ensure controls work
-                    const defaultData = {
-                        categories: ['Revenue', 'Expenses', 'Profit'],
-                        values: [100000, 75000, 25000],
-                        labels: ['Revenue', 'Expenses', 'Profit']
-                    };
-                    this.currentData = defaultData;
-                    this.chart.render(defaultData);
-                }
+                // **FIXED: Use single consistent data source - the actual sample file data**
+                const barChartData = {
+                    metadata: {
+                        title: "Quarterly Revenue by Product Line",
+                        chartType: "bar"
+                    },
+                    categories: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training'],
+                    values: [850000, 320000, 180000, 150000, 95000],
+                    labels: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training']
+                };
                 
-                // **CRITICAL FIX: Always refresh controls after data is loaded**
-                if (this.controlModule && this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
-                    console.log('🎛️ Initializing dynamic controls with data');
-                    this.controlModule.initializeDynamicControls(this.chart);
-                    this.controlPanel.generateControls();
-                }
+                this.currentData = barChartData;
+                this.chart.render(barChartData);
+                this.notifyDataBridgeUpdate('bar-chart-init');
+                
+                console.log('✅ Bar chart initialized with 5 categories');
             } else {
                 // For other chart types (like sankey), use existing logic
                 if (preservedData) {
@@ -283,10 +272,22 @@ class PulseApplication {
                 }
             }
             
+            // **CLEAN: Single control setup after everything is ready**
+            this.isInitializing = false;
+            
+            // Setup controls once with the final data
+            if (this.controlModule && this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
+                console.log('🎛️ Setting up controls with final chart data');
+                this.controlModule.initializeDynamicControls(this.chart);
+                this.controlPanel.generateControls();
+            }
+            
             this.hideLoadingIndicator();
             console.log(`✅ Successfully switched to ${newChartType}`);
             
         } catch (error) {
+            // Make sure to reset the flag even on error
+            this.isInitializing = false;
             console.error(`❌ Failed to switch to ${newChartType}:`, error);
             this.showError(`Failed to switch chart type: ${error.message}`);
         }
@@ -467,68 +468,21 @@ class PulseApplication {
         reader.readAsText(file);
     }
 
-    // Convert data to appropriate format for current chart type
-    convertDataForChartType(data, chartType) {
-        if (chartType === 'bar') {
-            // If data is in Sankey format (nodes/links), convert to bar format
-            if (data.nodes && data.links && !data.categories) {
-                console.log('🔄 Converting Sankey data to bar chart format');
-                
-                // Extract revenue/profit nodes for bar chart
-                const barData = data.nodes
-                    .filter(node => node.value > 0) // Only positive values for now
-                    .slice(0, 10) // Limit to first 10 items
-                    .map(node => ({
-                        category: node.id,
-                        value: node.value,
-                        label: node.id
-                    }));
-                
-                return {
-                    ...data,
-                    categories: barData.map(d => d.category),
-                    values: barData.map(d => d.value),
-                    labels: barData.map(d => d.label),
-                    barData: barData // Keep converted data for reference
-                };
-            }
-            
-            // If data already has categories/values, it's ready for bar chart
-            if (data.categories && data.values) {
-                return data;
-            }
-            
-            // If it's an array format, convert it
-            if (Array.isArray(data)) {
-                return {
-                    categories: data.map(d => d.category || d.name || d.label),
-                    values: data.map(d => d.value),
-                    labels: data.map(d => d.label || d.category || d.name)
-                };
-            }
-        }
-        
-        // For other chart types, return data as-is
-        return data;
-    }
-
     // Method for Data Builder to update chart data
     updateData(newData, source = 'manual') {
         console.log(`🔄 Manually updating data from ${source}`);
         
         try {
-            // Convert data to appropriate format for current chart type
-            const convertedData = this.convertDataForChartType(newData, this.currentChartType);
-            
-            const validation = this.dataManager.validateData(convertedData);
+            // **SIMPLIFIED: Use data as-is, no conversion complexity**
+            const validation = this.dataManager.validateData(newData);
             if (!validation.valid) {
                 console.warn('Validation warnings for manual update:', validation.errors);
             }
             
-            this.currentData = convertedData;
+            this.currentData = newData;
             
             if (this.chart) {
-                this.chart.render(convertedData);
+                this.chart.render(newData);
                 
                 if (this.controlModule?.hasDynamicControls && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);

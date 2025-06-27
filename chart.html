@@ -2537,58 +2537,15 @@
         }
         
         function renderBarChart(data) {
-            console.log('📊 Rendering bar chart with data:', data);
+            console.log('📊 Chart.html renderBarChart - delegating to app');
             
-            // Store current bar chart data
-            window.currentBarChartData = data;
-            
-            // **CRITICAL FIX: Use the app's existing chart instance instead of creating a new one**
-            if (window.pulseApp && window.pulseApp.chart) {
-                console.log('✅ Using existing app chart instance for rendering');
-                
-                // Use the app's existing chart instance (connected to control panel)
-                window.pulseApp.chart.render(data);
-                
-                // Update app's current data
-                window.pulseApp.currentData = data;
-                
-                // Store chart instance reference
-                window.currentBarChart = window.pulseApp.chart;
-                
-                // **CRITICAL FIX: Use the new refresh method to properly update controls**
-                if (window.pulseApp.controlPanel && window.pulseApp.controlModule) {
-                    console.log('🔄 Refreshing control panel after data load using new method');
-                    window.pulseApp.controlPanel.refreshAfterDataLoad(window.pulseApp.chart);
-                }
-                
-                // Hide loading indicator
-                const loadingEl = document.querySelector('.chart-loading');
-                if (loadingEl) {
-                    loadingEl.style.display = 'none';
-                    console.log('📊 Loading indicator hidden');
-                }
-                
-                console.log('✅ Bar chart rendered successfully using app instance');
+            // **CLEAN: Only use app's updateData method, no fallbacks or conflicts**
+            if (window.pulseApp && window.pulseApp.updateData) {
+                window.pulseApp.updateData(data, 'chart-html');
+                window.currentBarChartData = data;
+                console.log('✅ Bar chart data updated via app');
             } else {
-                console.error('❌ No app chart instance available - controls will not work');
-                console.log('📊 App state:', {
-                    hasApp: !!window.pulseApp,
-                    hasChart: !!window.pulseApp?.chart,
-                    chartType: window.pulseApp?.currentChartType
-                });
-                
-                // Fallback: create chart instance (but controls won't work)
-                if (window.pulseApp && window.pulseApp.chartRegistry && window.pulseApp.chartRegistry.bar) {
-                    const barChartClass = window.pulseApp.chartRegistry.bar.chartClass;
-                    const barChart = new barChartClass('main-chart');
-                    barChart.render(data);
-                    window.currentBarChart = barChart;
-                    
-                    const loadingEl = document.querySelector('.chart-loading');
-                    if (loadingEl) loadingEl.style.display = 'none';
-                    
-                    console.warn('⚠️ Used fallback chart creation - controls may not work');
-                }
+                console.error('❌ PulseApp not available');
             }
         }
         

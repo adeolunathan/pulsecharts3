@@ -36,10 +36,7 @@ class PulseBarChart {
             this.config = { ...this.config, ...controlDefaults };
             console.log('✅ Applied control module defaults to bar chart config');
             
-            // Re-render if data exists
-            if (this.data) {
-                this.render();
-            }
+            // **REMOVED: Don't render here - let the app control when to render**
         }
     }
 
@@ -199,17 +196,8 @@ class PulseBarChart {
         // Initialize branding using reusable module
         this.initializeBranding();
 
-        // **CRITICAL FIX: Refresh controls after data is rendered**
-        if (window.pulseApp && window.pulseApp.controlPanel) {
-            console.log('🔄 Refreshing control panel after bar chart render');
-            // Use the new refreshAfterDataLoad method for proper control refresh
-            if (window.pulseApp.controlPanel.refreshAfterDataLoad) {
-                window.pulseApp.controlPanel.refreshAfterDataLoad(this);
-            } else if (window.pulseApp.controlModule && window.pulseApp.controlModule.refreshControlsAfterDataChange) {
-                // Fallback to old method
-                window.pulseApp.controlModule.refreshControlsAfterDataChange(this);
-            }
-        }
+        // **REMOVED: Control refresh is now handled externally to prevent flicker**
+        // The app will handle control refreshes at the right time
 
         console.log('✅ Bar chart rendered successfully');
     }
