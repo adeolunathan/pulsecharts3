@@ -472,21 +472,47 @@ class PulseControlPanel {
         });
     }
 
-    // Create toggle control
+    // Create checkbox control (was toggle)
     createToggleControl(container, config) {
         let currentValue = this.getCurrentValue(config);
         
-        const toggleContainer = container.append('div').attr('class', 'toggle-container');
+        const checkboxContainer = container.append('div')
+            .attr('class', 'checkbox-container')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px')
+            .style('margin-top', '8px');
 
-        const checkbox = toggleContainer.append('input')
+        const checkbox = checkboxContainer.append('input')
             .attr('type', 'checkbox')
-            .attr('class', 'control-toggle')
+            .attr('class', 'control-checkbox')
+            .attr('id', `checkbox-${config.id}`)
             .property('checked', currentValue)
+            .style('width', '18px')
+            .style('height', '18px')
+            .style('cursor', 'pointer')
+            .style('accent-color', '#3b82f6')
+            .style('margin', '0')
+            .style('transition', 'transform 0.15s ease')
             .on('change', (event) => {
+                console.log(`✅ Checkbox changed: ${config.id} = ${event.target.checked}`);
+                
+                // Visual feedback for the change
+                const checkboxEl = d3.select(event.target);
+                checkboxEl.style('transform', 'scale(1.1)');
+                setTimeout(() => {
+                    checkboxEl.style('transform', 'scale(1)');
+                }, 150);
+                
                 this.handleChange(config.id, event.target.checked);
             });
 
-        toggleContainer.append('span').attr('class', 'toggle-slider');
+        checkboxContainer.append('label')
+            .attr('for', `checkbox-${config.id}`)
+            .style('font-size', '14px')
+            .style('color', '#374151')
+            .style('cursor', 'pointer')
+            .text(config.label);
     }
 
     // Create button control
