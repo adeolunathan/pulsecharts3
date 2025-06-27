@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart Controls Fix Test - Pulse Analytics</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    
+    <!-- Load reusable utilities -->
+    <script src="js/utils/ChartUtils.js"></script>
+    <script src="js/utils/ChartExports.js"></script>
+    <script src="js/utils/ChartZoom.js"></script>
+    <script src="js/utils/ChartColorPicker.js"></script>
+    <script src="js/utils/ChartBrandingUtils.js"></script>
+    
+    <!-- Load Chart components -->
+    <script src="js/charts/bar/BarChartConfig.js"></script>
+    <script src="js/charts/bar/BarChart.js"></script>
+    <script src="js/charts/bar/BarControls.js"></script>
+    
+    <!-- Load Sankey components for comparison -->
+    <script src="js/charts/sankey/SankeyChartConfig.js"></script>
+    <script src="js/charts/sankey/SankeyChart.js"></script>
+    <script src="js/charts/sankey/SankeyControls.js"></script>
+    
+    <!-- Load core control panel -->
+    <script src="js/core/ControlPanel.js"></script>
+    <script src="js/core/DataManager.js"></script>
+    
+    <style>
+        body {
+            font-family: Inter, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+        
+        .chart-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .controls-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .test-header {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            grid-column: 1 / -1;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
+        }
+        
+        .test-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .test-controls button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .test-controls button:hover {
+            background: #2980b9;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #e8f4fd; color: #0c5460; }
+        
+        h1 { margin: 0 0 10px 0; color: #2c3e50; }
+        h2 { margin: 0 0 15px 0; color: #34495e; font-size: 18px; }
+        
+        .test-description {
+            color: #6c757d;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔧 Bar Chart Controls Fix Test</h1>
+            <div class="test-description">
+                <p><strong>Issue:</strong> Bar charts were showing Sankey chart controls instead of bar-specific controls.</p>
+                <p><strong>Fix:</strong> Added missing interface methods to BarControlModule to match what ControlPanel expects.</p>
+                <p><strong>Test:</strong> Switch between chart types and verify each shows the correct controls.</p>
+            </div>
+            
+            <div class="test-controls">
+                <button onclick="testBarChart()">📊 Test Bar Chart</button>
+                <button onclick="testSankeyChart()">🌊 Test Sankey Chart</button>
+                <button onclick="loadSampleData()">📁 Load Sample Data</button>
+                <button onclick="testControlInteraction()">🎛️ Test Control Interaction</button>
+                <button onclick="checkControlMethods()">🔍 Check Methods</button>
+            </div>
+            
+            <div id="status" class="status info">
+                Ready to test bar chart controls fix...
+            </div>
+        </div>
+        
+        <div class="chart-section">
+            <h2>Chart Display</h2>
+            <div id="test-chart-container" class="chart-container"></div>
+        </div>
+        
+        <div class="controls-section">
+            <h2>Dynamic Controls</h2>
+            <div id="test-controls-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentChart = null;
+        let currentControls = null;
+        let controlPanel = null;
+        let chartType = null;
+        
+        // Sample data for testing
+        const sampleBarData = {
+            metadata: {
+                company: "Test Company",
+                period: "Q4 2024",
+                title: "Revenue by Product"
+            },
+            categories: ["Product A", "Product B", "Product C", "Product D", "Product E"],
+            values: [150000, 120000, 80000, 65000, 45000],
+            labels: ["Product A", "Product B", "Product C", "Product D", "Product E"]
+        };
+        
+        const sampleSankeyData = {
+            metadata: {
+                company: "Test Company",
+                period: "Q4 2024",
+                title: "Financial Flow"
+            },
+            nodes: [
+                { id: "Revenue", x: 0, value: 1000000 },
+                { id: "Operating Expenses", x: 1, value: 700000 },
+                { id: "Net Income", x: 2, value: 300000 }
+            ],
+            links: [
+                { source: "Revenue", target: "Operating Expenses", value: 700000 },
+                { source: "Revenue", target: "Net Income", value: 300000 }
+            ]
+        };
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            console.log(`📢 Status: ${message}`);
+        }
+        
+        function testBarChart() {
+            updateStatus('Testing bar chart controls...', 'info');
+            
+            try {
+                // Clean up previous chart
+                if (controlPanel) {
+                    controlPanel.destroy();
+                }
+                
+                // Initialize bar chart
+                console.log('📊 Initializing PulseBarChart...');
+                currentChart = new PulseBarChart('test-chart-container');
+                currentControls = new BarControlModule();
+                chartType = 'bar';
+                
+                // Apply control defaults
+                currentChart.applyControlDefaults(currentControls);
+                
+                // Initialize control panel
+                controlPanel = new PulseControlPanel('test-controls-container');
+                controlPanel.init(currentChart, currentControls);
+                
+                updateStatus('✅ Bar chart initialized! Check controls panel for bar-specific controls.', 'success');
+                
+            } catch (error) {
+                console.error('❌ Bar chart test failed:', error);
+                updateStatus(`Bar chart test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testSankeyChart() {
+            updateStatus('Testing Sankey chart controls for comparison...', 'info');
+            
+            try {
+                // Clean up previous chart
+                if (controlPanel) {
+                    controlPanel.destroy();
+                }
+                
+                // Initialize Sankey chart
+                console.log('🌊 Initializing PulseSankeyChart...');
+                currentChart = new PulseSankeyChart('test-chart-container');
+                currentControls = new SankeyControlModule();
+                chartType = 'sankey';
+                
+                // Apply control defaults  
+                currentChart.applyControlDefaults(currentControls);
+                
+                // Initialize control panel
+                controlPanel = new PulseControlPanel('test-controls-container');
+                controlPanel.init(currentChart, currentControls);
+                
+                updateStatus('✅ Sankey chart initialized! Check controls panel for Sankey-specific controls.', 'success');
+                
+            } catch (error) {
+                console.error('❌ Sankey chart test failed:', error);
+                updateStatus(`Sankey chart test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function loadSampleData() {
+            if (!currentChart) {
+                updateStatus('Please initialize a chart first!', 'error');
+                return;
+            }
+            
+            updateStatus('Loading sample data...', 'info');
+            
+            try {
+                let data;
+                if (chartType === 'bar') {
+                    data = sampleBarData;
+                    currentChart.render(data);
+                    
+                    // Populate dynamic colors for bar chart
+                    if (currentControls.populateDynamicColors) {
+                        currentControls.populateDynamicColors(currentChart);
+                        controlPanel.generateControls();
+                    }
+                } else if (chartType === 'sankey') {
+                    data = sampleSankeyData;
+                    currentChart.render(data);
+                    
+                    // Initialize dynamic controls for Sankey
+                    if (currentControls.initializeDynamicColors) {
+                        currentControls.initializeDynamicColors(currentChart);
+                        controlPanel.generateControls();
+                    }
+                }
+                
+                updateStatus(`✅ Sample ${chartType} data loaded and rendered!`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Sample data loading failed:', error);
+                updateStatus(`Sample data loading failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testControlInteraction() {
+            if (!currentChart || !currentControls) {
+                updateStatus('Please initialize a chart and load data first!', 'error');
+                return;
+            }
+            
+            updateStatus('Testing control interaction...', 'info');
+            
+            try {
+                // Test different control changes based on chart type
+                if (chartType === 'bar') {
+                    // Test bar chart controls
+                    console.log('🎛️ Testing bar chart control changes...');
+                    
+                    // Test background color change
+                    currentControls.handleControlChange('backgroundColor', '#f0f8ff', currentChart);
+                    
+                    // Test bar opacity change
+                    currentControls.handleControlChange('barOpacity', 0.6, currentChart);
+                    
+                    // Test grid toggle
+                    currentControls.handleControlChange('showGrid', false, currentChart);
+                    
+                } else if (chartType === 'sankey') {
+                    // Test Sankey chart controls
+                    console.log('🎛️ Testing Sankey chart control changes...');
+                    
+                    // Test background color change
+                    currentControls.handleControlChange('backgroundColor', '#fff8f0', currentChart);
+                    
+                    // Test node opacity change
+                    currentControls.handleControlChange('nodeOpacity', 0.7, currentChart);
+                }
+                
+                updateStatus(`✅ Control interaction test completed for ${chartType} chart!`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Control interaction test failed:', error);
+                updateStatus(`Control interaction test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkControlMethods() {
+            updateStatus('Checking control module methods...', 'info');
+            
+            const results = [];
+            
+            // Check BarControlModule methods
+            console.log('🔍 Checking BarControlModule methods:');
+            const barControls = new BarControlModule();
+            const requiredMethods = [
+                'handleControlChange',
+                'getCurrentValue', 
+                'applyColorPreset',
+                'randomizeColors',
+                'getCapabilities',
+                'supportsChartType'
+            ];
+            
+            requiredMethods.forEach(method => {
+                const exists = typeof barControls[method] === 'function';
+                console.log(`- ${method}: ${exists ? '✅' : '❌'}`);
+                results.push(`${method}: ${exists ? 'Found' : 'Missing'}`);
+            });
+            
+            // Check if chart methods exist
+            console.log('🔍 Checking PulseBarChart methods:');
+            const barChart = new PulseBarChart('test-chart-container');
+            const chartMethods = [
+                'updateConfig',
+                'setCustomColors',
+                'getInitialConfig',
+                'getBarColors'
+            ];
+            
+            chartMethods.forEach(method => {
+                const exists = typeof barChart[method] === 'function';
+                console.log(`- ${method}: ${exists ? '✅' : '❌'}`);
+                results.push(`Chart.${method}: ${exists ? 'Found' : 'Missing'}`);
+            });
+            
+            const allMethodsFound = results.every(result => result.includes('Found'));
+            
+            if (allMethodsFound) {
+                updateStatus('✅ All required methods found! Bar chart controls should work correctly.', 'success');
+            } else {
+                updateStatus(`❌ Some methods missing: ${results.filter(r => r.includes('Missing')).join(', ')}`, 'error');
+            }
+        }
+        
+        // Initialize test when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Starting Bar Chart Controls Fix Test');
+            updateStatus('Test environment ready. Click "Test Bar Chart" to begin.', 'info');
+        });
+    </script>
+</body>
+</html>
