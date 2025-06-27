@@ -17,89 +17,43 @@
     <script src="js/utils/ChartUtils.js"></script>
     <script src="js/utils/ChartExports.js"></script>
     
-    <!-- Sankey Chart Component -->
+    <!-- Chart Components -->
     <script src="js/charts/sankey/SankeyChartConfig.js"></script>
     <script src="js/charts/sankey/SankeyChart.js"></script>
+    <script src="js/charts/bar/BarChartConfig.js"></script>
+    <script src="js/charts/bar/BarChart.js"></script>
 </head>
 <body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
-    <!-- Step Progress Indicator -->
-    <div class="step-progress">
-        <div class="progress-container">
-            <div class="step-item active" data-step="1">
-                <div class="step-circle">1</div>
-                <div class="step-title">Choose Chart</div>
-            </div>
-            <div class="step-item" data-step="2">
-                <div class="step-circle">2</div>
-                <div class="step-title">Add Data</div>
-            </div>
-            <div class="step-item" data-step="3">
-                <div class="step-circle">3</div>
-                <div class="step-title">Customize & View</div>
-            </div>
-        </div>
-    </div>
 
     <div class="main-container">
-        <!-- Step 1: Chart Type Selection -->
+        <!-- Chart Type Selection -->
         <div class="step-content active" data-step="1">
             <div class="chart-selection">
                 <div style="text-align: center; margin-bottom: 48px;">
                     <h1 style="color: #1f2937; font-size: 2.5rem; margin-bottom: 16px;">Choose Your Chart Type</h1>
-                    <p style="color: #6b7280; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Select the visualization that best represents your financial data</p>
+                    <p style="color: #6b7280; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Select the visualization that best represents your data</p>
                 </div>
                 
-                <!-- Featured Chart (Sankey) -->
-                <div style="margin-bottom: 40px;">
-                    <div style="text-align: center; margin-bottom: 24px;">
-                        <h2 style="color: #374151; font-size: 1.5rem; margin-bottom: 8px;">✨ Recommended</h2>
-                        <p style="color: #6b7280; font-size: 0.95rem;">Perfect for financial flow analysis</p>
-                    </div>
-                    
-                    <div class="chart-type-card featured-card" data-chart-type="sankey" onclick="selectChartType('sankey')" style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3); transform: scale(1.02);">
+                <!-- Chart Types Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; max-width: 800px; margin: 0 auto;">
+                    <!-- Sankey Chart -->
+                    <div class="chart-type-card" data-chart-type="sankey" onclick="selectChartType('sankey')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 12px 24px rgba(102, 126, 234, 0.25); cursor: pointer; transition: transform 0.2s ease; padding: 32px; border-radius: 12px; text-align: center;">
                         <span class="chart-icon" style="font-size: 3rem; margin-bottom: 16px; display: block;">🌊</span>
-                        <h3 class="chart-name" style="font-size: 1.8rem; margin-bottom: 12px; color: white;">Sankey Flow Chart</h3>
-                        <p class="chart-description" style="font-size: 1.1rem; color: rgba(255,255,255,0.9); margin-bottom: 16px;">Visualize financial flows and relationships between revenue, costs, and profits with elegant flow diagrams</p>
-                        <span class="chart-status" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 8px 16px; border-radius: 20px; font-weight: 600;">✅ Available Now</span>
-                    </div>
-                </div>
-                
-                <!-- Coming Soon Charts -->
-                <div style="text-align: center; margin-bottom: 24px;">
-                    <h3 style="color: #6b7280; font-size: 1.2rem; margin-bottom: 8px;">Coming Soon</h3>
-                    <p style="color: #9ca3af; font-size: 0.9rem;">More chart types in development</p>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; opacity: 0.6;">
-                    <div class="chart-type-card" style="background: #f9fafb; border: 2px dashed #d1d5db; cursor: not-allowed;">
-                        <span class="chart-icon" style="opacity: 0.5;">📊</span>
-                        <h3 class="chart-name" style="color: #6b7280;">Bar Chart</h3>
-                        <p class="chart-description" style="color: #9ca3af;">Compare values across categories</p>
-                        <span class="chart-status" style="background: #fef3c7; color: #92400e;">🚧 Coming Soon</span>
+                        <h3 class="chart-name" style="font-size: 1.6rem; margin-bottom: 12px; color: white; font-weight: 700;">Sankey Flow Chart</h3>
+                        <p class="chart-description" style="font-size: 1rem; color: rgba(255,255,255,0.9); margin-bottom: 16px; line-height: 1.5;">Visualize financial flows and relationships between revenue, costs, and profits</p>
+                        <span class="chart-status" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 6px 12px; border-radius: 16px; font-weight: 600; font-size: 0.9rem;">✅ Available</span>
                     </div>
                     
-                    <div class="chart-type-card" style="background: #f9fafb; border: 2px dashed #d1d5db; cursor: not-allowed;">
-                        <span class="chart-icon" style="opacity: 0.5;">📈</span>
-                        <h3 class="chart-name" style="color: #6b7280;">Line Chart</h3>
-                        <p class="chart-description" style="color: #9ca3af;">Track trends over time</p>
-                        <span class="chart-status" style="background: #fef3c7; color: #92400e;">🚧 Coming Soon</span>
-                    </div>
-                    
-                    <div class="chart-type-card" style="background: #f9fafb; border: 2px dashed #d1d5db; cursor: not-allowed;">
-                        <span class="chart-icon" style="opacity: 0.5;">🗂️</span>
-                        <h3 class="chart-name" style="color: #6b7280;">Treemap</h3>
-                        <p class="chart-description" style="color: #9ca3af;">Hierarchical data visualization</p>
-                        <span class="chart-status" style="background: #fef3c7; color: #92400e;">🚧 Coming Soon</span>
+                    <!-- Bar Chart -->
+                    <div class="chart-type-card" data-chart-type="bar" onclick="selectChartType('bar')" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none; box-shadow: 0 12px 24px rgba(52, 152, 219, 0.25); cursor: pointer; transition: transform 0.2s ease; padding: 32px; border-radius: 12px; text-align: center;">
+                        <span class="chart-icon" style="font-size: 3rem; margin-bottom: 16px; display: block;">📊</span>
+                        <h3 class="chart-name" style="font-size: 1.6rem; margin-bottom: 12px; color: white; font-weight: 700;">Bar Chart</h3>
+                        <p class="chart-description" style="font-size: 1rem; color: rgba(255,255,255,0.9); margin-bottom: 16px; line-height: 1.5;">Compare values across categories with clean, easy-to-read bar visualization</p>
+                        <span class="chart-status" style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 6px 12px; border-radius: 16px; font-weight: 600; font-size: 0.9rem;">✅ Available</span>
                     </div>
                 </div>
             </div>
             
-            <div class="nav-buttons">
-                <div></div>
-                <button class="btn btn-primary" id="step1-next" onclick="nextStep()" disabled>
-                    Continue <span>→</span>
-                </button>
-            </div>
         </div>
 
         <!-- Step 2: Data Input/Template Selection -->
@@ -298,15 +252,21 @@
             }
         }
 
-        // Step 1: Chart Type Selection
+        // Chart Type Selection - Direct to chart.html
         function selectChartType(chartType) {
-            if (chartType !== 'sankey') {
-                alert('This chart type is coming soon! Please select Sankey Flow Chart for now.');
+            console.log(`📊 Selected chart type: ${chartType}`);
+            
+            if (chartType === 'sankey') {
+                // Go directly to sankey type selector
+                window.location.href = 'js/charts/sankey/sankey-type-selector.html';
+            } else if (chartType === 'bar') {
+                // Go directly to chart.html with bar type
+                console.log('📊 Redirecting to bar chart interface');
+                window.location.href = 'chart.html?chartType=bar';
+            } else {
+                alert('This chart type is coming soon! Please select an available chart type.');
                 return;
             }
-            
-            // Redirect directly to the sankey chart type selector page
-            window.location.href = 'js/charts/sankey/sankey-type-selector.html';
         }
 
         // Step 2: Data Input Selection
@@ -400,11 +360,16 @@
             reader.readAsText(file);
         }
 
-        // Convert various data formats to flowData structure
+        // Convert various data formats to flowData structure or bar chart data
         function convertToFlowData(data, source) {
-            console.log('🔧 Converting data to flowData structure');
+            console.log('🔧 Converting data to structure for chart type:', selectedChartType);
             
-            // If already in flows format
+            // Handle bar chart data format
+            if (selectedChartType === 'bar') {
+                return convertToBarChartData(data, source);
+            }
+            
+            // If already in flows format (for Sankey)
             if (data.flows && Array.isArray(data.flows)) {
                 return {
                     metadata: {
@@ -464,8 +429,144 @@
             throw new Error('Unrecognized JSON format. Expected flows array or nodes/links structure.');
         }
 
-        // Parse CSV content to flowData structure
+        // Convert data to bar chart format
+        function convertToBarChartData(data, source) {
+            console.log('📊 Converting data to bar chart format');
+            
+            // If already in bar chart format
+            if (data.categories && data.values) {
+                return {
+                    metadata: data.metadata || {
+                        company: "Your Company",
+                        period: "Current Period",
+                        title: "Bar Chart Data",
+                        chartType: "bar"
+                    },
+                    categories: data.categories,
+                    values: data.values,
+                    labels: data.labels || data.categories
+                };
+            }
+            
+            // If data is an array of objects
+            if (Array.isArray(data)) {
+                const categories = [];
+                const values = [];
+                const labels = [];
+                
+                data.forEach(item => {
+                    // Try different possible field names
+                    const category = item.category || item.name || item.label || item.x;
+                    const value = parseFloat(item.value || item.amount || item.y || item.count);
+                    const label = item.label || item.name || category;
+                    
+                    if (category && !isNaN(value)) {
+                        categories.push(category);
+                        values.push(value);
+                        labels.push(label);
+                    }
+                });
+                
+                if (categories.length === 0) {
+                    throw new Error('No valid category/value pairs found in data');
+                }
+                
+                return {
+                    metadata: {
+                        company: "Your Company",
+                        period: "Current Period", 
+                        title: "Bar Chart Data",
+                        chartType: "bar"
+                    },
+                    categories: categories,
+                    values: values,
+                    labels: labels
+                };
+            }
+            
+            // If data has a 'data' property
+            if (data.data && Array.isArray(data.data)) {
+                return convertToBarChartData(data.data, source);
+            }
+            
+            throw new Error('Unrecognized bar chart data format. Expected {categories: [...], values: [...]} or array of objects with category/value properties.');
+        }
+
+        // Parse CSV content to bar chart data format
+        function parseCSVToBarChartData(csvContent, source) {
+            console.log('📊 Parsing CSV content to bar chart format');
+            
+            const lines = csvContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+            if (lines.length < 2) {
+                throw new Error('CSV file must have a header row and at least one data row');
+            }
+
+            const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+            
+            // For bar charts, we need category and value columns
+            const categoryIndex = findColumnIndex(headers, ['category', 'name', 'label', 'x']);
+            const valueIndex = findColumnIndex(headers, ['value', 'amount', 'y', 'count', 'total']);
+            
+            if (categoryIndex === -1) {
+                throw new Error(`Category column not found. Expected one of: category, name, label, x. Found columns: ${headers.join(', ')}`);
+            }
+            
+            if (valueIndex === -1) {
+                throw new Error(`Value column not found. Expected one of: value, amount, y, count, total. Found columns: ${headers.join(', ')}`);
+            }
+
+            const categories = [];
+            const values = [];
+            const labels = [];
+
+            // Parse data rows
+            for (let i = 1; i < lines.length; i++) {
+                const row = parseCSVLine(lines[i]);
+                
+                if (row.length <= Math.max(categoryIndex, valueIndex)) {
+                    console.warn(`Row ${i + 1} has insufficient columns, skipping`);
+                    continue;
+                }
+
+                const category = row[categoryIndex]?.trim();
+                const value = parseFloat(row[valueIndex]?.trim());
+
+                if (category && !isNaN(value)) {
+                    categories.push(category);
+                    values.push(value);
+                    labels.push(category); // Use category as label by default
+                }
+            }
+
+            if (categories.length === 0) {
+                throw new Error('No valid data rows found');
+            }
+
+            console.log(`✅ Parsed ${categories.length} bar chart data points`);
+
+            return {
+                metadata: {
+                    company: "Your Company",
+                    period: "Current Period",
+                    title: "Bar Chart Data",
+                    chartType: "bar",
+                    source: source
+                },
+                categories: categories,
+                values: values,
+                labels: labels
+            };
+        }
+
+        // Parse CSV content to flowData structure or bar chart data
         function parseCSVToFlowData(csvContent, source) {
+            console.log('🔧 Parsing CSV content for chart type:', selectedChartType);
+            
+            if (selectedChartType === 'bar') {
+                return parseCSVToBarChartData(csvContent, source);
+            }
+            
+            // Continue with Sankey flow data processing
             console.log('🔧 Parsing CSV content to flowData structure');
             
             const lines = csvContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));

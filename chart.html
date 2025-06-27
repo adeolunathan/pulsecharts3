@@ -72,6 +72,13 @@
             color: #6b7280 !important;
             font-weight: 600 !important;
         }
+        
+        /* Bar chart data input styles */
+        .data-input-option:hover {
+            border-color: #3498db !important;
+            background-color: #f8fafc !important;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -86,7 +93,6 @@
                     <select id="chart-type-select">
                         <option value="sankey">🌊 Sankey Flow</option>
                         <option value="bar">📊 Bar Chart</option>
-                        <option value="line">📈 Line Chart</option>
                     </select>
                 </div>
                 
@@ -633,7 +639,8 @@
         function getURLParameters() {
             const urlParams = new URLSearchParams(window.location.search);
             return {
-                type: urlParams.get('type'), // 'income' or 'balance'
+                type: urlParams.get('type'), // 'income' or 'balance' (for Sankey)
+                chartType: urlParams.get('chartType'), // 'sankey' or 'bar' (main chart type)
                 tab: urlParams.get('tab') // 'data-builder' or 'chart-view'
             };
         }
@@ -1024,7 +1031,7 @@
                 // Only initialize if not already done
                 if (!isInitialized) {
                     setTimeout(() => {
-                        initializeFlowBuilder();
+                        initializeChartInterface();
                     }, 100);
                 } else {
                     console.log('📊 Data-builder tab activated, data already loaded');
@@ -1032,7 +1039,7 @@
             }
         }
 
-        async function initializeFlowBuilder() {
+        async function initializeChartInterface() {
             if (isInitialized) {
                 console.log('⚠️ Flow Builder already initialized, skipping...');
                 return;
@@ -1148,13 +1155,36 @@
                 }
             }
             
-            // No URL parameters and no existing data - redirect to chart type selector or show empty state  
-            console.log('⚠️ No data found and no chart type specified');
-            if (!urlParams.type) {
-                window.location.href = 'js/charts/sankey/sankey-type-selector.html';
+            // No URL parameters and no existing data - handle based on chart type
+            console.log('⚠️ No data found, checking chart type');
+            
+            // Check for chart type in URL (either 'type' or 'chartType' parameter)
+            const chartType = urlParams.type || urlParams.chartType;
+            
+            if (!chartType) {
+                // No chart type specified, redirect to guided selection
+                console.log('🌊 No chart type specified, redirecting to guided selection');
+                window.location.href = 'guided.html';
+            } else if (chartType === 'bar') {
+                // Bar chart - initialize bar chart mode with data input interface
+                console.log('📊 Bar chart mode - initializing data input interface');
+                
+                // Ensure DOM is ready before calling handleChartTypeChange
+                setTimeout(() => {
+                    console.log('📊 DOM ready, calling handleChartTypeChange for bar chart');
+                    if (typeof handleChartTypeChange === 'function') {
+                        handleChartTypeChange('bar');
+                        console.log('📊 handleChartTypeChange called successfully');
+                    } else {
+                        console.error('❌ handleChartTypeChange function not found');
+                    }
+                }, 100);
+                
+                isInitialized = true;
             } else {
-                console.log('📊 Flow Builder ready for manual input');
-                isInitialized = true; // Mark as initialized even with no data
+                // Sankey chart without data - redirect to type selector
+                console.log('🌊 Sankey chart mode - redirecting to type selector');
+                window.location.href = 'js/charts/sankey/sankey-type-selector.html';
             }
         }
 
@@ -2054,9 +2084,12 @@
             // Initialize modern export dropdown
             initializeExportDropdown();
             
-            // CRITICAL: Initialize flow builder on page load to handle URL parameters
+            // Initialize chart type selector
+            initializeChartTypeSelector();
+            
+            // CRITICAL: Initialize chart interface on page load to handle URL parameters
             setTimeout(() => {
-                initializeFlowBuilder();
+                initializeChartInterface();
             }, 200);
         });
 
@@ -2142,6 +2175,442 @@
             link.download = filename;
             link.click();
             URL.revokeObjectURL(url);
+        }
+
+        // ===== CHART TYPE SELECTOR FUNCTIONALITY =====
+        
+        function initializeChartTypeSelector() {
+            const chartTypeSelect = document.getElementById('chart-type-select');
+            if (!chartTypeSelect) return;
+            
+            console.log('🎯 Initializing chart type selector');
+            
+            // Add event listener for chart type changes
+            chartTypeSelect.addEventListener('change', (e) => {
+                const selectedType = e.target.value;
+                console.log(`📊 Chart type changed to: ${selectedType}`);
+                handleChartTypeChange(selectedType);
+            });
+            
+            // Check URL parameters for chart type
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlChartType = urlParams.get('chartType');
+            
+            if (urlChartType) {
+                console.log(`🔗 Chart type from URL: ${urlChartType}`);
+                chartTypeSelect.value = urlChartType;
+                handleChartTypeChange(urlChartType);
+            }
+        }
+        
+        function handleChartTypeChange(chartType) {
+            console.log(`🔄 Handling chart type change to: ${chartType}`);
+            
+            // Update the current chart type
+            window.currentChartType = chartType;
+            
+            if (chartType === 'bar') {
+                console.log('📊 Switching to bar chart mode');
+                
+                // Update tab labels for bar chart  
+                const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
+                if (dataBuilderTabButton) {
+                    dataBuilderTabButton.innerHTML = '📊 Bar Data';
+                    console.log('📊 Updated tab label to Bar Data');
+                } else {
+                    console.error('❌ Could not find data-builder tab button');
+                }
+                
+                // Update the data builder content for bar charts
+                const dataBuilderContent = document.getElementById('data-builder');
+                console.log('📊 Found data-builder element:', !!dataBuilderContent);
+                if (dataBuilderContent) {
+                    dataBuilderContent.innerHTML = `
+                        <div class="bar-chart-data-builder">
+                            <div style="padding: 20px;">
+                                <h2 style="margin-bottom: 20px; color: #1f2937;">📊 Bar Chart Data</h2>
+                                
+                                <!-- Data Input Options -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 30px;">
+                                    <div class="data-input-option" onclick="loadBarChartSample()" style="padding: 20px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s ease;">
+                                        <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+                                        <h3 style="margin: 0 0 8px 0; color: #1f2937;">Sample Data</h3>
+                                        <p style="margin: 0; color: #6b7280; font-size: 14px;">Load example bar chart data</p>
+                                    </div>
+                                    
+                                    <div class="data-input-option" onclick="document.getElementById('bar-file-input').click()" style="padding: 20px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s ease;">
+                                        <div style="font-size: 2rem; margin-bottom: 8px;">📁</div>
+                                        <h3 style="margin: 0 0 8px 0; color: #1f2937;">Upload CSV</h3>
+                                        <p style="margin: 0; color: #6b7280; font-size: 14px;">Upload your data file</p>
+                                    </div>
+                                    
+                                    <div class="data-input-option" onclick="showBarDataInput()" style="padding: 20px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s ease;">
+                                        <div style="font-size: 2rem; margin-bottom: 8px;">✏️</div>
+                                        <h3 style="margin: 0 0 8px 0; color: #1f2937;">Enter Data</h3>
+                                        <p style="margin: 0; color: #6b7280; font-size: 14px;">Type or paste your data</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Data Input Area -->
+                                <div id="bar-data-input-area" style="display: none; margin-top: 20px;">
+                                    <h3 style="margin-bottom: 15px;">Enter Bar Chart Data</h3>
+                                    <textarea id="bar-data-textarea" placeholder="Category,Value
+Product A,150000
+Product B,120000
+Product C,80000" style="width: 100%; height: 150px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 14px;"></textarea>
+                                    <div style="margin-top: 10px;">
+                                        <button onclick="processBarTextData()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Apply Data</button>
+                                        <button onclick="hideBarDataInput()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Current Data Display -->
+                                <div id="bar-current-data" style="display: none; margin-top: 20px;">
+                                    <h3 style="margin-bottom: 15px;">Current Data</h3>
+                                    <div id="bar-data-preview" style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 14px; max-height: 200px; overflow-y: auto;"></div>
+                                </div>
+                                
+                                <input type="file" id="bar-file-input" accept=".csv,.json" style="display: none;" onchange="handleBarFileUpload(this)">
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Initialize bar chart if app is ready and auto-load sample data
+                setTimeout(() => {
+                    if (window.pulseApp) {
+                        initializeBarChartMode();
+                    }
+                    // Auto-load sample data to show chart immediately
+                    setTimeout(() => {
+                        console.log('📊 Auto-loading sample data for immediate display');
+                        loadBarChartSample();
+                    }, 1000);
+                }, 500);
+                
+            } else if (chartType === 'sankey') {
+                console.log('🌊 Switching to sankey chart mode');
+                
+                // Restore original tab label for sankey
+                const dataBuilderTabButton = document.querySelector('.tab-button[data-tab="data-builder"]');
+                if (dataBuilderTabButton) {
+                    dataBuilderTabButton.innerHTML = '<span class="tab-icon">🔗</span> Chart Builder';
+                }
+                
+                // Show flow builder
+                const flowBuilderTab = document.querySelector('[data-tab="data-builder"]');
+                if (flowBuilderTab) {
+                    flowBuilderTab.style.display = 'block';
+                }
+                
+                // Initialize sankey chart if app is ready
+                setTimeout(() => {
+                    if (window.pulseApp) {
+                        window.pulseApp.initializeChartType('sankey');
+                    }
+                }, 500);
+            }
+            
+            // Update URL to reflect chart type
+            const url = new URL(window.location);
+            url.searchParams.set('chartType', chartType);
+            window.history.replaceState({}, '', url);
+        }
+        
+        function initializeBarChartMode() {
+            console.log('📊 Initializing bar chart mode');
+            
+            // Check if app is ready and has bar chart support
+            if (window.pulseApp && window.pulseApp.chartRegistry && window.pulseApp.chartRegistry.bar) {
+                console.log('✅ Bar chart support detected');
+                
+                // Initialize bar chart type
+                window.pulseApp.initializeChartType('bar')
+                    .then(() => {
+                        console.log('✅ Bar chart initialized successfully');
+                    })
+                    .catch(error => {
+                        console.error('❌ Bar chart initialization failed:', error);
+                    });
+            } else {
+                console.warn('⚠️ Bar chart support not available');
+            }
+        }
+        
+        function loadBarChartSample() {
+            console.log('📊 Loading bar chart sample data');
+            
+            // Load the sample data
+            fetch('data/samples/bar-chart-sample.json')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Sample bar chart data loaded:', data);
+                    
+                    // Render the bar chart
+                    renderBarChart(data);
+                    
+                    // Show data preview
+                    showBarDataPreview(data);
+                    
+                    // Switch to chart view
+                    setTimeout(() => {
+                        switchMainTab('chart-view');
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error('❌ Failed to load bar chart sample:', error);
+                    alert('Failed to load bar chart sample data. Please check the console for details.');
+                });
+        }
+        
+        function showBarDataInput() {
+            const inputArea = document.getElementById('bar-data-input-area');
+            if (inputArea) {
+                inputArea.style.display = 'block';
+            }
+        }
+        
+        function hideBarDataInput() {
+            const inputArea = document.getElementById('bar-data-input-area');
+            if (inputArea) {
+                inputArea.style.display = 'none';
+            }
+        }
+        
+        function processBarTextData() {
+            const textarea = document.getElementById('bar-data-textarea');
+            if (!textarea) return;
+            
+            const content = textarea.value.trim();
+            if (!content) {
+                alert('Please enter some data');
+                return;
+            }
+            
+            try {
+                // Parse CSV data
+                const lines = content.split('\n').filter(line => line.trim());
+                if (lines.length < 2) {
+                    throw new Error('Please provide at least a header row and one data row');
+                }
+                
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                const categoryIndex = headers.findIndex(h => h.includes('category') || h.includes('name') || h.includes('label'));
+                const valueIndex = headers.findIndex(h => h.includes('value') || h.includes('amount') || h.includes('count'));
+                
+                if (categoryIndex === -1 || valueIndex === -1) {
+                    throw new Error('Could not find category and value columns. Please use headers like "Category,Value"');
+                }
+                
+                const categories = [];
+                const values = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const row = lines[i].split(',').map(cell => cell.trim());
+                    if (row.length > Math.max(categoryIndex, valueIndex)) {
+                        const category = row[categoryIndex];
+                        const value = parseFloat(row[valueIndex]);
+                        
+                        if (category && !isNaN(value)) {
+                            categories.push(category);
+                            values.push(value);
+                        }
+                    }
+                }
+                
+                if (categories.length === 0) {
+                    throw new Error('No valid data rows found');
+                }
+                
+                const barData = {
+                    metadata: {
+                        company: "Your Company",
+                        period: "Current Period",
+                        title: "Bar Chart Data",
+                        chartType: "bar"
+                    },
+                    categories: categories,
+                    values: values,
+                    labels: categories
+                };
+                
+                console.log('✅ Processed bar chart data:', barData);
+                
+                // Render the chart
+                renderBarChart(barData);
+                
+                // Show data preview
+                showBarDataPreview(barData);
+                
+                // Hide input area
+                hideBarDataInput();
+                
+                // Switch to chart view
+                setTimeout(() => {
+                    switchMainTab('chart-view');
+                }, 500);
+                
+            } catch (error) {
+                console.error('❌ Error processing text data:', error);
+                alert(`Error processing data: ${error.message}`);
+            }
+        }
+        
+        function handleBarFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            console.log('📁 Processing uploaded file:', file.name);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    let barData = null;
+                    
+                    if (file.name.toLowerCase().endsWith('.json')) {
+                        const jsonData = JSON.parse(content);
+                        barData = convertToBarChartData(jsonData);
+                    } else {
+                        barData = parseCSVToBarData(content);
+                    }
+                    
+                    console.log('✅ File processed successfully:', barData);
+                    
+                    // Render the chart
+                    renderBarChart(barData);
+                    
+                    // Show data preview
+                    showBarDataPreview(barData);
+                    
+                    // Switch to chart view
+                    setTimeout(() => {
+                        switchMainTab('chart-view');
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('❌ File processing error:', error);
+                    alert(`Failed to process "${file.name}": ${error.message}`);
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function convertToBarChartData(data) {
+            // Handle different JSON formats
+            if (data.categories && data.values) {
+                return data;
+            }
+            
+            if (Array.isArray(data)) {
+                const categories = [];
+                const values = [];
+                
+                data.forEach(item => {
+                    const category = item.category || item.name || item.label;
+                    const value = parseFloat(item.value || item.amount || item.y);
+                    
+                    if (category && !isNaN(value)) {
+                        categories.push(category);
+                        values.push(value);
+                    }
+                });
+                
+                return {
+                    metadata: { chartType: "bar", title: "Bar Chart Data" },
+                    categories: categories,
+                    values: values,
+                    labels: categories
+                };
+            }
+            
+            throw new Error('Unrecognized JSON format');
+        }
+        
+        function parseCSVToBarData(content) {
+            const lines = content.split('\n').filter(line => line.trim());
+            if (lines.length < 2) {
+                throw new Error('CSV must have header and data rows');
+            }
+            
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const categoryIndex = headers.findIndex(h => h.includes('category') || h.includes('name') || h.includes('label'));
+            const valueIndex = headers.findIndex(h => h.includes('value') || h.includes('amount') || h.includes('count'));
+            
+            if (categoryIndex === -1 || valueIndex === -1) {
+                throw new Error('Could not find category and value columns');
+            }
+            
+            const categories = [];
+            const values = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',').map(cell => cell.trim());
+                if (row.length > Math.max(categoryIndex, valueIndex)) {
+                    const category = row[categoryIndex];
+                    const value = parseFloat(row[valueIndex]);
+                    
+                    if (category && !isNaN(value)) {
+                        categories.push(category);
+                        values.push(value);
+                    }
+                }
+            }
+            
+            return {
+                metadata: { chartType: "bar", title: "Bar Chart Data" },
+                categories: categories,
+                values: values,
+                labels: categories
+            };
+        }
+        
+        function renderBarChart(data) {
+            console.log('📊 Rendering bar chart with data:', data);
+            
+            // Store current bar chart data
+            window.currentBarChartData = data;
+            
+            // Initialize bar chart if needed
+            if (window.pulseApp && window.pulseApp.chartRegistry && window.pulseApp.chartRegistry.bar) {
+                // Create bar chart instance
+                const barChartClass = window.pulseApp.chartRegistry.bar.chartClass;
+                const barChart = new barChartClass('main-chart');
+                
+                // Render the chart
+                barChart.render(data);
+                
+                // Store chart instance
+                window.currentBarChart = barChart;
+                
+                // Hide loading indicator
+                const loadingEl = document.querySelector('.chart-loading');
+                if (loadingEl) {
+                    loadingEl.style.display = 'none';
+                    console.log('📊 Loading indicator hidden');
+                }
+                
+                console.log('✅ Bar chart rendered successfully');
+            } else {
+                console.error('❌ Bar chart class not available');
+            }
+        }
+        
+        function showBarDataPreview(data) {
+            const previewDiv = document.getElementById('bar-data-preview');
+            const currentDataDiv = document.getElementById('bar-current-data');
+            
+            if (previewDiv && currentDataDiv && data) {
+                let preview = `Categories: ${data.categories.length} items\n\n`;
+                
+                data.categories.forEach((category, index) => {
+                    preview += `${category}: ${data.values[index]}\n`;
+                });
+                
+                previewDiv.textContent = preview;
+                currentDataDiv.style.display = 'block';
+            }
         }
 
         function resetChart() {
