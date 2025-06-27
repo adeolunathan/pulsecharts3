@@ -30,7 +30,7 @@ class PulseApplication {
             }
         };
         
-        console.log('🚀 Starting Enhanced Pulse Analytics Platform');
+        
     }
 
     async initialize() {
@@ -122,7 +122,7 @@ class PulseApplication {
                 this.chart.render(data);
                 
                 // Update dynamic controls if needed
-                if (this.controlModule?.supportsDynamicLayers && this.chart.getLayerInfo) {
+                if (this.controlModule?.hasDynamicControls && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);
                     this.controlPanel?.generateControls();
                 }
@@ -203,9 +203,11 @@ class PulseApplication {
             this.dataBridge.setChartInstance(this.chart);
         }
         
-        if (this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+        if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
             if (this.currentData) {
-                this.chart.processData(this.currentData);
+                if (typeof this.chart.processData === 'function') {
+                    this.chart.processData(this.currentData);
+                }
                 this.controlModule.initializeDynamicControls(this.chart);
             }
         }
@@ -240,7 +242,7 @@ class PulseApplication {
             if (this.currentData) {
                 this.chart.render(this.currentData);
                 
-                if (this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+                if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);
                     this.controlPanel.generateControls();
                 }
@@ -352,7 +354,7 @@ class PulseApplication {
             if (this.chart) {
                 this.chart.render(this.currentData);
                 
-                if (this.controlModule && this.controlModule.supportsDynamicLayers && this.chart.getLayerInfo) {
+                if (this.controlModule && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);
                     this.controlPanel.generateControls();
                 }
@@ -446,7 +448,7 @@ class PulseApplication {
             if (this.chart) {
                 this.chart.render(newData);
                 
-                if (this.controlModule?.supportsDynamicLayers && this.chart.getLayerInfo) {
+                if (this.controlModule?.hasDynamicControls && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);
                     this.controlPanel?.generateControls();
                 }

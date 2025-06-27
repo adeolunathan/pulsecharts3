@@ -1300,7 +1300,7 @@ class SankeyControlModule {
     }
 
     // Enhanced dynamic layer support
-    supportsDynamicLayers() {
+    hasDynamicControls() {
         return true;
     }
 

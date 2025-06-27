@@ -903,13 +903,39 @@ class PulseControlPanel {
         // Debounce other updates for smooth interaction
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
-            if (this.controlModule && this.controlModule.handleControlChange) {
-                // Use chart-specific change handler if available
-                this.controlModule.handleControlChange(controlId, value, this.chart);
-            } else {
-                // Fall back to generic chart update
-                if (this.chart) {
-                    this.chart.updateConfig({ [controlId]: value });
+            try {
+                if (this.controlModule && this.controlModule.handleControlChange) {
+                    // Use chart-specific change handler if available
+                    console.log(`🎛️ Control Panel: Calling controlModule.handleControlChange for ${controlId}`);
+                    this.controlModule.handleControlChange(controlId, value, this.chart);
+                    console.log(`✅ Control Panel: Successfully handled ${controlId} via control module`);
+                } else {
+                    // Fall back to generic chart update
+                    console.log(`⚠️ Control Panel: No control module handler, falling back to chart.updateConfig for ${controlId}`);
+                    if (this.chart && typeof this.chart.updateConfig === 'function') {
+                        this.chart.updateConfig({ [controlId]: value });
+                        console.log(`✅ Control Panel: Successfully updated ${controlId} via chart.updateConfig`);
+                    } else {
+                        console.error(`❌ Control Panel: No updateConfig method available on chart for ${controlId}`);
+                        console.log('📊 Chart details:', {
+                            hasChart: !!this.chart,
+                            chartType: this.chart?.constructor?.name,
+                            hasUpdateConfig: typeof this.chart?.updateConfig,
+                            availableMethods: this.chart ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.chart)) : []
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ Control Panel: Error handling control change for ${controlId}:`, error);
+                // Try fallback to chart.updateConfig if control module failed
+                if (this.chart && typeof this.chart.updateConfig === 'function') {
+                    console.log(`🔄 Control Panel: Attempting fallback to chart.updateConfig for ${controlId}`);
+                    try {
+                        this.chart.updateConfig({ [controlId]: value });
+                        console.log(`✅ Control Panel: Fallback successful for ${controlId}`);
+                    } catch (fallbackError) {
+                        console.error(`❌ Control Panel: Fallback also failed for ${controlId}:`, fallbackError);
+                    }
                 }
             }
         }, 100);

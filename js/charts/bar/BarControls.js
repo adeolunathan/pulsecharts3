@@ -430,12 +430,41 @@ class BarControlModule {
         };
     }
 
+    // Check if this module has dynamic controls that need to be populated
+    hasDynamicControls() {
+        return true; // Bar chart colors are dynamic
+    }
+
+    // Check if module supports dynamic layers (compatibility method)
+    supportsDynamicLayers() {
+        return false; // Bar charts don't have layers like Sankey
+    }
+
+    // Initialize dynamic controls (e.g., colors based on data)
+    initializeDynamicControls(chart) {
+        this.populateDynamicColors(chart);
+    }
+
     // Populate dynamic colors based on chart data
     populateDynamicColors(chart) {
         this.chart = chart;
         
-        if (!chart || !chart.data || !chart.data.length) {
+        if (!chart) {
+            console.log('⚠️ No chart instance provided for dynamic color population');
+            return;
+        }
+
+        // Handle case where chart data might not be available yet
+        if (!chart.data || !chart.data.length) {
             console.log('📊 No bar chart data available for dynamic color population');
+            // Set up a basic color control
+            this.capabilities.colors.controls = [{
+                id: "defaultBarColor",
+                type: "color_picker", 
+                label: "Default Bar Color",
+                default: "#3498db",
+                description: "Default color for all bars"
+            }];
             return;
         }
 
@@ -446,19 +475,22 @@ class BarControlModule {
         this.dynamicColors.clear();
 
         // Get current colors from chart
-        const colors = chart.getBarColors();
+        const colors = chart.getBarColors ? chart.getBarColors() : ['#3498db', '#2ecc71', '#e74c3c', '#f39c12'];
 
         // Create color controls for each bar category
         chart.data.forEach((barData, index) => {
-            const category = barData.category;
-            const currentColor = chart.customColors[category] || colors[index % colors.length];
+            const category = barData.category || `Bar ${index + 1}`;
+            const currentColor = chart.customColors?.[category] || colors[index % colors.length];
             
             // Store the color
             this.dynamicColors.set(category, currentColor);
 
+            // Create safe ID by replacing non-alphanumeric characters
+            const safeId = `barColor_${category.toString().replace(/[^a-zA-Z0-9]/g, '_')}`;
+
             // Create color control
             const colorControl = {
-                id: `barColor_${category.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                id: safeId,
                 type: "color_picker",
                 label: `${category}`,
                 default: currentColor,
@@ -481,6 +513,14 @@ class BarControlModule {
         }
 
         console.log(`🎛️ Applying bar chart control change: ${controlId} = ${value}`);
+        console.log('📊 Chart instance details:', {
+            hasChart: !!chart,
+            hasConfig: !!chart.config,
+            hasUpdateConfig: typeof chart.updateConfig,
+            hasSvg: !!chart.svg,
+            hasChartGroup: !!chart.chart,
+            chartType: chart.constructor.name
+        });
 
         // Handle bar-specific color changes
         if (controlId.startsWith('barColor_')) {
@@ -555,6 +595,21 @@ class BarControlModule {
                 .transition()
                 .duration(200)
                 .attr('opacity', value);
+        }
+        
+        // Handle other specific controls that don't need visual updates
+        else if (['animationDuration', 'animationEasing', 'labelPosition', 'labelOffset', 
+                  'labelFontSize', 'valueFormat', 'currencySymbol', 'decimalPlaces',
+                  'enableHover', 'enableClick', 'enableTooltip', 'hoverOpacity',
+                  'showBarLabels', 'showValues', 'barCornerRadius', 'categorySpacing'].includes(controlId)) {
+            // These controls just need config updates, no immediate visual changes
+            console.log(`📝 Updated config-only control: ${controlId} = ${value}`);
+        }
+        
+        // Handle toggle controls for axes and grid
+        else if (['showXAxis', 'showYAxis', 'showGrid'].includes(controlId)) {
+            // These are handled above in the re-render section, but ensure they're acknowledged
+            console.log(`🔄 Axis/Grid toggle handled: ${controlId} = ${value}`);
         }
 
         console.log(`✅ Applied bar chart control: ${controlId}`);
@@ -692,6 +747,67 @@ class BarControlModule {
     initialize(chart) {
         this.chart = chart;
         console.log('✅ Bar chart control module initialized');
+    }
+
+    // Reset to defaults method (required by ControlPanel)
+    resetToDefaults() {
+        console.log('🔄 Resetting bar chart controls to defaults');
+        return this.getDefaultConfig();
+    }
+
+    // Export config method (required by ControlPanel)
+    exportConfig(config) {
+        return JSON.stringify(config, null, 2);
+    }
+
+    // Import config method (required by ControlPanel)
+    importConfig(configString) {
+        try {
+            return JSON.parse(configString);
+        } catch (error) {
+            throw new Error(`Invalid JSON configuration: ${error.message}`);
+        }
+    }
+
+    // Validate config method (required by ControlPanel)
+    validateConfig(config) {
+        const errors = [];
+        const warnings = [];
+
+        // Basic validation
+        if (config.barOpacity && (config.barOpacity < 0 || config.barOpacity > 1)) {
+            errors.push('Bar opacity must be between 0 and 1');
+        }
+
+        if (config.animationDuration && config.animationDuration < 0) {
+            errors.push('Animation duration must be positive');
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors,
+            warnings
+        };
+    }
+
+    // Update capabilities method for dynamic controls
+    updateCapabilities(chart) {
+        console.log('🔄 Updating bar chart control capabilities');
+        this.populateDynamicColors(chart);
+    }
+
+    // Refresh controls after data changes
+    refreshControlsAfterDataChange(chart) {
+        console.log('🔄 Refreshing bar chart controls after data change');
+        if (chart && chart.data) {
+            this.populateDynamicColors(chart);
+            
+            // If there's a control panel instance, regenerate it
+            if (window.pulseApp && window.pulseApp.controlPanel) {
+                console.log('🎛️ Regenerating control panel with new data');
+                window.pulseApp.controlPanel.generateControls();
+            }
+        }
     }
 
     // Cleanup method

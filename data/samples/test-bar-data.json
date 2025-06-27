@@ -1,0 +1,10 @@
+{
+    "metadata": {
+        "title": "Sample Bar Chart Data",
+        "source": "Test Data Generator",
+        "description": "Sample data for testing bar chart controls"
+    },
+    "categories": ["Q1 Revenue", "Q2 Revenue", "Q3 Revenue", "Q4 Revenue", "Marketing Spend", "R&D Investment"],
+    "values": [125000, 142000, 158000, 175000, 45000, 67000],
+    "labels": ["Q1 Sales", "Q2 Sales", "Q3 Sales", "Q4 Sales", "Marketing", "Research"]
+}

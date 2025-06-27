@@ -162,50 +162,10 @@ class PulseBarChart {
             .style('z-index', '1000');
     }
 
-    processData(data) {
-        if (!data) {
-            console.error('❌ No data provided to bar chart');
-            return null;
-        }
-
-        console.log('📊 Processing bar chart data:', data);
-
-        // Handle different data formats
-        let processedData = [];
-        
-        if (data.categories && data.values) {
-            // Simple format: {categories: ['A', 'B'], values: [10, 20]}
-            processedData = data.categories.map((category, index) => ({
-                category: category,
-                value: data.values[index] || 0,
-                label: data.labels ? data.labels[index] : category
-            }));
-        } else if (Array.isArray(data)) {
-            // Array format: [{category: 'A', value: 10}, ...]
-            processedData = data.map(d => ({
-                category: d.category || d.name || d.label,
-                value: parseFloat(d.value) || 0,
-                label: d.label || d.category || d.name
-            }));
-        } else if (data.data && Array.isArray(data.data)) {
-            // Nested format: {data: [{category: 'A', value: 10}]}
-            processedData = data.data.map(d => ({
-                category: d.category || d.name || d.label,
-                value: parseFloat(d.value) || 0,
-                label: d.label || d.category || d.name
-            }));
-        }
-
-        // Sort data by value (descending) for better visualization
-        processedData.sort((a, b) => b.value - a.value);
-
-        console.log('✅ Processed bar chart data:', processedData);
-        return processedData;
-    }
 
     render(data = null) {
         if (data) {
-            this.data = this.processData(data);
+            this.processData(data);
         }
 
         if (!this.data || this.data.length === 0) {
@@ -238,6 +198,12 @@ class PulseBarChart {
 
         // Initialize branding using reusable module
         this.initializeBranding();
+
+        // **CRITICAL FIX: Refresh controls after data is rendered**
+        if (window.pulseApp && window.pulseApp.controlModule && window.pulseApp.controlModule.refreshControlsAfterDataChange) {
+            console.log('🔄 Refreshing controls after bar chart render');
+            window.pulseApp.controlModule.refreshControlsAfterDataChange(this);
+        }
 
         console.log('✅ Bar chart rendered successfully');
     }
@@ -677,5 +643,72 @@ class PulseBarChart {
             return this.config.customColors;
         }
         return BarChartConfig.getColorScheme(this.config.colorScheme);
+    }
+
+    // ===== CRITICAL MISSING METHODS FOR CONTROL INTEGRATION =====
+    
+    // Process data method required by control system
+    processData(data) {
+        if (!data) {
+            console.error('❌ No data provided to bar chart');
+            return null;
+        }
+
+        console.log('📊 Processing bar chart data:', data);
+
+        // Handle different data formats
+        let processedData = [];
+        
+        if (data.categories && data.values) {
+            // Simple format: {categories: ['A', 'B'], values: [10, 20]}
+            processedData = data.categories.map((category, index) => ({
+                category: category,
+                value: data.values[index] || 0,
+                label: data.labels ? data.labels[index] : category
+            }));
+        } else if (Array.isArray(data)) {
+            // Array format: [{category: 'A', value: 10}, ...]
+            processedData = data.map(d => ({
+                category: d.category || d.name || d.label,
+                value: parseFloat(d.value) || 0,
+                label: d.label || d.category || d.name
+            }));
+        } else if (data.data && Array.isArray(data.data)) {
+            // Nested format: {data: [{category: 'A', value: 10}]}
+            processedData = data.data.map(d => ({
+                category: d.category || d.name || d.label,
+                value: parseFloat(d.value) || 0,
+                label: d.label || d.category || d.name
+            }));
+        }
+
+        // Sort data by value (descending) for better visualization
+        processedData.sort((a, b) => b.value - a.value);
+
+        console.log('✅ Processed bar chart data:', processedData);
+        
+        // Store processed data
+        this.data = processedData;
+        
+        return processedData;
+    }
+
+    // Get layer info method (compatibility with control system)
+    getLayerInfo() {
+        if (!this.data || !this.data.length) {
+            return { totalLayers: 0, categories: [] };
+        }
+        
+        return {
+            totalLayers: 1, // Bar charts have a single layer
+            categories: this.data.map(d => d.category),
+            maxValue: Math.max(...this.data.map(d => d.value)),
+            minValue: Math.min(...this.data.map(d => d.value))
+        };
+    }
+
+    // Method to check if chart supports dynamic layers
+    supportsDynamicLayers() {
+        return false; // Bar charts don't have dynamic layers like Sankey
     }
 }

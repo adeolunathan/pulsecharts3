@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart Controls Fix Verification</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    
+    <!-- Load utilities -->
+    <script src="js/utils/ChartUtils.js"></script>
+    <script src="js/utils/ChartExports.js"></script>
+    <script src="js/utils/ChartZoom.js"></script>
+    <script src="js/utils/ChartColorPicker.js"></script>
+    <script src="js/utils/ChartBrandingUtils.js"></script>
+    
+    <!-- Load Bar Chart components -->
+    <script src="js/charts/bar/BarChartConfig.js"></script>
+    <script src="js/charts/bar/BarChart.js"></script>
+    <script src="js/charts/bar/BarControls.js"></script>
+    
+    <!-- Load core control panel -->
+    <script src="js/core/ControlPanel.js"></script>
+    
+    <style>
+        body {
+            font-family: Inter, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+        
+        .chart-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .controls-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .test-header {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            grid-column: 1 / -1;
+        }
+        
+        .test-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .test-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .test-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .test-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        #test-chart {
+            min-height: 500px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔧 Bar Chart Controls Fix Verification</h1>
+            <p>This test verifies that bar chart controls are properly loading and functioning.</p>
+            <div class="test-actions">
+                <button id="test-basic" class="btn btn-primary">Test Basic Functionality</button>
+                <button id="test-colors" class="btn btn-secondary">Test Dynamic Colors</button>
+                <button id="test-controls" class="btn btn-secondary">Test All Controls</button>
+            </div>
+            <div id="test-status" class="test-status" style="display: none;"></div>
+        </div>
+        
+        <div class="chart-section">
+            <h3>📊 Bar Chart</h3>
+            <div id="test-chart"></div>
+        </div>
+        
+        <div class="controls-section">
+            <h3>🎛️ Bar Chart Controls</h3>
+            <div id="test-controls-panel"></div>
+        </div>
+    </div>
+
+    <script>
+        let testChart = null;
+        let testControlModule = null;
+        let testControlPanel = null;
+
+        // Sample test data
+        const sampleData = [
+            { category: 'Revenue', value: 150000, label: 'Total Revenue' },
+            { category: 'Expenses', value: 95000, label: 'Operating Expenses' },
+            { category: 'Profit', value: 55000, label: 'Net Profit' },
+            { category: 'Marketing', value: 25000, label: 'Marketing Costs' },
+            { category: 'Development', value: 40000, label: 'Development Costs' }
+        ];
+
+        function showTestStatus(message, type = 'success') {
+            const statusEl = document.getElementById('test-status');
+            statusEl.className = `test-status test-${type}`;
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+            console.log(`Test Status (${type}): ${message}`);
+        }
+
+        function testBasicFunctionality() {
+            console.log('🧪 Testing basic functionality...');
+            
+            try {
+                // Test class availability
+                if (typeof PulseBarChart === 'undefined') {
+                    throw new Error('PulseBarChart class not available');
+                }
+                
+                if (typeof BarControlModule === 'undefined') {
+                    throw new Error('BarControlModule class not available');
+                }
+                
+                if (typeof PulseControlPanel === 'undefined') {
+                    throw new Error('PulseControlPanel class not available');
+                }
+
+                // Create instances
+                testChart = new PulseBarChart('test-chart');
+                testControlModule = new BarControlModule();
+                
+                // Test chart creation
+                if (!testChart.container || !testChart.svg) {
+                    throw new Error('Chart container not properly initialized');
+                }
+
+                // Test control module
+                const capabilities = testControlModule.getCapabilities();
+                if (!capabilities || !capabilities.colors) {
+                    throw new Error('Control module capabilities not properly defined');
+                }
+
+                showTestStatus('✅ Basic functionality test passed', 'success');
+                return true;
+                
+            } catch (error) {
+                showTestStatus(`❌ Basic functionality test failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function testDynamicColors() {
+            console.log('🧪 Testing dynamic colors...');
+            
+            try {
+                if (!testChart || !testControlModule) {
+                    if (!testBasicFunctionality()) {
+                        return false;
+                    }
+                }
+
+                // Apply control defaults
+                testChart.applyControlDefaults(testControlModule);
+                
+                // Process and render data
+                testChart.processData(sampleData);
+                testChart.render();
+
+                // Initialize dynamic controls
+                testControlModule.initializeDynamicControls(testChart);
+                
+                // Check if dynamic colors were populated
+                const colorControls = testControlModule.capabilities.colors.controls;
+                if (!colorControls || colorControls.length === 0) {
+                    throw new Error('Dynamic color controls not populated');
+                }
+
+                console.log(`Found ${colorControls.length} dynamic color controls:`, colorControls);
+
+                showTestStatus(`✅ Dynamic colors test passed - ${colorControls.length} colors detected`, 'success');
+                return true;
+                
+            } catch (error) {
+                showTestStatus(`❌ Dynamic colors test failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function testAllControls() {
+            console.log('🧪 Testing all controls integration...');
+            
+            try {
+                if (!testChart || !testControlModule) {
+                    if (!testDynamicColors()) {
+                        return false;
+                    }
+                }
+
+                // Create control panel
+                testControlPanel = new PulseControlPanel('test-controls-panel');
+                testControlPanel.init(testChart, testControlModule);
+
+                // Test control panel generation
+                const controlsContainer = document.getElementById('test-controls-panel');
+                if (!controlsContainer.children.length) {
+                    throw new Error('Control panel not properly generated');
+                }
+
+                // Test a few control changes
+                testControlModule.handleControlChange('barOpacity', 0.6, testChart);
+                testControlModule.handleControlChange('backgroundColor', '#f0f0f0', testChart);
+
+                showTestStatus('✅ All controls test passed - Control panel fully functional', 'success');
+                return true;
+                
+            } catch (error) {
+                showTestStatus(`❌ All controls test failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('test-basic').addEventListener('click', testBasicFunctionality);
+        document.getElementById('test-colors').addEventListener('click', testDynamicColors);
+        document.getElementById('test-controls').addEventListener('click', testAllControls);
+
+        // Auto-run basic test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 Starting automated test sequence...');
+                if (testBasicFunctionality()) {
+                    setTimeout(() => {
+                        if (testDynamicColors()) {
+                            setTimeout(() => {
+                                testAllControls();
+                            }, 500);
+                        }
+                    }, 500);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

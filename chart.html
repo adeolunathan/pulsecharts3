@@ -1176,8 +1176,18 @@
                 setTimeout(() => {
                     console.log('📊 DOM ready, calling handleChartTypeChange for bar chart');
                     if (typeof handleChartTypeChange === 'function') {
-                        handleChartTypeChange('bar');
-                        console.log('📊 handleChartTypeChange called successfully');
+                        // **CRITICAL FIX: Wait for app to be ready before switching**
+                        const waitForAppInit = () => {
+                            if (window.pulseApp && window.pulseApp.isInitialized) {
+                                console.log('✅ App initialized, switching to bar chart');
+                                handleChartTypeChange('bar');
+                                console.log('📊 handleChartTypeChange called successfully');
+                            } else {
+                                console.log('⏳ Waiting for app initialization...');
+                                setTimeout(waitForAppInit, 200);
+                            }
+                        };
+                        waitForAppInit();
                     } else {
                         console.error('❌ handleChartTypeChange function not found');
                     }
@@ -2202,7 +2212,29 @@
             if (urlChartType) {
                 console.log(`🔗 Chart type from URL: ${urlChartType}`);
                 chartTypeSelect.value = urlChartType;
-                handleChartTypeChange(urlChartType);
+                
+                // **CRITICAL FIX: Ensure app is ready before switching chart type**
+                if (window.pulseApp && window.pulseApp.isInitialized) {
+                    console.log('✅ App is ready, switching chart type immediately');
+                    handleChartTypeChange(urlChartType);
+                } else {
+                    console.log('⏳ App not ready, waiting for initialization...');
+                    // Wait for app to be ready
+                    const waitForApp = setInterval(() => {
+                        if (window.pulseApp && window.pulseApp.isInitialized) {
+                            console.log('✅ App is now ready, switching chart type');
+                            clearInterval(waitForApp);
+                            handleChartTypeChange(urlChartType);
+                        }
+                    }, 100);
+                    
+                    // Timeout after 10 seconds
+                    setTimeout(() => {
+                        clearInterval(waitForApp);
+                        console.log('⚠️ App initialization timeout, attempting chart type change anyway');
+                        handleChartTypeChange(urlChartType);
+                    }, 10000);
+                }
             }
         }
         
@@ -2214,6 +2246,12 @@
             
             if (chartType === 'bar') {
                 console.log('📊 Switching to bar chart mode');
+                
+                // **CRITICAL FIX: Use the app's switchChartType method**
+                if (window.pulseApp && window.pulseApp.switchChartType) {
+                    console.log('🔄 Using app.switchChartType for proper control panel switching');
+                    window.pulseApp.switchChartType('bar');
+                }
                 
                 // Update tab labels for bar chart  
                 const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
@@ -2309,6 +2347,12 @@
             } else if (chartType === 'sankey') {
                 console.log('🌊 Switching to sankey chart mode');
                 
+                // **CRITICAL FIX: Use the app's switchChartType method for consistency**
+                if (window.pulseApp && window.pulseApp.switchChartType) {
+                    console.log('🔄 Using app.switchChartType for proper control panel switching');
+                    window.pulseApp.switchChartType('sankey');
+                }
+                
                 // Restore original tab label for sankey
                 const dataBuilderTabButton = document.querySelector('.tab-button[data-tab="data-builder"]');
                 if (dataBuilderTabButton) {
@@ -2320,13 +2364,6 @@
                 if (flowBuilderTab) {
                     flowBuilderTab.style.display = 'block';
                 }
-                
-                // Initialize sankey chart if app is ready
-                setTimeout(() => {
-                    if (window.pulseApp) {
-                        window.pulseApp.initializeChartType('sankey');
-                    }
-                }, 500);
             }
             
             // Update URL to reflect chart type
@@ -2497,17 +2534,25 @@
             // Store current bar chart data
             window.currentBarChartData = data;
             
-            // Initialize bar chart if needed
-            if (window.pulseApp && window.pulseApp.chartRegistry && window.pulseApp.chartRegistry.bar) {
-                // Create bar chart instance
-                const barChartClass = window.pulseApp.chartRegistry.bar.chartClass;
-                const barChart = new barChartClass('main-chart');
+            // **CRITICAL FIX: Use the app's existing chart instance instead of creating a new one**
+            if (window.pulseApp && window.pulseApp.chart) {
+                console.log('✅ Using existing app chart instance for rendering');
                 
-                // Render the chart
-                barChart.render(data);
+                // Use the app's existing chart instance (connected to control panel)
+                window.pulseApp.chart.render(data);
                 
-                // Store chart instance
-                window.currentBarChart = barChart;
+                // Update app's current data
+                window.pulseApp.currentData = data;
+                
+                // Store chart instance reference
+                window.currentBarChart = window.pulseApp.chart;
+                
+                // Refresh control panel if chart has dynamic controls
+                if (window.pulseApp.controlModule && window.pulseApp.controlModule.hasDynamicControls && window.pulseApp.controlModule.hasDynamicControls()) {
+                    console.log('🔄 Refreshing dynamic controls after data load');
+                    window.pulseApp.controlModule.initializeDynamicControls(window.pulseApp.chart);
+                    window.pulseApp.controlPanel.generateControls();
+                }
                 
                 // Hide loading indicator
                 const loadingEl = document.querySelector('.chart-loading');
@@ -2516,9 +2561,27 @@
                     console.log('📊 Loading indicator hidden');
                 }
                 
-                console.log('✅ Bar chart rendered successfully');
+                console.log('✅ Bar chart rendered successfully using app instance');
             } else {
-                console.error('❌ Bar chart class not available');
+                console.error('❌ No app chart instance available - controls will not work');
+                console.log('📊 App state:', {
+                    hasApp: !!window.pulseApp,
+                    hasChart: !!window.pulseApp?.chart,
+                    chartType: window.pulseApp?.currentChartType
+                });
+                
+                // Fallback: create chart instance (but controls won't work)
+                if (window.pulseApp && window.pulseApp.chartRegistry && window.pulseApp.chartRegistry.bar) {
+                    const barChartClass = window.pulseApp.chartRegistry.bar.chartClass;
+                    const barChart = new barChartClass('main-chart');
+                    barChart.render(data);
+                    window.currentBarChart = barChart;
+                    
+                    const loadingEl = document.querySelector('.chart-loading');
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    
+                    console.warn('⚠️ Used fallback chart creation - controls may not work');
+                }
             }
         }
         
