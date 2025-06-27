@@ -200,88 +200,169 @@ class PulseBarChart {
         this.initializeBranding();
 
         // **CRITICAL FIX: Refresh controls after data is rendered**
-        if (window.pulseApp && window.pulseApp.controlModule && window.pulseApp.controlModule.refreshControlsAfterDataChange) {
-            console.log('🔄 Refreshing controls after bar chart render');
-            window.pulseApp.controlModule.refreshControlsAfterDataChange(this);
+        if (window.pulseApp && window.pulseApp.controlPanel) {
+            console.log('🔄 Refreshing control panel after bar chart render');
+            // Use the new refreshAfterDataLoad method for proper control refresh
+            if (window.pulseApp.controlPanel.refreshAfterDataLoad) {
+                window.pulseApp.controlPanel.refreshAfterDataLoad(this);
+            } else if (window.pulseApp.controlModule && window.pulseApp.controlModule.refreshControlsAfterDataChange) {
+                // Fallback to old method
+                window.pulseApp.controlModule.refreshControlsAfterDataChange(this);
+            }
         }
 
         console.log('✅ Bar chart rendered successfully');
     }
 
     createScales(chartWidth, chartHeight) {
-        // X scale (categories)
-        this.xScale = d3.scaleBand()
-            .domain(this.data.map(d => d.category))
-            .range([0, chartWidth])
-            .padding(this.config.barPadding);
-
-        // Y scale (values)
         const maxValue = d3.max(this.data, d => d.value);
         const minValue = d3.min(this.data, d => d.value);
         const valueRange = maxValue - Math.min(0, minValue);
         
-        this.yScale = d3.scaleLinear()
-            .domain([Math.min(0, minValue), maxValue + (valueRange * 0.1)]) // Add 10% padding
-            .range([chartHeight, 0]);
+        if (this.config.orientation === 'horizontal') {
+            // **HORIZONTAL BAR CHART**: Categories on Y-axis, Values on X-axis
+            this.yScale = d3.scaleBand()
+                .domain(this.data.map(d => d.category))
+                .range([0, chartHeight])
+                .padding(this.config.barPadding);
+
+            this.xScale = d3.scaleLinear()
+                .domain([Math.min(0, minValue), maxValue + (valueRange * 0.1)])
+                .range([0, chartWidth]);
+        } else {
+            // **VERTICAL BAR CHART**: Categories on X-axis, Values on Y-axis (default)
+            this.xScale = d3.scaleBand()
+                .domain(this.data.map(d => d.category))
+                .range([0, chartWidth])
+                .padding(this.config.barPadding);
+
+            this.yScale = d3.scaleLinear()
+                .domain([Math.min(0, minValue), maxValue + (valueRange * 0.1)])
+                .range([chartHeight, 0]);
+        }
     }
 
     renderGrid(chartWidth, chartHeight) {
-        // Y-axis grid lines
-        const yGrid = this.chart.append('g')
-            .attr('class', 'grid y-grid');
+        if (this.config.orientation === 'horizontal') {
+            // **HORIZONTAL**: X-axis grid lines (for values)
+            const xGrid = this.chart.append('g')
+                .attr('class', 'grid x-grid');
 
-        yGrid.selectAll('line')
-            .data(this.yScale.ticks())
-            .enter()
-            .append('line')
-            .attr('x1', 0)
-            .attr('x2', chartWidth)
-            .attr('y1', d => this.yScale(d))
-            .attr('y2', d => this.yScale(d))
-            .attr('stroke', this.config.gridColor)
-            .attr('stroke-width', 0.5)
-            .attr('opacity', this.config.gridOpacity);
+            xGrid.selectAll('line')
+                .data(this.xScale.ticks())
+                .enter()
+                .append('line')
+                .attr('x1', d => this.xScale(d))
+                .attr('x2', d => this.xScale(d))
+                .attr('y1', 0)
+                .attr('y2', chartHeight)
+                .attr('stroke', this.config.gridColor)
+                .attr('stroke-width', 0.5)
+                .attr('opacity', this.config.gridOpacity);
+        } else {
+            // **VERTICAL**: Y-axis grid lines (for values)
+            const yGrid = this.chart.append('g')
+                .attr('class', 'grid y-grid');
+
+            yGrid.selectAll('line')
+                .data(this.yScale.ticks())
+                .enter()
+                .append('line')
+                .attr('x1', 0)
+                .attr('x2', chartWidth)
+                .attr('y1', d => this.yScale(d))
+                .attr('y2', d => this.yScale(d))
+                .attr('stroke', this.config.gridColor)
+                .attr('stroke-width', 0.5)
+                .attr('opacity', this.config.gridOpacity);
+        }
     }
 
     renderAxes(chartWidth, chartHeight) {
-        // X axis
-        if (this.config.showXAxis) {
-            const xAxisGroup = this.chart.append('g')
-                .attr('class', 'x-axis')
-                .attr('transform', `translate(0, ${chartHeight})`);
+        if (this.config.orientation === 'horizontal') {
+            // **HORIZONTAL BAR CHART AXES**
+            
+            // X axis (values) - bottom
+            if (this.config.showXAxis) {
+                const xAxisGroup = this.chart.append('g')
+                    .attr('class', 'x-axis')
+                    .attr('transform', `translate(0, ${chartHeight})`);
 
-            this.xAxis = d3.axisBottom(this.xScale);
-            xAxisGroup.call(this.xAxis);
+                this.xAxis = d3.axisBottom(this.xScale)
+                    .tickFormat(d => this.formatValue(d));
+                xAxisGroup.call(this.xAxis);
 
-            // Style x-axis
-            xAxisGroup.selectAll('text')
-                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                .style('font-size', `${this.config.globalFontSize}px`)
-                .style('fill', this.config.axisColor);
+                // Style x-axis
+                xAxisGroup.selectAll('text')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.globalFontSize}px`)
+                    .style('fill', this.config.axisColor);
 
-            xAxisGroup.selectAll('path, line')
-                .style('stroke', this.config.axisColor)
-                .style('stroke-width', this.config.axisStrokeWidth);
-        }
+                xAxisGroup.selectAll('path, line')
+                    .style('stroke', this.config.axisColor)
+                    .style('stroke-width', this.config.axisStrokeWidth);
+            }
 
-        // Y axis
-        if (this.config.showYAxis) {
-            const yAxisGroup = this.chart.append('g')
-                .attr('class', 'y-axis');
+            // Y axis (categories) - left
+            if (this.config.showYAxis) {
+                const yAxisGroup = this.chart.append('g')
+                    .attr('class', 'y-axis');
 
-            this.yAxis = d3.axisLeft(this.yScale)
-                .tickFormat(d => this.formatValue(d));
-            yAxisGroup.call(this.yAxis);
+                this.yAxis = d3.axisLeft(this.yScale);
+                yAxisGroup.call(this.yAxis);
 
-            // Style y-axis
-            yAxisGroup.selectAll('text')
-                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                .style('font-size', `${this.config.globalFontSize}px`)
-                .style('fill', this.config.axisColor);
+                // Style y-axis
+                yAxisGroup.selectAll('text')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.globalFontSize}px`)
+                    .style('fill', this.config.axisColor);
 
-            yAxisGroup.selectAll('path, line')
-                .style('stroke', this.config.axisColor)
-                .style('stroke-width', this.config.axisStrokeWidth);
+                yAxisGroup.selectAll('path, line')
+                    .style('stroke', this.config.axisColor)
+                    .style('stroke-width', this.config.axisStrokeWidth);
+            }
+        } else {
+            // **VERTICAL BAR CHART AXES (default)**
+            
+            // X axis (categories) - bottom
+            if (this.config.showXAxis) {
+                const xAxisGroup = this.chart.append('g')
+                    .attr('class', 'x-axis')
+                    .attr('transform', `translate(0, ${chartHeight})`);
+
+                this.xAxis = d3.axisBottom(this.xScale);
+                xAxisGroup.call(this.xAxis);
+
+                // Style x-axis
+                xAxisGroup.selectAll('text')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.globalFontSize}px`)
+                    .style('fill', this.config.axisColor);
+
+                xAxisGroup.selectAll('path, line')
+                    .style('stroke', this.config.axisColor)
+                    .style('stroke-width', this.config.axisStrokeWidth);
+            }
+
+            // Y axis (values) - left
+            if (this.config.showYAxis) {
+                const yAxisGroup = this.chart.append('g')
+                    .attr('class', 'y-axis');
+
+                this.yAxis = d3.axisLeft(this.yScale)
+                    .tickFormat(d => this.formatValue(d));
+                yAxisGroup.call(this.yAxis);
+
+                // Style y-axis
+                yAxisGroup.selectAll('text')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.globalFontSize}px`)
+                    .style('fill', this.config.axisColor);
+
+                yAxisGroup.selectAll('path, line')
+                    .style('stroke', this.config.axisColor)
+                    .style('stroke-width', this.config.axisStrokeWidth);
+            }
         }
     }
 
@@ -289,62 +370,124 @@ class PulseBarChart {
         // Get colors
         const colors = this.getBarColors();
 
-        // Create bars
-        const bars = this.chart.selectAll('.bar')
-            .data(this.data)
-            .enter()
-            .append('rect')
-            .attr('class', 'bar')
-            .attr('x', d => this.xScale(d.category))
-            .attr('width', this.xScale.bandwidth())
-            .attr('y', this.yScale(0)) // Start from baseline
-            .attr('height', 0) // Start with 0 height for animation
-            .attr('fill', (d, i) => this.customColors[d.category] || colors[i % colors.length])
-            .attr('opacity', this.config.barOpacity)
-            .attr('rx', this.config.barCornerRadius)
-            .attr('ry', this.config.barCornerRadius)
-            .style('cursor', 'pointer');
+        if (this.config.orientation === 'horizontal') {
+            // **HORIZONTAL BARS**
+            const bars = this.chart.selectAll('.bar')
+                .data(this.data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('y', d => this.yScale(d.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('x', 0) // Start from left edge
+                .attr('width', 0) // Start with 0 width for animation
+                .attr('fill', (d, i) => this.customColors[d.category] || colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius)
+                .attr('ry', this.config.barCornerRadius)
+                .style('cursor', 'pointer');
 
-        // Animate bars
-        bars.transition()
-            .duration(this.config.animationDuration)
-            .ease(d3.easeQuadOut)
-            .attr('y', d => this.yScale(Math.max(0, d.value)))
-            .attr('height', d => Math.abs(this.yScale(d.value) - this.yScale(0)));
+            // Animate bars
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .ease(d3.easeQuadOut)
+                .attr('x', d => this.xScale(Math.min(0, d.value)))
+                .attr('width', d => Math.abs(this.xScale(d.value) - this.xScale(0)));
 
-        // Add interactivity
-        this.addBarInteractivity(bars);
+            // Add interactivity
+            this.addBarInteractivity(bars);
 
-        // Add labels if enabled
-        if (this.config.showBarLabels) {
-            this.renderBarLabels();
+            // Add labels if enabled
+            if (this.config.showBarLabels) {
+                this.renderBarLabels();
+            }
+
+            // Store bars reference
+            this.bars = bars;
+        } else {
+            // **VERTICAL BARS (default)**
+            const bars = this.chart.selectAll('.bar')
+                .data(this.data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => this.xScale(d.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('y', this.yScale(0)) // Start from baseline
+                .attr('height', 0) // Start with 0 height for animation
+                .attr('fill', (d, i) => this.customColors[d.category] || colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius)
+                .attr('ry', this.config.barCornerRadius)
+                .style('cursor', 'pointer');
+
+            // Animate bars
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .ease(d3.easeQuadOut)
+                .attr('y', d => this.yScale(Math.max(0, d.value)))
+                .attr('height', d => Math.abs(this.yScale(d.value) - this.yScale(0)));
+
+            // Add interactivity
+            this.addBarInteractivity(bars);
+
+            // Add labels if enabled
+            if (this.config.showBarLabels) {
+                this.renderBarLabels();
+            }
+
+            // Store bars reference
+            this.bars = bars;
         }
-
-        // Store bars reference
-        this.bars = bars;
     }
 
     renderBarLabels() {
-        const labels = this.chart.selectAll('.bar-label')
-            .data(this.data)
-            .enter()
-            .append('text')
-            .attr('class', 'bar-label')
-            .attr('x', d => this.xScale(d.category) + this.xScale.bandwidth() / 2)
-            .attr('y', d => this.yScale(d.value) - this.config.labelOffset)
-            .attr('text-anchor', 'middle')
-            .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-            .style('font-size', `${this.config.labelFontSize}px`)
-            .style('font-weight', this.config.labelFontWeight)
-            .style('fill', this.config.labelColor)
-            .style('opacity', 0)
-            .text(d => this.config.showValues ? this.formatValue(d.value) : d.label);
+        if (this.config.orientation === 'horizontal') {
+            // **HORIZONTAL BAR LABELS**
+            const labels = this.chart.selectAll('.bar-label')
+                .data(this.data)
+                .enter()
+                .append('text')
+                .attr('class', 'bar-label')
+                .attr('x', d => this.xScale(d.value) + this.config.labelOffset)
+                .attr('y', d => this.yScale(d.category) + this.yScale.bandwidth() / 2)
+                .attr('text-anchor', 'start')
+                .attr('dominant-baseline', 'middle')
+                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                .style('font-size', `${this.config.labelFontSize}px`)
+                .style('font-weight', this.config.labelFontWeight)
+                .style('fill', this.config.labelColor)
+                .style('opacity', 0)
+                .text(d => this.config.showValues ? this.formatValue(d.value) : d.label);
 
-        // Animate labels
-        labels.transition()
-            .delay(this.config.animationDuration * 0.5)
-            .duration(this.config.animationDuration * 0.5)
-            .style('opacity', 1);
+            // Animate labels
+            labels.transition()
+                .delay(this.config.animationDuration * 0.5)
+                .duration(this.config.animationDuration * 0.5)
+                .style('opacity', 1);
+        } else {
+            // **VERTICAL BAR LABELS (default)**
+            const labels = this.chart.selectAll('.bar-label')
+                .data(this.data)
+                .enter()
+                .append('text')
+                .attr('class', 'bar-label')
+                .attr('x', d => this.xScale(d.category) + this.xScale.bandwidth() / 2)
+                .attr('y', d => this.yScale(d.value) - this.config.labelOffset)
+                .attr('text-anchor', 'middle')
+                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                .style('font-size', `${this.config.labelFontSize}px`)
+                .style('font-weight', this.config.labelFontWeight)
+                .style('fill', this.config.labelColor)
+                .style('opacity', 0)
+                .text(d => this.config.showValues ? this.formatValue(d.value) : d.label);
+
+            // Animate labels
+            labels.transition()
+                .delay(this.config.animationDuration * 0.5)
+                .duration(this.config.animationDuration * 0.5)
+                .style('opacity', 1);
+        }
     }
 
     addBarInteractivity(bars) {

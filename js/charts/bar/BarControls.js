@@ -526,14 +526,17 @@ class BarControlModule {
         if (controlId.startsWith('barColor_')) {
             const colorControl = this.capabilities.colors.controls.find(c => c.id === controlId);
             if (colorControl && colorControl.category) {
+                if (!chart.customColors) chart.customColors = {};
                 chart.customColors[colorControl.category] = value;
                 
                 // Update the visual immediately
-                chart.chart.selectAll('.bar')
-                    .filter(d => d.category === colorControl.category)
-                    .transition()
-                    .duration(200)
-                    .attr('fill', value);
+                if (chart.chart) {
+                    chart.chart.selectAll('.bar')
+                        .filter(d => d.category === colorControl.category)
+                        .transition()
+                        .duration(200)
+                        .attr('fill', value);
+                }
                 
                 console.log(`🎨 Updated bar color for ${colorControl.category}: ${value}`);
                 return;
@@ -543,30 +546,52 @@ class BarControlModule {
         // Handle color picker controls
         if (controlId.endsWith('Color') && !controlId.startsWith('barColor_')) {
             // Update chart configuration
+            if (!chart.config) chart.config = {};
             chart.config[controlId] = value;
             
-            // Handle specific color types
-            if (controlId === 'backgroundColor') {
+            // Handle specific color types with proper chart element existence checks
+            if (controlId === 'backgroundColor' && chart.svg) {
                 chart.svg.style('background-color', value);
-            } else if (controlId === 'titleColor') {
+            } else if (controlId === 'titleColor' && chart.svg) {
                 chart.svg.selectAll('text').style('fill', value);
-            } else if (controlId === 'labelColor') {
+            } else if (controlId === 'labelColor' && chart.chart) {
                 chart.chart.selectAll('.bar-label').style('fill', value);
-            } else if (controlId === 'axisColor') {
+            } else if (controlId === 'axisColor' && chart.svg) {
                 chart.svg.selectAll('.x-axis, .y-axis').selectAll('path, line, text').style('stroke', value).style('fill', value);
-            } else if (controlId === 'gridColor') {
+            } else if (controlId === 'gridColor' && chart.chart) {
                 chart.chart.selectAll('.grid line').style('stroke', value);
             }
             return;
         }
 
         // Update chart configuration
+        if (!chart.config) chart.config = {};
         chart.config[controlId] = value;
 
         // Handle special cases that require re-rendering
         if (['orientation', 'colorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
             console.log(`🔄 Re-rendering chart for ${controlId} change`);
-            chart.render();
+            
+            // **CRITICAL FIX: For orientation change, we need to completely re-render**
+            if (controlId === 'orientation') {
+                console.log(`📊 Orientation changing to: ${value}`);
+                // Force a complete re-render with current data
+                if (chart.data && chart.data.length > 0) {
+                    chart.render();
+                } else {
+                    console.warn('⚠️ No chart data available for orientation change');
+                }
+            } else if (controlId === 'barPadding') {
+                console.log(`📊 Bar padding changing to: ${value}`);
+                // Re-render to update bar spacing
+                if (chart.data && chart.data.length > 0) {
+                    chart.render();
+                } else {
+                    console.warn('⚠️ No chart data available for bar padding change');
+                }
+            } else {
+                chart.render();
+            }
         }
         
         // Handle font changes
@@ -597,11 +622,33 @@ class BarControlModule {
                 .attr('opacity', value);
         }
         
-        // Handle other specific controls that don't need visual updates
-        else if (['animationDuration', 'animationEasing', 'labelPosition', 'labelOffset', 
-                  'labelFontSize', 'valueFormat', 'currencySymbol', 'decimalPlaces',
-                  'enableHover', 'enableClick', 'enableTooltip', 'hoverOpacity',
-                  'showBarLabels', 'showValues', 'barCornerRadius', 'categorySpacing'].includes(controlId)) {
+        // Handle controls that need immediate visual updates without full re-render
+        else if (controlId === 'barCornerRadius') {
+            chart.chart.selectAll('.bar')
+                .transition()
+                .duration(200)
+                .attr('rx', value)
+                .attr('ry', value);
+        }
+        
+        // Handle font size changes that need immediate updates
+        else if (controlId === 'labelFontSize') {
+            chart.chart.selectAll('.bar-label')
+                .transition()
+                .duration(200)
+                .style('font-size', value + 'px');
+        }
+        
+        // Handle controls that need re-render for proper visual update
+        else if (['showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 
+                  'valueFormat', 'currencySymbol', 'decimalPlaces'].includes(controlId)) {
+            console.log(`🔄 Re-rendering for visual control: ${controlId} = ${value}`);
+            chart.render();
+        }
+        
+        // Handle config-only controls that don't need immediate visual changes
+        else if (['animationDuration', 'animationEasing', 'enableHover', 'enableClick', 
+                  'enableTooltip', 'hoverOpacity', 'categorySpacing'].includes(controlId)) {
             // These controls just need config updates, no immediate visual changes
             console.log(`📝 Updated config-only control: ${controlId} = ${value}`);
         }

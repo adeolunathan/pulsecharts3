@@ -21,6 +21,18 @@ class PulseControlPanel {
         console.log('🎛️ Control panel initializing with config:', this.config);
         console.log('📊 Chart config:', chart.config);
         console.log('🎨 Chart colors:', chart.customColors);
+        console.log('📊 Chart data available:', !!chart.data, chart.data?.length || 0);
+        
+        // **CRITICAL FIX: For bar charts, ensure dynamic controls are properly initialized**
+        if (controlModule && controlModule.hasDynamicControls && controlModule.hasDynamicControls()) {
+            console.log('🔄 Chart has dynamic controls, checking data availability');
+            if (chart.data && chart.data.length > 0) {
+                console.log('✅ Chart has data, initializing dynamic controls');
+                controlModule.initializeDynamicControls(chart);
+            } else {
+                console.log('⚠️ Chart has no data yet, will initialize basic controls and update later');
+            }
+        }
         
         this.generateControls();
     }
@@ -102,8 +114,8 @@ class PulseControlPanel {
             .style('gap', '16px')
             .style('margin-top', '20px');
 
-        // Add color controls
-        const colorControls = section.controls.filter(c => c.type === 'color');
+        // Add color controls - filter for both 'color' and 'color_picker' types
+        const colorControls = section.controls.filter(c => c.type === 'color' || c.type === 'color_picker');
         colorControls.forEach(control => {
             this.createColorItem(colorGrid, control);
         });
@@ -1028,7 +1040,42 @@ class PulseControlPanel {
         this.chart = chart;
         this.controlModule = controlModule;
         this.config = { ...chart.config };
+        
+        // **CRITICAL FIX: Re-initialize dynamic controls when chart updates**
+        if (controlModule && controlModule.hasDynamicControls && controlModule.hasDynamicControls()) {
+            console.log('🔄 Updating chart with dynamic controls');
+            if (chart.data && chart.data.length > 0) {
+                console.log('✅ Chart has data, re-initializing dynamic controls');
+                controlModule.initializeDynamicControls(chart);
+            }
+        }
+        
         this.generateControls();
+    }
+
+    // **NEW METHOD: Force refresh controls after data is loaded**
+    refreshAfterDataLoad(chart) {
+        if (!chart || !this.controlModule) {
+            console.warn('⚠️ Cannot refresh controls - missing chart or control module');
+            return;
+        }
+        
+        console.log('🔄 Refreshing control panel after data load');
+        
+        // Update chart reference
+        this.chart = chart;
+        this.config = { ...chart.config };
+        
+        // Re-initialize dynamic controls with new data
+        if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
+            console.log('🎛️ Re-initializing dynamic controls with data');
+            this.controlModule.initializeDynamicControls(chart);
+        }
+        
+        // Regenerate all controls
+        this.generateControls();
+        
+        console.log('✅ Control panel refreshed successfully');
     }
 
     // Get current configuration

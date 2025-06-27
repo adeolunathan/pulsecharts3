@@ -644,7 +644,8 @@
             return {
                 type: urlParams.get('type'), // 'income' or 'balance' (for Sankey)
                 chartType: urlParams.get('chartType'), // 'sankey' or 'bar' (main chart type)
-                tab: urlParams.get('tab') // 'data-builder' or 'chart-view'
+                tab: urlParams.get('tab'), // 'data-builder' or 'chart-view'
+                data: urlParams.get('data') // Encoded JSON data
             };
         }
 
@@ -2219,21 +2220,28 @@
                     handleChartTypeChange(urlChartType);
                 } else {
                     console.log('⏳ App not ready, waiting for initialization...');
-                    // Wait for app to be ready
+                    // Wait for app to be ready with more robust checking
+                    let attempts = 0;
+                    const maxAttempts = 100; // 10 seconds max
+                    
                     const waitForApp = setInterval(() => {
+                        attempts++;
+                        console.log(`⏳ Waiting for app... attempt ${attempts}/${maxAttempts}`);
+                        
                         if (window.pulseApp && window.pulseApp.isInitialized) {
                             console.log('✅ App is now ready, switching chart type');
+                            clearInterval(waitForApp);
+                            
+                            // **ADDITIONAL FIX: Add small delay to ensure everything is settled**
+                            setTimeout(() => {
+                                handleChartTypeChange(urlChartType);
+                            }, 200);
+                        } else if (attempts >= maxAttempts) {
+                            console.log('⚠️ App initialization timeout, attempting chart type change anyway');
                             clearInterval(waitForApp);
                             handleChartTypeChange(urlChartType);
                         }
                     }, 100);
-                    
-                    // Timeout after 10 seconds
-                    setTimeout(() => {
-                        clearInterval(waitForApp);
-                        console.log('⚠️ App initialization timeout, attempting chart type change anyway');
-                        handleChartTypeChange(urlChartType);
-                    }, 10000);
                 }
             }
         }
@@ -2547,11 +2555,10 @@
                 // Store chart instance reference
                 window.currentBarChart = window.pulseApp.chart;
                 
-                // Refresh control panel if chart has dynamic controls
-                if (window.pulseApp.controlModule && window.pulseApp.controlModule.hasDynamicControls && window.pulseApp.controlModule.hasDynamicControls()) {
-                    console.log('🔄 Refreshing dynamic controls after data load');
-                    window.pulseApp.controlModule.initializeDynamicControls(window.pulseApp.chart);
-                    window.pulseApp.controlPanel.generateControls();
+                // **CRITICAL FIX: Use the new refresh method to properly update controls**
+                if (window.pulseApp.controlPanel && window.pulseApp.controlModule) {
+                    console.log('🔄 Refreshing control panel after data load using new method');
+                    window.pulseApp.controlPanel.refreshAfterDataLoad(window.pulseApp.chart);
                 }
                 
                 // Hide loading indicator

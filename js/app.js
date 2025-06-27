@@ -227,6 +227,9 @@ class PulseApplication {
         console.log(`🔄 Switching from ${this.currentChartType} to ${newChartType}`);
         
         try {
+            // **CRITICAL FIX: Store current data before destroying control panel**
+            const preservedData = this.currentData;
+            
             if (this.controlPanel) {
                 this.controlPanel.destroy();
             }
@@ -239,17 +242,48 @@ class PulseApplication {
 
             await this.initializeChartType(newChartType);
             
-            if (this.currentData) {
-                this.chart.render(this.currentData);
+            // **CRITICAL FIX: For bar charts, ensure we have data before final setup**
+            if (newChartType === 'bar') {
+                console.log('📊 Setting up bar chart with proper data flow');
                 
-                if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
+                // If we have preserved data, convert and use it
+                if (preservedData) {
+                    console.log('✅ Using preserved data for bar chart');
+                    const convertedData = this.convertDataForChartType(preservedData, 'bar');
+                    this.currentData = convertedData;
+                    this.chart.render(convertedData);
+                } else {
+                    console.log('📊 No preserved data, will use default bar chart data');
+                    // Create default data for bar chart to ensure controls work
+                    const defaultData = {
+                        categories: ['Revenue', 'Expenses', 'Profit'],
+                        values: [100000, 75000, 25000],
+                        labels: ['Revenue', 'Expenses', 'Profit']
+                    };
+                    this.currentData = defaultData;
+                    this.chart.render(defaultData);
+                }
+                
+                // **CRITICAL FIX: Always refresh controls after data is loaded**
+                if (this.controlModule && this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
+                    console.log('🎛️ Initializing dynamic controls with data');
                     this.controlModule.initializeDynamicControls(this.chart);
                     this.controlPanel.generateControls();
                 }
-                
-                this.hideLoadingIndicator();
+            } else {
+                // For other chart types (like sankey), use existing logic
+                if (preservedData) {
+                    this.currentData = preservedData;
+                    this.chart.render(preservedData);
+                    
+                    if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
+                        this.controlModule.initializeDynamicControls(this.chart);
+                        this.controlPanel.generateControls();
+                    }
+                }
             }
             
+            this.hideLoadingIndicator();
             console.log(`✅ Successfully switched to ${newChartType}`);
             
         } catch (error) {
@@ -433,20 +467,68 @@ class PulseApplication {
         reader.readAsText(file);
     }
 
+    // Convert data to appropriate format for current chart type
+    convertDataForChartType(data, chartType) {
+        if (chartType === 'bar') {
+            // If data is in Sankey format (nodes/links), convert to bar format
+            if (data.nodes && data.links && !data.categories) {
+                console.log('🔄 Converting Sankey data to bar chart format');
+                
+                // Extract revenue/profit nodes for bar chart
+                const barData = data.nodes
+                    .filter(node => node.value > 0) // Only positive values for now
+                    .slice(0, 10) // Limit to first 10 items
+                    .map(node => ({
+                        category: node.id,
+                        value: node.value,
+                        label: node.id
+                    }));
+                
+                return {
+                    ...data,
+                    categories: barData.map(d => d.category),
+                    values: barData.map(d => d.value),
+                    labels: barData.map(d => d.label),
+                    barData: barData // Keep converted data for reference
+                };
+            }
+            
+            // If data already has categories/values, it's ready for bar chart
+            if (data.categories && data.values) {
+                return data;
+            }
+            
+            // If it's an array format, convert it
+            if (Array.isArray(data)) {
+                return {
+                    categories: data.map(d => d.category || d.name || d.label),
+                    values: data.map(d => d.value),
+                    labels: data.map(d => d.label || d.category || d.name)
+                };
+            }
+        }
+        
+        // For other chart types, return data as-is
+        return data;
+    }
+
     // Method for Data Builder to update chart data
     updateData(newData, source = 'manual') {
         console.log(`🔄 Manually updating data from ${source}`);
         
         try {
-            const validation = this.dataManager.validateData(newData);
+            // Convert data to appropriate format for current chart type
+            const convertedData = this.convertDataForChartType(newData, this.currentChartType);
+            
+            const validation = this.dataManager.validateData(convertedData);
             if (!validation.valid) {
                 console.warn('Validation warnings for manual update:', validation.errors);
             }
             
-            this.currentData = newData;
+            this.currentData = convertedData;
             
             if (this.chart) {
-                this.chart.render(newData);
+                this.chart.render(convertedData);
                 
                 if (this.controlModule?.hasDynamicControls && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);
