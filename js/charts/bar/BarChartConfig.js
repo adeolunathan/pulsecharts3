@@ -96,19 +96,25 @@ window.BarChartConfig = (function() {
     }
 
     /**
-     * Get default bar chart data - SINGLE SOURCE OF TRUTH
-     * @returns {Object} Default data for bar charts
+     * Get default bar chart data - MULTI-COLUMN FORMAT (SINGLE SOURCE OF TRUTH)
+     * @returns {Object} Default multi-series data for bar charts
      */
     function getDefaultData() {
         return {
             metadata: {
-                title: "Quarterly Revenue by Product Line",
+                title: "Multi-Series Chart Data",
                 chartType: "bar",
-                source: "Internal Analytics"
+                source: "Default Sample Data"
             },
-            categories: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training'],
-            values: [850000, 320000, 180000, 150000, 95000],
-            labels: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training']
+            categories: ['Product A', 'Product B', 'Product C'],
+            series: [
+                { name: 'Value 1', data: [100, 150, 200] },
+                { name: 'Value 2', data: [120, 180, 250] },
+                { name: 'Value 3', data: [90, 140, 190] }
+            ],
+            // Legacy compatibility
+            values: [100, 150, 200],
+            labels: ['Product A', 'Product B', 'Product C']
         };
     }
 

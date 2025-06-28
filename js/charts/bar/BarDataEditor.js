@@ -111,7 +111,7 @@ class BarDataEditor {
         console.log('📊 BarDataEditor: Loading initial data...');
         console.log('📊 BarDataEditor: Existing chart data:', this.chart?.data);
         
-        // ALWAYS use multi-column default data for better demo
+        // Use multi-column default data (matches BarChartConfig.getDefaultData())
         this.data = [
             { category: 'Product A', value: 100, value_2: 120, value_3: 90 },
             { category: 'Product B', value: 150, value_2: 180, value_3: 140 },
