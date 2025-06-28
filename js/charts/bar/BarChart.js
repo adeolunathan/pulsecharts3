@@ -58,10 +58,13 @@ class PulseBarChart {
             console.log(`📊 Chart type changed from ${oldChartType} to ${newConfig.barChartType}, re-rendering immediately`);
             console.log('📊 Available data for re-render:', this.data);
             
-            // For chart type changes, we might need to reprocess data if we have currentData from app
+            // For chart type changes, we MUST reprocess data from original source to get proper format
             if (window.pulseApp && window.pulseApp.currentData) {
                 console.log('🔄 Re-rendering with fresh data from pulseApp for chart type change');
                 this.render(window.pulseApp.currentData); // Re-render with fresh data processing
+            } else if (window.PulseDataBridge && window.PulseDataBridge.getData()) {
+                console.log('🔄 Re-rendering with fresh data from DataBridge for chart type change');
+                this.render(window.PulseDataBridge.getData()); // Re-render with fresh data processing
             } else if (this.data && this.data.length > 0) {
                 // Force immediate re-render for chart type changes
                 console.log('🔄 Forcing immediate chart re-render for type change');
