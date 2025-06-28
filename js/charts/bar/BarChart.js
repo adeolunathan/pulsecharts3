@@ -388,8 +388,8 @@ class PulseBarChart {
             // Add interactivity
             this.addBarInteractivity(bars);
 
-            // Add labels if enabled
-            if (this.config.showBarLabels) {
+            // Add labels if enabled (either labels or values or both)
+            if (this.config.showBarLabels || this.config.showValues) {
                 this.renderBarLabels();
             }
 
@@ -425,8 +425,8 @@ class PulseBarChart {
             // Add interactivity
             this.addBarInteractivity(bars);
 
-            // Add labels if enabled
-            if (this.config.showBarLabels) {
+            // Add labels if enabled (either labels or values or both)
+            if (this.config.showBarLabels || this.config.showValues) {
                 this.renderBarLabels();
             }
 
@@ -452,7 +452,7 @@ class PulseBarChart {
                 .style('font-weight', this.config.labelFontWeight)
                 .style('fill', this.config.labelColor)
                 .style('opacity', 0)
-                .text(d => this.config.showValues ? this.formatValue(d.value) : d.label);
+                .text(d => this.getBarLabelText(d));
 
             // Animate labels
             labels.transition()
@@ -474,7 +474,7 @@ class PulseBarChart {
                 .style('font-weight', this.config.labelFontWeight)
                 .style('fill', this.config.labelColor)
                 .style('opacity', 0)
-                .text(d => this.config.showValues ? this.formatValue(d.value) : d.label);
+                .text(d => this.getBarLabelText(d));
 
             // Animate labels
             labels.transition()
@@ -893,6 +893,43 @@ class PulseBarChart {
                 default:
                     return barTop - this.config.labelOffset;
             }
+        }
+    }
+
+    // Get the text to display on bar labels based on config
+    getBarLabelText(d) {
+        const showLabels = this.config.showBarLabels;
+        const showValues = this.config.showValues;
+        
+        // If neither is enabled, return empty string
+        if (!showLabels && !showValues) {
+            return '';
+        }
+        
+        if (showLabels && showValues) {
+            // Show both: "Category: $value"
+            return `${d.label}: ${this.formatValue(d.value)}`;
+        } else if (showValues) {
+            // Show only values
+            return this.formatValue(d.value);
+        } else if (showLabels) {
+            // Show only labels
+            return d.label;
+        }
+        
+        return '';
+    }
+
+    // Update existing labels based on current config (for better performance)
+    updateLabels() {
+        const shouldShowLabels = this.config.showBarLabels || this.config.showValues;
+        
+        // Remove existing labels
+        this.chart.selectAll('.bar-label').remove();
+        
+        // Add labels if needed
+        if (shouldShowLabels) {
+            this.renderBarLabels();
         }
     }
 }

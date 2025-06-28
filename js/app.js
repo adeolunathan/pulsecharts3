@@ -239,26 +239,22 @@ class PulseApplication {
 
             await this.initializeChartType(newChartType);
             
-            // **SIMPLIFIED: Clean bar chart setup with single data source**
+            // **SINGLE SOURCE OF TRUTH: Always use BarChartConfig for bar charts**
             if (newChartType === 'bar') {
-                console.log('📊 Setting up bar chart with clean data flow');
+                console.log('📊 Setting up bar chart with single data source');
                 
-                // **FIXED: Use single consistent data source - the actual sample file data**
-                const barChartData = {
-                    metadata: {
-                        title: "Quarterly Revenue by Product Line",
-                        chartType: "bar"
-                    },
-                    categories: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training'],
-                    values: [850000, 320000, 180000, 150000, 95000],
-                    labels: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training']
-                };
+                // **REQUIRED: BarChartConfig must be available**
+                if (!window.BarChartConfig) {
+                    throw new Error('BarChartConfig not available - cannot initialize bar chart');
+                }
+                
+                const barChartData = window.BarChartConfig.getDefaultData();
                 
                 this.currentData = barChartData;
                 this.chart.render(barChartData);
                 this.notifyDataBridgeUpdate('bar-chart-init');
                 
-                console.log('✅ Bar chart initialized with 5 categories');
+                console.log('✅ Bar chart initialized with official default data');
             } else {
                 // For other chart types (like sankey), use existing logic
                 if (preservedData) {

@@ -2409,10 +2409,13 @@
                     console.error('❌ Could not find data-builder tab button');
                 }
                 
-                // Update the data builder content for bar charts
+                // Update the data builder content for bar charts (prevent duplicate calls)
                 const dataBuilderContent = document.getElementById('data-builder');
                 console.log('📊 Found data-builder element:', !!dataBuilderContent);
-                if (dataBuilderContent) {
+                
+                // PREVENT FLICKERING: Only update if not already bar chart content
+                if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
+                    console.log('📊 Switching data-builder to bar chart content');
                     dataBuilderContent.innerHTML = `
                         <div class="bar-chart-data-builder">
                             <div style="padding: 20px;">
@@ -2478,6 +2481,8 @@
                             </div>
                         </div>
                     `;
+                } else {
+                    console.log('📊 Bar chart content already loaded, skipping innerHTML update');
                 }
                 
                 // Initialize spreadsheet with default data and auto-render chart
@@ -3514,15 +3519,21 @@
         
         
         function initializeSpreadsheet() {
-            // Initialize with sample data if empty
+            // SINGLE SOURCE OF TRUTH: Always use BarChartConfig for data consistency
             if (spreadsheetData.length === 0) {
-                spreadsheetData = [
-                    { category: 'Product A', value: 150000 },
-                    { category: 'Product B', value: 120000 },
-                    { category: 'Product C', value: 80000 },
-                    { category: 'Product D', value: 65000 },
-                    { category: 'Product E', value: 45000 }
-                ];
+                if (!window.BarChartConfig) {
+                    console.error('❌ BarChartConfig not available for data initialization');
+                    return;
+                }
+                
+                const defaultData = window.BarChartConfig.getDefaultData();
+                
+                spreadsheetData = defaultData.categories.map((category, index) => ({
+                    category: category,
+                    value: defaultData.values[index]
+                }));
+                
+                console.log('📊 Initialized spreadsheet with official default data from BarChartConfig:', spreadsheetData);
             }
             renderSpreadsheet();
         }

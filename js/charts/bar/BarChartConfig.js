@@ -95,6 +95,23 @@ window.BarChartConfig = (function() {
     }
 
     /**
+     * Get default bar chart data - SINGLE SOURCE OF TRUTH
+     * @returns {Object} Default data for bar charts
+     */
+    function getDefaultData() {
+        return {
+            metadata: {
+                title: "Quarterly Revenue by Product Line",
+                chartType: "bar",
+                source: "Internal Analytics"
+            },
+            categories: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training'],
+            values: [850000, 320000, 180000, 150000, 95000],
+            labels: ['SaaS Platform', 'Mobile Apps', 'API Services', 'Consulting', 'Training']
+        };
+    }
+
+    /**
      * Get axis configuration based on orientation
      * @param {string} orientation - 'vertical' or 'horizontal'
      * @returns {Object} Axis configuration
@@ -121,6 +138,7 @@ window.BarChartConfig = (function() {
     return {
         getInitialConfig: getInitialConfig,
         getColorScheme: getColorScheme,
-        getAxisConfig: getAxisConfig
+        getAxisConfig: getAxisConfig,
+        getDefaultData: getDefaultData
     };
 })();

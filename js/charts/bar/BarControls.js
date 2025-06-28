@@ -579,13 +579,13 @@ class BarControlModule {
         
         // Handle title color changes
         else if (controlId === 'titleColor') {
-            chart.svg.selectAll('.chart-title')
+            chart.svg.selectAll('.chart-header text')
                 .style('fill', value);
         }
         
         // Handle title size changes
         else if (controlId === 'titleSize') {
-            chart.svg.selectAll('.chart-title')
+            chart.svg.selectAll('.chart-header text')
                 .style('font-size', value + 'px');
         }
         
@@ -622,10 +622,19 @@ class BarControlModule {
                 .style('font-size', value + 'px');
         }
         
-        // Handle controls that need re-render for proper visual update
-        else if (['showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 
-                  'valueFormat', 'currencySymbol', 'decimalPlaces'].includes(controlId)) {
-            console.log(`🔄 Re-rendering for visual control: ${controlId} = ${value}`);
+        // Handle label controls with efficient label update
+        else if (['showBarLabels', 'showValues', 'labelPosition', 'labelOffset'].includes(controlId)) {
+            console.log(`🏷️ Updating labels for control: ${controlId} = ${value}`);
+            if (chart.updateLabels) {
+                chart.updateLabels();
+            } else {
+                chart.render();
+            }
+        }
+        
+        // Handle value formatting controls with full re-render
+        else if (['valueFormat', 'currencySymbol', 'decimalPlaces'].includes(controlId)) {
+            console.log(`🔄 Re-rendering for value format control: ${controlId} = ${value}`);
             chart.render();
         }
         
