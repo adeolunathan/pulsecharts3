@@ -171,35 +171,73 @@ class PulseDataManager {
     validateData(data) {
         const errors = [];
         
-        if (!data.nodes || !Array.isArray(data.nodes)) {
-            errors.push('Data must contain a nodes array');
-        }
+        // Detect chart type based on data structure
+        const isBarChartData = data.categories || data.series || data.values;
+        const isSankeyChartData = data.nodes || data.links;
         
-        if (!data.links || !Array.isArray(data.links)) {
-            errors.push('Data must contain a links array');
-        }
-        
-        if (data.nodes) {
-            data.nodes.forEach((node, index) => {
-                if (!node.id) errors.push(`Node ${index} missing id`);
-                if (typeof node.value !== 'number') errors.push(`Node ${index} missing valid value`);
-                if (typeof node.depth !== 'number') errors.push(`Node ${index} missing valid depth`);
-            });
-        }
-        
-        if (data.links) {
-            const nodeIds = new Set(data.nodes?.map(n => n.id) || []);
-            data.links.forEach((link, index) => {
-                if (!link.source || !nodeIds.has(link.source)) {
-                    errors.push(`Link ${index} has invalid source: ${link.source}`);
-                }
-                if (!link.target || !nodeIds.has(link.target)) {
-                    errors.push(`Link ${index} has invalid target: ${link.target}`);
-                }
-                if (typeof link.value !== 'number') {
-                    errors.push(`Link ${index} missing valid value`);
-                }
-            });
+        if (isBarChartData) {
+            // Validate Bar Chart data format
+            console.log('📊 Validating Bar Chart data format');
+            
+            // Check for at least one of the required bar chart formats
+            if (!data.categories && !data.values && !data.series && !Array.isArray(data)) {
+                errors.push('Bar chart data must contain categories, values, series, or be an array');
+            }
+            
+            // Validate categories format
+            if (data.categories && !Array.isArray(data.categories)) {
+                errors.push('Categories must be an array');
+            }
+            
+            // Validate values format
+            if (data.values && !Array.isArray(data.values)) {
+                errors.push('Values must be an array');
+            }
+            
+            // Validate series format
+            if (data.series && (!Array.isArray(data.series) || 
+                data.series.some(s => !s.name || !Array.isArray(s.data)))) {
+                errors.push('Series must be an array of objects with name and data properties');
+            }
+            
+        } else if (isSankeyChartData) {
+            // Validate Sankey Chart data format
+            console.log('📊 Validating Sankey Chart data format');
+            
+            if (!data.nodes || !Array.isArray(data.nodes)) {
+                errors.push('Sankey data must contain a nodes array');
+            }
+            
+            if (!data.links || !Array.isArray(data.links)) {
+                errors.push('Sankey data must contain a links array');
+            }
+            
+            if (data.nodes) {
+                data.nodes.forEach((node, index) => {
+                    if (!node.id) errors.push(`Node ${index} missing id`);
+                    if (typeof node.value !== 'number') errors.push(`Node ${index} missing valid value`);
+                    if (typeof node.depth !== 'number') errors.push(`Node ${index} missing valid depth`);
+                });
+            }
+            
+            if (data.links) {
+                const nodeIds = new Set(data.nodes?.map(n => n.id) || []);
+                data.links.forEach((link, index) => {
+                    if (!link.source || !nodeIds.has(link.source)) {
+                        errors.push(`Link ${index} has invalid source: ${link.source}`);
+                    }
+                    if (!link.target || !nodeIds.has(link.target)) {
+                        errors.push(`Link ${index} has invalid target: ${link.target}`);
+                    }
+                    if (typeof link.value !== 'number') {
+                        errors.push(`Link ${index} missing valid value`);
+                    }
+                });
+            }
+            
+        } else {
+            // Unknown data format
+            errors.push('Data format not recognized - must be Bar chart or Sankey chart format');
         }
         
         return {
