@@ -2079,33 +2079,168 @@
             return result;
         }
 
-        // Setup file import handler
-        document.addEventListener('DOMContentLoaded', function() {
-            const csvFileInput = document.getElementById('csv-file-input');
-            if (csvFileInput) {
-                csvFileInput.addEventListener('change', handleFileImport);
+        // IIFE: Single Initialization Controller - Eliminates All Redundancy
+        (function() {
+            'use strict';
+            
+            // State management to prevent duplicate operations
+            const initState = {
+                isInitialized: false,
+                chartTypeProcessed: false,
+                tabSwitchProcessed: false,
+                renderCompleted: false
+            };
+            
+            console.log('🎯 IIFE: Starting single initialization sequence');
+            
+            document.addEventListener('DOMContentLoaded', async function() {
+                if (initState.isInitialized) {
+                    console.log('⚠️ Already initialized, skipping');
+                    return;
+                }
+                
+                initState.isInitialized = true;
+                console.log('🚀 Single initialization starting...');
+                
+                // Basic UI setup
+                setupBasicUI();
+                
+                // Parse URL parameters once
+                const urlParams = new URLSearchParams(window.location.search);
+                const chartType = urlParams.get('chartType') || urlParams.get('type');
+                const targetTab = urlParams.get('tab');
+                
+                console.log(`🔍 URL params - chartType: ${chartType}, tab: ${targetTab}`);
+                
+                // Wait for pulseApp to be ready
+                await waitForPulseApp();
+                
+                // Handle chart type in one place only
+                if (chartType && !initState.chartTypeProcessed) {
+                    initState.chartTypeProcessed = true;
+                    console.log(`🎯 Processing chart type: ${chartType} (SINGLE)`);
+                    
+                    // Update selector UI
+                    const chartTypeSelect = document.getElementById('chart-type-select');
+                    if (chartTypeSelect) {
+                        chartTypeSelect.value = chartType;
+                    }
+                    
+                    // Single chart type change
+                    if (chartType === 'bar') {
+                        await handleBarChartInitialization();
+                        
+                        // Handle tab switching AFTER chart is ready
+                        if (targetTab === 'chart-view' && !initState.tabSwitchProcessed) {
+                            initState.tabSwitchProcessed = true;
+                            console.log('📊 Switching to chart-view (SINGLE)');
+                            switchMainTab('chart-view', false);
+                        }
+                    } else {
+                        await handleOtherChartTypes(chartType);
+                    }
+                } else if (!chartType) {
+                    // No chart type in URL, initialize interface normally
+                    console.log('📊 No chart type in URL, initializing interface');
+                    initializeChartInterface();
+                }
+                
+                // Set up event listeners only once
+                setupEventListeners();
+                
+                console.log('✅ Single initialization complete');
+            });
+            
+            // Helper: Basic UI setup
+            function setupBasicUI() {
+                const csvFileInput = document.getElementById('csv-file-input');
+                if (csvFileInput) {
+                    csvFileInput.addEventListener('change', handleFileImport);
+                }
+                
+                // Initialize comparison columns as hidden
+                const previousCol = document.getElementById('previous-value-col');
+                const varianceCol = document.getElementById('variance-col');
+                if (previousCol) previousCol.style.display = 'none';
+                if (varianceCol) varianceCol.style.display = 'none';
+
+                // Initialize spreadsheet functionality
+                window.spreadsheetController = new SpreadsheetController();
+                
+                // Initialize modern export dropdown
+                initializeExportDropdown();
             }
             
-            // Initialize comparison columns as hidden
-            const previousCol = document.getElementById('previous-value-col');
-            const varianceCol = document.getElementById('variance-col');
-            if (previousCol) previousCol.style.display = 'none';
-            if (varianceCol) varianceCol.style.display = 'none';
-
-            // Initialize spreadsheet functionality
-            window.spreadsheetController = new SpreadsheetController();
+            // Helper: Wait for pulseApp to be ready
+            function waitForPulseApp() {
+                return new Promise((resolve) => {
+                    if (window.pulseApp && window.pulseApp.isInitialized) {
+                        console.log('✅ PulseApp ready immediately');
+                        resolve();
+                        return;
+                    }
+                    
+                    console.log('⏳ Waiting for PulseApp...');
+                    const checkInterval = setInterval(() => {
+                        if (window.pulseApp && window.pulseApp.isInitialized) {
+                            console.log('✅ PulseApp ready');
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 50);
+                    
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        console.warn('⚠️ PulseApp timeout, proceeding anyway');
+                        resolve();
+                    }, 5000);
+                });
+            }
             
-            // Initialize modern export dropdown
-            initializeExportDropdown();
+            // Helper: Handle bar chart initialization with single render
+            async function handleBarChartInitialization() {
+                try {
+                    console.log('📊 SINGLE bar chart initialization - preventing all redundancy');
+                    
+                    if (!window.pulseApp || !window.pulseApp.switchChartType) {
+                        console.error('❌ PulseApp not available');
+                        return;
+                    }
+                    
+                    // Switch to bar chart (will render once internally)
+                    await window.pulseApp.switchChartType('bar');
+                    
+                    // Mark render as completed to prevent additional renders
+                    initState.renderCompleted = true;
+                    
+                    console.log('✅ Bar chart initialized with SINGLE render');
+                } catch (error) {
+                    console.error('❌ Error in bar chart initialization:', error);
+                    // Continue anyway to prevent blocking
+                }
+            }
             
-            // Initialize chart type selector
-            initializeChartTypeSelector();
-            
-            // CRITICAL: Initialize chart interface on page load to handle URL parameters
-            setTimeout(() => {
+            // Helper: Handle other chart types
+            async function handleOtherChartTypes(chartType) {
+                console.log(`🔄 Initializing ${chartType} chart`);
                 initializeChartInterface();
-            }, 200);
-        });
+            }
+            
+            // Helper: Set up event listeners only once
+            function setupEventListeners() {
+                const chartTypeSelect = document.getElementById('chart-type-select');
+                if (chartTypeSelect && !chartTypeSelect.hasEventListener) {
+                    chartTypeSelect.hasEventListener = true;
+                    chartTypeSelect.addEventListener('change', (e) => {
+                        const selectedType = e.target.value;
+                        console.log(`📊 Manual chart type change: ${selectedType}`);
+                        handleChartTypeChange(selectedType);
+                    });
+                }
+            }
+            
+        })();
 
         // Modern Export Dropdown Functionality
         function initializeExportDropdown() {
@@ -2194,6 +2329,10 @@
         // ===== CHART TYPE SELECTOR FUNCTIONALITY =====
         
         function initializeChartTypeSelector() {
+            // DISABLED: This function is replaced by IIFE pattern to prevent redundancy
+            console.log('⚠️ initializeChartTypeSelector() DISABLED - handled by IIFE');
+            return;
+            
             const chartTypeSelect = document.getElementById('chart-type-select');
             if (!chartTypeSelect) return;
             
@@ -2346,10 +2485,12 @@
                     console.log('📊 Initializing bar chart with default data');
                     initializeSpreadsheet();
                     
-                    // Auto-apply the default data to show chart immediately
-                    setTimeout(() => {
-                        applySpreadsheetData();
-                    }, 200);
+                    // DISABLED: Auto-apply prevents single render workflow
+                    // The IIFE pattern handles chart rendering in one place
+                    console.log('⚠️ Auto-apply DISABLED - chart already rendered by IIFE');
+                    // setTimeout(() => {
+                    //     applySpreadsheetData();
+                    // }, 200);
                 }, 400);
                 
             } else if (chartType === 'sankey') {
@@ -2415,10 +2556,11 @@
                     // Show data preview
                     showBarDataPreview(data);
                     
-                    // Switch to chart view
-                    setTimeout(() => {
-                        switchMainTab('chart-view');
-                    }, 500);
+                    // DISABLED: Auto tab switch - handled by IIFE
+                    console.log('⚠️ Auto tab switch DISABLED in renderBarChart');
+                    // setTimeout(() => {
+                    //     switchMainTab('chart-view');
+                    // }, 500);
                 })
                 .catch(error => {
                     console.error('❌ Failed to load bar chart sample:', error);
@@ -2453,10 +2595,11 @@
                     // Show data preview
                     showBarDataPreview(barData);
                     
-                    // Switch to chart view
-                    setTimeout(() => {
-                        switchMainTab('chart-view');
-                    }, 500);
+                    // DISABLED: Auto tab switch - handled by IIFE
+                    console.log('⚠️ Auto tab switch DISABLED in renderBarChart');
+                    // setTimeout(() => {
+                    //     switchMainTab('chart-view');
+                    // }, 500);
                     
                 } catch (error) {
                     console.error('❌ File processing error:', error);
@@ -3592,10 +3735,12 @@
             // Show data preview
             showBarDataPreview(barData);
             
-            // Switch to chart view to show the updated chart
-            setTimeout(() => {
-                switchMainTab('chart-view');
-            }, 300);
+            // DISABLED: Automatic tab switching prevents single initialization workflow
+            // Tab switching is now handled by IIFE pattern
+            console.log('⚠️ Auto tab switch DISABLED - handled by IIFE');
+            // setTimeout(() => {
+            //     switchMainTab('chart-view');
+            // }, 300);
             
             console.log('📊 Applied custom spreadsheet data:', barData);
         }

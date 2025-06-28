@@ -408,6 +408,9 @@ class PulseControlPanel {
             case 'file_upload':
                 this.createFileUploadControl(controlDiv, config);
                 break;
+            case 'text':
+                this.createTextControl(controlDiv, config);
+                break;
             default:
                 console.warn(`Unknown control type: ${config.type}`);
         }
@@ -729,6 +732,31 @@ class PulseControlPanel {
                 .style('text-align', 'center')
                 .text(`${config.accept || 'All files'} • ${config.maxSize || 'No size limit'}`);
         }
+    }
+
+    createTextControl(container, config) {
+        const textInput = container.append('input')
+            .attr('type', 'text')
+            .attr('id', `text-${config.id}`)
+            .attr('placeholder', config.placeholder || '')
+            .attr('value', config.value || '')
+            .style('width', '100%')
+            .style('padding', '8px 12px')
+            .style('border', '1px solid #d1d5db')
+            .style('border-radius', '6px')
+            .style('font-size', '14px')
+            .style('color', '#374151')
+            .style('background', '#ffffff')
+            .style('transition', 'border-color 0.2s ease')
+            .on('input', (event) => {
+                this.handleChange(config.id, event.target.value);
+            })
+            .on('focus', function() {
+                d3.select(this).style('border-color', '#6366f1');
+            })
+            .on('blur', function() {
+                d3.select(this).style('border-color', '#d1d5db');
+            });
     }
 
     // Create color picker control with modern compact design

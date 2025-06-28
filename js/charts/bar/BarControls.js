@@ -302,7 +302,7 @@ class BarControlModule {
                         id: "animationEasing",
                         type: "dropdown",
                         label: "Animation Easing",
-                        default: "easeInOutCubic",
+                        default: "easeBounceOut",
                         options: [
                             { value: "easeLinear", label: "Linear" },
                             { value: "easeQuadOut", label: "Quad Out" },
