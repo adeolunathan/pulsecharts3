@@ -603,14 +603,22 @@ class PulseBarChart {
         
         // Prepare grouped data
         const groupedData = this.data.map(d => {
-            const values = numericColumns.map(col => ({ series: col, value: d[col] || 0 }));
+            const values = numericColumns.map(col => ({ 
+                series: col, 
+                value: d[col] || 0, 
+                category: d.category,
+                label: d.label || d.category 
+            }));
             return { category: d.category, values };
         });
         
         // Create sub-scale for groups
+        // For horizontal: categories are on Y-axis (band scale), values on X-axis (linear scale)
+        // For vertical: categories are on X-axis (band scale), values on Y-axis (linear scale)
+        const categoryScale = this.config.orientation === 'horizontal' ? this.yScale : this.xScale;
         const subScale = d3.scaleBand()
             .domain(numericColumns)
-            .range([0, this.xScale.bandwidth()])
+            .range([0, categoryScale.bandwidth()])
             .padding(0.05);
         
         if (this.config.orientation === 'horizontal') {
@@ -807,6 +815,8 @@ class PulseBarChart {
                 .duration(this.config.animationDuration)
                 .attr('x', d => percentScale(d[0]))
                 .attr('width', d => percentScale(d[1]) - percentScale(d[0]));
+                
+            this.addBarInteractivity(bars);
         } else {
             const layers = this.chart.selectAll('.layer')
                 .data(stackedData)
@@ -830,6 +840,8 @@ class PulseBarChart {
                 .duration(this.config.animationDuration)
                 .attr('y', d => percentScale(d[1]))
                 .attr('height', d => percentScale(d[0]) - percentScale(d[1]));
+                
+            this.addBarInteractivity(bars);
         }
         
         this.bars = this.chart.selectAll('.bar');
@@ -1031,20 +1043,34 @@ class PulseBarChart {
     }
     
     renderPolarLabels(centerX, centerY, radiusScale, angleScale) {
-        const labels = this.chart.selectAll('.polar-label')
-            .data(this.data)
-            .enter()
+        // Clear existing polar labels first to prevent duplication
+        this.chart.selectAll('.polar-label').remove();
+        
+        // Use proper D3 data join pattern
+        const labelSelection = this.chart.selectAll('.polar-label')
+            .data(this.data);
+        
+        // Remove old labels
+        labelSelection.exit().remove();
+        
+        // Add new labels
+        const newLabels = labelSelection.enter()
             .append('text')
             .attr('class', 'polar-label')
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'middle')
             .style('font-family', this.config.titleFont || 'Inter, sans-serif')
             .style('font-size', `${this.config.labelFontSize}px`)
-            .style('font-weight', this.config.labelFontWeight)
+            .style('font-weight', this.config.labelFontWeight || '400')
             .style('fill', this.config.labelColor)
+            .style('opacity', 0)
             .text(d => this.getBarLabelText(d));
-            
-        labels.transition()
+        
+        // Merge and update all labels (new + existing)
+        const allLabels = newLabels.merge(labelSelection);
+        
+        // Animate to final position
+        allLabels.transition()
             .duration(this.config.animationDuration)
             .attr('transform', d => {
                 const angle = angleScale(d.category) + angleScale.bandwidth() / 2;
@@ -1053,7 +1079,7 @@ class PulseBarChart {
                 const y = centerY + Math.sin(angle - Math.PI / 2) * radius;
                 return `translate(${x}, ${y})`;
             })
-            .style('opacity', 1);
+            .style('opacity', this.config.showBarLabels || this.config.showValues ? 1 : 0);
     }
 
     renderBarLabels() {
@@ -1124,9 +1150,25 @@ class PulseBarChart {
             })
             .on('mouseout', (event, d) => {
                 if (this.config.enableHover) {
-                    // Reset bar appearance
+                    // Reset bar appearance - handle different data structures
                     const colors = this.getBarColors();
-                    const originalColor = this.customColors[d.category] || colors[this.data.indexOf(d) % colors.length];
+                    let originalColor;
+                    
+                    if (d.series) {
+                        // Grouped chart: d = { series: columnName, value: number, category: string }
+                        const seriesIndex = Object.keys(this.data[0] || {})
+                            .filter(key => key !== 'category' && key !== 'label' && typeof this.data[0][key] === 'number')
+                            .indexOf(d.series);
+                        originalColor = this.customColors[d.category] || colors[seriesIndex % colors.length];
+                    } else if (Array.isArray(d) && d.data) {
+                        // Stacked chart: d = [start, end, { category, ... }]
+                        const categoryIndex = this.data.findIndex(item => item.category === d.data.category);
+                        originalColor = this.customColors[d.data.category] || colors[categoryIndex % colors.length];
+                    } else {
+                        // Simple chart: d = { category, value, label }
+                        const categoryIndex = this.data.findIndex(item => item.category === d.category);
+                        originalColor = this.customColors[d.category] || colors[categoryIndex % colors.length];
+                    }
                     
                     d3.select(event.currentTarget)
                         .transition()
@@ -1153,10 +1195,31 @@ class PulseBarChart {
 
     showTooltip(event, data) {
         const tooltip = this.tooltip;
-        const formattedValue = this.formatValue(data.value);
+        
+        // Handle different data structures for different chart types
+        let label, value, formattedValue;
+        
+        if (data.series) {
+            // Grouped chart data: { series: columnName, value: number, category: string }
+            const seriesLabel = data.series.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const categoryLabel = data.category || data.label || 'Unknown';
+            label = `${categoryLabel} - ${seriesLabel}`;
+            value = data.value;
+            formattedValue = this.formatValue(value);
+        } else if (Array.isArray(data) && data.data) {
+            // Stacked chart data (d3.stack format): [start, end, { category, ...}]
+            label = data.data.category;
+            value = data[1] - data[0]; // Stack segment value
+            formattedValue = this.formatValue(value);
+        } else {
+            // Simple chart data: { category, value, label }
+            label = data.label || data.category || 'Unknown';
+            value = data.value || 0;
+            formattedValue = this.formatValue(value);
+        }
         
         tooltip.html(`
-            <strong>${data.label}</strong><br>
+            <strong>${label}</strong><br>
             Value: ${formattedValue}
         `)
         .style('left', (event.pageX + 10) + 'px')
