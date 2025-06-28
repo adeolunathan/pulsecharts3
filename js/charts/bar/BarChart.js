@@ -1361,11 +1361,18 @@ class PulseBarChart {
         }
 
         console.log('📊 Processing bar chart data:', data);
+        console.log('📊 Data type:', typeof data);
+        console.log('📊 Data keys:', Object.keys(data || {}));
+        console.log('📊 Has categories:', !!(data.categories));
+        console.log('📊 Has values:', !!(data.values));
+        console.log('📊 Has series:', !!(data.series));
+        console.log('📊 Is array:', Array.isArray(data));
 
         // Handle different data formats
         let processedData = [];
         
         if (data.categories && data.values) {
+            console.log('📊 Taking categories+values branch');
             // Simple format: {categories: ['A', 'B'], values: [10, 20]}
             processedData = data.categories.map((category, index) => ({
                 category: category,
@@ -1373,6 +1380,7 @@ class PulseBarChart {
                 label: data.labels ? data.labels[index] : category
             }));
         } else if (Array.isArray(data)) {
+            console.log('📊 Taking array branch');
             // Array format: [{category: 'A', value: 10}, ...]
             processedData = data.map(d => ({
                 category: d.category || d.name || d.label,
@@ -1405,6 +1413,7 @@ class PulseBarChart {
             
             console.log('📊 Final processed multi-series data:', processedData);
         } else if (data.data && Array.isArray(data.data)) {
+            console.log('📊 Taking data.data branch');
             // Nested format: {data: [{category: 'A', value: 10, ...otherColumns}]}
             // Support multi-column data for grouped/stacked charts
             processedData = data.data.map(d => {
@@ -1427,6 +1436,10 @@ class PulseBarChart {
                 
                 return result;
             });
+        } else {
+            console.warn('📊 No matching data format found! Using data as-is');
+            console.warn('📊 Fallback data:', data);
+            processedData = data;
         }
 
         // Sort data by value (descending) if autoSort is enabled (disabled by default)
