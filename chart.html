@@ -2208,6 +2208,9 @@
                         return;
                     }
                     
+                    // **FIX FLICKER: Update tab content IMMEDIATELY before chart switch**
+                    updateTabContentForBarChart();
+                    
                     // Switch to bar chart (will render once internally)
                     await window.pulseApp.switchChartType('bar');
                     
@@ -2237,6 +2240,89 @@
                         console.log(`📊 Manual chart type change: ${selectedType}`);
                         handleChartTypeChange(selectedType);
                     });
+                }
+            }
+            
+            // Helper: Update tab content for bar chart (prevent flicker)
+            function updateTabContentForBarChart() {
+                console.log('🚀 Updating tab content for bar chart immediately');
+                
+                // Update tab label immediately
+                const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
+                if (dataBuilderTabButton) {
+                    dataBuilderTabButton.innerHTML = '📊 Bar Data';
+                    console.log('📊 Updated tab label to Bar Data (immediate)');
+                }
+                
+                // Update tab content immediately to prevent flicker
+                const dataBuilderContent = document.getElementById('data-builder');
+                if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
+                    console.log('📊 Switching data-builder to bar chart content (immediate)');
+                    dataBuilderContent.innerHTML = `
+                        <div class="bar-chart-data-builder">
+                            <div style="padding: 20px;">
+                                <!-- Data Control Header -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <div>
+                                        <h3 style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 600;">📊 Chart Data</h3>
+                                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">Edit your data directly in the table below</p>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <button onclick="document.getElementById('bar-file-input').click()" 
+                                                style="padding: 6px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
+                                                title="Upload CSV file">
+                                            📁 Upload
+                                        </button>
+                                        <button onclick="pasteSpreadsheetData()" 
+                                                style="padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
+                                                title="Paste from clipboard">
+                                            📋 Paste
+                                        </button>
+                                        <button onclick="addSpreadsheetRow()" 
+                                                style="padding: 6px 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
+                                                title="Add new row">
+                                            ➕ Add
+                                        </button>
+                                        <button onclick="clearSpreadsheetData()" 
+                                                style="padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
+                                                title="Clear all data">
+                                            🗑️ Clear
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Spreadsheet Table -->
+                                <div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <thead>
+                                            <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                                                <th style="padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; width: 50px;">#</th>
+                                                <th style="padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #374151;">Category</th>
+                                                <th style="padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #374151;">Value</th>
+                                                <th style="padding: 10px 12px; text-align: center; font-size: 12px; font-weight: 600; color: #374151; width: 60px;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="bar-data-tbody">
+                                            <!-- Dynamic content populated by renderSpreadsheet() -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Row Counter -->
+                                <div style="margin-top: 8px; text-align: right;">
+                                    <span id="spreadsheet-row-count" style="font-size: 12px; color: #6b7280;">0 rows</span>
+                                </div>
+
+                                <!-- Hidden file input -->
+                                <input type="file" id="bar-file-input" accept=".csv,.txt" style="display: none;">
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Initialize spreadsheet data immediately
+                    if (typeof initializeSpreadsheet === 'function') {
+                        initializeSpreadsheet();
+                    }
                 }
             }
             

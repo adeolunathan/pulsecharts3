@@ -18,11 +18,6 @@ class PulseDataManager {
                 name: 'Retail Chain',
                 file: 'data/samples/retail-chain.json',
                 description: 'Retail business financial structure'
-            },
-            'bar-chart-sample': {
-                name: 'Bar Chart Sample Data',
-                file: 'data/samples/bar-chart-sample.json',
-                description: 'Sample bar chart data with 5 categories'
             }
         };
         this.cache = new Map();
