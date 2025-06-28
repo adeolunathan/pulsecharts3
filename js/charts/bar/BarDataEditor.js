@@ -140,15 +140,24 @@ class BarDataEditor {
         // Dynamic column headers
         this.columns.forEach((column) => {
             const th = document.createElement('th');
+            const typeIcon = column.type === 'number' ? '🔢' : '📝';
+            const typeLabel = column.type === 'number' ? 'Numeric' : 'Text';
             th.innerHTML = `
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span class="column-label" data-col="${column.id}" style="cursor: pointer; flex: 1;">${column.label}</span>
-                    ${this.columns.length > 2 ? `<button class="delete-column-btn" data-col="${column.id}" style="margin-left: 8px; padding: 2px 6px; background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;" title="Delete column">×</button>` : ''}
+                    <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
+                        <span class="column-label" data-col="${column.id}" style="cursor: pointer;">${column.label}</span>
+                        <button class="column-type-toggle" data-col="${column.id}" style="padding: 1px 4px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 3px; cursor: pointer; font-size: 9px;" title="Toggle column type: ${typeLabel}">
+                            ${typeIcon}
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 2px;">
+                        ${this.columns.length > 2 ? `<button class="delete-column-btn" data-col="${column.id}" style="padding: 2px 6px; background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;" title="Delete column">×</button>` : ''}
+                    </div>
                 </div>
             `;
             th.style.cssText = `
                 padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; 
-                color: #475569; border-right: 1px solid #cbd5e0; min-width: 120px;
+                color: #475569; border-right: 1px solid #cbd5e0; min-width: 140px;
             `;
             headerRow.appendChild(th);
         });
@@ -158,6 +167,13 @@ class BarDataEditor {
         // Setup header event listeners
         thead.querySelectorAll('.column-label').forEach(label => {
             label.addEventListener('click', (e) => this.editColumnHeader(e.target));
+        });
+        
+        thead.querySelectorAll('.column-type-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleColumnType(btn.dataset.col);
+            });
         });
         
         thead.querySelectorAll('.delete-column-btn').forEach(btn => {
@@ -242,7 +258,11 @@ class BarDataEditor {
     createEmptyRow() {
         const row = {};
         this.columns.forEach(column => {
-            row[column.id] = column.type === 'number' ? 0 : '';
+            if (column.type === 'number') {
+                row[column.id] = 0;
+            } else {
+                row[column.id] = '';
+            }
         });
         return row;
     }
@@ -377,12 +397,41 @@ class BarDataEditor {
         });
     }
 
+    toggleColumnType(columnId) {
+        const column = this.columns.find(c => c.id === columnId);
+        if (!column) return;
+        
+        // Don't allow changing the first column (category) to number
+        if (columnId === 'category') {
+            alert('The category column must remain as text type.');
+            return;
+        }
+        
+        // Toggle between text and number
+        const newType = column.type === 'number' ? 'text' : 'number';
+        column.type = newType;
+        
+        // Convert existing data to match new type
+        this.data.forEach(row => {
+            if (newType === 'number') {
+                row[columnId] = this.parseNumber(row[columnId]);
+            } else {
+                row[columnId] = String(row[columnId] || '');
+            }
+        });
+        
+        this.render();
+        this.updateChart();
+        
+        console.log(`✅ Column ${column.label} changed to ${newType} type`);
+    }
+
     addColumn() {
         const newColumnId = 'col_' + Date.now();
         const newColumn = {
             id: newColumnId,
-            label: `Column ${this.columns.length + 1}`,
-            type: 'text',
+            label: `Value ${this.getValueColumnCount() + 1}`,
+            type: 'number', // Default to numeric for value columns
             required: false
         };
         
@@ -390,10 +439,14 @@ class BarDataEditor {
         
         // Add the new column to existing data
         this.data.forEach(row => {
-            row[newColumnId] = '';
+            row[newColumnId] = 0; // Default to 0 for numeric columns
         });
         
         this.render();
+    }
+
+    getValueColumnCount() {
+        return this.columns.filter(col => col.type === 'number').length;
     }
 
     deleteColumn(columnId) {
@@ -606,57 +659,94 @@ class BarDataEditor {
     }
 
     updateChart() {
-        if (this.chart && this.chart.render) {
-            // For bar charts, we need at least category and value
-            const validData = this.data.filter(row => {
-                const categoryCol = this.columns.find(c => c.id === 'category' || c.label.toLowerCase().includes('category'));
-                const valueCol = this.columns.find(c => c.id === 'value' || c.type === 'number');
-                
-                if (categoryCol && valueCol) {
-                    return row[categoryCol.id] && row[valueCol.id] > 0;
-                }
-                return false;
-            });
-            
-            if (validData.length > 0) {
-                // Map to expected format
-                const categoryCol = this.columns.find(c => c.id === 'category' || c.label.toLowerCase().includes('category'));
-                const valueCol = this.columns.find(c => c.id === 'value' || c.type === 'number');
-                
-                const chartData = validData.map(row => ({
-                    category: row[categoryCol.id],
-                    value: row[valueCol.id]
-                }));
-                
-                this.chart.render(chartData);
-                console.log('✅ Chart updated with new data');
-            }
-        }
-        
-        // Also update via the app if available
+        // Update via the app (primary method for multi-column support)
         if (window.pulseApp && window.pulseApp.updateData) {
             const chartData = this.getChartFormattedData();
             if (chartData) {
                 window.pulseApp.updateData(chartData, 'data-editor');
+                console.log('✅ Chart updated with multi-column data via app');
+            }
+        }
+        
+        // Legacy support for direct chart instance
+        if (this.chart && this.chart.render) {
+            const chartData = this.getSimpleChartData();
+            if (chartData.length > 0) {
+                this.chart.render(chartData);
+                console.log('✅ Chart updated with simple data via chart instance');
             }
         }
     }
 
-    getChartFormattedData() {
+    getSimpleChartData() {
         const categoryCol = this.columns.find(c => c.id === 'category' || c.label.toLowerCase().includes('category'));
         const valueCol = this.columns.find(c => c.id === 'value' || c.type === 'number');
         
-        if (!categoryCol || !valueCol) return null;
+        if (!categoryCol || !valueCol) return [];
         
-        const validData = this.data.filter(row => row[categoryCol.id] && row[valueCol.id] > 0);
+        return this.data.filter(row => row[categoryCol.id] && row[valueCol.id] > 0)
+            .map(row => ({
+                category: row[categoryCol.id],
+                value: row[valueCol.id]
+            }));
+    }
+
+    getChartFormattedData() {
+        // Find category column (text type)
+        const categoryCol = this.columns.find(c => c.type === 'text' || c.id === 'category');
+        if (!categoryCol) {
+            console.warn('⚠️ No category column found');
+            return null;
+        }
+        
+        // Find all numeric columns (value series)
+        const valueColumns = this.columns.filter(c => c.type === 'number');
+        if (valueColumns.length === 0) {
+            console.warn('⚠️ No numeric columns found');
+            return null;
+        }
+        
+        // Filter valid data (must have category and at least one numeric value)
+        const validData = this.data.filter(row => {
+            return row[categoryCol.id] && row[categoryCol.id].trim() && 
+                   valueColumns.some(col => row[col.id] > 0);
+        });
+        
+        if (validData.length === 0) {
+            console.warn('⚠️ No valid data rows found');
+            return null;
+        }
+        
+        console.log(`📊 Formatting data: ${validData.length} rows, ${valueColumns.length} value columns`);
+        
+        // For single value column (simple bar chart)
+        if (valueColumns.length === 1) {
+            return {
+                metadata: {
+                    title: "Chart Data",
+                    chartType: "bar"
+                },
+                categories: validData.map(row => row[categoryCol.id]),
+                values: validData.map(row => row[valueColumns[0].id]),
+                labels: validData.map(row => row[categoryCol.id])
+            };
+        }
+        
+        // For multiple value columns (grouped/stacked bar chart)
+        const series = valueColumns.map(col => ({
+            name: col.label,
+            data: validData.map(row => row[col.id] || 0)
+        }));
         
         return {
             metadata: {
-                title: "Chart Data",
+                title: "Multi-Series Chart Data",
                 chartType: "bar"
             },
             categories: validData.map(row => row[categoryCol.id]),
-            values: validData.map(row => row[valueCol.id]),
+            series: series,
+            // Legacy format for backward compatibility
+            values: validData.map(row => row[valueColumns[0].id]),
             labels: validData.map(row => row[categoryCol.id])
         };
     }
@@ -678,7 +768,11 @@ class BarDataEditor {
             this.data = data.map(d => {
                 const row = {};
                 this.columns.forEach(col => {
-                    row[col.id] = d[col.id] || (col.type === 'number' ? 0 : '');
+                    if (col.type === 'number') {
+                        row[col.id] = this.parseNumber(d[col.id]);
+                    } else {
+                        row[col.id] = String(d[col.id] || '');
+                    }
                 });
                 return row;
             });
