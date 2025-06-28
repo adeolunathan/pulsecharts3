@@ -662,9 +662,12 @@ class BarDataEditor {
         // Update via the app (primary method for multi-column support)
         if (window.pulseApp && window.pulseApp.updateData) {
             const chartData = this.getChartFormattedData();
+            console.log('🔄 BarDataEditor: Sending chart data to app:', chartData);
             if (chartData) {
-                window.pulseApp.updateData(chartData, 'data-editor');
-                console.log('✅ Chart updated with multi-column data via app');
+                const result = window.pulseApp.updateData(chartData, 'data-editor');
+                console.log('✅ Chart updated with multi-column data via app, result:', result);
+            } else {
+                console.warn('⚠️ BarDataEditor: No chart data to send');
             }
         }
         

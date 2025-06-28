@@ -467,6 +467,8 @@ class PulseApplication {
     // Method for Data Builder to update chart data
     updateData(newData, source = 'manual') {
         console.log(`🔄 Manually updating data from ${source}`);
+        console.log(`🔄 PulseApp: Received data:`, newData);
+        console.log(`🔄 PulseApp: Chart instance available:`, !!this.chart);
         
         try {
             // **SIMPLIFIED: Use data as-is, no conversion complexity**
@@ -476,14 +478,18 @@ class PulseApplication {
             }
             
             this.currentData = newData;
+            console.log(`🔄 PulseApp: Stored current data:`, this.currentData);
             
             if (this.chart) {
+                console.log(`🔄 PulseApp: Calling chart.render() with data`);
                 this.chart.render(newData);
                 
                 if (this.controlModule?.hasDynamicControls && this.controlModule.hasDynamicControls()) {
                     this.controlModule.initializeDynamicControls(this.chart);
                     this.controlPanel?.generateControls();
                 }
+            } else {
+                console.warn('⚠️ PulseApp: No chart instance available for rendering');
             }
             
             this.notifyDataBridgeUpdate(source);

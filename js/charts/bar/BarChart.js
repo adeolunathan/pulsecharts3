@@ -42,18 +42,44 @@ class PulseBarChart {
     
     updateConfig(newConfig) {
         console.log('🔧 Updating bar chart config:', newConfig);
+        console.log('🔧 Current chart type:', this.config.barChartType);
+        console.log('🔧 Current data available:', !!(this.data && this.data.length > 0));
+        
         const oldChartType = this.config.barChartType;
         this.config = { ...this.config, ...newConfig };
         
-        // If chart type changed, re-render
+        // Apply background color immediately if changed
+        if (newConfig.backgroundColor && this.svg) {
+            this.svg.style('background-color', newConfig.backgroundColor);
+        }
+        
+        // If chart type changed, re-render immediately
         if (newConfig.barChartType && newConfig.barChartType !== oldChartType) {
-            console.log(`📊 Chart type changed from ${oldChartType} to ${newConfig.barChartType}, re-rendering`);
-            if (this.data) {
+            console.log(`📊 Chart type changed from ${oldChartType} to ${newConfig.barChartType}, re-rendering immediately`);
+            console.log('📊 Available data for re-render:', this.data);
+            
+            // For chart type changes, we might need to reprocess data if we have currentData from app
+            if (window.pulseApp && window.pulseApp.currentData) {
+                console.log('🔄 Re-rendering with fresh data from pulseApp for chart type change');
+                this.render(window.pulseApp.currentData); // Re-render with fresh data processing
+            } else if (this.data && this.data.length > 0) {
+                // Force immediate re-render for chart type changes
+                console.log('🔄 Forcing immediate chart re-render for type change');
                 this.render(); // Re-render with existing data
+            } else {
+                console.warn('⚠️ No data available for chart type change re-render');
+                console.warn('⚠️ this.data:', this.data);
+                console.warn('⚠️ pulseApp.currentData:', window.pulseApp?.currentData);
             }
-        } else if (this.data) {
-            // For other config changes, just re-render
-            this.render();
+        } else if (this.data && this.data.length > 0) {
+            // Check for other significant changes that require re-rendering
+            const significantChanges = ['orientation', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis', 'colorScheme'];
+            const hasSignificantChange = significantChanges.some(key => newConfig.hasOwnProperty(key));
+            
+            if (hasSignificantChange) {
+                console.log('🔄 Re-rendering chart due to significant config changes');
+                this.render();
+            }
         }
     }
 
@@ -412,27 +438,37 @@ class PulseBarChart {
 
     renderBars() {
         // Render based on chart type
+        console.log(`🎨 Rendering bars with chart type: ${this.config.barChartType}`);
+        console.log(`🎨 Available data for rendering:`, this.data);
+        
         switch (this.config.barChartType) {
             case 'grouped':
+                console.log('🎨 Calling renderGroupedBars()');
                 this.renderGroupedBars();
                 break;
             case 'stacked':
+                console.log('🎨 Calling renderStackedBars()');
                 this.renderStackedBars();
                 break;
             case 'stacked100':
+                console.log('🎨 Calling renderStacked100Bars()');
                 this.renderStacked100Bars();
                 break;
             case 'range':
+                console.log('🎨 Calling renderRangeBars()');
                 this.renderRangeBars();
                 break;
             case 'waterfall':
+                console.log('🎨 Calling renderWaterfallBars()');
                 this.renderWaterfallBars();
                 break;
             case 'polar':
+                console.log('🎨 Calling renderPolarBars()');
                 this.renderPolarBars();
                 break;
             case 'simple':
             default:
+                console.log('🎨 Calling renderSimpleBars() (default)');
                 this.renderSimpleBars();
                 break;
         }
@@ -523,13 +559,20 @@ class PulseBarChart {
         // Get colors
         const colors = this.getBarColors();
         
+        console.log('🔍 renderGroupedBars: Starting grouped chart rendering');
+        console.log('🔍 renderGroupedBars: Data structure:', this.data);
+        
         // Group data by series (numeric columns)
-        const numericColumns = Object.keys(this.data[0]).filter(key => 
+        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
             key !== 'category' && typeof this.data[0][key] === 'number'
         );
         
+        console.log('🔍 renderGroupedBars: Found numeric columns:', numericColumns);
+        console.log('🔍 renderGroupedBars: Numeric columns count:', numericColumns.length);
+        
         if (numericColumns.length < 2) {
-            console.warn('Grouped chart requires multiple numeric columns. Falling back to simple chart.');
+            console.warn('🔍 renderGroupedBars: Grouped chart requires multiple numeric columns. Falling back to simple chart.');
+            console.warn('🔍 renderGroupedBars: Available columns in data[0]:', Object.keys(this.data[0] || {}));
             this.renderSimpleBars();
             return;
         }
@@ -1279,24 +1322,7 @@ class PulseBarChart {
     }
 
     // Configuration management methods required by controls
-    updateConfig(newConfig) {
-        console.log('🔧 Updating bar chart configuration:', newConfig);
-        this.config = { ...this.config, ...newConfig };
-        
-        // Apply background color immediately if changed
-        if (newConfig.backgroundColor && this.svg) {
-            this.svg.style('background-color', newConfig.backgroundColor);
-        }
-        
-        // Re-render if data exists and significant changes were made
-        const significantChanges = ['orientation', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis', 'colorScheme'];
-        const hasSignificantChange = significantChanges.some(key => newConfig.hasOwnProperty(key));
-        
-        if (hasSignificantChange && this.data) {
-            console.log('🔄 Re-rendering bar chart due to significant config changes');
-            this.render();
-        }
-    }
+    // Note: updateConfig method is defined earlier in the class (line 43-62)
 
     getInitialConfig() {
         return BarChartConfig.getInitialConfig();
@@ -1353,6 +1379,31 @@ class PulseBarChart {
                 value: parseFloat(d.value) || 0,
                 label: d.label || d.category || d.name
             }));
+        } else if (data.series && Array.isArray(data.series) && data.categories) {
+            // Multi-series format from BarDataEditor: {categories: ['A', 'B'], series: [{name: 'Series1', data: [10, 20]}, ...]}
+            console.log('📊 Processing multi-series data format for grouped/stacked charts');
+            console.log('📊 Input data.series:', data.series);
+            console.log('📊 Input data.categories:', data.categories);
+            
+            processedData = data.categories.map((category, categoryIndex) => {
+                const result = { category: category };
+                
+                // Add data from each series as separate columns
+                data.series.forEach(series => {
+                    const columnName = series.name.replace(/\s+/g, '_').toLowerCase(); // Convert to safe column name
+                    result[columnName] = series.data[categoryIndex] || 0;
+                    console.log(`📊 Added column ${columnName} = ${result[columnName]} for ${category}`);
+                });
+                
+                // Ensure backwards compatibility with 'value' column (use first series)
+                if (data.series.length > 0 && (!result.value && result.value !== 0)) {
+                    result.value = data.series[0].data[categoryIndex] || 0;
+                }
+                
+                return result;
+            });
+            
+            console.log('📊 Final processed multi-series data:', processedData);
         } else if (data.data && Array.isArray(data.data)) {
             // Nested format: {data: [{category: 'A', value: 10, ...otherColumns}]}
             // Support multi-column data for grouped/stacked charts
