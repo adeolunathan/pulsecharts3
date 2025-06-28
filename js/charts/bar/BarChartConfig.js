@@ -16,6 +16,7 @@ window.BarChartConfig = (function() {
             margin: { top: 80, right: 150, bottom: 80, left: 150 },
             
             // Bar specific settings
+            barChartType: 'simple',  // 'simple', 'grouped', 'stacked', 'stacked100', 'range', 'waterfall', 'polar'
             barPadding: 0.1,        // Space between bars (0-1)
             barCornerRadius: 4,     // Rounded corners for bars
             orientation: 'vertical', // 'vertical' or 'horizontal'

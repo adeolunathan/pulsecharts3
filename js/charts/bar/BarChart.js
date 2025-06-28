@@ -39,6 +39,23 @@ class PulseBarChart {
             // **REMOVED: Don't render here - let the app control when to render**
         }
     }
+    
+    updateConfig(newConfig) {
+        console.log('🔧 Updating bar chart config:', newConfig);
+        const oldChartType = this.config.barChartType;
+        this.config = { ...this.config, ...newConfig };
+        
+        // If chart type changed, re-render
+        if (newConfig.barChartType && newConfig.barChartType !== oldChartType) {
+            console.log(`📊 Chart type changed from ${oldChartType} to ${newConfig.barChartType}, re-rendering`);
+            if (this.data) {
+                this.render(); // Re-render with existing data
+            }
+        } else if (this.data) {
+            // For other config changes, just re-render
+            this.render();
+        }
+    }
 
     initializeChart() {
         this.container.selectAll('*').remove();
@@ -179,19 +196,24 @@ class PulseBarChart {
         const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
         const chartHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
 
-        // Create scales
-        this.createScales(chartWidth, chartHeight);
+        // For polar charts, skip traditional scales, grid, and axes
+        if (this.config.barChartType === 'polar') {
+            this.renderBars(); // Polar chart handles its own rendering
+        } else {
+            // Create scales
+            this.createScales(chartWidth, chartHeight);
 
-        // Render grid if enabled
-        if (this.config.showGrid) {
-            this.renderGrid(chartWidth, chartHeight);
+            // Render grid if enabled
+            if (this.config.showGrid) {
+                this.renderGrid(chartWidth, chartHeight);
+            }
+
+            // Render axes
+            this.renderAxes(chartWidth, chartHeight);
+
+            // Render bars
+            this.renderBars();
         }
-
-        // Render axes
-        this.renderAxes(chartWidth, chartHeight);
-
-        // Render bars
-        this.renderBars();
 
         // Initialize branding using reusable module
         this.initializeBranding();
@@ -203,8 +225,42 @@ class PulseBarChart {
     }
 
     createScales(chartWidth, chartHeight) {
-        const maxValue = d3.max(this.data, d => d.value);
-        const minValue = d3.min(this.data, d => d.value);
+        let maxValue, minValue;
+        
+        // Get numeric columns for multi-series charts
+        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
+            key !== 'category' && typeof this.data[0][key] === 'number'
+        );
+        
+        if (this.config.barChartType === 'stacked' || this.config.barChartType === 'stacked100') {
+            // For stacked charts, calculate max of sums
+            maxValue = d3.max(this.data, d => 
+                numericColumns.reduce((sum, col) => sum + (d[col] || 0), 0)
+            );
+            minValue = 0; // Stacked charts start from 0
+        } else if (this.config.barChartType === 'grouped' && numericColumns.length > 1) {
+            // For grouped charts, find max across all series
+            maxValue = d3.max(this.data, d => 
+                d3.max(numericColumns, col => d[col] || 0)
+            );
+            minValue = d3.min(this.data, d => 
+                d3.min(numericColumns, col => d[col] || 0)
+            );
+        } else if (this.config.barChartType === 'waterfall') {
+            // For waterfall, calculate cumulative values
+            let cumulative = 0;
+            const cumulativeValues = this.data.map(d => {
+                cumulative += (d.value || 0);
+                return cumulative;
+            });
+            maxValue = d3.max(cumulativeValues);
+            minValue = d3.min([0, ...cumulativeValues]);
+        } else {
+            // Default: simple bar chart
+            maxValue = d3.max(this.data, d => d.value || 0);
+            minValue = d3.min(this.data, d => d.value || 0);
+        }
+        
         const valueRange = maxValue - Math.min(0, minValue);
         
         if (this.config.orientation === 'horizontal') {
@@ -355,6 +411,34 @@ class PulseBarChart {
     }
 
     renderBars() {
+        // Render based on chart type
+        switch (this.config.barChartType) {
+            case 'grouped':
+                this.renderGroupedBars();
+                break;
+            case 'stacked':
+                this.renderStackedBars();
+                break;
+            case 'stacked100':
+                this.renderStacked100Bars();
+                break;
+            case 'range':
+                this.renderRangeBars();
+                break;
+            case 'waterfall':
+                this.renderWaterfallBars();
+                break;
+            case 'polar':
+                this.renderPolarBars();
+                break;
+            case 'simple':
+            default:
+                this.renderSimpleBars();
+                break;
+        }
+    }
+    
+    renderSimpleBars() {
         // Get colors
         const colors = this.getBarColors();
 
@@ -433,6 +517,465 @@ class PulseBarChart {
             // Store bars reference
             this.bars = bars;
         }
+    }
+    
+    renderGroupedBars() {
+        // Get colors
+        const colors = this.getBarColors();
+        
+        // Group data by series (numeric columns)
+        const numericColumns = Object.keys(this.data[0]).filter(key => 
+            key !== 'category' && typeof this.data[0][key] === 'number'
+        );
+        
+        if (numericColumns.length < 2) {
+            console.warn('Grouped chart requires multiple numeric columns. Falling back to simple chart.');
+            this.renderSimpleBars();
+            return;
+        }
+        
+        // Prepare grouped data
+        const groupedData = this.data.map(d => {
+            const values = numericColumns.map(col => ({ series: col, value: d[col] || 0 }));
+            return { category: d.category, values };
+        });
+        
+        // Create sub-scale for groups
+        const subScale = d3.scaleBand()
+            .domain(numericColumns)
+            .range([0, this.xScale.bandwidth()])
+            .padding(0.05);
+        
+        if (this.config.orientation === 'horizontal') {
+            // Horizontal grouped bars
+            const groups = this.chart.selectAll('.bar-group')
+                .data(groupedData)
+                .enter()
+                .append('g')
+                .attr('class', 'bar-group')
+                .attr('transform', d => `translate(0, ${this.yScale(d.category)})`);
+                
+            const bars = groups.selectAll('.bar')
+                .data(d => d.values)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('y', d => subScale(d.series))
+                .attr('height', subScale.bandwidth())
+                .attr('x', 0)
+                .attr('width', 0)
+                .attr('fill', (d, i) => colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('width', d => this.xScale(d.value));
+                
+            this.addBarInteractivity(bars);
+        } else {
+            // Vertical grouped bars
+            const groups = this.chart.selectAll('.bar-group')
+                .data(groupedData)
+                .enter()
+                .append('g')
+                .attr('class', 'bar-group')
+                .attr('transform', d => `translate(${this.xScale(d.category)}, 0)`);
+                
+            const bars = groups.selectAll('.bar')
+                .data(d => d.values)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => subScale(d.series))
+                .attr('width', subScale.bandwidth())
+                .attr('y', this.yScale(0))
+                .attr('height', 0)
+                .attr('fill', (d, i) => colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('y', d => this.yScale(d.value))
+                .attr('height', d => this.yScale(0) - this.yScale(d.value));
+                
+            this.addBarInteractivity(bars);
+        }
+        
+        this.bars = this.chart.selectAll('.bar');
+    }
+    
+    renderStackedBars() {
+        const colors = this.getBarColors();
+        
+        // Get numeric columns for stacking
+        const numericColumns = Object.keys(this.data[0]).filter(key => 
+            key !== 'category' && typeof this.data[0][key] === 'number'
+        );
+        
+        if (numericColumns.length < 2) {
+            console.warn('Stacked chart requires multiple numeric columns. Falling back to simple chart.');
+            this.renderSimpleBars();
+            return;
+        }
+        
+        // Prepare stacked data
+        const stackedData = d3.stack()
+            .keys(numericColumns)
+            (this.data);
+            
+        if (this.config.orientation === 'horizontal') {
+            // Horizontal stacked bars
+            const layers = this.chart.selectAll('.layer')
+                .data(stackedData)
+                .enter()
+                .append('g')
+                .attr('class', 'layer')
+                .attr('fill', (d, i) => colors[i % colors.length]);
+                
+            const bars = layers.selectAll('.bar')
+                .data(d => d)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('y', d => this.yScale(d.data.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('x', 0)
+                .attr('width', 0)
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('x', d => this.xScale(d[0]))
+                .attr('width', d => this.xScale(d[1]) - this.xScale(d[0]));
+                
+            this.addBarInteractivity(bars);
+        } else {
+            // Vertical stacked bars
+            const layers = this.chart.selectAll('.layer')
+                .data(stackedData)
+                .enter()
+                .append('g')
+                .attr('class', 'layer')
+                .attr('fill', (d, i) => colors[i % colors.length]);
+                
+            const bars = layers.selectAll('.bar')
+                .data(d => d)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => this.xScale(d.data.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('y', this.yScale(0))
+                .attr('height', 0)
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('y', d => this.yScale(d[1]))
+                .attr('height', d => this.yScale(d[0]) - this.yScale(d[1]));
+                
+            this.addBarInteractivity(bars);
+        }
+        
+        this.bars = this.chart.selectAll('.bar');
+    }
+    
+    renderStacked100Bars() {
+        const colors = this.getBarColors();
+        
+        // Get numeric columns
+        const numericColumns = Object.keys(this.data[0]).filter(key => 
+            key !== 'category' && typeof this.data[0][key] === 'number'
+        );
+        
+        if (numericColumns.length < 2) {
+            console.warn('100% Stacked chart requires multiple numeric columns. Falling back to simple chart.');
+            this.renderSimpleBars();
+            return;
+        }
+        
+        // Calculate percentages
+        const dataWithPercentages = this.data.map(d => {
+            const total = numericColumns.reduce((sum, col) => sum + (d[col] || 0), 0);
+            const newRow = { category: d.category };
+            numericColumns.forEach(col => {
+                newRow[col] = total > 0 ? (d[col] || 0) / total * 100 : 0;
+            });
+            return newRow;
+        });
+        
+        const stackedData = d3.stack()
+            .keys(numericColumns)
+            (dataWithPercentages);
+            
+        // Create percentage scale
+        const percentScale = this.config.orientation === 'horizontal' ? 
+            d3.scaleLinear().domain([0, 100]).range([0, this.xScale.range()[1]]) :
+            d3.scaleLinear().domain([0, 100]).range([this.yScale.range()[0], 0]);
+            
+        if (this.config.orientation === 'horizontal') {
+            const layers = this.chart.selectAll('.layer')
+                .data(stackedData)
+                .enter()
+                .append('g')
+                .attr('class', 'layer')
+                .attr('fill', (d, i) => colors[i % colors.length]);
+                
+            const bars = layers.selectAll('.bar')
+                .data(d => d)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('y', d => this.yScale(d.data.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('x', 0)
+                .attr('width', 0)
+                .attr('opacity', this.config.barOpacity);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('x', d => percentScale(d[0]))
+                .attr('width', d => percentScale(d[1]) - percentScale(d[0]));
+        } else {
+            const layers = this.chart.selectAll('.layer')
+                .data(stackedData)
+                .enter()
+                .append('g')
+                .attr('class', 'layer')
+                .attr('fill', (d, i) => colors[i % colors.length]);
+                
+            const bars = layers.selectAll('.bar')
+                .data(d => d)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => this.xScale(d.data.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('y', percentScale(100))
+                .attr('height', 0)
+                .attr('opacity', this.config.barOpacity);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('y', d => percentScale(d[1]))
+                .attr('height', d => percentScale(d[0]) - percentScale(d[1]));
+        }
+        
+        this.bars = this.chart.selectAll('.bar');
+    }
+    
+    renderRangeBars() {
+        const colors = this.getBarColors();
+        
+        // Look for min/max or start/end columns
+        const minCol = Object.keys(this.data[0]).find(key => key.includes('min') || key.includes('start'));
+        const maxCol = Object.keys(this.data[0]).find(key => key.includes('max') || key.includes('end'));
+        
+        if (!minCol || !maxCol) {
+            console.warn('Range chart requires min/max or start/end columns. Using value column as both.');
+            this.renderSimpleBars();
+            return;
+        }
+        
+        if (this.config.orientation === 'horizontal') {
+            const bars = this.chart.selectAll('.bar')
+                .data(this.data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('y', d => this.yScale(d.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('x', 0)
+                .attr('width', 0)
+                .attr('fill', (d, i) => colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('x', d => this.xScale(Math.min(d[minCol], d[maxCol])))
+                .attr('width', d => Math.abs(this.xScale(d[maxCol]) - this.xScale(d[minCol])));
+        } else {
+            const bars = this.chart.selectAll('.bar')
+                .data(this.data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => this.xScale(d.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('y', this.yScale(0))
+                .attr('height', 0)
+                .attr('fill', (d, i) => colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('y', d => this.yScale(Math.max(d[minCol], d[maxCol])))
+                .attr('height', d => Math.abs(this.yScale(d[maxCol]) - this.yScale(d[minCol])));
+        }
+        
+        this.bars = this.chart.selectAll('.bar');
+        this.addBarInteractivity(this.bars);
+    }
+    
+    renderWaterfallBars() {
+        const colors = this.getBarColors();
+        let cumulative = 0;
+        
+        // Calculate cumulative values
+        const waterfallData = this.data.map((d, i) => {
+            const value = d.value || 0;
+            const start = cumulative;
+            cumulative += value;
+            return {
+                ...d,
+                start,
+                end: cumulative,
+                value,
+                isPositive: value >= 0
+            };
+        });
+        
+        if (this.config.orientation === 'horizontal') {
+            const bars = this.chart.selectAll('.bar')
+                .data(waterfallData)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('y', d => this.yScale(d.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('x', 0)
+                .attr('width', 0)
+                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('x', d => this.xScale(Math.min(d.start, d.end)))
+                .attr('width', d => Math.abs(this.xScale(d.end) - this.xScale(d.start)));
+        } else {
+            const bars = this.chart.selectAll('.bar')
+                .data(waterfallData)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => this.xScale(d.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('y', this.yScale(0))
+                .attr('height', 0)
+                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('opacity', this.config.barOpacity)
+                .attr('rx', this.config.barCornerRadius);
+                
+            bars.transition()
+                .duration(this.config.animationDuration)
+                .attr('y', d => this.yScale(Math.max(d.start, d.end)))
+                .attr('height', d => Math.abs(this.yScale(d.end) - this.yScale(d.start)));
+        }
+        
+        this.bars = this.chart.selectAll('.bar');
+        this.addBarInteractivity(this.bars);
+    }
+    
+    renderPolarBars() {
+        // For polar charts, we need a completely different approach
+        // Don't render axes or grid for polar charts
+        
+        // Clear chart and create polar coordinate system
+        this.chart.selectAll('*').remove();
+        
+        const centerX = (this.config.width - this.config.margin.left - this.config.margin.right) / 2;
+        const centerY = (this.config.height - this.config.margin.top - this.config.margin.bottom) / 2;
+        const radius = Math.min(centerX, centerY) - 50;
+        
+        const colors = this.getBarColors();
+        const maxValue = d3.max(this.data, d => d.value);
+        
+        // Create radial scale
+        const radiusScale = d3.scaleLinear()
+            .domain([0, maxValue])
+            .range([0, radius]);
+            
+        // Create angle scale
+        const angleScale = d3.scaleBand()
+            .domain(this.data.map(d => d.category))
+            .range([0, 2 * Math.PI])
+            .padding(0.1);
+        
+        // Create polar bars
+        const bars = this.chart.selectAll('.polar-bar')
+            .data(this.data)
+            .enter()
+            .append('path')
+            .attr('class', 'polar-bar')
+            .attr('transform', `translate(${centerX}, ${centerY})`)
+            .attr('fill', (d, i) => colors[i % colors.length])
+            .attr('opacity', this.config.barOpacity)
+            .style('cursor', 'pointer');
+            
+        // Calculate arc paths
+        const arc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(d => radiusScale(d.value))
+            .startAngle(d => angleScale(d.category))
+            .endAngle(d => angleScale(d.category) + angleScale.bandwidth());
+            
+        bars.transition()
+            .duration(this.config.animationDuration)
+            .attr('d', arc);
+            
+        this.bars = bars;
+        this.addBarInteractivity(this.bars);
+        
+        // Add radial grid lines
+        const gridLines = this.chart.selectAll('.grid-line')
+            .data(radiusScale.ticks(5))
+            .enter()
+            .append('circle')
+            .attr('class', 'grid-line')
+            .attr('cx', centerX)
+            .attr('cy', centerY)
+            .attr('r', d => radiusScale(d))
+            .attr('fill', 'none')
+            .attr('stroke', this.config.gridColor)
+            .attr('stroke-opacity', this.config.gridOpacity);
+            
+        // Add labels if enabled
+        if (this.config.showBarLabels || this.config.showValues) {
+            this.renderPolarLabels(centerX, centerY, radiusScale, angleScale);
+        }
+    }
+    
+    renderPolarLabels(centerX, centerY, radiusScale, angleScale) {
+        const labels = this.chart.selectAll('.polar-label')
+            .data(this.data)
+            .enter()
+            .append('text')
+            .attr('class', 'polar-label')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'middle')
+            .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+            .style('font-size', `${this.config.labelFontSize}px`)
+            .style('font-weight', this.config.labelFontWeight)
+            .style('fill', this.config.labelColor)
+            .text(d => this.getBarLabelText(d));
+            
+        labels.transition()
+            .duration(this.config.animationDuration)
+            .attr('transform', d => {
+                const angle = angleScale(d.category) + angleScale.bandwidth() / 2;
+                const radius = radiusScale(d.value) + 20;
+                const x = centerX + Math.cos(angle - Math.PI / 2) * radius;
+                const y = centerY + Math.sin(angle - Math.PI / 2) * radius;
+                return `translate(${x}, ${y})`;
+            })
+            .style('opacity', 1);
     }
 
     renderBarLabels() {
@@ -811,12 +1354,28 @@ class PulseBarChart {
                 label: d.label || d.category || d.name
             }));
         } else if (data.data && Array.isArray(data.data)) {
-            // Nested format: {data: [{category: 'A', value: 10}]}
-            processedData = data.data.map(d => ({
-                category: d.category || d.name || d.label,
-                value: parseFloat(d.value) || 0,
-                label: d.label || d.category || d.name
-            }));
+            // Nested format: {data: [{category: 'A', value: 10, ...otherColumns}]}
+            // Support multi-column data for grouped/stacked charts
+            processedData = data.data.map(d => {
+                const result = {
+                    category: d.category || d.name || d.label
+                };
+                
+                // Copy all numeric columns
+                Object.keys(d).forEach(key => {
+                    if (key !== 'category' && typeof d[key] === 'number') {
+                        result[key] = d[key];
+                    }
+                });
+                
+                // Ensure backwards compatibility with 'value' column
+                if (!result.value && result.value !== 0) {
+                    const numericKeys = Object.keys(result).filter(k => k !== 'category');
+                    result.value = numericKeys.length > 0 ? result[numericKeys[0]] : 0;
+                }
+                
+                return result;
+            });
         }
 
         // Sort data by value (descending) if autoSort is enabled

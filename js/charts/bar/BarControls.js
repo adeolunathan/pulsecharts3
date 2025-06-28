@@ -17,6 +17,22 @@ class BarControlModule {
                 collapsed: false,
                 controls: [
                     {
+                        id: "barChartType",
+                        type: "dropdown",
+                        label: "Chart Type",
+                        default: "simple",
+                        options: [
+                            { value: "simple", label: "Simple Bar Chart" },
+                            { value: "grouped", label: "Grouped Bar Chart" },
+                            { value: "stacked", label: "Stacked Bar Chart" },
+                            { value: "stacked100", label: "100% Stacked Bar Chart" },
+                            { value: "range", label: "Range Bar Chart" },
+                            { value: "waterfall", label: "Waterfall Chart" },
+                            { value: "polar", label: "Polar Bar Chart" }
+                        ],
+                        description: "Type of bar chart visualization"
+                    },
+                    {
                         id: "orientation",
                         type: "dropdown",
                         label: "Orientation",
@@ -546,11 +562,21 @@ class BarControlModule {
         chart.config[controlId] = value;
 
         // Handle special cases that require re-rendering
-        if (['orientation', 'colorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
+        if (['barChartType', 'orientation', 'colorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
             console.log(`🔄 Re-rendering chart for ${controlId} change`);
             
-            // **CRITICAL FIX: For orientation change, we need to completely re-render**
-            if (controlId === 'orientation') {
+            // **CRITICAL FIX: For chart type change, use updateConfig method**
+            if (controlId === 'barChartType') {
+                console.log(`📊 Chart type changing to: ${value}`);
+                if (chart.updateConfig) {
+                    chart.updateConfig({ barChartType: value });
+                } else {
+                    console.warn('⚠️ Chart updateConfig method not available');
+                    if (chart.data && chart.data.length > 0) {
+                        chart.render();
+                    }
+                }
+            } else if (controlId === 'orientation') {
                 console.log(`📊 Orientation changing to: ${value}`);
                 // Force a complete re-render with current data
                 if (chart.data && chart.data.length > 0) {
