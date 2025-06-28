@@ -239,8 +239,18 @@ class PulseBarChart {
 
         console.log('🎨 Rendering bar chart with', this.data.length, 'bars');
 
-        // Clear existing content
+        // Clear existing content thoroughly
         this.chart.selectAll('*').remove();
+        
+        // Extra cleanup for specific elements that might persist
+        this.chart.selectAll('.bar').remove();
+        this.chart.selectAll('.bar-group').remove();
+        this.chart.selectAll('.layer').remove();
+        this.chart.selectAll('.bar-label').remove();
+        this.chart.selectAll('.grouped-bar-label').remove();
+        this.chart.selectAll('.stacked-bar-label').remove();
+        this.chart.selectAll('.waterfall-bar-label').remove();
+        this.chart.selectAll('.polar-label').remove();
 
         // Calculate dimensions
         const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
@@ -622,63 +632,116 @@ class PulseBarChart {
             .padding(0.05);
         
         if (this.config.orientation === 'horizontal') {
-            // Horizontal grouped bars
-            const groups = this.chart.selectAll('.bar-group')
-                .data(groupedData)
-                .enter()
+            // Horizontal grouped bars - use proper data join pattern
+            const groupSelection = this.chart.selectAll('.bar-group')
+                .data(groupedData);
+            
+            // Remove old groups
+            groupSelection.exit().remove();
+            
+            // Add new groups
+            const groups = groupSelection.enter()
                 .append('g')
-                .attr('class', 'bar-group')
+                .attr('class', 'bar-group');
+            
+            // Update all groups (new + existing)
+            const allGroups = groups.merge(groupSelection)
                 .attr('transform', d => `translate(0, ${this.yScale(d.category)})`);
                 
-            const bars = groups.selectAll('.bar')
-                .data(d => d.values)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar')
-                .attr('y', d => subScale(d.series))
-                .attr('height', subScale.bandwidth())
-                .attr('x', 0)
-                .attr('width', 0)
-                .attr('fill', (d, i) => colors[i % colors.length])
-                .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+            // Create bars within each group
+            const self = this; // Store reference to chart instance
+            allGroups.each(function(groupData) {
+                const group = d3.select(this);
                 
-            bars.transition()
-                .duration(this.config.animationDuration)
-                .attr('width', d => this.xScale(d.value));
+                const barSelection = group.selectAll('.bar')
+                    .data(groupData.values);
                 
-            this.addBarInteractivity(bars);
+                // Remove old bars
+                barSelection.exit().remove();
+                
+                // Add new bars
+                const newBars = barSelection.enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', 0)
+                    .attr('width', 0);
+                
+                // Update all bars (new + existing)
+                const allBars = newBars.merge(barSelection)
+                    .attr('y', d => subScale(d.series))
+                    .attr('height', subScale.bandwidth())
+                    .attr('fill', (d, i) => colors[i % colors.length])
+                    .attr('opacity', self.config.barOpacity)
+                    .attr('rx', self.config.barCornerRadius);
+                    
+                allBars.transition()
+                    .duration(self.config.animationDuration)
+                    .attr('width', d => self.xScale(d.value));
+            });
+            
+            // Add interactivity to all bars
+            const allBarsHorizontal = this.chart.selectAll('.bar');
+            this.addBarInteractivity(allBarsHorizontal);
+            this.bars = allBarsHorizontal; // Store bars reference
         } else {
-            // Vertical grouped bars
-            const groups = this.chart.selectAll('.bar-group')
-                .data(groupedData)
-                .enter()
+            // Vertical grouped bars - use proper data join pattern
+            const groupSelection = this.chart.selectAll('.bar-group')
+                .data(groupedData);
+            
+            // Remove old groups
+            groupSelection.exit().remove();
+            
+            // Add new groups
+            const groups = groupSelection.enter()
                 .append('g')
-                .attr('class', 'bar-group')
+                .attr('class', 'bar-group');
+            
+            // Update all groups (new + existing)
+            const allGroups = groups.merge(groupSelection)
                 .attr('transform', d => `translate(${this.xScale(d.category)}, 0)`);
                 
-            const bars = groups.selectAll('.bar')
-                .data(d => d.values)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar')
-                .attr('x', d => subScale(d.series))
-                .attr('width', subScale.bandwidth())
-                .attr('y', this.yScale(0))
-                .attr('height', 0)
-                .attr('fill', (d, i) => colors[i % colors.length])
-                .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+            // Create bars within each group
+            const self = this; // Store reference to chart instance
+            allGroups.each(function(groupData) {
+                const group = d3.select(this);
                 
-            bars.transition()
-                .duration(this.config.animationDuration)
-                .attr('y', d => this.yScale(d.value))
-                .attr('height', d => this.yScale(0) - this.yScale(d.value));
+                const barSelection = group.selectAll('.bar')
+                    .data(groupData.values);
                 
-            this.addBarInteractivity(bars);
+                // Remove old bars
+                barSelection.exit().remove();
+                
+                // Add new bars
+                const newBars = barSelection.enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('y', self.yScale(0))
+                    .attr('height', 0);
+                
+                // Update all bars (new + existing)
+                const allBars = newBars.merge(barSelection)
+                    .attr('x', d => subScale(d.series))
+                    .attr('width', subScale.bandwidth())
+                    .attr('fill', (d, i) => colors[i % colors.length])
+                    .attr('opacity', self.config.barOpacity)
+                    .attr('rx', self.config.barCornerRadius);
+                    
+                allBars.transition()
+                    .duration(self.config.animationDuration)
+                    .attr('y', d => self.yScale(d.value))
+                    .attr('height', d => self.yScale(0) - self.yScale(d.value));
+            });
+            
+            // Add interactivity to all bars
+            const allBarsVertical = this.chart.selectAll('.bar');
+            this.addBarInteractivity(allBarsVertical);
+            this.bars = allBarsVertical; // Store bars reference
         }
         
-        this.bars = this.chart.selectAll('.bar');
+        // Render labels for grouped bars
+        if (this.config.showBarLabels || this.config.showValues) {
+            this.renderGroupedBarLabels();
+        }
     }
     
     renderStackedBars() {
@@ -701,62 +764,115 @@ class PulseBarChart {
             (this.data);
             
         if (this.config.orientation === 'horizontal') {
-            // Horizontal stacked bars
-            const layers = this.chart.selectAll('.layer')
-                .data(stackedData)
-                .enter()
+            // Horizontal stacked bars - use proper data join pattern
+            const layerSelection = this.chart.selectAll('.layer')
+                .data(stackedData);
+            
+            // Remove old layers
+            layerSelection.exit().remove();
+            
+            // Add new layers
+            const newLayers = layerSelection.enter()
                 .append('g')
-                .attr('class', 'layer')
+                .attr('class', 'layer');
+            
+            // Update all layers (new + existing)
+            const allLayers = newLayers.merge(layerSelection)
                 .attr('fill', (d, i) => colors[i % colors.length]);
                 
-            const bars = layers.selectAll('.bar')
-                .data(d => d)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar')
-                .attr('y', d => this.yScale(d.data.category))
-                .attr('height', this.yScale.bandwidth())
-                .attr('x', 0)
-                .attr('width', 0)
-                .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+            // Create bars within each layer
+            const self = this; // Store reference to chart instance
+            allLayers.each(function(layerData) {
+                const layer = d3.select(this);
                 
-            bars.transition()
-                .duration(this.config.animationDuration)
-                .attr('x', d => this.xScale(d[0]))
-                .attr('width', d => this.xScale(d[1]) - this.xScale(d[0]));
+                const barSelection = layer.selectAll('.bar')
+                    .data(layerData);
                 
-            this.addBarInteractivity(bars);
+                // Remove old bars
+                barSelection.exit().remove();
+                
+                // Add new bars
+                const newBars = barSelection.enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', 0)
+                    .attr('width', 0);
+                
+                // Update all bars (new + existing)
+                const allBars = newBars.merge(barSelection)
+                    .attr('y', d => self.yScale(d.data.category))
+                    .attr('height', self.yScale.bandwidth())
+                    .attr('opacity', self.config.barOpacity)
+                    .attr('rx', self.config.barCornerRadius);
+                    
+                allBars.transition()
+                    .duration(self.config.animationDuration)
+                    .attr('x', d => self.xScale(d[0]))
+                    .attr('width', d => self.xScale(d[1]) - self.xScale(d[0]));
+            });
+            
+            // Add interactivity to all bars
+            const allBarsHorizontal = this.chart.selectAll('.bar');
+            this.addBarInteractivity(allBarsHorizontal);
+            this.bars = allBarsHorizontal; // Store bars reference
         } else {
-            // Vertical stacked bars
-            const layers = this.chart.selectAll('.layer')
-                .data(stackedData)
-                .enter()
+            // Vertical stacked bars - use proper data join pattern
+            const layerSelection = this.chart.selectAll('.layer')
+                .data(stackedData);
+            
+            // Remove old layers
+            layerSelection.exit().remove();
+            
+            // Add new layers
+            const newLayers = layerSelection.enter()
                 .append('g')
-                .attr('class', 'layer')
+                .attr('class', 'layer');
+            
+            // Update all layers (new + existing)
+            const allLayers = newLayers.merge(layerSelection)
                 .attr('fill', (d, i) => colors[i % colors.length]);
                 
-            const bars = layers.selectAll('.bar')
-                .data(d => d)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar')
-                .attr('x', d => this.xScale(d.data.category))
-                .attr('width', this.xScale.bandwidth())
-                .attr('y', this.yScale(0))
-                .attr('height', 0)
-                .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+            // Create bars within each layer
+            const self = this; // Store reference to chart instance
+            allLayers.each(function(layerData) {
+                const layer = d3.select(this);
                 
-            bars.transition()
-                .duration(this.config.animationDuration)
-                .attr('y', d => this.yScale(d[1]))
-                .attr('height', d => this.yScale(d[0]) - this.yScale(d[1]));
+                const barSelection = layer.selectAll('.bar')
+                    .data(layerData);
                 
-            this.addBarInteractivity(bars);
+                // Remove old bars
+                barSelection.exit().remove();
+                
+                // Add new bars
+                const newBars = barSelection.enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('y', self.yScale(0))
+                    .attr('height', 0);
+                
+                // Update all bars (new + existing)
+                const allBars = newBars.merge(barSelection)
+                    .attr('x', d => self.xScale(d.data.category))
+                    .attr('width', self.xScale.bandwidth())
+                    .attr('opacity', self.config.barOpacity)
+                    .attr('rx', self.config.barCornerRadius);
+                    
+                allBars.transition()
+                    .duration(self.config.animationDuration)
+                    .attr('y', d => self.yScale(d[1]))
+                    .attr('height', d => self.yScale(d[0]) - self.yScale(d[1]));
+            });
+            
+            // Add interactivity to all bars
+            const allBarsVertical = this.chart.selectAll('.bar');
+            this.addBarInteractivity(allBarsVertical);
+            this.bars = allBarsVertical; // Store bars reference
         }
         
-        this.bars = this.chart.selectAll('.bar');
+        // Render labels for stacked bars
+        if (this.config.showBarLabels || this.config.showValues) {
+            this.renderStackedBarLabels();
+        }
     }
     
     renderStacked100Bars() {
@@ -845,6 +961,11 @@ class PulseBarChart {
         }
         
         this.bars = this.chart.selectAll('.bar');
+        
+        // Render labels for stacked100 bars
+        if (this.config.showBarLabels || this.config.showValues) {
+            this.renderStackedBarLabels(); // Same as stacked but with percentage values
+        }
     }
     
     renderRangeBars() {
@@ -971,6 +1092,11 @@ class PulseBarChart {
         
         this.bars = this.chart.selectAll('.bar');
         this.addBarInteractivity(this.bars);
+        
+        // Render labels for waterfall bars
+        if (this.config.showBarLabels || this.config.showValues) {
+            this.renderWaterfallBarLabels();
+        }
     }
     
     renderPolarBars() {
@@ -1685,12 +1811,300 @@ class PulseBarChart {
     updateLabels() {
         const shouldShowLabels = this.config.showBarLabels || this.config.showValues;
         
-        // Remove existing labels
+        // Remove ALL existing labels (all types)
         this.chart.selectAll('.bar-label').remove();
+        this.chart.selectAll('.grouped-bar-label').remove();
+        this.chart.selectAll('.stacked-bar-label').remove();
+        this.chart.selectAll('.waterfall-bar-label').remove();
+        this.chart.selectAll('.polar-label').remove();
         
-        // Add labels if needed
+        // Add labels if needed based on current chart type
         if (shouldShowLabels) {
-            this.renderBarLabels();
+            switch (this.config.barChartType) {
+                case 'grouped':
+                    this.renderGroupedBarLabels();
+                    break;
+                case 'stacked':
+                case 'stacked100':
+                    this.renderStackedBarLabels();
+                    break;
+                case 'waterfall':
+                    this.renderWaterfallBarLabels();
+                    break;
+                case 'polar':
+                    // Polar labels are handled in renderPolarBars
+                    break;
+                default:
+                    // Simple, range, and other types
+                    this.renderBarLabels();
+                    break;
+            }
         }
+    }
+
+    // ===== SPECIALIZED LABEL RENDERING METHODS FOR MULTI-SERIES CHARTS =====
+
+    renderGroupedBarLabels() {
+        // Clear existing labels
+        this.chart.selectAll('.grouped-bar-label').remove();
+        
+        // Get numeric columns for grouped data
+        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
+            key !== 'category' && key !== 'label' && typeof this.data[0][key] === 'number'
+        );
+        
+        if (numericColumns.length === 0) return;
+        
+        // Prepare grouped data (same as in renderGroupedBars)
+        const groupedData = this.data.map(d => {
+            const values = numericColumns.map(col => ({ 
+                series: col, 
+                value: d[col] || 0, 
+                category: d.category,
+                label: d.label || d.category 
+            }));
+            return { category: d.category, values };
+        });
+        
+        // Create sub-scale for groups (same as in renderGroupedBars)
+        const categoryScale = this.config.orientation === 'horizontal' ? this.yScale : this.xScale;
+        const subScale = d3.scaleBand()
+            .domain(numericColumns)
+            .range([0, categoryScale.bandwidth()])
+            .padding(0.05);
+        
+        if (this.config.orientation === 'horizontal') {
+            // Horizontal grouped bar labels
+            groupedData.forEach(groupData => {
+                groupData.values.forEach(d => {
+                    if (d.value > 0) { // Only show labels for bars with values
+                        this.chart.append('text')
+                            .attr('class', 'grouped-bar-label')
+                            .attr('x', this.xScale(d.value) + this.config.labelOffset)
+                            .attr('y', this.yScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2)
+                            .attr('text-anchor', 'start')
+                            .attr('dominant-baseline', 'middle')
+                            .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                            .style('font-size', `${this.config.labelFontSize}px`)
+                            .style('fill', this.config.labelColor)
+                            .style('opacity', 0)
+                            .text(this.getGroupedBarLabelText(d))
+                            .transition()
+                            .delay(this.config.animationDuration * 0.5)
+                            .duration(this.config.animationDuration * 0.5)
+                            .style('opacity', 1);
+                    }
+                });
+            });
+        } else {
+            // Vertical grouped bar labels
+            groupedData.forEach(groupData => {
+                groupData.values.forEach(d => {
+                    if (d.value > 0) { // Only show labels for bars with values
+                        const labelY = this.config.labelPosition === 'top' ? 
+                            this.yScale(d.value) - this.config.labelOffset :
+                            this.config.labelPosition === 'bottom' ?
+                            this.yScale(0) + this.config.labelOffset :
+                            this.yScale(d.value / 2); // middle
+                            
+                        this.chart.append('text')
+                            .attr('class', 'grouped-bar-label')
+                            .attr('x', this.xScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2)
+                            .attr('y', labelY)
+                            .attr('text-anchor', 'middle')
+                            .attr('dominant-baseline', this.config.labelPosition === 'bottom' ? 'hanging' : 'middle')
+                            .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                            .style('font-size', `${this.config.labelFontSize}px`)
+                            .style('fill', this.config.labelColor)
+                            .style('opacity', 0)
+                            .text(this.getGroupedBarLabelText(d))
+                            .transition()
+                            .delay(this.config.animationDuration * 0.5)
+                            .duration(this.config.animationDuration * 0.5)
+                            .style('opacity', 1);
+                    }
+                });
+            });
+        }
+    }
+
+    renderStackedBarLabels() {
+        // Clear existing labels
+        this.chart.selectAll('.stacked-bar-label').remove();
+        
+        // Get numeric columns for stacking
+        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
+            key !== 'category' && typeof this.data[0][key] === 'number'
+        );
+        
+        if (numericColumns.length === 0) return;
+        
+        // Create stacked data (same as in renderStackedBars)
+        const stackedData = d3.stack()
+            .keys(numericColumns)
+            (this.data);
+        
+        if (this.config.orientation === 'horizontal') {
+            // Horizontal stacked bar labels
+            stackedData.forEach((layer, layerIndex) => {
+                layer.forEach(d => {
+                    const segmentValue = d[1] - d[0];
+                    if (segmentValue > 0) { // Only show labels for segments with values
+                        const segmentCenter = (d[0] + d[1]) / 2;
+                        
+                        this.chart.append('text')
+                            .attr('class', 'stacked-bar-label')
+                            .attr('x', this.xScale(segmentCenter))
+                            .attr('y', this.yScale(d.data.category) + this.yScale.bandwidth() / 2)
+                            .attr('text-anchor', 'middle')
+                            .attr('dominant-baseline', 'middle')
+                            .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                            .style('font-size', `${this.config.labelFontSize}px`)
+                            .style('fill', this.config.labelColor)
+                            .style('opacity', 0)
+                            .text(this.getStackedBarLabelText(d, numericColumns[layerIndex], segmentValue))
+                            .transition()
+                            .delay(this.config.animationDuration * 0.5)
+                            .duration(this.config.animationDuration * 0.5)
+                            .style('opacity', 1);
+                    }
+                });
+            });
+        } else {
+            // Vertical stacked bar labels
+            stackedData.forEach((layer, layerIndex) => {
+                layer.forEach(d => {
+                    const segmentValue = d[1] - d[0];
+                    if (segmentValue > 0) { // Only show labels for segments with values
+                        const segmentCenter = (this.yScale(d[0]) + this.yScale(d[1])) / 2;
+                        
+                        this.chart.append('text')
+                            .attr('class', 'stacked-bar-label')
+                            .attr('x', this.xScale(d.data.category) + this.xScale.bandwidth() / 2)
+                            .attr('y', segmentCenter)
+                            .attr('text-anchor', 'middle')
+                            .attr('dominant-baseline', 'middle')
+                            .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                            .style('font-size', `${this.config.labelFontSize}px`)
+                            .style('fill', this.config.labelColor)
+                            .style('opacity', 0)
+                            .text(this.getStackedBarLabelText(d, numericColumns[layerIndex], segmentValue))
+                            .transition()
+                            .delay(this.config.animationDuration * 0.5)
+                            .duration(this.config.animationDuration * 0.5)
+                            .style('opacity', 1);
+                    }
+                });
+            });
+        }
+    }
+
+    renderWaterfallBarLabels() {
+        // Clear existing labels
+        this.chart.selectAll('.waterfall-bar-label').remove();
+        
+        // Use processed waterfall data from bars
+        const bars = this.chart.selectAll('.bar');
+        
+        bars.each((d, i, nodes) => {
+            const barElement = d3.select(nodes[i]);
+            const value = d.value || (d.end - d.start);
+            
+            if (Math.abs(value) > 0) { // Only show labels for bars with values
+                let labelX, labelY;
+                
+                if (this.config.orientation === 'horizontal') {
+                    labelX = this.xScale(Math.max(d.start || 0, d.end || d.value || 0)) + this.config.labelOffset;
+                    labelY = this.yScale(d.category) + this.yScale.bandwidth() / 2;
+                } else {
+                    labelX = this.xScale(d.category) + this.xScale.bandwidth() / 2;
+                    labelY = this.yScale(Math.max(d.start || 0, d.end || d.value || 0)) - this.config.labelOffset;
+                }
+                
+                this.chart.append('text')
+                    .attr('class', 'waterfall-bar-label')
+                    .attr('x', labelX)
+                    .attr('y', labelY)
+                    .attr('text-anchor', this.config.orientation === 'horizontal' ? 'start' : 'middle')
+                    .attr('dominant-baseline', 'middle')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.labelFontSize}px`)
+                    .style('fill', this.config.labelColor)
+                    .style('opacity', 0)
+                    .text(this.getWaterfallBarLabelText(d))
+                    .transition()
+                    .delay(this.config.animationDuration * 0.5)
+                    .duration(this.config.animationDuration * 0.5)
+                    .style('opacity', 1);
+            }
+        });
+    }
+
+    // ===== HELPER METHODS FOR SPECIALIZED LABELS =====
+
+    getGroupedBarLabelText(d) {
+        // Use same logic as simple bar chart - just show the value or category
+        const showLabels = this.config.showBarLabels;
+        const showValues = this.config.showValues;
+        
+        if (!showLabels && !showValues) return '';
+        
+        if (showLabels && showValues) {
+            // Show both: "Category: $value" (same as simple chart)
+            return `${d.label || d.category}: ${this.formatValue(d.value)}`;
+        } else if (showValues) {
+            // Show only values (same as simple chart)
+            return this.formatValue(d.value);
+        } else if (showLabels) {
+            // Show only category labels (same as simple chart)
+            return d.label || d.category;
+        }
+        
+        return '';
+    }
+
+    getStackedBarLabelText(d, seriesName, segmentValue) {
+        // Use same logic as simple bar chart - just show the value or category
+        const showLabels = this.config.showBarLabels;
+        const showValues = this.config.showValues;
+        
+        if (!showLabels && !showValues) return '';
+        
+        if (showLabels && showValues) {
+            // Show both: "Category: $value" (same as simple chart)
+            return `${d.data.category}: ${this.formatValue(segmentValue)}`;
+        } else if (showValues) {
+            // Show only values (same as simple chart)
+            return this.formatValue(segmentValue);
+        } else if (showLabels) {
+            // Show only category labels (same as simple chart)
+            return d.data.category;
+        }
+        
+        return '';
+    }
+
+    getWaterfallBarLabelText(d) {
+        // Use same logic as simple bar chart - just show the value or category
+        const showLabels = this.config.showBarLabels;
+        const showValues = this.config.showValues;
+        
+        if (!showLabels && !showValues) return '';
+        
+        const value = d.value || (d.end - d.start);
+        const label = d.label || d.category || '';
+        
+        if (showLabels && showValues) {
+            // Show both: "Category: $value" (same as simple chart)
+            return `${label}: ${this.formatValue(value)}`;
+        } else if (showValues) {
+            // Show only values (same as simple chart)
+            return this.formatValue(value);
+        } else if (showLabels) {
+            // Show only category labels (same as simple chart)
+            return label;
+        }
+        
+        return '';
     }
 }
