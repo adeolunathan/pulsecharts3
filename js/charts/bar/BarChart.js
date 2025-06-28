@@ -375,10 +375,13 @@ class PulseBarChart {
                 .attr('ry', this.config.barCornerRadius)
                 .style('cursor', 'pointer');
 
+            // Get D3 easing function
+            const easingFunction = this.getD3EasingFunction(this.config.animationEasing);
+            
             // Animate bars
             bars.transition()
                 .duration(this.config.animationDuration)
-                .ease(d3.easeQuadOut)
+                .ease(easingFunction)
                 .attr('x', d => this.xScale(Math.min(0, d.value)))
                 .attr('width', d => Math.abs(this.xScale(d.value) - this.xScale(0)));
 
@@ -409,10 +412,13 @@ class PulseBarChart {
                 .attr('ry', this.config.barCornerRadius)
                 .style('cursor', 'pointer');
 
+            // Get D3 easing function
+            const easingFunction = this.getD3EasingFunction(this.config.animationEasing);
+            
             // Animate bars
             bars.transition()
                 .duration(this.config.animationDuration)
-                .ease(d3.easeQuadOut)
+                .ease(easingFunction)
                 .attr('y', d => this.yScale(Math.max(0, d.value)))
                 .attr('height', d => Math.abs(this.yScale(d.value) - this.yScale(0)));
 
@@ -461,7 +467,7 @@ class PulseBarChart {
                 .append('text')
                 .attr('class', 'bar-label')
                 .attr('x', d => this.xScale(d.category) + this.xScale.bandwidth() / 2)
-                .attr('y', d => this.yScale(d.value) - this.config.labelOffset)
+                .attr('y', d => this.getLabelY(d))
                 .attr('text-anchor', 'middle')
                 .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                 .style('font-size', `${this.config.labelFontSize}px`)
@@ -602,7 +608,7 @@ class PulseBarChart {
     // Export functions using reusable module
     exportToPNG(filename = 'bar-chart.png') {
         if (window.ChartExports && window.ChartExports.exportToPNG) {
-            return ChartExports.exportToPNG.call(this, filename);
+            return ChartExports.exportToPNG.call(this);
         } else {
             console.warn('❌ ChartExports utility not available');
             return this.exportToPNGFallback(filename);
@@ -611,7 +617,7 @@ class PulseBarChart {
 
     exportToSVG(filename = 'bar-chart.svg') {
         if (window.ChartExports && window.ChartExports.exportToSVG) {
-            return ChartExports.exportToSVG.call(this, filename);
+            return ChartExports.exportToSVG.call(this);
         } else {
             console.warn('❌ ChartExports utility not available');
             return this.exportToSVGFallback(filename);
@@ -813,8 +819,10 @@ class PulseBarChart {
             }));
         }
 
-        // Sort data by value (descending) for better visualization
-        processedData.sort((a, b) => b.value - a.value);
+        // Sort data by value (descending) if autoSort is enabled
+        if (this.config.autoSort !== false) {
+            processedData.sort((a, b) => b.value - a.value);
+        }
 
         console.log('✅ Processed bar chart data:', processedData);
         
@@ -841,5 +849,50 @@ class PulseBarChart {
     // Method to check if chart supports dynamic layers
     supportsDynamicLayers() {
         return false; // Bar charts don't have dynamic layers like Sankey
+    }
+
+    // Generate filename for exports
+    generateFileName(extension) {
+        const title = this.data && this.data.length > 0 && this.data[0].metadata?.title 
+            ? this.data[0].metadata.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+            : 'bar-chart';
+        const timestamp = new Date().toISOString().slice(0, 10);
+        return `${title}-${timestamp}.${extension}`;
+    }
+
+    // Convert easing name to D3 easing function
+    getD3EasingFunction(easingName) {
+        const easingMap = {
+            'easeLinear': d3.easeLinear,
+            'easeQuadOut': d3.easeQuadOut,
+            'easeInOutCubic': d3.easeCubicInOut,
+            'easeBackOut': d3.easeBackOut,
+            'easeBounceOut': d3.easeBounceOut
+        };
+        
+        return easingMap[easingName] || d3.easeQuadOut;
+    }
+
+    // Calculate label Y position based on labelPosition config
+    getLabelY(d) {
+        if (this.config.orientation === 'horizontal') {
+            return this.yScale(d.category) + this.yScale.bandwidth() / 2;
+        } else {
+            // Vertical bars
+            const barTop = this.yScale(Math.max(0, d.value));
+            const barBottom = this.yScale(0);
+            const barHeight = Math.abs(barBottom - barTop);
+            
+            switch (this.config.labelPosition) {
+                case 'top':
+                    return barTop - this.config.labelOffset;
+                case 'middle':
+                    return barTop + barHeight / 2;
+                case 'bottom':
+                    return barBottom + this.config.labelOffset;
+                default:
+                    return barTop - this.config.labelOffset;
+            }
+        }
     }
 }

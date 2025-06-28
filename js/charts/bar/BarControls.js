@@ -47,6 +47,13 @@ class BarControlModule {
                         step: 1,
                         unit: "px",
                         description: "Rounded corners for bars"
+                    },
+                    {
+                        id: "autoSort",
+                        type: "toggle",
+                        label: "Auto Sort by Value",
+                        default: true,
+                        description: "Automatically sort bars by value (descending) or keep user order"
                     }
                 ]
             },
@@ -256,28 +263,6 @@ class BarControlModule {
                         label: "Enable Hover Effects",
                         default: true
                     },
-                    {
-                        id: "enableClick",
-                        type: "toggle",
-                        label: "Enable Click to Color",
-                        default: true
-                    },
-                    {
-                        id: "enableTooltip",
-                        type: "toggle",
-                        label: "Show Tooltips",
-                        default: true
-                    },
-                    {
-                        id: "hoverOpacity",
-                        type: "slider",
-                        label: "Hover Opacity",
-                        min: 0.5,
-                        max: 1.0,
-                        default: 1.0,
-                        step: 0.1,
-                        description: "Opacity when hovering over bars"
-                    }
                 ]
             },
 
@@ -288,21 +273,10 @@ class BarControlModule {
                 collapsed: true,
                 controls: [
                     {
-                        id: "animationDuration",
-                        type: "slider",
-                        label: "Animation Duration",
-                        min: 200,
-                        max: 2000,
-                        default: 800,
-                        step: 100,
-                        unit: "ms",
-                        description: "How long animations take"
-                    },
-                    {
                         id: "animationEasing",
                         type: "dropdown",
                         label: "Animation Easing",
-                        default: "easeBounceOut",
+                        default: "easeLinear",
                         options: [
                             { value: "easeLinear", label: "Linear" },
                             { value: "easeQuadOut", label: "Quad Out" },
@@ -347,19 +321,19 @@ class BarControlModule {
                     {
                         id: "titleColor",
                         type: "color_picker",
-                        label: "Text Color",
+                        label: "Title Color",
                         default: "#1f2937"
                     },
                     {
-                        id: "globalFontSize",
+                        id: "titleSize",
                         type: "slider",
-                        label: "Global Font Size",
-                        min: 8,
-                        max: 18,
-                        default: 12,
+                        label: "Title Size",
+                        min: 14,
+                        max: 32,
+                        default: 20,
                         step: 1,
                         unit: "px",
-                        description: "Adjust the size of all text elements"
+                        description: "Size of the chart title"
                     }
                 ]
             },
@@ -385,11 +359,13 @@ class BarControlModule {
             barPadding: 0.1,
             barCornerRadius: 4,
 
+            // Auto sorting
+            autoSort: true,
+            
             // Styling
             defaultBarColor: '#3498db',
             hoverColor: '#2980b9',
-            barOpacity: 0.8,
-            hoverOpacity: 1.0,
+            barOpacity: 1,
             colorScheme: 'default',
 
             // Axes and grid
@@ -413,20 +389,21 @@ class BarControlModule {
             currencySymbol: '$',
             decimalPlaces: 0,
 
-            // Interactivity
+            // Interactivity (always enabled)
             enableHover: true,
             enableClick: true,
             enableTooltip: true,
+            hoverOpacity: 1.0,
 
-            // Animation
-            animationDuration: 800,
-            animationEasing: 'easeInOutCubic',
+            // Animation (fixed duration, configurable easing)
+            animationDuration: 700,
+            animationEasing: 'easeQuadOut',
 
             // Appearance
             backgroundColor: '#f8f9fa',
             titleFont: 'Inter',
             titleColor: '#1f2937',
-            globalFontSize: 12
+            titleSize: 20
         };
     }
 
@@ -600,9 +577,15 @@ class BarControlModule {
                 .style('font-family', chart.getFontFamily());
         }
         
-        // Handle global font size changes
-        else if (controlId === 'globalFontSize') {
-            chart.svg.selectAll('text')
+        // Handle title color changes
+        else if (controlId === 'titleColor') {
+            chart.svg.selectAll('.chart-title')
+                .style('fill', value);
+        }
+        
+        // Handle title size changes
+        else if (controlId === 'titleSize') {
+            chart.svg.selectAll('.chart-title')
                 .style('font-size', value + 'px');
         }
         
@@ -646,9 +629,23 @@ class BarControlModule {
             chart.render();
         }
         
+        // Handle auto sort control
+        else if (controlId === 'autoSort') {
+            console.log(`📊 Auto sort changed to: ${value}`);
+            if (chart.data && chart.data.length > 0) {
+                // Re-render chart with new sorting
+                chart.render();
+            }
+        }
+        
+        // Handle animation easing control  
+        else if (controlId === 'animationEasing') {
+            console.log(`🎬 Animation easing changed to: ${value}`);
+            // Store for next animation
+        }
+        
         // Handle config-only controls that don't need immediate visual changes
-        else if (['animationDuration', 'animationEasing', 'enableHover', 'enableClick', 
-                  'enableTooltip', 'hoverOpacity', 'categorySpacing'].includes(controlId)) {
+        else if (['enableHover', 'enableClick', 'enableTooltip', 'hoverOpacity', 'categorySpacing'].includes(controlId)) {
             // These controls just need config updates, no immediate visual changes
             console.log(`📝 Updated config-only control: ${controlId} = ${value}`);
         }
