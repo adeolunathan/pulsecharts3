@@ -106,14 +106,27 @@ class BarDataEditor {
                 value: d.value || 0
             }));
         } else {
-            // Default data
+            // Default data with multiple columns for demo
             this.data = [
-                { category: 'Product A', value: 100 },
-                { category: 'Product B', value: 150 },
-                { category: 'Product C', value: 200 }
+                { category: 'Product A', value: 100, value_2: 120, value_3: 90 },
+                { category: 'Product B', value: 150, value_2: 180, value_3: 140 },
+                { category: 'Product C', value: 200, value_2: 250, value_3: 190 }
+            ];
+            
+            // Add default columns for multi-series demo
+            this.columns = [
+                { id: 'category', label: 'Category', type: 'text', required: true },
+                { id: 'value', label: 'Value 1', type: 'number', required: true },
+                { id: 'value_2', label: 'Value 2', type: 'number', required: false },
+                { id: 'value_3', label: 'Value 3', type: 'number', required: false }
             ];
         }
         this.render();
+        
+        // Immediately update chart with default data
+        setTimeout(() => {
+            this.updateChart();
+        }, 100);
     }
 
     render() {
@@ -278,14 +291,17 @@ class BarDataEditor {
         const cell = e.target.closest('.spreadsheet-cell');
         if (!cell) return;
         
+        // Single click just selects the cell
         this.selectCell(cell);
-        // Single click to edit
-        setTimeout(() => this.editCell(cell), 50);
     }
 
     handleCellDoubleClick(e) {
-        // Prevent double action from single click
+        const cell = e.target.closest('.spreadsheet-cell');
+        if (!cell) return;
+        
+        // Double click starts editing
         e.preventDefault();
+        this.editCell(cell);
     }
 
     selectCell(cell) {
@@ -346,20 +362,40 @@ class BarDataEditor {
             const column = this.columns.find(c => c.id === col);
             content.innerHTML = this.formatCellValue(this.data[row][col], column.type);
             
-            // Update chart
-            this.updateChart();
+            // Update chart with small delay to ensure data is set
+            setTimeout(() => {
+                this.updateChart();
+            }, 10);
         };
         
         input.addEventListener('blur', finishEdit);
+        
+        // Add input event for real-time updates (optional)
+        let updateTimeout;
+        input.addEventListener('input', () => {
+            // Clear previous timeout
+            if (updateTimeout) clearTimeout(updateTimeout);
+            
+            // Set new timeout for live updates (debounced)
+            updateTimeout = setTimeout(() => {
+                const tempValue = input.value;
+                this.setCellValue(cell, tempValue);
+                this.updateChart();
+            }, 500); // Update after 500ms of no typing
+        });
+        
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
+                if (updateTimeout) clearTimeout(updateTimeout);
                 finishEdit();
                 this.navigateCell('down');
             } else if (e.key === 'Tab') {
                 e.preventDefault();
+                if (updateTimeout) clearTimeout(updateTimeout);
                 finishEdit();
                 this.navigateCell(e.shiftKey ? 'left' : 'right');
             } else if (e.key === 'Escape') {
+                if (updateTimeout) clearTimeout(updateTimeout);
                 this.isEditing = false;
                 this.render(); // Restore original value
             }
@@ -659,16 +695,22 @@ class BarDataEditor {
     }
 
     updateChart() {
+        console.log('🔄 BarDataEditor: updateChart() called');
+        console.log('🔄 BarDataEditor: Current data:', this.data);
+        console.log('🔄 BarDataEditor: pulseApp available:', !!(window.pulseApp && window.pulseApp.updateData));
+        
         // Update via the app (primary method for multi-column support)
         if (window.pulseApp && window.pulseApp.updateData) {
             const chartData = this.getChartFormattedData();
-            console.log('🔄 BarDataEditor: Sending chart data to app:', chartData);
+            console.log('🔄 BarDataEditor: Formatted chart data:', chartData);
             if (chartData) {
                 const result = window.pulseApp.updateData(chartData, 'data-editor');
-                console.log('✅ Chart updated with multi-column data via app, result:', result);
+                console.log('✅ BarDataEditor: Chart update result:', result);
             } else {
                 console.warn('⚠️ BarDataEditor: No chart data to send');
             }
+        } else {
+            console.warn('⚠️ BarDataEditor: pulseApp.updateData not available');
         }
         
         // Legacy support for direct chart instance

@@ -1429,8 +1429,8 @@ class PulseBarChart {
             });
         }
 
-        // Sort data by value (descending) if autoSort is enabled
-        if (this.config.autoSort !== false) {
+        // Sort data by value (descending) if autoSort is enabled (disabled by default)
+        if (this.config.autoSort === true) {
             processedData.sort((a, b) => b.value - a.value);
         }
 
