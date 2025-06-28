@@ -31,6 +31,8 @@
     
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
     
     <!-- Modern UI Enhancements -->
     <style>
@@ -367,6 +369,7 @@
     <script src="js/charts/bar/BarChartConfig.js"></script>
     <script src="js/charts/bar/BarChart.js"></script>
     <script src="js/charts/bar/BarControls.js"></script>
+    <script src="js/charts/bar/BarDataEditor.js"></script>
     
     <!-- Verify utilities before app loads -->
     <script>
@@ -2164,8 +2167,7 @@
                 if (previousCol) previousCol.style.display = 'none';
                 if (varianceCol) varianceCol.style.display = 'none';
 
-                // Initialize spreadsheet functionality
-                window.spreadsheetController = new SpreadsheetController();
+                // Old spreadsheet controller removed - using BarDataEditor instead
                 
                 // Initialize modern export dropdown
                 initializeExportDropdown();
@@ -2257,72 +2259,25 @@
                 // Update tab content immediately to prevent flicker
                 const dataBuilderContent = document.getElementById('data-builder');
                 if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
-                    console.log('📊 Switching data-builder to bar chart content (immediate)');
+                    console.log('📊 Switching data-builder to professional spreadsheet editor (immediate)');
                     dataBuilderContent.innerHTML = `
                         <div class="bar-chart-data-builder">
-                            <div style="padding: 20px;">
-                                <!-- Data Control Header -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                    <div>
-                                        <h3 style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 600;">📊 Chart Data</h3>
-                                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">Edit your data directly in the table below</p>
-                                    </div>
-                                    <div style="display: flex; gap: 6px; align-items: center;">
-                                        <button onclick="document.getElementById('bar-file-input').click()" 
-                                                style="padding: 6px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Upload CSV file">
-                                            📁 Upload
-                                        </button>
-                                        <button onclick="pasteSpreadsheetData()" 
-                                                style="padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Paste from clipboard">
-                                            📋 Paste
-                                        </button>
-                                        <button onclick="addSpreadsheetRow()" 
-                                                style="padding: 6px 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Add new row">
-                                            ➕ Add
-                                        </button>
-                                        <button onclick="clearSpreadsheetData()" 
-                                                style="padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Clear all data">
-                                            🗑️ Clear
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Spreadsheet Table -->
-                                <div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
-                                    <table style="width: 100%; border-collapse: collapse;">
-                                        <thead>
-                                            <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                                <th style="padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; width: 50px;">#</th>
-                                                <th style="padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #374151;">Category</th>
-                                                <th style="padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #374151;">Value</th>
-                                                <th style="padding: 10px 12px; text-align: center; font-size: 12px; font-weight: 600; color: #374151; width: 60px;">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="bar-data-tbody">
-                                            <!-- Dynamic content populated by renderSpreadsheet() -->
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Row Counter -->
-                                <div style="margin-top: 8px; text-align: right;">
-                                    <span id="spreadsheet-row-count" style="font-size: 12px; color: #6b7280;">0 rows</span>
-                                </div>
-
-                                <!-- Hidden file input -->
-                                <input type="file" id="bar-file-input" accept=".csv,.txt" style="display: none;">
+                            <div id="bar-data-editor-container" style="padding: 20px;">
+                                <!-- BarDataEditor will be initialized here -->
                             </div>
                         </div>
                     `;
                     
-                    // Initialize spreadsheet data immediately
-                    if (typeof initializeSpreadsheet === 'function') {
-                        initializeSpreadsheet();
-                    }
+                    // Initialize professional spreadsheet editor
+                    setTimeout(() => {
+                        if (typeof BarDataEditor !== 'undefined') {
+                            const chartInstance = window.pulseApp ? window.pulseApp.currentChart : null;
+                            window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                            console.log('✅ Professional BarDataEditor initialized');
+                        } else {
+                            console.error('❌ BarDataEditor class not available');
+                        }
+                    }, 100);
                 }
             }
             
@@ -2501,69 +2456,11 @@
                 
                 // PREVENT FLICKERING: Only update if not already bar chart content
                 if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
-                    console.log('📊 Switching data-builder to bar chart content');
+                    console.log('📊 Switching data-builder to professional spreadsheet editor');
                     dataBuilderContent.innerHTML = `
                         <div class="bar-chart-data-builder">
-                            <div style="padding: 20px;">
-                                <!-- Data Control Header -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                    <div>
-                                        <h3 style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 600;">📊 Chart Data</h3>
-                                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">Edit your data directly in the table below</p>
-                                    </div>
-                                    <div style="display: flex; gap: 6px; align-items: center;">
-                                        <button onclick="document.getElementById('bar-file-input').click()" 
-                                                style="padding: 6px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Upload CSV file">
-                                            📁 Upload
-                                        </button>
-                                        <button onclick="pasteSpreadsheetData()" 
-                                                style="padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Paste from clipboard">
-                                            📋 Paste
-                                        </button>
-                                        <button onclick="addSpreadsheetRow()" 
-                                                style="padding: 6px 10px; background: #059669; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Add new row">
-                                            + Row
-                                        </button>
-                                        <button onclick="clearSpreadsheetData()" 
-                                                style="padding: 6px 10px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;"
-                                                title="Clear all data">
-                                            🗑 Clear
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Compact Data Table -->
-                                <div style="background: white; border-radius: 6px; border: 1px solid #e5e7eb; overflow: hidden; max-width: 600px;">
-                                    <table id="bar-data-table" style="width: 100%; border-collapse: collapse;">
-                                        <thead style="background: #f8f9fa;">
-                                            <tr>
-                                                <th style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; text-align: left; width: 50px; font-size: 12px;">#</th>
-                                                <th style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; text-align: left; font-size: 12px;">Category</th>
-                                                <th style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; text-align: right; font-size: 12px;">Value</th>
-                                                <th style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; text-align: center; width: 60px; font-size: 12px;">Del</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="bar-data-tbody">
-                                            <!-- Rows will be generated by JavaScript -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <!-- Status Bar -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 8px 12px; background: #f9fafb; border-radius: 4px; border: 1px solid #f3f4f6;">
-                                    <div style="color: #6b7280; font-size: 12px;">
-                                        <span id="spreadsheet-row-count">0 rows</span> • Click cells to edit • Use Tab/Enter to navigate
-                                    </div>
-                                    <button onclick="applySpreadsheetData()" 
-                                            style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">
-                                        📊 Update Chart
-                                    </button>
-                                </div>
-                                
-                                <input type="file" id="bar-file-input" accept=".csv,.json" style="display: none;" onchange="handleBarFileUpload(this)">
+                            <div id="bar-data-editor-container" style="padding: 20px;">
+                                <!-- BarDataEditor will be initialized here -->
                             </div>
                         </div>
                     `;
@@ -2571,17 +2468,18 @@
                     console.log('📊 Bar chart content already loaded, skipping innerHTML update');
                 }
                 
-                // Initialize spreadsheet with default data and auto-render chart
+                // Initialize professional spreadsheet editor
                 setTimeout(() => {
-                    console.log('📊 Initializing bar chart with default data');
-                    initializeSpreadsheet();
-                    
-                    // DISABLED: Auto-apply prevents single render workflow
-                    // The IIFE pattern handles chart rendering in one place
-                    console.log('⚠️ Auto-apply DISABLED - chart already rendered by IIFE');
-                    // setTimeout(() => {
-                    //     applySpreadsheetData();
-                    // }, 200);
+                    console.log('📊 Initializing professional BarDataEditor');
+                    if (typeof BarDataEditor !== 'undefined') {
+                        const chartInstance = window.pulseApp ? window.pulseApp.currentChart : null;
+                        if (!window.barDataEditor) {
+                            window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                            console.log('✅ Professional BarDataEditor initialized');
+                        }
+                    } else {
+                        console.error('❌ BarDataEditor class not available');
+                    }
                 }, 400);
                 
             } else if (chartType === 'sankey') {
@@ -3596,285 +3494,6 @@
             }
         }
 
-        // ============================================================================
-        // PROFESSIONAL SPREADSHEET INTERFACE FOR BAR CHART DATA ENTRY
-        // ============================================================================
-        
-        let spreadsheetData = [];
-        let selectedCell = null;
-        
-        
-        function initializeSpreadsheet() {
-            // SINGLE SOURCE OF TRUTH: Always use BarChartConfig for data consistency
-            if (spreadsheetData.length === 0) {
-                if (!window.BarChartConfig) {
-                    console.error('❌ BarChartConfig not available for data initialization');
-                    return;
-                }
-                
-                const defaultData = window.BarChartConfig.getDefaultData();
-                
-                spreadsheetData = defaultData.categories.map((category, index) => ({
-                    category: category,
-                    value: defaultData.values[index]
-                }));
-                
-                console.log('📊 Initialized spreadsheet with official default data from BarChartConfig:', spreadsheetData);
-            }
-            renderSpreadsheet();
-        }
-        
-        function renderSpreadsheet() {
-            const tbody = document.getElementById('bar-data-tbody');
-            const rowCount = document.getElementById('spreadsheet-row-count');
-            
-            if (!tbody) return;
-            
-            tbody.innerHTML = '';
-            
-            spreadsheetData.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="padding: 8px 12px; background: #f8f9fa; text-align: center; color: #6b7280; font-weight: 500; font-size: 12px; border-bottom: 1px solid #f3f4f6;">${index + 1}</td>
-                    <td style="padding: 0; position: relative; border-bottom: 1px solid #f3f4f6;">
-                        <input type="text" 
-                               value="${row.category}" 
-                               onchange="updateSpreadsheetCell(${index}, 'category', this.value)"
-                               onfocus="selectSpreadsheetCell(this)"
-                               style="width: 100%; border: none; padding: 8px 12px; background: transparent; font-size: 13px; outline: none;"
-                               placeholder="Enter category">
-                    </td>
-                    <td style="padding: 0; position: relative; border-bottom: 1px solid #f3f4f6;">
-                        <input type="number" 
-                               value="${row.value}" 
-                               onchange="updateSpreadsheetCell(${index}, 'value', parseFloat(this.value) || 0)"
-                               onfocus="selectSpreadsheetCell(this)"
-                               style="width: 100%; border: none; padding: 8px 12px; background: transparent; font-size: 13px; outline: none; text-align: right;"
-                               placeholder="0">
-                    </td>
-                    <td style="padding: 6px; text-align: center; border-bottom: 1px solid #f3f4f6;">
-                        <button onclick="removeSpreadsheetRow(${index})" 
-                                style="background: #ef4444; color: white; border: none; border-radius: 2px; width: 20px; height: 20px; cursor: pointer; font-size: 10px; line-height: 1;"
-                                title="Delete row">×</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            if (rowCount) {
-                rowCount.textContent = `${spreadsheetData.length} rows`;
-            }
-        }
-        
-        function updateSpreadsheetCell(rowIndex, field, value) {
-            if (spreadsheetData[rowIndex]) {
-                spreadsheetData[rowIndex][field] = value;
-                console.log(`Updated row ${rowIndex}, ${field} = ${value}`);
-                
-                // Real-time chart update - only if we have valid data
-                const validData = spreadsheetData.filter(row => 
-                    row.category && row.category.trim() && 
-                    !isNaN(row.value) && row.value !== ''
-                );
-                
-                if (validData.length > 0) {
-                    // Convert to bar chart format and update immediately
-                    const barData = {
-                        metadata: {
-                            company: "Live Data",
-                            period: "Real-time",
-                            title: "Bar Chart Data",
-                            chartType: "bar"
-                        },
-                        categories: validData.map(row => row.category),
-                        values: validData.map(row => row.value),
-                        labels: validData.map(row => row.category)
-                    };
-                    
-                    // Update chart in real-time
-                    renderBarChart(barData);
-                    showBarDataPreview(barData);
-                    
-                    // Update row count
-                    const rowCount = document.getElementById('spreadsheet-row-count');
-                    if (rowCount) {
-                        rowCount.textContent = `${spreadsheetData.length} rows`;
-                    }
-                }
-            }
-        }
-        
-        function selectSpreadsheetCell(input) {
-            if (selectedCell) {
-                selectedCell.style.background = 'transparent';
-            }
-            selectedCell = input;
-            input.style.background = '#dbeafe';
-            input.select();
-        }
-        
-        function addSpreadsheetRow() {
-            spreadsheetData.push({ category: '', value: 0 });
-            renderSpreadsheet();
-            
-            // Focus the new category input
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('#bar-data-tbody input[type="text"]');
-                const lastInput = inputs[inputs.length - 1];
-                if (lastInput) {
-                    lastInput.focus();
-                    selectSpreadsheetCell(lastInput);
-                }
-            }, 100);
-        }
-        
-        function removeSpreadsheetRow(index) {
-            if (spreadsheetData.length > 1) {
-                spreadsheetData.splice(index, 1);
-                renderSpreadsheet();
-                
-                // Real-time chart update after row removal
-                updateSpreadsheetCell(0, 'category', spreadsheetData[0]?.category || '');
-            } else {
-                alert('You must have at least one row of data.');
-            }
-        }
-        
-        function clearSpreadsheetData() {
-            if (confirm('Are you sure you want to clear all data?')) {
-                spreadsheetData = [{ category: '', value: 0 }];
-                renderSpreadsheet();
-                
-                // Clear the chart when data is cleared
-                const chartContainer = document.getElementById('main-chart');
-                if (chartContainer) {
-                    chartContainer.innerHTML = '<div class="chart-loading"><div class="loading-spinner"></div><p>Enter data to see your chart...</p></div>';
-                }
-            }
-        }
-        
-        async function pasteSpreadsheetData() {
-            try {
-                const text = await navigator.clipboard.readText();
-                const lines = text.split('\n').filter(line => line.trim());
-                
-                if (lines.length === 0) {
-                    alert('No data found in clipboard.');
-                    return;
-                }
-                
-                const newData = [];
-                
-                // Skip header if it looks like one
-                const startIndex = (lines[0].toLowerCase().includes('category') || 
-                                  lines[0].toLowerCase().includes('name')) ? 1 : 0;
-                
-                for (let i = startIndex; i < lines.length; i++) {
-                    const parts = lines[i].split('\t').length > 1 ? 
-                                 lines[i].split('\t') : lines[i].split(',');
-                    
-                    if (parts.length >= 2) {
-                        const category = parts[0].trim();
-                        const value = parseFloat(parts[1].trim().replace(/[,$]/g, '')) || 0;
-                        
-                        if (category) {
-                            newData.push({ category, value });
-                        }
-                    }
-                }
-                
-                if (newData.length > 0) {
-                    spreadsheetData = newData;
-                    renderSpreadsheet();
-                    
-                    // Real-time chart update after paste
-                    updateSpreadsheetCell(0, 'category', spreadsheetData[0]?.category || '');
-                    
-                    alert(`Successfully pasted ${newData.length} rows of data!`);
-                } else {
-                    alert('Could not parse any valid data from clipboard.');
-                }
-                
-            } catch (error) {
-                console.error('Paste failed:', error);
-                alert('Paste failed. Make sure you have copied data to your clipboard.');
-            }
-        }
-        
-        function applySpreadsheetData() {
-            // Validate data
-            const validData = spreadsheetData.filter(row => 
-                row.category && row.category.trim() && 
-                !isNaN(row.value) && row.value !== ''
-            );
-            
-            if (validData.length === 0) {
-                alert('Please enter at least one row with valid category and value.');
-                return;
-            }
-            
-            // Convert to bar chart format
-            const barData = {
-                metadata: {
-                    company: "Custom Data",
-                    period: "User Input",
-                    title: "Custom Bar Chart",
-                    chartType: "bar"
-                },
-                categories: validData.map(row => row.category),
-                values: validData.map(row => row.value),
-                labels: validData.map(row => row.category)
-            };
-            
-            // Render the chart
-            renderBarChart(barData);
-            
-            // Show data preview
-            showBarDataPreview(barData);
-            
-            // DISABLED: Automatic tab switching prevents single initialization workflow
-            // Tab switching is now handled by IIFE pattern
-            console.log('⚠️ Auto tab switch DISABLED - handled by IIFE');
-            // setTimeout(() => {
-            //     switchMainTab('chart-view');
-            // }, 300);
-            
-            console.log('📊 Applied custom spreadsheet data:', barData);
-        }
-        
-        // Handle keyboard navigation in spreadsheet
-        document.addEventListener('keydown', function(e) {
-            if (selectedCell) {
-                if (e.key === 'Tab' || e.key === 'Enter') {
-                    e.preventDefault();
-                    
-                    const inputs = Array.from(document.querySelectorAll('#bar-data-tbody input'));
-                    const currentIndex = inputs.indexOf(selectedCell);
-                    
-                    if (e.key === 'Tab') {
-                        // Move to next input
-                        const nextIndex = e.shiftKey ? currentIndex - 1 : currentIndex + 1;
-                        if (nextIndex >= 0 && nextIndex < inputs.length) {
-                            inputs[nextIndex].focus();
-                            selectSpreadsheetCell(inputs[nextIndex]);
-                        }
-                    } else if (e.key === 'Enter') {
-                        // Move to same column, next row
-                        const isValueInput = selectedCell.type === 'number';
-                        const rowInputs = inputs.filter(input => input.type === selectedCell.type);
-                        const rowIndex = rowInputs.indexOf(selectedCell);
-                        
-                        if (rowIndex + 1 < rowInputs.length) {
-                            rowInputs[rowIndex + 1].focus();
-                            selectSpreadsheetCell(rowInputs[rowIndex + 1]);
-                        } else {
-                            // Add new row if at the end
-                            addSpreadsheetRow();
-                        }
-                    }
-                }
-            }
-        });
 
     </script>
 </body>
