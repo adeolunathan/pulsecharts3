@@ -565,16 +565,16 @@ class BarControlModule {
         if (['barChartType', 'orientation', 'colorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
             console.log(`🔄 Re-rendering chart for ${controlId} change`);
             
-            // **CRITICAL FIX: For chart type change, use updateConfig method**
+            // **FIXED: Chart type change now uses same approach as other controls**
             if (controlId === 'barChartType') {
                 console.log(`📊 Chart type changing to: ${value}`);
-                if (chart.updateConfig) {
-                    chart.updateConfig({ barChartType: value });
+                // Update config directly and render immediately (same as other controls)
+                chart.config.barChartType = value;
+                if (chart.data && chart.data.length > 0) {
+                    console.log(`📊 Immediate render for chart type change to: ${value}`);
+                    chart.render();
                 } else {
-                    console.warn('⚠️ Chart updateConfig method not available');
-                    if (chart.data && chart.data.length > 0) {
-                        chart.render();
-                    }
+                    console.warn('⚠️ No chart data available for chart type change');
                 }
             } else if (controlId === 'orientation') {
                 console.log(`📊 Orientation changing to: ${value}`);
