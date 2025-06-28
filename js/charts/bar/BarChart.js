@@ -57,22 +57,43 @@ class PulseBarChart {
         if (newConfig.barChartType && newConfig.barChartType !== oldChartType) {
             console.log(`📊 Chart type changed from ${oldChartType} to ${newConfig.barChartType}, re-rendering immediately`);
             console.log('📊 Available data for re-render:', this.data);
+            console.log('📊 Checking data sources...');
+            console.log('📊 window.pulseApp exists:', !!window.pulseApp);
+            console.log('📊 window.pulseApp.currentData:', window.pulseApp?.currentData);
+            console.log('📊 window.PulseDataBridge exists:', !!window.PulseDataBridge);
+            console.log('📊 window.PulseDataBridge.getData():', window.PulseDataBridge?.getData());
             
             // For chart type changes, we MUST reprocess data from original source to get proper format
+            let freshDataFound = false;
+            
+            // Try to get fresh data from various sources
             if (window.pulseApp && window.pulseApp.currentData) {
                 console.log('🔄 Re-rendering with fresh data from pulseApp for chart type change');
-                this.render(window.pulseApp.currentData); // Re-render with fresh data processing
+                this.render(window.pulseApp.currentData);
+                freshDataFound = true;
             } else if (window.PulseDataBridge && window.PulseDataBridge.getData()) {
                 console.log('🔄 Re-rendering with fresh data from DataBridge for chart type change');
-                this.render(window.PulseDataBridge.getData()); // Re-render with fresh data processing
-            } else if (this.data && this.data.length > 0) {
-                // Force immediate re-render for chart type changes
-                console.log('🔄 Forcing immediate chart re-render for type change');
-                this.render(); // Re-render with existing data
-            } else {
-                console.warn('⚠️ No data available for chart type change re-render');
-                console.warn('⚠️ this.data:', this.data);
-                console.warn('⚠️ pulseApp.currentData:', window.pulseApp?.currentData);
+                this.render(window.PulseDataBridge.getData());
+                freshDataFound = true;
+            }
+            
+            // If no fresh data found, try to trigger data refresh from BarDataEditor
+            if (!freshDataFound) {
+                console.log('🔄 No fresh data source found, triggering BarDataEditor refresh...');
+                
+                // Always trigger the event - BarDataEditor will handle it if present
+                window.dispatchEvent(new CustomEvent('chartTypeChanged', { 
+                    detail: { newType: newConfig.barChartType, oldType: oldChartType } 
+                }));
+                
+                // For immediate feedback, also re-render with existing data
+                // The BarDataEditor will send fresh data shortly after
+                if (this.data && this.data.length > 0) {
+                    console.log('🔄 Using existing data for immediate chart type change feedback');
+                    this.render(); // Re-render with existing data
+                } else {
+                    console.warn('⚠️ No data available for chart type change re-render');
+                }
             }
         } else if (this.data && this.data.length > 0) {
             // Check for other significant changes that require re-rendering
@@ -817,14 +838,25 @@ class PulseBarChart {
     renderRangeBars() {
         const colors = this.getBarColors();
         
-        // Look for min/max or start/end columns
-        const minCol = Object.keys(this.data[0]).find(key => key.includes('min') || key.includes('start'));
-        const maxCol = Object.keys(this.data[0]).find(key => key.includes('max') || key.includes('end'));
+        // Look for min/max or start/end columns first
+        let minCol = Object.keys(this.data[0]).find(key => key.includes('min') || key.includes('start'));
+        let maxCol = Object.keys(this.data[0]).find(key => key.includes('max') || key.includes('end'));
         
+        // If no dedicated min/max columns, use first two numeric columns
         if (!minCol || !maxCol) {
-            console.warn('Range chart requires min/max or start/end columns. Using value column as both.');
-            this.renderSimpleBars();
-            return;
+            const numericColumns = Object.keys(this.data[0]).filter(key => 
+                key !== 'category' && key !== 'label' && typeof this.data[0][key] === 'number'
+            );
+            
+            if (numericColumns.length >= 2) {
+                minCol = numericColumns[0];
+                maxCol = numericColumns[1];
+                console.log(`📊 Range chart using ${minCol} as min and ${maxCol} as max`);
+            } else {
+                console.warn('Range chart requires at least 2 numeric columns. Falling back to simple chart.');
+                this.renderSimpleBars();
+                return;
+            }
         }
         
         if (this.config.orientation === 'horizontal') {
@@ -1358,104 +1390,144 @@ class PulseBarChart {
     
     // Process data method required by control system
     processData(data) {
-        if (!data) {
-            console.error('❌ No data provided to bar chart');
-            return null;
-        }
+        return (() => {
+            if (!data) {
+                console.error('❌ No data provided to bar chart');
+                return null;
+            }
 
-        console.log('📊 Processing bar chart data:', data);
-        console.log('📊 Data type:', typeof data);
-        console.log('📊 Data keys:', Object.keys(data || {}));
-        console.log('📊 Has categories:', !!(data.categories));
-        console.log('📊 Has values:', !!(data.values));
-        console.log('📊 Has series:', !!(data.series));
-        console.log('📊 Is array:', Array.isArray(data));
+            console.log('📊 Processing bar chart data:', data);
+            console.log('📊 Data type:', typeof data);
+            console.log('📊 Data keys:', Object.keys(data || {}));
+            console.log('📊 Has categories:', !!(data.categories));
+            console.log('📊 Has values:', !!(data.values));
+            console.log('📊 Has series:', !!(data.series));
+            console.log('📊 Is array:', Array.isArray(data));
 
-        // Handle different data formats
-        let processedData = [];
-        
-        if (data.categories && data.values) {
-            console.log('📊 Taking categories+values branch');
-            // Simple format: {categories: ['A', 'B'], values: [10, 20]}
-            processedData = data.categories.map((category, index) => ({
-                category: category,
-                value: data.values[index] || 0,
-                label: data.labels ? data.labels[index] : category
-            }));
-        } else if (Array.isArray(data)) {
-            console.log('📊 Taking array branch');
-            // Array format: [{category: 'A', value: 10}, ...]
-            processedData = data.map(d => ({
-                category: d.category || d.name || d.label,
-                value: parseFloat(d.value) || 0,
-                label: d.label || d.category || d.name
-            }));
-        } else if (data.series && Array.isArray(data.series) && data.categories) {
-            // Multi-series format from BarDataEditor: {categories: ['A', 'B'], series: [{name: 'Series1', data: [10, 20]}, ...]}
-            console.log('📊 Processing multi-series data format for grouped/stacked charts');
-            console.log('📊 Input data.series:', data.series);
-            console.log('📊 Input data.categories:', data.categories);
+            // Handle different data formats with priority for multi-series
+            let processedData = [];
             
-            processedData = data.categories.map((category, categoryIndex) => {
-                const result = { category: category };
+            // PRIORITY 1: Multi-series format (for grouped/stacked charts)
+            if (data.series && Array.isArray(data.series) && data.categories && data.series.length > 0) {
+                console.log('📊 🎯 Taking MULTI-SERIES branch (priority)');
+                console.log('📊 Input data.series:', data.series);
+                console.log('📊 Input data.categories:', data.categories);
                 
-                // Add data from each series as separate columns
-                data.series.forEach(series => {
-                    const columnName = series.name.replace(/\s+/g, '_').toLowerCase(); // Convert to safe column name
-                    result[columnName] = series.data[categoryIndex] || 0;
-                    console.log(`📊 Added column ${columnName} = ${result[columnName]} for ${category}`);
-                });
-                
-                // Ensure backwards compatibility with 'value' column (use first series)
-                if (data.series.length > 0 && (!result.value && result.value !== 0)) {
-                    result.value = data.series[0].data[categoryIndex] || 0;
-                }
-                
-                return result;
-            });
-            
-            console.log('📊 Final processed multi-series data:', processedData);
-        } else if (data.data && Array.isArray(data.data)) {
-            console.log('📊 Taking data.data branch');
-            // Nested format: {data: [{category: 'A', value: 10, ...otherColumns}]}
-            // Support multi-column data for grouped/stacked charts
-            processedData = data.data.map(d => {
-                const result = {
-                    category: d.category || d.name || d.label
-                };
-                
-                // Copy all numeric columns
-                Object.keys(d).forEach(key => {
-                    if (key !== 'category' && typeof d[key] === 'number') {
-                        result[key] = d[key];
+                processedData = data.categories.map((category, categoryIndex) => {
+                    const result = { category: category };
+                    
+                    // Add data from each series as separate columns
+                    data.series.forEach((series, seriesIndex) => {
+                        const columnName = series.name ? 
+                            series.name.replace(/\s+/g, '_').toLowerCase() : 
+                            `series_${seriesIndex + 1}`;
+                        
+                        result[columnName] = series.data[categoryIndex] || 0;
+                        console.log(`📊 Added column ${columnName} = ${result[columnName]} for ${category}`);
+                    });
+                    
+                    // Ensure backwards compatibility with 'value' column (use first series)
+                    if (!result.value && result.value !== 0) {
+                        result.value = data.series[0].data[categoryIndex] || 0;
                     }
+                    
+                    // Add label for compatibility
+                    result.label = category;
+                    
+                    return result;
                 });
                 
-                // Ensure backwards compatibility with 'value' column
-                if (!result.value && result.value !== 0) {
-                    const numericKeys = Object.keys(result).filter(k => k !== 'category');
-                    result.value = numericKeys.length > 0 ? result[numericKeys[0]] : 0;
-                }
+                console.log('📊 🎯 Final processed multi-series data:', processedData);
                 
-                return result;
-            });
-        } else {
-            console.warn('📊 No matching data format found! Using data as-is');
-            console.warn('📊 Fallback data:', data);
-            processedData = data;
-        }
+            // PRIORITY 2: Flat multi-column format
+            } else if (data.data && Array.isArray(data.data)) {
+                console.log('📊 Taking data.data branch');
+                processedData = data.data.map(d => {
+                    const result = {
+                        category: d.category || d.name || d.label,
+                        label: d.label || d.category || d.name
+                    };
+                    
+                    // Copy all numeric columns
+                    Object.keys(d).forEach(key => {
+                        if (key !== 'category' && key !== 'label' && typeof d[key] === 'number') {
+                            result[key] = d[key];
+                        }
+                    });
+                    
+                    // Ensure backwards compatibility with 'value' column
+                    if (!result.value && result.value !== 0) {
+                        const numericKeys = Object.keys(result).filter(k => k !== 'category' && k !== 'label' && typeof result[k] === 'number');
+                        result.value = numericKeys.length > 0 ? result[numericKeys[0]] : 0;
+                    }
+                    
+                    return result;
+                });
+                
+            // PRIORITY 3: Simple categories + values format
+            } else if (data.categories && data.values) {
+                console.log('📊 Taking categories+values branch');
+                processedData = data.categories.map((category, index) => ({
+                    category: category,
+                    value: data.values[index] || 0,
+                    label: data.labels ? data.labels[index] : category
+                }));
+                
+            // PRIORITY 4: Array format
+            } else if (Array.isArray(data)) {
+                console.log('📊 Taking array branch');
+                processedData = data.map(d => {
+                    const result = {
+                        category: d.category || d.name || d.label,
+                        label: d.label || d.category || d.name
+                    };
+                    
+                    // Copy all properties, prioritizing numeric ones
+                    Object.keys(d).forEach(key => {
+                        if (key !== 'category' && key !== 'label') {
+                            if (typeof d[key] === 'number') {
+                                result[key] = d[key];
+                            }
+                        }
+                    });
+                    
+                    // Ensure value exists
+                    if (!result.value && result.value !== 0) {
+                        result.value = parseFloat(d.value) || 0;
+                    }
+                    
+                    return result;
+                });
+                
+            } else {
+                console.warn('📊 No matching data format found! Using data as-is');
+                console.warn('📊 Fallback data:', data);
+                processedData = Array.isArray(data) ? data : [data];
+            }
 
-        // Sort data by value (descending) if autoSort is enabled (disabled by default)
-        if (this.config.autoSort === true) {
-            processedData.sort((a, b) => b.value - a.value);
-        }
+            // Sort data by value (descending) if autoSort is enabled (disabled by default)
+            if (this.config.autoSort === true) {
+                processedData.sort((a, b) => (b.value || 0) - (a.value || 0));
+            }
 
-        console.log('✅ Processed bar chart data:', processedData);
-        
-        // Store processed data
-        this.data = processedData;
-        
-        return processedData;
+            console.log('✅ Processed bar chart data:', processedData);
+            
+            // DEBUG: Check what columns are in the processed data
+            if (processedData && processedData.length > 0) {
+                const firstRow = processedData[0];
+                const allKeys = Object.keys(firstRow);
+                const numericKeys = allKeys.filter(key => key !== 'category' && key !== 'label' && typeof firstRow[key] === 'number');
+                console.log('📊 Processed data first row keys:', allKeys);
+                console.log('📊 Numeric columns found:', numericKeys);
+                console.log('📊 Numeric columns count:', numericKeys.length);
+                console.log('📊 First row sample:', firstRow);
+            }
+            
+            // Store processed data
+            this.data = processedData;
+            
+            return processedData;
+        })();
     }
 
     // Get layer info method (compatibility with control system)

@@ -96,35 +96,44 @@ class BarDataEditor {
         
         // Prevent default paste behavior and handle it ourselves
         container.addEventListener('paste', (e) => this.handlePaste(e));
+        
+        // Listen for chart type changes to refresh data
+        window.addEventListener('chartTypeChanged', (e) => {
+            console.log('📊 BarDataEditor: Chart type changed event received:', e.detail);
+            setTimeout(() => {
+                console.log('📊 BarDataEditor: Refreshing chart data for new chart type');
+                this.updateChart();
+            }, 50);
+        });
     }
 
     loadInitialData() {
-        // Load default data or existing chart data
-        if (this.chart && this.chart.data && this.chart.data.length > 0) {
-            this.data = this.chart.data.map(d => ({ 
-                category: d.category || '',
-                value: d.value || 0
-            }));
-        } else {
-            // Default data with multiple columns for demo
-            this.data = [
-                { category: 'Product A', value: 100, value_2: 120, value_3: 90 },
-                { category: 'Product B', value: 150, value_2: 180, value_3: 140 },
-                { category: 'Product C', value: 200, value_2: 250, value_3: 190 }
-            ];
-            
-            // Add default columns for multi-series demo
-            this.columns = [
-                { id: 'category', label: 'Category', type: 'text', required: true },
-                { id: 'value', label: 'Value 1', type: 'number', required: true },
-                { id: 'value_2', label: 'Value 2', type: 'number', required: false },
-                { id: 'value_3', label: 'Value 3', type: 'number', required: false }
-            ];
-        }
+        console.log('📊 BarDataEditor: Loading initial data...');
+        console.log('📊 BarDataEditor: Existing chart data:', this.chart?.data);
+        
+        // ALWAYS use multi-column default data for better demo
+        this.data = [
+            { category: 'Product A', value: 100, value_2: 120, value_3: 90 },
+            { category: 'Product B', value: 150, value_2: 180, value_3: 140 },
+            { category: 'Product C', value: 200, value_2: 250, value_3: 190 }
+        ];
+        
+        // Always set up multi-column structure
+        this.columns = [
+            { id: 'category', label: 'Category', type: 'text', required: true },
+            { id: 'value', label: 'Value 1', type: 'number', required: true },
+            { id: 'value_2', label: 'Value 2', type: 'number', required: false },
+            { id: 'value_3', label: 'Value 3', type: 'number', required: false }
+        ];
+        
+        console.log('📊 BarDataEditor: Set up data:', this.data);
+        console.log('📊 BarDataEditor: Set up columns:', this.columns);
+        
         this.render();
         
         // Immediately update chart with default data
         setTimeout(() => {
+            console.log('📊 BarDataEditor: Triggering initial updateChart...');
             this.updateChart();
         }, 100);
     }
@@ -746,16 +755,31 @@ class BarDataEditor {
         
         // Find all numeric columns (value series)
         const valueColumns = this.columns.filter(c => c.type === 'number');
+        console.log('📊 All columns:', this.columns);
+        console.log('📊 Numeric columns filter result:', valueColumns);
+        
         if (valueColumns.length === 0) {
             console.warn('⚠️ No numeric columns found');
             return null;
         }
         
         // Filter valid data (must have category and at least one numeric value)
+        console.log('📊 Raw data before validation:', this.data);
+        console.log('📊 Category column ID:', categoryCol.id);
+        
         const validData = this.data.filter(row => {
-            return row[categoryCol.id] && row[categoryCol.id].trim() && 
-                   valueColumns.some(col => row[col.id] > 0);
+            const hasCategory = row[categoryCol.id] && row[categoryCol.id].trim();
+            const hasValues = valueColumns.some(col => {
+                const value = row[col.id];
+                console.log(`📊 Checking row ${row[categoryCol.id]}, column ${col.id}: ${value} (type: ${typeof value})`);
+                return value > 0;
+            });
+            
+            console.log(`📊 Row ${row[categoryCol.id]}: hasCategory=${hasCategory}, hasValues=${hasValues}`);
+            return hasCategory && hasValues;
         });
+        
+        console.log('📊 Valid data after filtering:', validData);
         
         if (validData.length === 0) {
             console.warn('⚠️ No valid data rows found');
@@ -763,8 +787,16 @@ class BarDataEditor {
         }
         
         console.log(`📊 Formatting data: ${validData.length} rows, ${valueColumns.length} value columns`);
+        console.log('📊 Value columns found:', valueColumns.map(col => ({ id: col.id, label: col.label, type: col.type })));
+        console.log('📊 Sample valid data row:', validData[0]);
         
         // For single value column (simple bar chart)
+        if (valueColumns.length === 1) {
+            console.log('📊 Creating single-column format (categories + values)');
+        } else {
+            console.log('📊 Creating multi-column format (categories + series)');
+        }
+        
         if (valueColumns.length === 1) {
             return {
                 metadata: {
@@ -783,7 +815,9 @@ class BarDataEditor {
             data: validData.map(row => row[col.id] || 0)
         }));
         
-        return {
+        console.log('📊 Created series data:', series);
+        
+        const result = {
             metadata: {
                 title: "Multi-Series Chart Data",
                 chartType: "bar"
@@ -794,6 +828,9 @@ class BarDataEditor {
             values: validData.map(row => row[valueColumns[0].id]),
             labels: validData.map(row => row[categoryCol.id])
         };
+        
+        console.log('📊 Final formatted result:', result);
+        return result;
     }
 
     parseNumber(value) {
