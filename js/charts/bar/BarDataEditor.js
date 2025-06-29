@@ -111,31 +111,83 @@ class BarDataEditor {
         console.log('📊 BarDataEditor: Loading initial data...');
         console.log('📊 BarDataEditor: Existing chart data:', this.chart?.data);
         
-        // Use multi-column default data (matches BarChartConfig.getDefaultData())
-        this.data = [
-            { category: 'Product A', value: 100, value_2: 120, value_3: 90 },
-            { category: 'Product B', value: 150, value_2: 180, value_3: 140 },
-            { category: 'Product C', value: 200, value_2: 250, value_3: 190 }
-        ];
-        
-        // Always set up multi-column structure
-        this.columns = [
-            { id: 'category', label: 'Category', type: 'text', required: true },
-            { id: 'value', label: 'Value 1', type: 'number', required: true },
-            { id: 'value_2', label: 'Value 2', type: 'number', required: false },
-            { id: 'value_3', label: 'Value 3', type: 'number', required: false }
-        ];
+        // Check if there's existing custom data in the chart
+        const existingData = window.pulseApp?.currentData;
+        if (existingData && existingData.metadata && existingData.metadata.source === 'data-editor') {
+            console.log('📊 BarDataEditor: Found existing custom data, loading it');
+            this.loadExistingCustomData(existingData);
+        } else {
+            console.log('📊 BarDataEditor: Starting with empty data for user input');
+            // Start with minimal empty data structure for user input
+            this.data = [
+                { category: '', value: 0 }
+            ];
+            
+            // Start with basic two-column structure
+            this.columns = [
+                { id: 'category', label: 'Category', type: 'text', required: true },
+                { id: 'value', label: 'Value', type: 'number', required: true }
+            ];
+        }
         
         console.log('📊 BarDataEditor: Set up data:', this.data);
         console.log('📊 BarDataEditor: Set up columns:', this.columns);
         
         this.render();
         
-        // Immediately update chart with default data
-        setTimeout(() => {
-            console.log('📊 BarDataEditor: Triggering initial updateChart...');
-            this.updateChart();
-        }, 100);
+        // Don't automatically update chart with empty data - wait for user input
+        console.log('📊 BarDataEditor: Ready for user input');
+    }
+
+    loadExistingCustomData(existingData) {
+        try {
+            // Extract data from existing chart data format
+            if (existingData.categories && existingData.values) {
+                // Single series format
+                this.data = existingData.categories.map((category, index) => ({
+                    category: category,
+                    value: existingData.values[index] || 0
+                }));
+                
+                this.columns = [
+                    { id: 'category', label: 'Category', type: 'text', required: true },
+                    { id: 'value', label: 'Value', type: 'number', required: true }
+                ];
+            } else if (existingData.categories && existingData.series) {
+                // Multi-series format
+                this.data = existingData.categories.map((category, index) => {
+                    const row = { category: category };
+                    existingData.series.forEach((series, seriesIndex) => {
+                        const columnId = seriesIndex === 0 ? 'value' : `value_${seriesIndex + 1}`;
+                        row[columnId] = series.data[index] || 0;
+                    });
+                    return row;
+                });
+                
+                this.columns = [
+                    { id: 'category', label: 'Category', type: 'text', required: true }
+                ];
+                existingData.series.forEach((series, index) => {
+                    const columnId = index === 0 ? 'value' : `value_${index + 1}`;
+                    this.columns.push({
+                        id: columnId,
+                        label: series.name || `Value ${index + 1}`,
+                        type: 'number',
+                        required: index === 0
+                    });
+                });
+            }
+            
+            console.log('📊 BarDataEditor: Loaded existing custom data successfully');
+        } catch (error) {
+            console.error('⚠️ BarDataEditor: Error loading existing data:', error);
+            // Fall back to empty data
+            this.data = [{ category: '', value: 0 }];
+            this.columns = [
+                { id: 'category', label: 'Category', type: 'text', required: true },
+                { id: 'value', label: 'Value', type: 'number', required: true }
+            ];
+        }
     }
 
     render() {
@@ -711,6 +763,8 @@ class BarDataEditor {
         console.log('🔄 BarDataEditor: updateChart() called');
         console.log('🔄 BarDataEditor: Current data:', this.data);
         console.log('🔄 BarDataEditor: pulseApp available:', !!(window.pulseApp && window.pulseApp.updateData));
+        console.log('🔄 BarDataEditor: pulseApp:', window.pulseApp);
+        console.log('🔄 BarDataEditor: chart instance:', this.chart);
         
         // Update via the app (primary method for multi-column support)
         if (window.pulseApp && window.pulseApp.updateData) {
@@ -776,7 +830,7 @@ class BarDataEditor {
             const hasValues = valueColumns.some(col => {
                 const value = row[col.id];
                 console.log(`📊 Checking row ${row[categoryCol.id]}, column ${col.id}: ${value} (type: ${typeof value})`);
-                return value > 0;
+                return value !== undefined && value !== null && value !== '';
             });
             
             console.log(`📊 Row ${row[categoryCol.id]}: hasCategory=${hasCategory}, hasValues=${hasValues}`);
@@ -805,7 +859,8 @@ class BarDataEditor {
             return {
                 metadata: {
                     title: "Chart Data",
-                    chartType: "bar"
+                    chartType: "bar",
+                    source: "data-editor"
                 },
                 categories: validData.map(row => row[categoryCol.id]),
                 values: validData.map(row => row[valueColumns[0].id]),
@@ -824,7 +879,8 @@ class BarDataEditor {
         const result = {
             metadata: {
                 title: "Multi-Series Chart Data",
-                chartType: "bar"
+                chartType: "bar",
+                source: "data-editor"
             },
             categories: validData.map(row => row[categoryCol.id]),
             series: series,

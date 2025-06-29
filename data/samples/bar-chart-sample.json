@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "title": "Sample Bar Chart Data",
+    "chartType": "bar",
+    "description": "Sample data for bar chart visualization"
+  },
+  "categories": ["Product A", "Product B", "Product C", "Product D", "Product E"],
+  "series": [
+    {
+      "name": "Q1 Sales",
+      "data": [120, 150, 180, 90, 200]
+    },
+    {
+      "name": "Q2 Sales", 
+      "data": [140, 170, 160, 110, 220]
+    },
+    {
+      "name": "Q3 Sales",
+      "data": [160, 140, 190, 130, 180]
+    }
+  ],
+  "values": [120, 150, 180, 90, 200],
+  "labels": ["Product A", "Product B", "Product C", "Product D", "Product E"]
+}

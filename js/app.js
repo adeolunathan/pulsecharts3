@@ -239,20 +239,32 @@ class PulseApplication {
 
             await this.initializeChartType(newChartType);
             
-            // **SINGLE SOURCE OF TRUTH: Always use BarChartConfig for bar charts**
+            // **PRESERVE CUSTOM DATA: Check for existing bar chart data before using defaults**
             if (newChartType === 'bar') {
-                console.log('📊 Setting up bar chart with single data source');
+                console.log('📊 Setting up bar chart - checking for existing custom data');
                 
                 // **REQUIRED: BarChartConfig must be available**
                 if (!window.BarChartConfig) {
                     throw new Error('BarChartConfig not available - cannot initialize bar chart');
                 }
                 
-                const barChartData = window.BarChartConfig.getDefaultData();
+                let barChartData;
+                
+                // Check if there's existing custom data from BarDataEditor in preservedData
+                if (preservedData && preservedData.metadata && preservedData.metadata.source === 'data-editor') {
+                    console.log('📊 Found existing custom data from BarDataEditor, preserving it');
+                    barChartData = preservedData;
+                } else if (preservedData && preservedData.categories && (preservedData.values || preservedData.series)) {
+                    console.log('📊 Found existing bar chart data, preserving it');
+                    barChartData = preservedData;
+                } else {
+                    console.log('📊 No existing custom data found, using default data');
+                    barChartData = window.BarChartConfig.getDefaultData();
+                }
                 
                 this.currentData = barChartData;
                 this.chart.render(barChartData);
-                this.notifyDataBridgeUpdate('bar-chart-init');
+                this.notifyDataBridgeUpdate('bar-chart-data-preserved');
                 
                 console.log('✅ Bar chart initialized with official default data');
             } else {

@@ -660,6 +660,8 @@
                     dataFile = 'data/samples/saas-company.json';
                 } else if (chartType === 'balance') {
                     dataFile = 'data/samples/medocare.json';
+                } else if (chartType === 'bar') {
+                    dataFile = 'data/samples/bar-chart-sample.json';
                 } else {
                     console.warn('Unknown chart type:', chartType);
                     return null;
@@ -1037,9 +1039,16 @@
             if (tabName === 'data-builder') {
                 // Only initialize if not already done
                 if (!isInitialized) {
-                    setTimeout(() => {
-                        initializeChartInterface();
-                    }, 100);
+                    // Check chart type to determine initialization method
+                    const urlParams = getURLParameters();
+                    if (urlParams.type === 'bar' || urlParams.chartType === 'bar') {
+                        console.log('📊 Bar chart detected, skipping flow-based initialization for data-builder tab');
+                        isInitialized = true; // Mark as initialized to prevent future calls
+                    } else {
+                        setTimeout(() => {
+                            initializeChartInterface();
+                        }, 100);
+                    }
                 } else {
                     console.log('📊 Data-builder tab activated, data already loaded');
                 }
@@ -1048,14 +1057,24 @@
 
         async function initializeChartInterface() {
             if (isInitialized) {
-                console.log('⚠️ Flow Builder already initialized, skipping...');
+                console.log('⚠️ Chart interface already initialized, skipping...');
                 return;
             }
             
-            console.log('🔧 Initializing Flow Builder...');
+            console.log('🔧 Initializing Chart Interface...');
             
             // Get URL parameters once at the beginning
             const urlParams = getURLParameters();
+            console.log('🔍 URL params check: type=', urlParams.type, 'chartType=', urlParams.chartType);
+            
+            // Handle bar charts separately - they don't use flow data
+            if (urlParams.type === 'bar' || urlParams.chartType === 'bar') {
+                console.log('📊 Bar chart detected, skipping flow-based initialization');
+                isInitialized = true;
+                return;
+            }
+            
+            console.log('🌊 Initializing Flow Builder for Sankey charts...');
             
             // Check for existing data first (priority for uploaded/custom data)
             let existingData = null;
@@ -2229,7 +2248,14 @@
             // Helper: Handle other chart types
             async function handleOtherChartTypes(chartType) {
                 console.log(`🔄 Initializing ${chartType} chart`);
-                initializeChartInterface();
+                if (chartType === 'bar') {
+                    console.log('📊 Bar chart detected, skipping flow-based initialization');
+                    // Bar charts are handled by their own initialization system
+                    return;
+                } else {
+                    // Sankey charts (income, balance, etc.)
+                    initializeChartInterface();
+                }
             }
             
             // Helper: Set up event listeners only once

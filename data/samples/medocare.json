@@ -174,12 +174,12 @@
     { "source": "Total Assets", "target": "Current Liabilities", "value": 1200, "previousValue": 1150 },
     { "source": "Total Assets", "target": "Non-Current Liabilities", "value": 1800, "previousValue": 1750 },
     { "source": "Total Assets", "target": "Shareholders Equity", "value": 2500, "previousValue": 2080 },
-    { "source": "Shareholders Equity", "target": "Common Stock", "value": 1000 },
-    { "source": "Shareholders Equity", "target": "Retained Earnings", "value": 1500 },
     { "source": "Current Liabilities", "target": "Payables", "value": 300 },
     { "source": "Current Liabilities", "target": "Current Debt", "value": 900 },
     { "source": "Non-Current Liabilities", "target": "Long-term Debt", "value": 1100 },
-    { "source": "Non-Current Liabilities", "target": "Other non-current liabilities", "value": 700 }
+    { "source": "Non-Current Liabilities", "target": "Other non-current liabilities", "value": 700 },
+    { "source": "Shareholders Equity", "target": "Common Stock", "value": 1000 },
+    { "source": "Shareholders Equity", "target": "Retained Earnings", "value": 1500 }
   ],
   "formatting": {
     "node_groups": {
