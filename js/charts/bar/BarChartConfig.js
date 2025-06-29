@@ -100,21 +100,22 @@ window.BarChartConfig = (function() {
      * @returns {Object} Default multi-series data for bar charts
      */
     function getDefaultData() {
+        // Use the official bar-chart-sample.json structure
         return {
             metadata: {
-                title: "Multi-Series Chart Data",
+                title: "Sample Bar Chart Data",
                 chartType: "bar",
                 source: "Default Sample Data"
             },
-            categories: ['Product A', 'Product B', 'Product C'],
+            categories: ["Product A", "Product B", "Product C", "Product D", "Product E"],
             series: [
-                { name: 'Value 1', data: [100, 150, 200] },
-                { name: 'Value 2', data: [120, 180, 250] },
-                { name: 'Value 3', data: [90, 140, 190] }
+                { name: "Q1 Sales", data: [120, 150, 180, 90, 200] },
+                { name: "Q2 Sales", data: [140, 170, 160, 110, 220] },
+                { name: "Q3 Sales", data: [160, 140, 190, 130, 180] }
             ],
             // Legacy compatibility
-            values: [100, 150, 200],
-            labels: ['Product A', 'Product B', 'Product C']
+            values: [120, 150, 180, 90, 200],
+            labels: ["Product A", "Product B", "Product C", "Product D", "Product E"]
         };
     }
 

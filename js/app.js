@@ -239,9 +239,9 @@ class PulseApplication {
 
             await this.initializeChartType(newChartType);
             
-            // **PRESERVE CUSTOM DATA: Check for existing bar chart data before using defaults**
+            // **BAR CHART: Let BarDataEditor be the single source of truth**
             if (newChartType === 'bar') {
-                console.log('📊 Setting up bar chart - checking for existing custom data');
+                console.log('📊 Setting up bar chart - waiting for BarDataEditor to provide data');
                 
                 // **REQUIRED: BarChartConfig must be available**
                 if (!window.BarChartConfig) {
@@ -254,19 +254,25 @@ class PulseApplication {
                 if (preservedData && preservedData.metadata && preservedData.metadata.source === 'data-editor') {
                     console.log('📊 Found existing custom data from BarDataEditor, preserving it');
                     barChartData = preservedData;
+                    this.currentData = barChartData;
+                    this.chart.render(barChartData);
+                    this.notifyDataBridgeUpdate('bar-chart-data-preserved');
                 } else if (preservedData && preservedData.categories && (preservedData.values || preservedData.series)) {
                     console.log('📊 Found existing bar chart data, preserving it');
                     barChartData = preservedData;
+                    this.currentData = barChartData;
+                    this.chart.render(barChartData);
+                    this.notifyDataBridgeUpdate('bar-chart-data-preserved');
                 } else {
-                    console.log('📊 No existing custom data found, using default data');
+                    console.log('📊 No existing data found - BarDataEditor will provide initial data');
+                    // Start with default data temporarily, BarDataEditor will take over
                     barChartData = window.BarChartConfig.getDefaultData();
+                    this.currentData = barChartData;
+                    this.chart.render(barChartData);
+                    this.notifyDataBridgeUpdate('bar-chart-temporary-init');
                 }
                 
-                this.currentData = barChartData;
-                this.chart.render(barChartData);
-                this.notifyDataBridgeUpdate('bar-chart-data-preserved');
-                
-                console.log('✅ Bar chart initialized with official default data');
+                console.log('✅ Bar chart initialized, BarDataEditor will sync data');
             } else {
                 // For other chart types (like sankey), use existing logic
                 if (preservedData) {

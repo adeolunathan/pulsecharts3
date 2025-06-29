@@ -109,55 +109,74 @@ class BarDataEditor {
 
     loadInitialData() {
         console.log('📊 BarDataEditor: Loading initial data...');
-        console.log('📊 BarDataEditor: Existing chart data:', this.chart?.data);
+        console.log('📊 BarDataEditor: Chart instance data:', this.chart?.data);
+        console.log('📊 BarDataEditor: PulseApp current data:', window.pulseApp?.currentData);
         
-        // Check if there's existing custom data in the chart
-        const existingData = window.pulseApp?.currentData;
-        if (existingData && existingData.metadata && existingData.metadata.source === 'data-editor') {
-            console.log('📊 BarDataEditor: Found existing custom data, loading it');
-            this.loadExistingCustomData(existingData);
+        // Check if there's existing data in the chart (could be default or custom)
+        const chartData = window.pulseApp?.currentData;
+        
+        if (chartData && (chartData.categories || chartData.values || chartData.series)) {
+            console.log('📊 BarDataEditor: Found existing chart data, loading it into editor');
+            this.loadExistingChartData(chartData);
+            
+            // Immediately sync editor data back to chart to establish connection
+            setTimeout(() => {
+                console.log('📊 BarDataEditor: Syncing loaded data back to chart to establish connection');
+                this.updateChart();
+            }, 100);
         } else {
-            console.log('📊 BarDataEditor: Starting with empty data for user input');
-            // Start with minimal empty data structure for user input
+            console.log('📊 BarDataEditor: No chart data found, starting with single empty row');
+            // Start with one empty row for user input
             this.data = [
                 { category: '', value: 0 }
             ];
             
-            // Start with basic two-column structure
+            // Start with basic two-column structure using proper naming pattern
             this.columns = [
                 { id: 'category', label: 'Category', type: 'text', required: true },
                 { id: 'value', label: 'Value', type: 'number', required: true }
             ];
+            
+            // Clear the chart to show empty state
+            setTimeout(() => {
+                console.log('📊 BarDataEditor: Clearing chart to show empty state for user input');
+                this.updateChart();
+            }, 100);
         }
         
-        console.log('📊 BarDataEditor: Set up data:', this.data);
-        console.log('📊 BarDataEditor: Set up columns:', this.columns);
+        console.log('📊 BarDataEditor: Final data:', this.data);
+        console.log('📊 BarDataEditor: Final columns:', this.columns);
         
         this.render();
         
-        // Don't automatically update chart with empty data - wait for user input
-        console.log('📊 BarDataEditor: Ready for user input');
+        console.log('📊 BarDataEditor: Initialization complete');
     }
 
-    loadExistingCustomData(existingData) {
+    loadExistingChartData(chartData) {
         try {
-            // Extract data from existing chart data format
-            if (existingData.categories && existingData.values) {
-                // Single series format
-                this.data = existingData.categories.map((category, index) => ({
+            console.log('📊 BarDataEditor: Processing chart data:', chartData);
+            
+            // Extract data from any chart data format (default or custom)
+            if (chartData.categories && chartData.values && !chartData.series) {
+                // Single series format (simple bar chart)
+                console.log('📊 BarDataEditor: Loading single-series chart data');
+                this.data = chartData.categories.map((category, index) => ({
                     category: category,
-                    value: existingData.values[index] || 0
+                    value: chartData.values[index] || 0
                 }));
                 
                 this.columns = [
                     { id: 'category', label: 'Category', type: 'text', required: true },
                     { id: 'value', label: 'Value', type: 'number', required: true }
                 ];
-            } else if (existingData.categories && existingData.series) {
-                // Multi-series format
-                this.data = existingData.categories.map((category, index) => {
+            } else if (chartData.categories && chartData.series) {
+                // Multi-series format (grouped/stacked bar chart)
+                console.log('📊 BarDataEditor: Loading multi-series chart data');
+                console.log('📊 BarDataEditor: Series data:', chartData.series);
+                this.data = chartData.categories.map((category, index) => {
                     const row = { category: category };
-                    existingData.series.forEach((series, seriesIndex) => {
+                    chartData.series.forEach((series, seriesIndex) => {
+                        // Use proper naming pattern: value, value_2, value_3, etc.
                         const columnId = seriesIndex === 0 ? 'value' : `value_${seriesIndex + 1}`;
                         row[columnId] = series.data[index] || 0;
                     });
@@ -167,7 +186,8 @@ class BarDataEditor {
                 this.columns = [
                     { id: 'category', label: 'Category', type: 'text', required: true }
                 ];
-                existingData.series.forEach((series, index) => {
+                chartData.series.forEach((series, index) => {
+                    // Use proper naming pattern: value, value_2, value_3, etc.
                     const columnId = index === 0 ? 'value' : `value_${index + 1}`;
                     this.columns.push({
                         id: columnId,
@@ -176,11 +196,19 @@ class BarDataEditor {
                         required: index === 0
                     });
                 });
+                
+                console.log('📊 BarDataEditor: Created columns for multi-series:', this.columns.map(c => c.label));
+            } else {
+                console.warn('📊 BarDataEditor: Unknown chart data format, using fallback');
+                throw new Error('Unknown data format');
             }
             
-            console.log('📊 BarDataEditor: Loaded existing custom data successfully');
+            console.log('📊 BarDataEditor: Successfully loaded chart data into editor');
+            console.log('📊 BarDataEditor: Data rows:', this.data.length);
+            console.log('📊 BarDataEditor: Data columns:', this.columns.length);
         } catch (error) {
-            console.error('⚠️ BarDataEditor: Error loading existing data:', error);
+            console.error('⚠️ BarDataEditor: Error loading chart data:', error);
+            console.log('📊 BarDataEditor: Falling back to empty data');
             // Fall back to empty data
             this.data = [{ category: '', value: 0 }];
             this.columns = [
@@ -524,10 +552,12 @@ class BarDataEditor {
     }
 
     addColumn() {
-        const newColumnId = 'col_' + Date.now();
+        const valueColumnCount = this.getValueColumnCount();
+        // Use proper naming pattern: value, value_2, value_3, etc.
+        const newColumnId = valueColumnCount === 0 ? 'value' : `value_${valueColumnCount + 1}`;
         const newColumn = {
             id: newColumnId,
-            label: `Value ${this.getValueColumnCount() + 1}`,
+            label: `Value ${valueColumnCount + 1}`,
             type: 'number', // Default to numeric for value columns
             required: false
         };
@@ -840,8 +870,18 @@ class BarDataEditor {
         console.log('📊 Valid data after filtering:', validData);
         
         if (validData.length === 0) {
-            console.warn('⚠️ No valid data rows found');
-            return null;
+            console.warn('⚠️ No valid data rows found - user may still be entering data');
+            // Return minimal structure for empty state instead of null
+            return {
+                metadata: {
+                    title: "Chart Data",
+                    chartType: "bar",
+                    source: "data-editor"
+                },
+                categories: [],
+                values: [],
+                labels: []
+            };
         }
         
         console.log(`📊 Formatting data: ${validData.length} rows, ${valueColumns.length} value columns`);

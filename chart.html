@@ -2294,16 +2294,26 @@
                         </div>
                     `;
                     
-                    // Initialize professional spreadsheet editor
+                    // Initialize professional spreadsheet editor with proper timing
                     setTimeout(() => {
                         if (typeof BarDataEditor !== 'undefined') {
-                            const chartInstance = window.pulseApp ? window.pulseApp.currentChart : null;
-                            window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
-                            console.log('✅ Professional BarDataEditor initialized');
+                            // Wait for chart to be fully initialized
+                            const waitForChart = () => {
+                                if (window.pulseApp && window.pulseApp.chart && window.pulseApp.currentData) {
+                                    console.log('📊 Chart is ready, initializing BarDataEditor');
+                                    const chartInstance = window.pulseApp.chart;
+                                    window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                                    console.log('✅ Professional BarDataEditor initialized with chart sync');
+                                } else {
+                                    console.log('⏳ Waiting for chart to be ready...');
+                                    setTimeout(waitForChart, 100);
+                                }
+                            };
+                            waitForChart();
                         } else {
                             console.error('❌ BarDataEditor class not available');
                         }
-                    }, 100);
+                    }, 200);
                 }
             }
             
@@ -2494,19 +2504,29 @@
                     console.log('📊 Bar chart content already loaded, skipping innerHTML update');
                 }
                 
-                // Initialize professional spreadsheet editor
+                // Initialize professional spreadsheet editor with proper timing
                 setTimeout(() => {
                     console.log('📊 Initializing professional BarDataEditor');
                     if (typeof BarDataEditor !== 'undefined') {
-                        const chartInstance = window.pulseApp ? window.pulseApp.currentChart : null;
                         if (!window.barDataEditor) {
-                            window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
-                            console.log('✅ Professional BarDataEditor initialized');
+                            // Wait for chart to be fully initialized
+                            const waitForChart = () => {
+                                if (window.pulseApp && window.pulseApp.chart && window.pulseApp.currentData) {
+                                    console.log('📊 Chart is ready, initializing BarDataEditor');
+                                    const chartInstance = window.pulseApp.chart;
+                                    window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                                    console.log('✅ Professional BarDataEditor initialized with chart sync');
+                                } else {
+                                    console.log('⏳ Waiting for chart to be ready...');
+                                    setTimeout(waitForChart, 100);
+                                }
+                            };
+                            waitForChart();
                         }
                     } else {
                         console.error('❌ BarDataEditor class not available');
                     }
-                }, 400);
+                }, 300);
                 
             } else if (chartType === 'sankey') {
                 console.log('🌊 Switching to sankey chart mode');

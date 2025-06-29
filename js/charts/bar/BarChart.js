@@ -253,6 +253,7 @@ class PulseBarChart {
         } else if (this.config.autoSort === false && this.originalData) {
             // Restore original order when sort is disabled
             console.log('📊 Restoring original data order (autoSort disabled)');
+            console.log('📊 Original data to restore:', this.originalData.map(d => ({ category: d.category, value: d.value })));
             this.data = [...this.originalData];
         }
 
@@ -488,11 +489,21 @@ class PulseBarChart {
     }
 
     renderBars() {
-        // Render based on chart type
-        console.log(`🎨 Rendering bars with chart type: ${this.config.barChartType}`);
-        console.log(`🎨 Available data for rendering:`, this.data);
+        // Intelligent chart type detection based on available data
+        const numericColumns = this.getNumericColumns();
+        let effectiveChartType = this.config.barChartType;
         
-        switch (this.config.barChartType) {
+        // Auto-fallback logic for chart types that require multiple columns
+        if (['grouped', 'stacked', 'stacked100'].includes(this.config.barChartType) && numericColumns.length < 2) {
+            console.log(`🎨 Chart type '${this.config.barChartType}' requires multiple numeric columns, but only ${numericColumns.length} found. Falling back to 'simple'.`);
+            effectiveChartType = 'simple';
+        }
+        
+        console.log(`🎨 Rendering bars with chart type: ${effectiveChartType} (original: ${this.config.barChartType})`);
+        console.log(`🎨 Available data for rendering:`, this.data);
+        console.log(`🎨 Numeric columns available: ${numericColumns.length}`);
+        
+        switch (effectiveChartType) {
             case 'grouped':
                 console.log('🎨 Calling renderGroupedBars()');
                 this.renderGroupedBars();
@@ -625,6 +636,7 @@ class PulseBarChart {
         if (numericColumns.length < 2) {
             console.warn('🔍 renderGroupedBars: Grouped chart requires multiple numeric columns. Falling back to simple chart.');
             console.warn('🔍 renderGroupedBars: Available columns in data[0]:', Object.keys(this.data[0] || {}));
+            console.warn('🔍 renderGroupedBars: Note: This should have been caught by intelligent chart type detection.');
             this.renderSimpleBars();
             return;
         }
@@ -1616,44 +1628,87 @@ class PulseBarChart {
         console.log('🔍 getNumericColumns: All columns found:', allColumns);
         console.log('🔍 getNumericColumns: Sample data row:', this.data[0]);
         
-        // ROBUST APPROACH: Start with strict known value column patterns
-        const valueColumns = allColumns.filter(column => {
+        // FLEXIBLE APPROACH: First try known value column patterns, then fallback to any numeric column
+        const knownValueColumns = allColumns.filter(column => {
             // Match value column patterns: value, value_1, value_2, value_3, etc.
-            const isValueColumn = /^value(_?\d+)?$/.test(column);
-            
-            if (!isValueColumn) {
-                console.log(`❌ Column '${column}' excluded - doesn't match value pattern`);
-                return false;
-            }
-            
-            // Verify it's actually numeric
-            let allNumeric = true;
-            let hasValidData = false;
-            
-            for (const row of this.data) {
-                const value = row[column];
+            return /^value(_?\d+)?$/i.test(column); // Added 'i' flag for case-insensitive
+        });
+        
+        // If we found known value columns, validate them
+        let valueColumns = [];
+        
+        if (knownValueColumns.length > 0) {
+            console.log('🔍 Found known value pattern columns:', knownValueColumns);
+            valueColumns = knownValueColumns.filter(column => {
+                // Verify it's actually numeric
+                let allNumeric = true;
+                let hasValidData = false;
                 
-                // Skip null/undefined values
-                if (value == null) continue;
-                
-                // Check if it's a genuine number
-                if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
-                    allNumeric = false;
-                    break;
+                for (const row of this.data) {
+                    const value = row[column];
+                    
+                    // Skip null/undefined values
+                    if (value == null) continue;
+                    
+                    // Check if it's a genuine number
+                    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                        allNumeric = false;
+                        break;
+                    }
+                    
+                    // Has at least one valid value (can be zero)
+                    if (value !== null && value !== undefined) hasValidData = true;
                 }
                 
-                // Has at least one non-zero value
-                if (Math.abs(value) > 1e-10) hasValidData = true;
-            }
-            
-            if (allNumeric && hasValidData) {
-                console.log(`✅ Column '${column}' confirmed as valid numeric value column`);
-                return true;
-            } else {
-                console.log(`❌ Column '${column}' excluded - not properly numeric (allNumeric: ${allNumeric}, hasValidData: ${hasValidData})`);
-                return false;
-            }
-        });
+                if (allNumeric && hasValidData) {
+                    console.log(`✅ Column '${column}' confirmed as valid numeric value column`);
+                    return true;
+                } else {
+                    console.log(`❌ Column '${column}' excluded - not properly numeric (allNumeric: ${allNumeric}, hasValidData: ${hasValidData})`);
+                    return false;
+                }
+            });
+        }
+        
+        // If no known value columns found or they're all invalid, detect any numeric columns
+        if (valueColumns.length === 0) {
+            console.log('🔍 No valid known value columns found, detecting any numeric columns...');
+            valueColumns = allColumns.filter(column => {
+                // Skip obvious categorical columns
+                if (column === 'category' || column === 'label' || column === 'name' || column === 'id') {
+                    console.log(`❌ Column '${column}' excluded - categorical column`);
+                    return false;
+                }
+                
+                // Verify it's actually numeric
+                let allNumeric = true;
+                let hasValidData = false;
+                
+                for (const row of this.data) {
+                    const value = row[column];
+                    
+                    // Skip null/undefined values
+                    if (value == null) continue;
+                    
+                    // Check if it's a genuine number
+                    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                        allNumeric = false;
+                        break;
+                    }
+                    
+                    // Has at least one valid value (can be zero)
+                    if (value !== null && value !== undefined) hasValidData = true;
+                }
+                
+                if (allNumeric && hasValidData) {
+                    console.log(`✅ Column '${column}' confirmed as valid numeric column`);
+                    return true;
+                } else {
+                    console.log(`❌ Column '${column}' excluded - not properly numeric (allNumeric: ${allNumeric}, hasValidData: ${hasValidData})`);
+                    return false;
+                }
+            });
+        }
         
         console.log('🔧 FINAL: Detected value columns:', valueColumns);
         console.log('🔧 FINAL: Column count:', valueColumns.length);
@@ -1835,11 +1890,9 @@ class PulseBarChart {
             // Store processed data and preserve original order
             this.data = processedData;
             
-            // Store original data order for sort toggle functionality
-            if (!this.originalData) {
-                this.originalData = [...processedData];
-                console.log('📊 Stored original data order for sort toggle');
-            }
+            // Store original data order for sort toggle functionality (always update with new data)
+            this.originalData = [...processedData];
+            console.log('📊 Updated original data order for sort toggle with new data');
             
             return processedData;
         })();
