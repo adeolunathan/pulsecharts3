@@ -463,7 +463,7 @@ window.BarControlModule = (function() {
                 gridOpacity: 0.5,
                 axisColor: '#6b7280',
                 gridColor: '#e5e7eb',
-                showBarLabels: true,
+                showBarLabels: false,
                 showValues: true,
                 labelPosition: 'outside_end',
                 labelOffset: 8,

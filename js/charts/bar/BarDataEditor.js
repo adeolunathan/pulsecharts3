@@ -39,8 +39,11 @@ class BarDataEditor {
                         <button class="add-column-btn" style="padding: 6px 12px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Add new column">
                             ➕ Column
                         </button>
-                        <button class="paste-btn" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Paste data (Cmd+V / Ctrl+V)">
+                        <button class="paste-btn" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Paste from clipboard (or use Ctrl+V)">
                             📋 Paste
+                        </button>
+                        <button class="paste-dataset-btn" style="padding: 6px 12px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Replace all data with clipboard content (including headers)">
+                            📊 Replace All
                         </button>
                         <button class="add-row-btn" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
                             ➕ Row
@@ -84,6 +87,7 @@ class BarDataEditor {
         // Button event listeners
         container.querySelector('.add-column-btn').addEventListener('click', () => this.addColumn());
         container.querySelector('.paste-btn').addEventListener('click', () => this.handlePasteButton());
+        container.querySelector('.paste-dataset-btn').addEventListener('click', () => this.handlePasteDatasetButton());
         container.querySelector('.add-row-btn').addEventListener('click', () => this.addRow());
         container.querySelector('.clear-btn').addEventListener('click', () => this.clearData());
         
@@ -93,6 +97,9 @@ class BarDataEditor {
         // Cell interaction handlers (delegated)
         container.addEventListener('click', (e) => this.handleCellClick(e));
         container.addEventListener('dblclick', (e) => this.handleCellDoubleClick(e));
+        
+        // Add keypress handler for immediate typing (Google Sheets style)
+        document.addEventListener('keypress', (e) => this.handleKeypress(e));
         
         // Prevent default paste behavior and handle it ourselves
         container.addEventListener('paste', (e) => this.handlePaste(e));
@@ -228,49 +235,76 @@ class BarDataEditor {
         const thead = this.container.querySelector('.spreadsheet-header');
         thead.innerHTML = '';
         
-        const headerRow = document.createElement('tr');
+        // Controls row - separate from header cells
+        const controlRow = document.createElement('tr');
+        controlRow.style.cssText = 'background: #f8fafc; border-bottom: 1px solid #e2e8f0;';
         
-        // Row number header
-        const rowNumHeader = document.createElement('th');
-        rowNumHeader.innerHTML = '#';
-        rowNumHeader.style.cssText = `
-            padding: 12px 8px; text-align: center; font-size: 12px; font-weight: 600; 
-            color: #475569; width: 50px; border-right: 1px solid #cbd5e0; background: #f1f5f9;
+        // Row number control header
+        const rowNumControl = document.createElement('th');
+        rowNumControl.innerHTML = '#';
+        rowNumControl.style.cssText = `
+            padding: 8px; text-align: center; font-size: 11px; font-weight: 600; 
+            color: #64748b; width: 50px; border-right: 1px solid #cbd5e0; background: #f1f5f9;
         `;
-        headerRow.appendChild(rowNumHeader);
+        controlRow.appendChild(rowNumControl);
         
-        // Dynamic column headers
+        // Column controls
         this.columns.forEach((column) => {
             const th = document.createElement('th');
             const typeIcon = column.type === 'number' ? '🔢' : '📝';
             const typeLabel = column.type === 'number' ? 'Numeric' : 'Text';
             th.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
-                        <span class="column-label" data-col="${column.id}" style="cursor: pointer;">${column.label}</span>
-                        <button class="column-type-toggle" data-col="${column.id}" style="padding: 1px 4px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 3px; cursor: pointer; font-size: 9px;" title="Toggle column type: ${typeLabel}">
-                            ${typeIcon}
-                        </button>
-                    </div>
-                    <div style="display: flex; gap: 2px;">
-                        ${this.columns.length > 2 ? `<button class="delete-column-btn" data-col="${column.id}" style="padding: 2px 6px; background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;" title="Delete column">×</button>` : ''}
-                    </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                    <button class="column-type-toggle" data-col="${column.id}" style="padding: 2px 6px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: 500;" title="Toggle column type: ${typeLabel}">
+                        ${typeIcon} ${typeLabel}
+                    </button>
+                    ${this.columns.length > 2 ? `<button class="delete-column-btn" data-col="${column.id}" style="padding: 2px 6px; background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: 500;" title="Delete column">× Delete</button>` : ''}
                 </div>
             `;
             th.style.cssText = `
-                padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; 
-                color: #475569; border-right: 1px solid #cbd5e0; min-width: 140px;
+                padding: 6px 8px; text-align: left; font-size: 11px; 
+                color: #64748b; border-right: 1px solid #cbd5e0; min-width: 140px; background: #f8fafc;
             `;
-            headerRow.appendChild(th);
+            controlRow.appendChild(th);
         });
         
+        // Header cells row - behaves like normal cells
+        const headerRow = document.createElement('tr');
+        
+        // Row number for header row
+        const rowNumHeader = document.createElement('th');
+        rowNumHeader.innerHTML = 'H';
+        rowNumHeader.style.cssText = `
+            padding: 8px; text-align: center; font-size: 12px; font-weight: 600; 
+            color: #475569; width: 50px; border-right: 1px solid #cbd5e0; background: #f1f5f9;
+        `;
+        headerRow.appendChild(rowNumHeader);
+        
+        // Header cells that behave like normal cells
+        this.columns.forEach((column) => {
+            const td = document.createElement('td');
+            td.dataset.row = 'header';
+            td.dataset.col = column.id;
+            td.className = 'header-cell';
+            
+            const cellContent = document.createElement('div');
+            cellContent.className = 'cell-content';
+            cellContent.textContent = column.name || column.label || `Column ${column.id}`;
+            
+            td.appendChild(cellContent);
+            td.style.cssText = `
+                padding: 8px 12px; border: 1px solid #e5e7eb; border-right: 1px solid #cbd5e0;
+                background: #f9fafb; font-weight: 600; color: #374151; cursor: pointer;
+                min-width: 140px; position: relative;
+            `;
+            
+            headerRow.appendChild(td);
+        });
+        
+        thead.appendChild(controlRow);
         thead.appendChild(headerRow);
         
-        // Setup header event listeners
-        thead.querySelectorAll('.column-label').forEach(label => {
-            label.addEventListener('click', (e) => this.editColumnHeader(e.target));
-        });
-        
+        // Setup control event listeners
         thead.querySelectorAll('.column-type-toggle').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -377,15 +411,21 @@ class BarDataEditor {
     }
 
     handleCellClick(e) {
-        const cell = e.target.closest('.spreadsheet-cell');
+        const cell = e.target.closest('.spreadsheet-cell') || e.target.closest('.header-cell');
         if (!cell) return;
         
-        // Single click just selects the cell
-        this.selectCell(cell);
+        // Check if this is a second click on the already selected cell
+        if (this.selectedCell === cell && !this.isEditing) {
+            // Second click on selected cell starts editing
+            this.editCell(cell);
+        } else {
+            // First click just selects the cell
+            this.selectCell(cell);
+        }
     }
 
     handleCellDoubleClick(e) {
-        const cell = e.target.closest('.spreadsheet-cell');
+        const cell = e.target.closest('.spreadsheet-cell') || e.target.closest('.header-cell');
         if (!cell) return;
         
         // Double click starts editing
@@ -393,16 +433,36 @@ class BarDataEditor {
         this.editCell(cell);
     }
 
+    handleKeypress(e) {
+        // Only handle if we have a selected cell and we're not already editing
+        if (!this.selectedCell || this.isEditing) return;
+        
+        // Ignore special keys (Ctrl, Alt, etc.)
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        
+        // Ignore navigation keys
+        if (['Enter', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+        
+        // Start editing with the typed character
+        e.preventDefault();
+        this.editCell(this.selectedCell, e.key);
+    }
+
     selectCell(cell) {
         // Remove previous selection
-        this.container.querySelectorAll('.spreadsheet-cell').forEach(c => {
+        this.container.querySelectorAll('.spreadsheet-cell, .header-cell').forEach(c => {
             c.style.backgroundColor = '';
             c.style.outline = '';
         });
         
         // Select new cell
-        cell.style.backgroundColor = '#dbeafe';
-        cell.style.outline = '2px solid #3b82f6';
+        if (cell.classList.contains('header-cell')) {
+            cell.style.backgroundColor = '#e0e7ff';
+            cell.style.outline = '2px solid #6366f1';
+        } else {
+            cell.style.backgroundColor = '#dbeafe';
+            cell.style.outline = '2px solid #3b82f6';
+        }
         this.selectedCell = cell;
         
         // Update status
@@ -410,32 +470,57 @@ class BarDataEditor {
         const col = cell.dataset.col;
         const column = this.columns.find(c => c.id === col);
         const statusInfo = this.container.querySelector('.selected-cell-info');
-        statusInfo.textContent = `${column ? column.label : col} ${parseInt(row) + 1}`;
+        
+        if (row === 'header') {
+            statusInfo.textContent = `Header: ${column ? (column.name || column.label) : col}`;
+        } else {
+            statusInfo.textContent = `${column ? (column.name || column.label) : col} ${parseInt(row) + 1}`;
+        }
     }
 
-    editCell(cell) {
+    editCell(cell, initialChar = null) {
         if (this.isEditing) return;
         
         this.isEditing = true;
         const content = cell.querySelector('.cell-content');
         const column = this.columns.find(c => c.id === cell.dataset.col);
-        const currentValue = this.getCellValue(cell);
+        const isHeaderCell = cell.dataset.row === 'header';
+        
+        let currentValue;
+        if (isHeaderCell) {
+            currentValue = column.name || column.label || `Column ${column.id}`;
+        } else {
+            currentValue = this.getCellValue(cell);
+        }
         
         // Create input
         const input = document.createElement('input');
-        input.type = column.type === 'number' ? 'number' : 'text';
-        input.value = currentValue;
+        input.type = (!isHeaderCell && column.type === 'number') ? 'number' : 'text';
+        
+        // Set initial value - either current value or start with typed character
+        if (initialChar) {
+            input.value = initialChar;
+        } else {
+            input.value = currentValue;
+        }
+        
         input.style.cssText = `
             width: 100%; height: 100%; border: none; outline: none; 
             padding: 8px 12px; font-family: inherit; font-size: inherit;
-            background: white; text-align: ${column.type === 'number' ? 'right' : 'left'};
+            background: white; text-align: ${(!isHeaderCell && column.type === 'number') ? 'right' : 'left'};
         `;
         
         // Replace content with input
         content.innerHTML = '';
         content.appendChild(input);
         input.focus();
-        input.select();
+        
+        // Select all text or position cursor at end if we started with a character
+        if (initialChar) {
+            input.setSelectionRange(1, 1); // Position cursor after the typed character
+        } else {
+            input.select();
+        }
         
         // Handle input completion
         const finishEdit = () => {
@@ -443,13 +528,22 @@ class BarDataEditor {
             this.isEditing = false;
             
             const newValue = input.value;
-            this.setCellValue(cell, newValue);
             
-            // Restore content display
-            const row = parseInt(cell.dataset.row);
-            const col = cell.dataset.col;
-            const column = this.columns.find(c => c.id === col);
-            content.innerHTML = this.formatCellValue(this.data[row][col], column.type);
+            if (isHeaderCell) {
+                // Update column name
+                column.name = newValue.trim() || `Column ${column.id}`;
+                column.label = column.name; // Keep both for compatibility
+                content.textContent = column.name;
+            } else {
+                // Update cell value
+                this.setCellValue(cell, newValue);
+                
+                // Restore content display
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                const column = this.columns.find(c => c.id === col);
+                content.innerHTML = this.formatCellValue(this.data[row][col], column.type);
+            }
             
             // Update chart with small delay to ensure data is set
             setTimeout(() => {
@@ -497,7 +591,7 @@ class BarDataEditor {
         
         const input = document.createElement('input');
         input.type = 'text';
-        input.value = column.label;
+        input.value = column.name || column.label || '';
         input.style.cssText = 'width: 100%; background: transparent; border: 1px solid #3b82f6; border-radius: 2px; padding: 2px 4px;';
         
         labelElement.innerHTML = '';
@@ -506,8 +600,9 @@ class BarDataEditor {
         input.select();
         
         const finishEdit = () => {
-            const newLabel = input.value.trim() || column.label;
-            column.label = newLabel;
+            const newLabel = input.value.trim() || column.name || column.label || `Column ${column.id}`;
+            column.name = newLabel;
+            column.label = newLabel; // Keep both for compatibility
             labelElement.innerHTML = newLabel;
             this.updateChart();
         };
@@ -517,7 +612,7 @@ class BarDataEditor {
             if (e.key === 'Enter') {
                 finishEdit();
             } else if (e.key === 'Escape') {
-                labelElement.innerHTML = column.label;
+                labelElement.innerHTML = column.name || column.label || `Column ${column.id}`;
             }
         });
     }
@@ -548,7 +643,7 @@ class BarDataEditor {
         this.render();
         this.updateChart();
         
-        console.log(`✅ Column ${column.label} changed to ${newType} type`);
+        console.log(`✅ Column ${column.name || column.label} changed to ${newType} type`);
     }
 
     addColumn() {
@@ -661,12 +756,21 @@ class BarDataEditor {
     async handlePasteButton() {
         try {
             const text = await navigator.clipboard.readText();
-            this.processPasteData(text);
-        } catch (err) {
-            // Fallback: show paste dialog
-            const text = prompt('Paste your data here (CSV/TSV format):\nExample:\nCategory1,100\nCategory2,150');
-            if (text) {
+            if (text && text.trim()) {
                 this.processPasteData(text);
+                return;
+            } else {
+                // Clipboard is empty, just select a cell and let user paste manually
+                if (!this.selectedCell && this.container.querySelector('.spreadsheet-cell')) {
+                    this.selectCell(this.container.querySelector('.spreadsheet-cell'));
+                }
+                return;
+            }
+        } catch (err) {
+            // Clipboard access failed, just select a cell and let user paste manually with Ctrl+V
+            console.log('Clipboard access denied. Please use Ctrl+V to paste.');
+            if (!this.selectedCell && this.container.querySelector('.spreadsheet-cell')) {
+                this.selectCell(this.container.querySelector('.spreadsheet-cell'));
             }
         }
     }
@@ -674,6 +778,8 @@ class BarDataEditor {
     handlePaste(e) {
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
+        
+        // Always just paste the data directly without any prompts
         this.processPasteData(text);
     }
 
@@ -681,9 +787,34 @@ class BarDataEditor {
         if (!text || !text.trim()) return;
         
         const lines = text.trim().split('\n');
-        const startRow = this.selectedCell ? parseInt(this.selectedCell.dataset.row) : 0;
-        const startCol = this.selectedCell ? this.selectedCell.dataset.col : this.columns[0].id;
-        const startColIndex = this.columns.findIndex(c => c.id === startCol);
+        
+        // Determine where to start pasting
+        let startRow = 0;
+        let startColIndex = 0;
+        let shouldUpdateHeaders = false;
+        
+        if (this.selectedCell) {
+            if (this.selectedCell.dataset.row === 'header') {
+                // Check if this looks like headers + data or just data
+                const firstLine = lines[0].split(/[\t,]/).map(v => v.trim());
+                const hasLikelyHeaders = lines.length > 1 && firstLine.some(cell => 
+                    cell && isNaN(parseFloat(cell)) && cell.length > 0
+                );
+                
+                if (hasLikelyHeaders) {
+                    // First line looks like headers, so update headers and paste data
+                    shouldUpdateHeaders = true;
+                    startRow = 0;
+                } else {
+                    // Just data, paste starting from row 0
+                    startRow = 0;
+                }
+                startColIndex = this.columns.findIndex(c => c.id === this.selectedCell.dataset.col);
+            } else {
+                startRow = parseInt(this.selectedCell.dataset.row);
+                startColIndex = this.columns.findIndex(c => c.id === this.selectedCell.dataset.col);
+            }
+        }
         
         // First pass: determine if we need more columns
         let maxColumnsNeeded = startColIndex;
@@ -697,8 +828,22 @@ class BarDataEditor {
             this.addColumn();
         }
         
-        // Second pass: paste data
-        lines.forEach((line, lineIndex) => {
+        // Handle header updates if needed
+        if (shouldUpdateHeaders && lines.length > 0) {
+            const headerValues = lines[0].split(/[\t,]/).map(v => v.trim());
+            headerValues.forEach((headerValue, valueIndex) => {
+                const targetColIndex = startColIndex + valueIndex;
+                if (targetColIndex < this.columns.length) {
+                    const column = this.columns[targetColIndex];
+                    column.name = headerValue || `Column ${column.id}`;
+                    column.label = column.name;
+                }
+            });
+        }
+        
+        // Second pass: paste data (skip first line if it was headers)
+        const dataLines = shouldUpdateHeaders ? lines.slice(1) : lines;
+        dataLines.forEach((line, lineIndex) => {
             const values = line.split(/[\t,]/).map(v => v.trim());
             const targetRow = startRow + lineIndex;
             
@@ -727,21 +872,121 @@ class BarDataEditor {
         console.log('✅ Pasted data successfully with auto-column expansion');
     }
 
-    getCellValue(cell) {
-        const row = parseInt(cell.dataset.row);
-        const col = cell.dataset.col;
-        return this.data[row][col];
+    async handlePasteDatasetButton() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text && text.trim()) {
+                this.processFullDatasetPaste(text);
+                return;
+            } else {
+                console.log('Clipboard is empty. Copy your dataset first, then click this button.');
+                return;
+            }
+        } catch (err) {
+            console.log('Clipboard access denied. Copy your dataset first, then try again.');
+        }
     }
 
-    setCellValue(cell, value) {
-        const row = parseInt(cell.dataset.row);
+
+
+    processFullDatasetPaste(text) {
+        if (!text || !text.trim()) return;
+        
+        const lines = text.trim().split('\n');
+        if (lines.length < 2) {
+            alert('Dataset must have at least a header row and one data row.');
+            return;
+        }
+        
+        const headerRow = lines[0].split(/[\t,]/).map(v => v.trim().replace(/"/g, ''));
+        const dataRows = lines.slice(1);
+        
+        console.log('🔄 Processing full dataset with headers:', headerRow);
+        
+        // Clear existing data and columns
+        this.data = [];
+        this.columns = [];
+        
+        // Create new columns based on headers
+        headerRow.forEach((header, index) => {
+            const columnId = `col_${index + 1}`;
+            const columnType = this.detectColumnType(dataRows, index);
+            
+            this.columns.push({
+                id: columnId,
+                name: header || `Column ${index + 1}`,
+                type: columnType
+            });
+        });
+        
+        // Process data rows
+        dataRows.forEach(line => {
+            const values = line.split(/[\t,]/).map(v => v.trim().replace(/"/g, ''));
+            const rowData = this.createEmptyRow();
+            
+            values.forEach((value, index) => {
+                if (index < this.columns.length) {
+                    const column = this.columns[index];
+                    if (column.type === 'number') {
+                        rowData[column.id] = this.parseNumber(value);
+                    } else {
+                        rowData[column.id] = value;
+                    }
+                }
+            });
+            
+            this.data.push(rowData);
+        });
+        
+        this.render();
+        this.updateChart();
+        
+        console.log('✅ Full dataset pasted successfully');
+        console.log('📊 New columns:', this.columns);
+        console.log('📊 New data:', this.data);
+    }
+
+    detectColumnType(dataRows, columnIndex) {
+        // Analyze the first few rows to determine if column is numeric
+        const sampleValues = dataRows.slice(0, Math.min(5, dataRows.length))
+            .map(line => line.split(/[\t,]/)[columnIndex])
+            .filter(v => v && v.trim());
+        
+        if (sampleValues.length === 0) return 'text';
+        
+        const numericCount = sampleValues.filter(v => !isNaN(parseFloat(v.trim()))).length;
+        const threshold = Math.ceil(sampleValues.length * 0.8); // 80% must be numeric
+        
+        return numericCount >= threshold ? 'number' : 'text';
+    }
+
+    getCellValue(cell) {
+        const row = cell.dataset.row;
         const col = cell.dataset.col;
         const column = this.columns.find(c => c.id === col);
         
-        if (column.type === 'number') {
-            this.data[row][col] = this.parseNumber(value);
+        if (row === 'header') {
+            return column.name || column.label || `Column ${column.id}`;
         } else {
-            this.data[row][col] = value;
+            return this.data[parseInt(row)][col];
+        }
+    }
+
+    setCellValue(cell, value) {
+        const row = cell.dataset.row;
+        const col = cell.dataset.col;
+        const column = this.columns.find(c => c.id === col);
+        
+        if (row === 'header') {
+            column.name = value.trim() || `Column ${column.id}`;
+            column.label = column.name; // Keep both for compatibility
+        } else {
+            const rowIndex = parseInt(row);
+            if (column.type === 'number') {
+                this.data[rowIndex][col] = this.parseNumber(value);
+            } else {
+                this.data[rowIndex][col] = value;
+            }
         }
     }
 

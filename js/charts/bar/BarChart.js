@@ -497,18 +497,21 @@ class PulseBarChart {
     }
 
     addAxisStretchingBehavior() {
-        // Only add horizontal axis stretching as requested by user
-        // Only enable for linear scales (not band/ordinal scales for categories)
-        
         if (this.config.orientation === 'horizontal') {
-            // For horizontal bars, the X-axis contains values (linear scale)
+            // For horizontal bars: X-axis has values (linear), Y-axis has categories (band)
             if (this.xScale.domain && typeof this.xScale.domain()[0] === 'number') {
-                this.addLinearAxisStretching('x');
+                this.addLinearAxisStretching('x'); // Existing vertical dragging
+            }
+            if (this.yScale.bandwidth) {
+                this.addBandAxisStretching('y'); // New horizontal dragging for categories
             }
         } else {
-            // For vertical bars, the Y-axis contains values (linear scale)  
+            // For vertical bars: Y-axis has values (linear), X-axis has categories (band)
             if (this.yScale.domain && typeof this.yScale.domain()[0] === 'number') {
-                this.addLinearAxisStretching('y');
+                this.addLinearAxisStretching('y'); // Existing vertical dragging
+            }
+            if (this.xScale.bandwidth) {
+                this.addBandAxisStretching('x'); // New horizontal dragging for categories
             }
         }
     }
@@ -643,6 +646,189 @@ class PulseBarChart {
             
         this.dragState = null;
         console.log(`🎯 Axis ${axisType} stretching completed`);
+    }
+
+    addBandAxisStretching(axisType) {
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        const axisGroup = this.chart.select(`.${axisType}-axis`);
+        const isHorizontal = axisType === 'x';
+        
+        if (axisGroup.empty()) return;
+        
+        // Create drag zones at axis ends for horizontal stretching
+        const dragZoneSize = 20;
+        const range = scale.range();
+        
+        // Start drag zone
+        const startZone = axisGroup.append('g')
+            .attr('class', `${axisType}-axis-band-drag-start`)
+            .style('cursor', isHorizontal ? 'ew-resize' : 'ns-resize');
+            
+        startZone.append('rect')
+            .attr('width', isHorizontal ? dragZoneSize : Math.abs(range[1] - range[0]))
+            .attr('height', isHorizontal ? dragZoneSize : dragZoneSize)
+            .attr('x', isHorizontal ? range[0] - dragZoneSize : 0)
+            .attr('y', isHorizontal ? -dragZoneSize/2 : range[0] - dragZoneSize)
+            .style('fill', 'transparent');
+            
+        // Visual indicator for start
+        startZone.append('g')
+            .attr('class', 'drag-indicator')
+            .style('opacity', 0)
+            .selectAll('line')
+            .data([-3, 3])
+            .enter()
+            .append('line')
+            .attr('x1', d => isHorizontal ? range[0] + d : d)
+            .attr('y1', d => isHorizontal ? -8 : range[0] + d)
+            .attr('x2', d => isHorizontal ? range[0] + d : Math.abs(range[1] - range[0]) + d)
+            .attr('y2', d => isHorizontal ? 8 : range[0] + d)
+            .style('stroke', '#4a90e2')
+            .style('stroke-width', 2);
+        
+        // End drag zone
+        const endZone = axisGroup.append('g')
+            .attr('class', `${axisType}-axis-band-drag-end`)
+            .style('cursor', isHorizontal ? 'ew-resize' : 'ns-resize');
+            
+        endZone.append('rect')
+            .attr('width', isHorizontal ? dragZoneSize : Math.abs(range[1] - range[0]))
+            .attr('height', isHorizontal ? dragZoneSize : dragZoneSize)
+            .attr('x', isHorizontal ? range[1] - dragZoneSize : 0)
+            .attr('y', isHorizontal ? -dragZoneSize/2 : range[1] - dragZoneSize)
+            .style('fill', 'transparent');
+            
+        // Visual indicator for end
+        endZone.append('g')
+            .attr('class', 'drag-indicator')
+            .style('opacity', 0)
+            .selectAll('line')
+            .data([-3, 3])
+            .enter()
+            .append('line')
+            .attr('x1', d => isHorizontal ? range[1] + d : d)
+            .attr('y1', d => isHorizontal ? -8 : range[1] + d)
+            .attr('x2', d => isHorizontal ? range[1] + d : Math.abs(range[1] - range[0]) + d)
+            .attr('y2', d => isHorizontal ? 8 : range[1] + d)
+            .style('stroke', '#4a90e2')
+            .style('stroke-width', 2);
+        
+        // Add drag behavior
+        const dragBehavior = d3.drag()
+            .on('start', (event) => this.onBandAxisDragStart(event, axisType))
+            .on('drag', (event) => this.onBandAxisDrag(event, axisType))
+            .on('end', () => this.onBandAxisDragEnd(axisType));
+        
+        // Apply behavior and hover effects
+        [startZone, endZone].forEach(zone => {
+            zone.call(dragBehavior)
+                .on('mouseenter', function() {
+                    d3.select(this).select('.drag-indicator')
+                        .transition().duration(200).style('opacity', 0.8);
+                })
+                .on('mouseleave', function() {
+                    d3.select(this).select('.drag-indicator')
+                        .transition().duration(200).style('opacity', 0);
+                });
+        });
+    }
+
+    onBandAxisDragStart(event, axisType) {
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        this.bandDragState = {
+            axisType,
+            startRange: [...scale.range()],
+            startPosition: axisType === 'x' ? event.x : event.y,
+            dragZone: event.sourceEvent.target.closest('g').classList.contains(`${axisType}-axis-band-drag-start`) ? 'start' : 'end'
+        };
+        
+        this.chart.select(`.${axisType}-axis`).style('opacity', 0.7);
+    }
+
+    onBandAxisDrag(event, axisType) {
+        if (!this.bandDragState || this.bandDragState.axisType !== axisType) return;
+        
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        const currentPosition = axisType === 'x' ? event.x : event.y;
+        const delta = (currentPosition - this.bandDragState.startPosition) * (this.config.axisStretchingSensitivity || 1.0);
+        
+        let newRange;
+        if (this.bandDragState.dragZone === 'start') {
+            newRange = [this.bandDragState.startRange[0] - delta, this.bandDragState.startRange[1]];
+        } else {
+            newRange = [this.bandDragState.startRange[0], this.bandDragState.startRange[1] + delta];
+        }
+        
+        // Prevent range from becoming too small
+        if (Math.abs(newRange[1] - newRange[0]) < 50) return;
+        
+        this.updateBandScaleRange(axisType, newRange);
+    }
+
+    onBandAxisDragEnd(axisType) {
+        this.chart.select(`.${axisType}-axis`).style('opacity', 1);
+        this.bandDragState = null;
+    }
+
+    updateBandScaleRange(axisType, newRange) {
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        const axis = axisType === 'x' ? this.xAxis : this.yAxis;
+        
+        // Update scale range
+        scale.range(newRange);
+        
+        // Update axis
+        const axisGroup = this.chart.select(`.${axisType}-axis`);
+        axisGroup.transition().duration(100).call(axis);
+        
+        // Update bars
+        this.updateBarsForBandScaleChange(axisType);
+    }
+
+    updateBarsForBandScaleChange(axisType) {
+        const bars = this.chart.selectAll('.bar');
+        
+        if (axisType === 'x' && this.config.orientation === 'vertical') {
+            // Update horizontal positioning for vertical bars
+            bars.transition().duration(100)
+                .attr('x', d => {
+                    if (d.series) return this.xScale(d.category); // Grouped bars
+                    return this.xScale(d.category);
+                })
+                .attr('width', d => {
+                    if (d.series) return this.xScale.bandwidth(); // Grouped bars use sub-scale
+                    return this.xScale.bandwidth();
+                });
+        } else if (axisType === 'y' && this.config.orientation === 'horizontal') {
+            // Update vertical positioning for horizontal bars
+            bars.transition().duration(100)
+                .attr('y', d => {
+                    if (d.series) return this.yScale(d.category);
+                    return this.yScale(d.category);
+                })
+                .attr('height', d => {
+                    if (d.series) return this.yScale.bandwidth();
+                    return this.yScale.bandwidth();
+                });
+        }
+        
+        // Also update labels if they exist
+        const labels = this.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label');
+        if (axisType === 'x' && this.config.orientation === 'vertical') {
+            labels.transition().duration(100)
+                .attr('x', d => {
+                    if (d.series) return this.xScale(d.category) + this.xScale.bandwidth() / 2;
+                    if (Array.isArray(d)) return this.xScale(d.data.category) + this.xScale.bandwidth() / 2;
+                    return this.xScale(d.category) + this.xScale.bandwidth() / 2;
+                });
+        } else if (axisType === 'y' && this.config.orientation === 'horizontal') {
+            labels.transition().duration(100)
+                .attr('y', d => {
+                    if (d.series) return this.yScale(d.category) + this.yScale.bandwidth() / 2;
+                    if (Array.isArray(d)) return this.yScale(d.data.category) + this.yScale.bandwidth() / 2;
+                    return this.yScale(d.category) + this.yScale.bandwidth() / 2;
+                });
+        }
     }
 
     updateScaleDomain(axisType, newDomain) {
