@@ -45,7 +45,7 @@ window.SankeyChartConfig = (function() {
                 3: 0.9,
                 4: 0.7
             },
-            backgroundColor: '#f8f9fa',
+            backgroundColor: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : '#f8f9fa',
             titleFont: 'Inter',
             titleColor: '#1f2937',
             showMargin: false,

@@ -74,7 +74,11 @@ window.BarChartConfig = (function() {
             
             // Responsive settings
             responsive: true,
-            maintainAspectRatio: true
+            maintainAspectRatio: true,
+            
+            // Axis interaction settings
+            enableAxisStretching: true,     // Enable axis dragging/stretching
+            axisStretchingSensitivity: 1.0, // Sensitivity multiplier
         };
     }
 

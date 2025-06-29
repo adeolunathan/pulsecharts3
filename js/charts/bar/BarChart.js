@@ -298,6 +298,9 @@ class PulseBarChart {
         // Initialize branding using reusable module
         this.initializeBranding();
 
+        // Apply font family to all text elements
+        this.applyFontFamilyToAllText();
+
         // **REMOVED: Control refresh is now handled externally to prevent flicker**
         // The app will handle control refreshes at the right time
 
@@ -485,6 +488,267 @@ class PulseBarChart {
                     .style('stroke', this.config.axisColor)
                     .style('stroke-width', this.config.axisStrokeWidth);
             }
+        }
+        
+        // Add axis stretching functionality if enabled
+        if (this.config.enableAxisStretching) {
+            this.addAxisStretchingBehavior();
+        }
+    }
+
+    addAxisStretchingBehavior() {
+        // Only add horizontal axis stretching as requested by user
+        // Only enable for linear scales (not band/ordinal scales for categories)
+        
+        if (this.config.orientation === 'horizontal') {
+            // For horizontal bars, the X-axis contains values (linear scale)
+            if (this.xScale.domain && typeof this.xScale.domain()[0] === 'number') {
+                this.addLinearAxisStretching('x');
+            }
+        } else {
+            // For vertical bars, the Y-axis contains values (linear scale)  
+            if (this.yScale.domain && typeof this.yScale.domain()[0] === 'number') {
+                this.addLinearAxisStretching('y');
+            }
+        }
+    }
+
+    addLinearAxisStretching(axisType) {
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        const axisGroup = this.chart.select(`.${axisType}-axis`);
+        const isHorizontal = axisType === 'x';
+        
+        if (axisGroup.empty()) return; // No axis to add stretching to
+        
+        // Create drag zones at axis ends with visual indicators
+        const dragZoneSize = 15;
+        const range = scale.range();
+        const axisLength = Math.abs(range[1] - range[0]);
+        
+        // Start drag zone (left/bottom end)
+        const startZone = axisGroup.append('g')
+            .attr('class', `${axisType}-axis-drag-start`)
+            .style('cursor', isHorizontal ? 'ew-resize' : 'ns-resize');
+            
+        startZone.append('rect')
+            .attr('width', isHorizontal ? dragZoneSize : axisLength)
+            .attr('height', isHorizontal ? dragZoneSize : dragZoneSize)
+            .attr('x', isHorizontal ? range[0] - dragZoneSize/2 : 0)
+            .attr('y', isHorizontal ? -dragZoneSize/2 : range[0] - dragZoneSize/2)
+            .style('fill', 'transparent')
+            .style('stroke', 'transparent');
+            
+        // Visual indicator for start zone
+        startZone.append('line')
+            .attr('x1', isHorizontal ? range[0] : 0)
+            .attr('y1', isHorizontal ? -5 : range[0])
+            .attr('x2', isHorizontal ? range[0] : axisLength)
+            .attr('y2', isHorizontal ? 5 : range[0])
+            .style('stroke', '#666')
+            .style('stroke-width', 2)
+            .style('opacity', 0)
+            .attr('class', 'drag-indicator');
+        
+        // End drag zone (right/top end)
+        const endZone = axisGroup.append('g')
+            .attr('class', `${axisType}-axis-drag-end`)
+            .style('cursor', isHorizontal ? 'ew-resize' : 'ns-resize');
+            
+        endZone.append('rect')
+            .attr('width', isHorizontal ? dragZoneSize : axisLength)
+            .attr('height', isHorizontal ? dragZoneSize : dragZoneSize)
+            .attr('x', isHorizontal ? range[1] - dragZoneSize/2 : 0)
+            .attr('y', isHorizontal ? -dragZoneSize/2 : range[1] - dragZoneSize/2)
+            .style('fill', 'transparent')
+            .style('stroke', 'transparent');
+            
+        // Visual indicator for end zone
+        endZone.append('line')
+            .attr('x1', isHorizontal ? range[1] : 0)
+            .attr('y1', isHorizontal ? -5 : range[1])
+            .attr('x2', isHorizontal ? range[1] : axisLength)
+            .attr('y2', isHorizontal ? 5 : range[1])
+            .style('stroke', '#666')
+            .style('stroke-width', 2)
+            .style('opacity', 0)
+            .attr('class', 'drag-indicator');
+        
+        // Add drag behavior
+        const dragBehavior = d3.drag()
+            .on('start', (event) => this.onAxisDragStart(event, axisType))
+            .on('drag', (event) => this.onAxisDrag(event, axisType))
+            .on('end', () => this.onAxisDragEnd(axisType));
+        
+        // Apply drag behavior and hover effects
+        [startZone, endZone].forEach(zone => {
+            zone.call(dragBehavior)
+                .on('mouseenter', function() {
+                    d3.select(this).select('.drag-indicator')
+                        .transition().duration(200).style('opacity', 0.8);
+                })
+                .on('mouseleave', function() {
+                    d3.select(this).select('.drag-indicator')
+                        .transition().duration(200).style('opacity', 0);
+                });
+        });
+    }
+
+    onAxisDragStart(event, axisType) {
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        this.dragState = {
+            axisType,
+            startDomain: [...scale.domain()],
+            startPosition: axisType === 'x' ? event.x : event.y,
+            dragZone: event.sourceEvent.target.closest('g').classList.contains(`${axisType}-axis-drag-start`) ? 'start' : 'end'
+        };
+        
+        // Highlight the axis during drag
+        this.chart.select(`.${axisType}-axis`)
+            .style('opacity', 0.7);
+    }
+
+    onAxisDrag(event, axisType) {
+        if (!this.dragState || this.dragState.axisType !== axisType) return;
+        
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        const currentPosition = axisType === 'x' ? event.x : event.y;
+        const delta = (currentPosition - this.dragState.startPosition) * this.config.axisStretchingSensitivity;
+        
+        // Convert pixel delta to domain units
+        const range = scale.range();
+        const domain = this.dragState.startDomain;
+        const domainSpan = domain[1] - domain[0];
+        const rangeSpan = Math.abs(range[1] - range[0]);
+        const domainDelta = (delta / rangeSpan) * domainSpan;
+        
+        // Update domain based on which end is being dragged
+        let newDomain;
+        if (this.dragState.dragZone === 'start') {
+            newDomain = [domain[0] - domainDelta, domain[1]];
+        } else {
+            newDomain = [domain[0], domain[1] + domainDelta];
+        }
+        
+        // Validate domain (prevent inverting)
+        if (newDomain[1] <= newDomain[0]) return;
+        
+        // Update scale and re-render affected elements
+        this.updateScaleDomain(axisType, newDomain);
+    }
+
+    onAxisDragEnd(axisType) {
+        // Restore axis opacity
+        this.chart.select(`.${axisType}-axis`)
+            .style('opacity', 1);
+            
+        this.dragState = null;
+        console.log(`🎯 Axis ${axisType} stretching completed`);
+    }
+
+    updateScaleDomain(axisType, newDomain) {
+        const scale = axisType === 'x' ? this.xScale : this.yScale;
+        const axis = axisType === 'x' ? this.xAxis : this.yAxis;
+        
+        // Update scale domain
+        scale.domain(newDomain);
+        
+        // Update axis with smooth transition
+        const axisGroup = this.chart.select(`.${axisType}-axis`);
+        axisGroup.transition().duration(100).call(axis);
+        
+        // Update bars and other elements that depend on this scale
+        this.updateBarsForScaleChange(axisType);
+        
+        // Update grid if enabled
+        if (this.config.showGrid) {
+            this.updateGridForScaleChange(axisType);
+        }
+    }
+
+    updateBarsForScaleChange(axisType) {
+        // Re-position and resize bars based on new scale
+        const bars = this.chart.selectAll('.bar');
+        
+        if (axisType === 'x') {
+            if (this.config.orientation === 'horizontal') {
+                // Update bar positions and widths for horizontal bars
+                bars.transition().duration(100)
+                    .attr('x', d => this.xScale(Math.min(0, this.getPrimaryValue(d))))
+                    .attr('width', d => Math.abs(this.xScale(this.getPrimaryValue(d)) - this.xScale(0)));
+            } else {
+                // Update bar positions for vertical bars (categories)
+                bars.transition().duration(100)
+                    .attr('x', d => this.xScale(d.category))
+                    .attr('width', this.xScale.bandwidth());
+            }
+        } else { // yAxis
+            if (this.config.orientation === 'horizontal') {
+                // Update bar positions for horizontal bars (categories)
+                bars.transition().duration(100)
+                    .attr('y', d => this.yScale(d.category))
+                    .attr('height', this.yScale.bandwidth());
+            } else {
+                // Update bar positions and heights for vertical bars
+                bars.transition().duration(100)
+                    .attr('y', d => this.yScale(Math.max(0, this.getPrimaryValue(d))))
+                    .attr('height', d => Math.abs(this.yScale(this.getPrimaryValue(d)) - this.yScale(0)));
+            }
+        }
+        
+        // Also update labels if they exist
+        this.updateLabelsForScaleChange(axisType);
+    }
+
+    updateLabelsForScaleChange(axisType) {
+        // Update bar labels based on new scale
+        const labels = this.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label');
+        
+        if (axisType === 'x') {
+            if (this.config.orientation === 'horizontal') {
+                // Update label x positions for horizontal bars
+                labels.transition().duration(100)
+                    .attr('x', d => {
+                        if (d.series) { // Grouped
+                            return this.getGroupedBarLabelXPosition(d, 'horizontal').x;
+                        } else if (Array.isArray(d)) { // Stacked
+                            return this.getStackedBarLabelXPosition(d, 'horizontal').x;
+                        } else { // Simple
+                            return this.getLabelX(d);
+                        }
+                    });
+            }
+        } else { // yAxis
+            if (this.config.orientation === 'vertical') {
+                // Update label y positions for vertical bars
+                labels.transition().duration(100)
+                    .attr('y', d => {
+                        if (d.series) { // Grouped
+                            return this.getGroupedBarLabelYPosition(d, 'vertical').y;
+                        } else if (Array.isArray(d)) { // Stacked
+                            return this.getStackedBarLabelYPosition(d, 'vertical').y;
+                        } else { // Simple
+                            return this.yScale(Math.max(0, this.getPrimaryValue(d))) - this.config.labelOffset;
+                        }
+                    });
+            }
+        }
+    }
+
+    updateGridForScaleChange(axisType) {
+        // Update grid lines based on new scale
+        const gridGroup = this.chart.select('.grid');
+        if (gridGroup.empty()) return;
+        
+        if (axisType === 'x') {
+            const xGrid = d3.axisBottom(this.xScale)
+                .tickSize(-this.chart.attr('height') || 400)
+                .tickFormat('');
+            gridGroup.select('.grid-x').transition().duration(100).call(xGrid);
+        } else {
+            const yGrid = d3.axisLeft(this.yScale)
+                .tickSize(-this.chart.attr('width') || 600)
+                .tickFormat('');
+            gridGroup.select('.grid-y').transition().duration(100).call(yGrid);
         }
     }
 
@@ -1520,6 +1784,38 @@ class PulseBarChart {
     // Font family getter for consistent typography
     getFontFamily() {
         return this.config.titleFont || 'Inter, sans-serif';
+    }
+
+    // Apply font family to all text elements in the chart
+    applyFontFamilyToAllText() {
+        const fontFamily = this.getFontFamily();
+        
+        // Apply to chart title
+        this.svg.selectAll('.chart-title, .chart-header text')
+            .style('font-family', fontFamily);
+        
+        // Apply to axis text (labels and tick text)
+        this.chart.selectAll('.x-axis text, .y-axis text')
+            .style('font-family', fontFamily);
+        
+        // Apply to bar labels
+        this.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label')
+            .style('font-family', fontFamily);
+        
+        // Apply to grid text if any
+        this.chart.selectAll('.grid text')
+            .style('font-family', fontFamily);
+        
+        // Apply to legend text if any
+        this.svg.selectAll('.legend text, .legend-item text')
+            .style('font-family', fontFamily);
+        
+        // Apply to tooltip text (though tooltip uses separate styling)
+        if (this.tooltip) {
+            this.tooltip.style('font-family', fontFamily);
+        }
+        
+        console.log(`🔤 Applied font family '${fontFamily}' to all chart text elements`);
     }
 
     // Utility method for text wrapping using reusable module

@@ -643,9 +643,15 @@ window.BarControlModule = (function() {
                     chart.render();
                 }
             }
-            // Handle font changes
+            // Handle font changes - apply to all text elements
             else if (controlId === 'titleFont') {
-                chart.svg.selectAll('.chart-title, .chart-header text').style('font-family', chart.getFontFamily());
+                console.log(`🔤 Font family changed to: ${value}`);
+                if (chart.applyFontFamilyToAllText) {
+                    chart.applyFontFamilyToAllText();
+                } else {
+                    // Fallback to just title
+                    chart.svg.selectAll('.chart-title, .chart-header text').style('font-family', chart.getFontFamily());
+                }
             }
             // Handle title color changes
             else if (controlId === 'titleColor') {
@@ -696,9 +702,28 @@ window.BarControlModule = (function() {
                 }
             }
             // Handle value formatting controls with full re-render
-            else if (['valueFormat', 'currencySymbol', 'decimalPlaces'].includes(controlId)) {
+            else if (['valueFormat', 'currencySymbol'].includes(controlId)) {
                 console.log(`🔄 Re-rendering for value format control: ${controlId} = ${value}`);
                 chart.render();
+            }
+            // Handle decimal places control with efficient update (no re-render needed)
+            else if (controlId === 'decimalPlaces') {
+                console.log(`💰 Updating decimal places to: ${value}`);
+                // Just update the displayed text values without re-rendering
+                if (chart.chart) {
+                    chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label')
+                        .text(function(d) {
+                            // Re-format the value with new decimal places
+                            if (d.series) { // Grouped
+                                return chart.getGroupedBarLabelText(d);
+                            } else if (Array.isArray(d)) { // Stacked
+                                const segmentValue = d[1] - d[0];
+                                return chart.getStackedBarLabelText(d, segmentValue);
+                            } else { // Simple
+                                return chart.getBarLabelText(d);
+                            }
+                        });
+                }
             }
             // Handle auto sort control
             else if (controlId === 'autoSort') {
