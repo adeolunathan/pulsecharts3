@@ -288,9 +288,7 @@ class PulseBarChart {
         let maxValue, minValue;
         
         // Get numeric columns for multi-series charts
-        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
-            key !== 'category' && typeof this.data[0][key] === 'number'
-        );
+        const numericColumns = this.getNumericColumns();
         
         if (this.config.barChartType === 'stacked' || this.config.barChartType === 'stacked100') {
             // For stacked charts, calculate max of sums
@@ -597,9 +595,7 @@ class PulseBarChart {
         console.log('🔍 renderGroupedBars: Data structure:', this.data);
         
         // Group data by series (numeric columns)
-        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
-            key !== 'category' && typeof this.data[0][key] === 'number'
-        );
+        const numericColumns = this.getNumericColumns();
         
         console.log('🔍 renderGroupedBars: Found numeric columns:', numericColumns);
         console.log('🔍 renderGroupedBars: Numeric columns count:', numericColumns.length);
@@ -679,10 +675,10 @@ class PulseBarChart {
                     .attr('width', d => self.xScale(d.value));
             });
             
-            // Add interactivity to all bars
-            const allBarsHorizontal = this.chart.selectAll('.bar');
-            this.addBarInteractivity(allBarsHorizontal);
-            this.bars = allBarsHorizontal; // Store bars reference
+            // Add interactivity to grouped bars only (avoid duplicate bar selection)
+            const groupedBars = allGroups.selectAll('.bar');
+            this.addBarInteractivity(groupedBars);
+            this.bars = groupedBars; // Store bars reference
         } else {
             // Vertical grouped bars - use proper data join pattern
             const groupSelection = this.chart.selectAll('.bar-group')
@@ -732,10 +728,10 @@ class PulseBarChart {
                     .attr('height', d => self.yScale(0) - self.yScale(d.value));
             });
             
-            // Add interactivity to all bars
-            const allBarsVertical = this.chart.selectAll('.bar');
-            this.addBarInteractivity(allBarsVertical);
-            this.bars = allBarsVertical; // Store bars reference
+            // Add interactivity to grouped bars only (avoid duplicate bar selection)
+            const groupedBars = allGroups.selectAll('.bar');
+            this.addBarInteractivity(groupedBars);
+            this.bars = groupedBars; // Store bars reference
         }
         
         // Render labels for grouped bars
@@ -748,9 +744,7 @@ class PulseBarChart {
         const colors = this.getBarColors();
         
         // Get numeric columns for stacking
-        const numericColumns = Object.keys(this.data[0]).filter(key => 
-            key !== 'category' && typeof this.data[0][key] === 'number'
-        );
+        const numericColumns = this.getNumericColumns();
         
         if (numericColumns.length < 2) {
             console.warn('Stacked chart requires multiple numeric columns. Falling back to simple chart.');
@@ -811,10 +805,10 @@ class PulseBarChart {
                     .attr('width', d => self.xScale(d[1]) - self.xScale(d[0]));
             });
             
-            // Add interactivity to all bars
-            const allBarsHorizontal = this.chart.selectAll('.bar');
-            this.addBarInteractivity(allBarsHorizontal);
-            this.bars = allBarsHorizontal; // Store bars reference
+            // Add interactivity to stacked bars only (avoid duplicate bar selection)
+            const stackedBars = allLayers.selectAll('.bar');
+            this.addBarInteractivity(stackedBars);
+            this.bars = stackedBars; // Store bars reference
         } else {
             // Vertical stacked bars - use proper data join pattern
             const layerSelection = this.chart.selectAll('.layer')
@@ -863,10 +857,10 @@ class PulseBarChart {
                     .attr('height', d => self.yScale(d[0]) - self.yScale(d[1]));
             });
             
-            // Add interactivity to all bars
-            const allBarsVertical = this.chart.selectAll('.bar');
-            this.addBarInteractivity(allBarsVertical);
-            this.bars = allBarsVertical; // Store bars reference
+            // Add interactivity to stacked bars only (avoid duplicate bar selection)
+            const stackedBars = allLayers.selectAll('.bar');
+            this.addBarInteractivity(stackedBars);
+            this.bars = stackedBars; // Store bars reference
         }
         
         // Render labels for stacked bars
@@ -879,9 +873,7 @@ class PulseBarChart {
         const colors = this.getBarColors();
         
         // Get numeric columns
-        const numericColumns = Object.keys(this.data[0]).filter(key => 
-            key !== 'category' && typeof this.data[0][key] === 'number'
-        );
+        const numericColumns = this.getNumericColumns();
         
         if (numericColumns.length < 2) {
             console.warn('100% Stacked chart requires multiple numeric columns. Falling back to simple chart.');
@@ -977,9 +969,7 @@ class PulseBarChart {
         
         // If no dedicated min/max columns, use first two numeric columns
         if (!minCol || !maxCol) {
-            const numericColumns = Object.keys(this.data[0]).filter(key => 
-                key !== 'category' && key !== 'label' && typeof this.data[0][key] === 'number'
-            );
+            const numericColumns = this.getNumericColumns();
             
             if (numericColumns.length >= 2) {
                 minCol = numericColumns[0];
@@ -1282,9 +1272,7 @@ class PulseBarChart {
                     
                     if (d.series) {
                         // Grouped chart: d = { series: columnName, value: number, category: string }
-                        const seriesIndex = Object.keys(this.data[0] || {})
-                            .filter(key => key !== 'category' && key !== 'label' && typeof this.data[0][key] === 'number')
-                            .indexOf(d.series);
+                        const seriesIndex = this.getNumericColumns().indexOf(d.series);
                         originalColor = this.customColors[d.category] || colors[seriesIndex % colors.length];
                     } else if (Array.isArray(d) && d.data) {
                         // Stacked chart: d = [start, end, { category, ... }]
@@ -1577,6 +1565,87 @@ class PulseBarChart {
 
     // ===== CRITICAL MISSING METHODS FOR CONTROL INTEGRATION =====
     
+    // Robust numeric column detection to avoid treating categorical data as numeric
+    getNumericColumns() {
+        if (!this.data || this.data.length === 0) return [];
+        
+        // More comprehensive list of excluded categorical/metadata columns
+        const excludedColumns = ['category', 'label', 'name', 'id', 'key', 'index', 'row', 'rowindex'];
+        const allColumns = Object.keys(this.data[0] || {});
+        
+        console.log('🔍 getNumericColumns: All columns found:', allColumns);
+        console.log('🔍 getNumericColumns: Sample data row:', this.data[0]);
+        
+        const numericColumns = allColumns.filter(column => {
+            // Skip excluded categorical columns (case insensitive)
+            if (excludedColumns.some(excluded => column.toLowerCase().includes(excluded.toLowerCase()))) {
+                console.log(`❌ Column '${column}' excluded due to categorical name pattern`);
+                return false;
+            }
+            
+            // Check all rows for this column to ensure it's truly numeric
+            let numericCount = 0;
+            let nonNullCount = 0;
+            let hasValidNumbers = false;
+            let allValues = [];
+            
+            for (const row of this.data) {
+                const value = row[column];
+                
+                // Skip null/undefined values
+                if (value == null) continue;
+                nonNullCount++;
+                allValues.push(value);
+                
+                // Check if it's a genuine number (not a string that looks like a number)
+                if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+                    numericCount++;
+                    // Ensure we have meaningful numeric values (not just 0s and 1s which could be categorical)
+                    if (Math.abs(value) > 1e-10) hasValidNumbers = true;
+                }
+            }
+            
+            // Additional check: reject columns that look like indices or IDs
+            const seemsLikeIndex = allValues.every((val, idx) => val === idx || val === idx + 1);
+            if (seemsLikeIndex && allValues.length > 1) {
+                console.log(`❌ Column '${column}' excluded - appears to be an index/ID column:`, allValues);
+                return false;
+            }
+            
+            // A column is considered numeric if:
+            // 1. ALL non-null values are genuine numbers (100% ratio for safety)
+            // 2. It has at least one meaningful numeric value
+            // 3. It has at least one non-null value
+            const numericRatio = nonNullCount > 0 ? numericCount / nonNullCount : 0;
+            
+            const isNumeric = numericRatio === 1.0 && hasValidNumbers && nonNullCount > 0;
+            
+            if (isNumeric) {
+                console.log(`✅ Column '${column}' identified as numeric (${numericCount}/${nonNullCount} values are numbers, values: [${allValues.join(', ')}])`);
+            } else {
+                console.log(`❌ Column '${column}' excluded from numeric columns (${numericCount}/${nonNullCount} values are numbers, hasValidNumbers: ${hasValidNumbers}, ratio: ${numericRatio})`);
+            }
+            
+            return isNumeric;
+        });
+        
+        console.log('🔍 getNumericColumns: Final numeric columns:', numericColumns);
+        
+        // DEFINITIVE FIX: Only use expected numeric columns, filter out any extras
+        const expectedColumns = ['value', 'value_2', 'value_3'];
+        const filteredColumns = numericColumns.filter(col => expectedColumns.includes(col));
+        
+        console.log('🔧 FILTERED to expected columns only:', filteredColumns);
+        console.log('🔧 Rejected columns:', numericColumns.filter(col => !expectedColumns.includes(col)));
+        
+        // If we found the expected columns, use them; otherwise fall back to the detected ones
+        if (filteredColumns.length > 0) {
+            return filteredColumns;
+        }
+        
+        return numericColumns;
+    }
+    
     // Process data method required by control system
     processData(data) {
         return (() => {
@@ -1588,6 +1657,7 @@ class PulseBarChart {
             console.log('📊 Processing bar chart data:', data);
             console.log('📊 Data type:', typeof data);
             console.log('📊 Data keys:', Object.keys(data || {}));
+            console.log('📊 DETAILED DATA INSPECTION:', JSON.stringify(data, null, 2));
             console.log('📊 Has categories:', !!(data.categories));
             console.log('📊 Has values:', !!(data.values));
             console.log('📊 Has series:', !!(data.series));
@@ -1646,7 +1716,11 @@ class PulseBarChart {
                     
                     // Ensure backwards compatibility with 'value' column
                     if (!result.value && result.value !== 0) {
-                        const numericKeys = Object.keys(result).filter(k => k !== 'category' && k !== 'label' && typeof result[k] === 'number');
+                        // Get the first numeric column as the default 'value'
+                        const numericKeys = Object.keys(result).filter(k => 
+                            k !== 'category' && k !== 'label' && 
+                            typeof result[k] === 'number' && !isNaN(result[k]) && isFinite(result[k])
+                        );
                         result.value = numericKeys.length > 0 ? result[numericKeys[0]] : 0;
                     }
                     
@@ -1849,9 +1923,7 @@ class PulseBarChart {
         this.chart.selectAll('.grouped-bar-label').remove();
         
         // Get numeric columns for grouped data
-        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
-            key !== 'category' && key !== 'label' && typeof this.data[0][key] === 'number'
-        );
+        const numericColumns = this.getNumericColumns();
         
         if (numericColumns.length === 0) return;
         
@@ -1933,9 +2005,7 @@ class PulseBarChart {
         this.chart.selectAll('.stacked-bar-label').remove();
         
         // Get numeric columns for stacking
-        const numericColumns = Object.keys(this.data[0] || {}).filter(key => 
-            key !== 'category' && typeof this.data[0][key] === 'number'
-        );
+        const numericColumns = this.getNumericColumns();
         
         if (numericColumns.length === 0) return;
         
@@ -1946,7 +2016,7 @@ class PulseBarChart {
         
         if (this.config.orientation === 'horizontal') {
             // Horizontal stacked bar labels
-            stackedData.forEach((layer, layerIndex) => {
+            stackedData.forEach((layer) => {
                 layer.forEach(d => {
                     const segmentValue = d[1] - d[0];
                     if (segmentValue > 0) { // Only show labels for segments with values
@@ -1962,7 +2032,7 @@ class PulseBarChart {
                             .style('font-size', `${this.config.labelFontSize}px`)
                             .style('fill', this.config.labelColor)
                             .style('opacity', 0)
-                            .text(this.getStackedBarLabelText(d, numericColumns[layerIndex], segmentValue))
+                            .text(this.getStackedBarLabelText(d, segmentValue))
                             .transition()
                             .delay(this.config.animationDuration * 0.5)
                             .duration(this.config.animationDuration * 0.5)
@@ -1972,7 +2042,7 @@ class PulseBarChart {
             });
         } else {
             // Vertical stacked bar labels
-            stackedData.forEach((layer, layerIndex) => {
+            stackedData.forEach((layer) => {
                 layer.forEach(d => {
                     const segmentValue = d[1] - d[0];
                     if (segmentValue > 0) { // Only show labels for segments with values
@@ -1988,7 +2058,7 @@ class PulseBarChart {
                             .style('font-size', `${this.config.labelFontSize}px`)
                             .style('fill', this.config.labelColor)
                             .style('opacity', 0)
-                            .text(this.getStackedBarLabelText(d, numericColumns[layerIndex], segmentValue))
+                            .text(this.getStackedBarLabelText(d, segmentValue))
                             .transition()
                             .delay(this.config.animationDuration * 0.5)
                             .duration(this.config.animationDuration * 0.5)
@@ -2007,7 +2077,6 @@ class PulseBarChart {
         const bars = this.chart.selectAll('.bar');
         
         bars.each((d, i, nodes) => {
-            const barElement = d3.select(nodes[i]);
             const value = d.value || (d.end - d.start);
             
             if (Math.abs(value) > 0) { // Only show labels for bars with values
@@ -2063,7 +2132,7 @@ class PulseBarChart {
         return '';
     }
 
-    getStackedBarLabelText(d, seriesName, segmentValue) {
+    getStackedBarLabelText(d, segmentValue) {
         // Use same logic as simple bar chart - just show the value or category
         const showLabels = this.config.showBarLabels;
         const showValues = this.config.showValues;

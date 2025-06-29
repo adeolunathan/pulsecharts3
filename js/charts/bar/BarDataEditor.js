@@ -699,8 +699,12 @@ class BarDataEditor {
     updateStatus() {
         const rowCount = this.container.querySelector('.row-count');
         const colCount = this.container.querySelector('.col-count');
+        
+        // Count only numeric/data columns (exclude categorical columns like 'category')
+        const dataColumns = this.columns.filter(col => col.type !== 'text' && col.id !== 'category');
+        
         rowCount.textContent = `${this.data.length} rows`;
-        colCount.textContent = `${this.columns.length} cols`;
+        colCount.textContent = `${dataColumns.length} cols`;
     }
 
     updateChart() {
