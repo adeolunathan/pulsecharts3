@@ -664,7 +664,7 @@ class BarDataEditor {
             this.processPasteData(text);
         } catch (err) {
             // Fallback: show paste dialog
-            const text = prompt('Paste your data here (CSV/TSV format):\nExample:\nProduct A,100\nProduct B,150');
+            const text = prompt('Paste your data here (CSV/TSV format):\nExample:\nCategory1,100\nCategory2,150');
             if (text) {
                 this.processPasteData(text);
             }

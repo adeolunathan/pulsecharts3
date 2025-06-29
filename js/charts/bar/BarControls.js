@@ -13,7 +13,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
-            disabled: []
+            disabled: ['showBarLabels']
         },
         grouped: {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
@@ -22,7 +22,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
-            disabled: ['defaultBarColor'] // Uses dynamic colors from series
+            disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked: {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
@@ -31,7 +31,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
-            disabled: ['defaultBarColor'] // Uses dynamic colors from series
+            disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked100: {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
@@ -39,16 +39,16 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
-            disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces'] // Always shows percentages
+            disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces', 'showBarLabels'] // Always shows percentages
         },
         range: {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
-            disabled: []
+            disabled: ['showBarLabels']
         },
         waterfall: {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius',
@@ -57,7 +57,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
-            disabled: ['autoSort', 'colorScheme'] // Waterfall has specific ordering and colors
+            disabled: ['autoSort', 'colorScheme', 'showBarLabels'] // Waterfall has specific ordering and colors
         },
         polar: {
             enabled: ['barChartType', 'barPadding', 'autoSort',
@@ -67,7 +67,7 @@ window.BarControlModule = (function() {
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
             disabled: ['orientation', 'barCornerRadius', // No orientation or corners in polar
                       'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor', // No traditional axes
-                      'labelPosition', 'labelOffset'] // Polar has specific label positioning
+                      'labelPosition', 'labelOffset', 'showBarLabels'] // Polar has specific label positioning
         }
     };
 
@@ -249,7 +249,7 @@ window.BarControlModule = (function() {
                             id: "showBarLabels",
                             type: "toggle",
                             label: "Show Bar Labels",
-                            default: true
+                            default: false
                         },
                         {
                             id: "showValues",
@@ -266,6 +266,7 @@ window.BarControlModule = (function() {
                                 { value: "outside_end", label: "Outside End" },
                                 { value: "inside_end", label: "Inside End" },
                                 { value: "inside_center", label: "Inside Center" },
+                                { value: "inside_start", label: "Inside Start" },
                                 { value: "outside_start", label: "Outside Start" }
                             ],
                             description: "Where to position the value labels relative to bars"
@@ -339,13 +340,6 @@ window.BarControlModule = (function() {
                     ]
                 },
 
-                // Interactivity - removed individual controls, hover always enabled
-                interaction: {
-                    title: "Interactivity",
-                    icon: "🖱️",
-                    collapsed: true,
-                    controls: []
-                },
 
                 // Animation
                 animation: {

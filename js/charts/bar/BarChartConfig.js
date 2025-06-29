@@ -41,8 +41,8 @@ window.BarChartConfig = (function() {
             showGrid: true,
             
             // Labels
-            showBarLabels: true,
-            labelPosition: 'outside_end',   // 'outside_end', 'inside_end', 'inside_center', 'outside_start'
+            showBarLabels: false,  // Changed to false by default
+            labelPosition: 'outside_end',   // 'outside_end', 'inside_end', 'inside_center', 'inside_start', 'outside_start'
             labelOffset: 8,
             labelColor: '#374151',
             labelFontSize: 12,
@@ -63,8 +63,8 @@ window.BarChartConfig = (function() {
             colorScheme: 'default', // 'default', 'category10', 'custom'
             customColors: [],
             
-            // Background and theming
-            backgroundColor: '#f5f0db',
+            // Background and theming (now uses global default)
+            backgroundColor: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : '#f8f9fa',
             titleFont: 'Inter',
             titleColor: '#1f2937',
             

@@ -1250,9 +1250,9 @@ class PulseBarChart {
                 .enter()
                 .append('text')
                 .attr('class', 'bar-label')
-                .attr('x', d => this.xScale(this.getPrimaryValue(d)) + this.config.labelOffset)
+                .attr('x', d => this.getLabelX(d))
                 .attr('y', d => this.yScale(d.category) + this.yScale.bandwidth() / 2)
-                .attr('text-anchor', 'start')
+                .attr('text-anchor', this.getLabelTextAnchor())
                 .attr('dominant-baseline', 'middle')
                 .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                 .style('font-size', `${this.config.labelFontSize}px`)
@@ -1960,6 +1960,9 @@ class PulseBarChart {
                 case 'inside_center':
                     // In the center of the bar
                     return barTop + barHeight / 2;
+                case 'inside_start':
+                    // Inside the bar near the bottom
+                    return barBottom - this.config.labelOffset - 5;
                 case 'outside_start':
                     // Below the chart (traditional bottom)
                     return barBottom + this.config.labelOffset + 15;
@@ -1974,6 +1977,223 @@ class PulseBarChart {
                     return barTop - this.config.labelOffset;
             }
         }
+    }
+
+    // Calculate label X position based on labelPosition config (for horizontal bars)
+    getLabelX(d) {
+        if (this.config.orientation === 'vertical') {
+            // For vertical bars, X is just centered on the bar
+            return this.xScale(d.category) + this.xScale.bandwidth() / 2;
+        } else {
+            // Horizontal bars - use position-aware logic
+            const value = this.getPrimaryValue(d);
+            const barLeft = this.xScale(0);
+            const barRight = this.xScale(value);
+            const barWidth = Math.abs(barRight - barLeft);
+            
+            switch (this.config.labelPosition) {
+                case 'outside_end':
+                    // Right of the bar
+                    return barRight + this.config.labelOffset;
+                case 'inside_end':
+                    // Inside the bar near the right
+                    return barRight - this.config.labelOffset - 5;
+                case 'inside_center':
+                    // In the center of the bar
+                    return barLeft + barWidth / 2;
+                case 'inside_start':
+                    // Inside the bar near the left
+                    return barLeft + this.config.labelOffset + 5;
+                case 'outside_start':
+                    // Left of the chart (outside)
+                    return barLeft - this.config.labelOffset;
+                // Legacy support
+                case 'top':
+                    return barRight + this.config.labelOffset;
+                case 'middle':
+                    return barLeft + barWidth / 2;
+                case 'bottom':
+                    return barLeft - this.config.labelOffset;
+                default:
+                    return barRight + this.config.labelOffset;
+            }
+        }
+    }
+
+    // Get text anchor based on label position
+    getLabelTextAnchor() {
+        if (this.config.orientation === 'vertical') {
+            return 'middle';
+        } else {
+            // Horizontal bars
+            switch (this.config.labelPosition) {
+                case 'outside_end':
+                case 'inside_end':
+                    return 'start';
+                case 'inside_center':
+                    return 'middle';
+                case 'inside_start':
+                case 'outside_start':
+                    return 'end';
+                default:
+                    return 'start';
+            }
+        }
+    }
+
+    // Enhanced positioning functions for grouped and stacked bar charts
+    getGroupedBarLabelXPosition(d, orientation) {
+        const value = d.value || 0;
+        const position = this.config.labelPosition;
+        const offset = this.config.labelOffset;
+        
+        let x, textAnchor;
+        
+        if (orientation === 'horizontal') {
+            switch (position) {
+                case 'outside_end':
+                    x = this.xScale(value) + offset;
+                    textAnchor = 'start';
+                    break;
+                case 'inside_end':
+                    x = this.xScale(value) - offset;
+                    textAnchor = 'end';
+                    break;
+                case 'inside_center':
+                    x = this.xScale(value / 2);
+                    textAnchor = 'middle';
+                    break;
+                case 'inside_start':
+                    x = this.xScale(0) + offset;
+                    textAnchor = 'start';
+                    break;
+                case 'outside_start':
+                    x = this.xScale(0) - offset;
+                    textAnchor = 'end';
+                    break;
+                default:
+                    x = this.xScale(value) + offset;
+                    textAnchor = 'start';
+            }
+        }
+        
+        return { x, textAnchor };
+    }
+    
+    getGroupedBarLabelYPosition(d, orientation) {
+        const value = d.value || 0;
+        const position = this.config.labelPosition;
+        const offset = this.config.labelOffset;
+        
+        let y, dominantBaseline;
+        
+        if (orientation === 'vertical') {
+            switch (position) {
+                case 'outside_end':
+                    y = this.yScale(value) - offset;
+                    dominantBaseline = 'baseline';
+                    break;
+                case 'inside_end':
+                    y = this.yScale(value) + offset;
+                    dominantBaseline = 'hanging';
+                    break;
+                case 'inside_center':
+                    y = this.yScale(value / 2);
+                    dominantBaseline = 'middle';
+                    break;
+                case 'inside_start':
+                    y = this.yScale(0) - offset;
+                    dominantBaseline = 'baseline';
+                    break;
+                case 'outside_start':
+                    y = this.yScale(0) + offset;
+                    dominantBaseline = 'hanging';
+                    break;
+                default:
+                    y = this.yScale(value) - offset;
+                    dominantBaseline = 'baseline';
+            }
+        }
+        
+        return { y, dominantBaseline };
+    }
+    
+    getStackedBarLabelXPosition(d, orientation) {
+        const position = this.config.labelPosition;
+        const offset = this.config.labelOffset;
+        const segmentStart = d[0];
+        const segmentEnd = d[1];
+        
+        let x, textAnchor;
+        
+        if (orientation === 'horizontal') {
+            switch (position) {
+                case 'outside_end':
+                    x = this.xScale(segmentEnd) + offset;
+                    textAnchor = 'start';
+                    break;
+                case 'inside_end':
+                    x = this.xScale(segmentEnd) - offset;
+                    textAnchor = 'end';
+                    break;
+                case 'inside_center':
+                    x = this.xScale((segmentStart + segmentEnd) / 2);
+                    textAnchor = 'middle';
+                    break;
+                case 'inside_start':
+                    x = this.xScale(segmentStart) + offset;
+                    textAnchor = 'start';
+                    break;
+                case 'outside_start':
+                    x = this.xScale(segmentStart) - offset;
+                    textAnchor = 'end';
+                    break;
+                default:
+                    x = this.xScale((segmentStart + segmentEnd) / 2);
+                    textAnchor = 'middle';
+            }
+        }
+        
+        return { x, textAnchor };
+    }
+    
+    getStackedBarLabelYPosition(d, orientation) {
+        const position = this.config.labelPosition;
+        const offset = this.config.labelOffset;
+        const segmentStart = d[0];
+        const segmentEnd = d[1];
+        
+        let y, dominantBaseline;
+        
+        if (orientation === 'vertical') {
+            switch (position) {
+                case 'outside_end':
+                    y = this.yScale(segmentEnd) - offset;
+                    dominantBaseline = 'baseline';
+                    break;
+                case 'inside_end':
+                    y = this.yScale(segmentEnd) + offset;
+                    dominantBaseline = 'hanging';
+                    break;
+                case 'inside_center':
+                    y = (this.yScale(segmentStart) + this.yScale(segmentEnd)) / 2;
+                    dominantBaseline = 'middle';
+                    break;
+                case 'inside_start':
+                    y = this.yScale(segmentStart) - offset;
+                    dominantBaseline = 'baseline';
+                    break;
+                case 'outside_start':
+                    y = this.yScale(segmentStart) + offset;
+                    dominantBaseline = 'hanging';
+                    break;
+                default:
+                    y = (this.yScale(segmentStart) + this.yScale(segmentEnd)) / 2;
+                    dominantBaseline = 'middle';
+            }
+        }
+        
+        return { y, dominantBaseline };
     }
 
     // Get the text to display on bar labels based on config
@@ -2065,15 +2285,17 @@ class PulseBarChart {
             .padding(0.05);
         
         if (this.config.orientation === 'horizontal') {
-            // Horizontal grouped bar labels
+            // Horizontal grouped bar labels with configurable positioning
             groupedData.forEach(groupData => {
                 groupData.values.forEach(d => {
                     if ((d.value || 0) > 0) { // Only show labels for bars with values
+                        const { x, textAnchor } = this.getGroupedBarLabelXPosition(d, 'horizontal');
+                        
                         this.chart.append('text')
                             .attr('class', 'grouped-bar-label')
-                            .attr('x', this.xScale(d.value || 0) + this.config.labelOffset)
+                            .attr('x', x)
                             .attr('y', this.yScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2)
-                            .attr('text-anchor', 'start')
+                            .attr('text-anchor', textAnchor)
                             .attr('dominant-baseline', 'middle')
                             .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                             .style('font-size', `${this.config.labelFontSize}px`)
@@ -2088,22 +2310,18 @@ class PulseBarChart {
                 });
             });
         } else {
-            // Vertical grouped bar labels
+            // Vertical grouped bar labels with configurable positioning
             groupedData.forEach(groupData => {
                 groupData.values.forEach(d => {
                     if ((d.value || 0) > 0) { // Only show labels for bars with values
-                        const labelY = this.config.labelPosition === 'top' ? 
-                            this.yScale(d.value || 0) - this.config.labelOffset :
-                            this.config.labelPosition === 'bottom' ?
-                            this.yScale(0) + this.config.labelOffset :
-                            this.yScale((d.value || 0) / 2); // middle
+                        const { y, dominantBaseline } = this.getGroupedBarLabelYPosition(d, 'vertical');
                             
                         this.chart.append('text')
                             .attr('class', 'grouped-bar-label')
                             .attr('x', this.xScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2)
-                            .attr('y', labelY)
+                            .attr('y', y)
                             .attr('text-anchor', 'middle')
-                            .attr('dominant-baseline', this.config.labelPosition === 'bottom' ? 'hanging' : 'middle')
+                            .attr('dominant-baseline', dominantBaseline)
                             .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                             .style('font-size', `${this.config.labelFontSize}px`)
                             .style('fill', this.config.labelColor)
@@ -2134,18 +2352,18 @@ class PulseBarChart {
             (this.data);
         
         if (this.config.orientation === 'horizontal') {
-            // Horizontal stacked bar labels
+            // Horizontal stacked bar labels with configurable positioning
             stackedData.forEach((layer) => {
                 layer.forEach(d => {
                     const segmentValue = d[1] - d[0];
                     if (segmentValue > 0) { // Only show labels for segments with values
-                        const segmentCenter = (d[0] + d[1]) / 2;
+                        const { x, textAnchor } = this.getStackedBarLabelXPosition(d, 'horizontal');
                         
                         this.chart.append('text')
                             .attr('class', 'stacked-bar-label')
-                            .attr('x', this.xScale(segmentCenter))
+                            .attr('x', x)
                             .attr('y', this.yScale(d.data.category) + this.yScale.bandwidth() / 2)
-                            .attr('text-anchor', 'middle')
+                            .attr('text-anchor', textAnchor)
                             .attr('dominant-baseline', 'middle')
                             .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                             .style('font-size', `${this.config.labelFontSize}px`)
@@ -2160,19 +2378,19 @@ class PulseBarChart {
                 });
             });
         } else {
-            // Vertical stacked bar labels
+            // Vertical stacked bar labels with configurable positioning
             stackedData.forEach((layer) => {
                 layer.forEach(d => {
                     const segmentValue = d[1] - d[0];
                     if (segmentValue > 0) { // Only show labels for segments with values
-                        const segmentCenter = (this.yScale(d[0]) + this.yScale(d[1])) / 2;
+                        const { y, dominantBaseline } = this.getStackedBarLabelYPosition(d, 'vertical');
                         
                         this.chart.append('text')
                             .attr('class', 'stacked-bar-label')
                             .attr('x', this.xScale(d.data.category) + this.xScale.bandwidth() / 2)
-                            .attr('y', segmentCenter)
+                            .attr('y', y)
                             .attr('text-anchor', 'middle')
-                            .attr('dominant-baseline', 'middle')
+                            .attr('dominant-baseline', dominantBaseline)
                             .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                             .style('font-size', `${this.config.labelFontSize}px`)
                             .style('fill', this.config.labelColor)
