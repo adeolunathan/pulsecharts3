@@ -9,6 +9,7 @@ class PulseBarChart {
         this.svg = null;
         this.chart = null;
         this.data = null;
+        this.originalData = null; // Store original data order for sort toggle
         this.tooltip = null;
         this.bars = [];
         
@@ -235,6 +236,24 @@ class PulseBarChart {
         if (!this.data || this.data.length === 0) {
             console.warn('⚠️ No data available for bar chart rendering');
             return;
+        }
+
+        // Apply auto sort if enabled (for when sort toggle is changed after initial load)
+        if (this.config.autoSort === true) {
+            console.log('📊 Auto-sorting data during render (autoSort enabled)');
+            console.log('📊 BEFORE RENDER SORT:', this.data.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+            
+            this.data.sort((a, b) => {
+                const valueA = this.getPrimaryValue(a);
+                const valueB = this.getPrimaryValue(b);
+                return valueB - valueA; // Descending order
+            });
+            
+            console.log('📊 AFTER RENDER SORT:', this.data.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+        } else if (this.config.autoSort === false && this.originalData) {
+            // Restore original order when sort is disabled
+            console.log('📊 Restoring original data order (autoSort disabled)');
+            this.data = [...this.originalData];
         }
 
         console.log('🎨 Rendering bar chart with', this.data.length, 'bars');
@@ -1245,6 +1264,9 @@ class PulseBarChart {
                 .attr('x', d => this.xScale(d.category) + this.xScale.bandwidth() / 2)
                 .attr('y', d => this.getLabelY(d))
                 .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 
+                    this.config.labelPosition === 'inside_center' || this.config.labelPosition === 'middle' ? 'middle' : 
+                    this.config.labelPosition === 'outside_start' || this.config.labelPosition === 'bottom' ? 'hanging' : 'auto')
                 .style('font-family', this.config.titleFont || 'Inter, sans-serif')
                 .style('font-size', `${this.config.labelFontSize}px`)
                 .style('font-weight', this.config.labelFontWeight)
@@ -1641,16 +1663,28 @@ class PulseBarChart {
     
     // Helper method to get the primary value from any data row (for simple charts)
     getPrimaryValue(dataRow) {
+        if (!dataRow) return 0;
+        
         // Try to find a 'value' property first
         if (dataRow.value !== undefined && dataRow.value !== null) {
             return Number(dataRow.value) || 0;
         }
         
-        // Otherwise, use the first numeric column
-        const numericColumns = this.getNumericColumns();
-        if (numericColumns.length > 0) {
-            const firstColumn = numericColumns[0];
+        // Look for value_* pattern columns in the data row itself
+        const valueColumns = Object.keys(dataRow).filter(key => /^value(_?\d+)?$/.test(key));
+        
+        if (valueColumns.length > 0) {
+            // Sort to get the first value column (value, value_2, value_3, etc.)
+            valueColumns.sort();
+            const firstColumn = valueColumns[0];
             return Number(dataRow[firstColumn]) || 0;
+        }
+        
+        // Last resort: find any numeric property
+        for (const key of Object.keys(dataRow)) {
+            if (key !== 'category' && key !== 'label' && typeof dataRow[key] === 'number') {
+                return Number(dataRow[key]) || 0;
+            }
         }
         
         return 0;
@@ -1685,14 +1719,13 @@ class PulseBarChart {
                 processedData = data.categories.map((category, categoryIndex) => {
                     const result = { category: category };
                     
-                    // Add data from each series as separate columns
+                    // Add data from each series as separate columns with consistent naming
                     data.series.forEach((series, seriesIndex) => {
-                        const columnName = series.name ? 
-                            series.name.replace(/\s+/g, '_').toLowerCase() : 
-                            `series_${seriesIndex + 1}`;
+                        // Always use consistent value column naming: value, value_2, value_3, etc.
+                        const columnName = seriesIndex === 0 ? 'value' : `value_${seriesIndex + 1}`;
                         
                         result[columnName] = series.data[categoryIndex] || 0;
-                        console.log(`📊 Added column ${columnName} = ${result[columnName]} for ${category}`);
+                        console.log(`📊 Added column ${columnName} = ${result[columnName]} for ${category} (series: ${series.name || `Series ${seriesIndex + 1}`})`);
                     });
                     
                     // DON'T add backwards compatibility 'value' column - it creates duplicates!
@@ -1769,8 +1802,21 @@ class PulseBarChart {
             }
 
             // Sort data by value (descending) if autoSort is enabled (disabled by default)
+            console.log('📊 AutoSort config value:', this.config.autoSort);
+            console.log('📊 AutoSort enabled?', this.config.autoSort === true);
+            
             if (this.config.autoSort === true) {
-                processedData.sort((a, b) => (b.value || 0) - (a.value || 0));
+                console.log('📊 BEFORE SORT:', processedData.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+                
+                processedData.sort((a, b) => {
+                    const valueA = this.getPrimaryValue(a);
+                    const valueB = this.getPrimaryValue(b);
+                    console.log(`📊 Comparing ${a.category}(${valueA}) vs ${b.category}(${valueB})`);
+                    return valueB - valueA;
+                });
+                
+                console.log('📊 AFTER SORT:', processedData.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+                console.log('📊 Data sorted by primary value (autoSort enabled)');
             }
 
             console.log('✅ Processed bar chart data:', processedData);
@@ -1786,8 +1832,14 @@ class PulseBarChart {
                 console.log('📊 First row sample:', firstRow);
             }
             
-            // Store processed data
+            // Store processed data and preserve original order
             this.data = processedData;
+            
+            // Store original data order for sort toggle functionality
+            if (!this.originalData) {
+                this.originalData = [...processedData];
+                console.log('📊 Stored original data order for sort toggle');
+            }
             
             return processedData;
         })();
@@ -1840,17 +1892,31 @@ class PulseBarChart {
             return this.yScale(d.category) + this.yScale.bandwidth() / 2;
         } else {
             // Vertical bars
-            const barTop = this.yScale(Math.max(0, this.getPrimaryValue(d)));
+            const value = this.getPrimaryValue(d);
+            const barTop = this.yScale(Math.max(0, value));
             const barBottom = this.yScale(0);
             const barHeight = Math.abs(barBottom - barTop);
             
             switch (this.config.labelPosition) {
+                case 'outside_end':
+                    // Above the bar (traditional top)
+                    return barTop - this.config.labelOffset;
+                case 'inside_end':
+                    // Inside the bar near the top
+                    return barTop + this.config.labelOffset + 10;
+                case 'inside_center':
+                    // In the center of the bar
+                    return barTop + barHeight / 2;
+                case 'outside_start':
+                    // Below the chart (traditional bottom)
+                    return barBottom + this.config.labelOffset + 15;
+                // Legacy support for old position values
                 case 'top':
                     return barTop - this.config.labelOffset;
                 case 'middle':
                     return barTop + barHeight / 2;
                 case 'bottom':
-                    return barBottom + this.config.labelOffset;
+                    return barBottom + this.config.labelOffset + 15;
                 default:
                     return barTop - this.config.labelOffset;
             }

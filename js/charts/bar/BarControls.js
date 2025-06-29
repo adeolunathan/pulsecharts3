@@ -261,13 +261,14 @@ window.BarControlModule = (function() {
                             id: "labelPosition",
                             type: "dropdown",
                             label: "Label Position",
-                            default: "top",
+                            default: "outside_end",
                             options: [
-                                { value: "top", label: "Top of Bar" },
-                                { value: "middle", label: "Middle of Bar" },
-                                { value: "bottom", label: "Bottom of Bar" }
+                                { value: "outside_end", label: "Outside End" },
+                                { value: "inside_end", label: "Inside End" },
+                                { value: "inside_center", label: "Inside Center" },
+                                { value: "outside_start", label: "Outside Start" }
                             ],
-                            description: "Where to position the value labels"
+                            description: "Where to position the value labels relative to bars"
                         },
                         {
                             id: "labelOffset",
@@ -338,19 +339,12 @@ window.BarControlModule = (function() {
                     ]
                 },
 
-                // Interactivity
+                // Interactivity - removed individual controls, hover always enabled
                 interaction: {
                     title: "Interactivity",
                     icon: "🖱️",
                     collapsed: true,
-                    controls: [
-                        {
-                            id: "enableHover",
-                            type: "toggle",
-                            label: "Enable Hover Effects",
-                            default: true
-                        }
-                    ]
+                    controls: []
                 },
 
                 // Animation
@@ -363,7 +357,7 @@ window.BarControlModule = (function() {
                             id: "animationEasing",
                             type: "dropdown",
                             label: "Animation Easing",
-                            default: "easeLinear",
+                            default: "easeQuadOut",
                             options: [
                                 { value: "easeLinear", label: "Linear" },
                                 { value: "easeQuadOut", label: "Quad Out" },
@@ -386,7 +380,7 @@ window.BarControlModule = (function() {
                             id: "backgroundColor",
                             type: "color_picker",
                             label: "Background Color",
-                            default: "#f8f9fa"
+                            default: "#f5f0db"
                         },
                         {
                             id: "titleFont",
@@ -416,7 +410,7 @@ window.BarControlModule = (function() {
                             type: "slider",
                             label: "Title Size",
                             min: 14,
-                            max: 32,
+                            max: 50,
                             default: 20,
                             step: 1,
                             unit: "px",
@@ -477,20 +471,20 @@ window.BarControlModule = (function() {
                 gridColor: '#e5e7eb',
                 showBarLabels: true,
                 showValues: true,
-                labelPosition: 'top',
+                labelPosition: 'outside_end',
                 labelOffset: 8,
                 labelFontSize: 12,
                 labelColor: '#374151',
                 valueFormat: 'currency',
                 currencySymbol: '$',
                 decimalPlaces: 0,
-                enableHover: true,
+                enableHover: true, // Always enabled, no control needed
                 enableClick: true,
                 enableTooltip: true,
                 hoverOpacity: 1.0,
                 animationDuration: 700,
                 animationEasing: 'easeQuadOut',
-                backgroundColor: '#f8f9fa',
+                backgroundColor: '#f5f0db',
                 titleFont: 'Inter',
                 titleColor: '#1f2937',
                 titleSize: 20
@@ -609,9 +603,9 @@ window.BarControlModule = (function() {
                 if (controlId === 'backgroundColor' && chart.svg) {
                     chart.svg.style('background-color', value);
                 } else if (controlId === 'titleColor' && chart.svg) {
-                    chart.svg.selectAll('text').style('fill', value);
+                    chart.svg.selectAll('.chart-title, .chart-header text').style('fill', value);
                 } else if (controlId === 'labelColor' && chart.chart) {
-                    chart.chart.selectAll('.bar-label').style('fill', value);
+                    chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label').style('fill', value);
                 } else if (controlId === 'axisColor' && chart.svg) {
                     chart.svg.selectAll('.x-axis, .y-axis').selectAll('path, line, text').style('stroke', value).style('fill', value);
                 } else if (controlId === 'gridColor' && chart.chart) {
@@ -657,15 +651,17 @@ window.BarControlModule = (function() {
             }
             // Handle font changes
             else if (controlId === 'titleFont') {
-                chart.svg.selectAll('text').style('font-family', chart.getFontFamily());
+                chart.svg.selectAll('.chart-title, .chart-header text').style('font-family', chart.getFontFamily());
             }
             // Handle title color changes
             else if (controlId === 'titleColor') {
-                chart.svg.selectAll('.chart-header text').style('fill', value);
+                chart.svg.selectAll('.chart-title, .chart-header text').style('fill', value);
             }
             // Handle title size changes
             else if (controlId === 'titleSize') {
-                chart.svg.selectAll('.chart-header text').style('font-size', value + 'px');
+                chart.svg.selectAll('.chart-title, .chart-header text')
+                    .interrupt() // Stop any ongoing transitions
+                    .style('font-size', value + 'px');
             }
             // Handle opacity changes
             else if (controlId === 'barOpacity') {
@@ -691,7 +687,7 @@ window.BarControlModule = (function() {
             }
             // Handle font size changes that need immediate updates
             else if (controlId === 'labelFontSize') {
-                chart.chart.selectAll('.bar-label')
+                chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label')
                     .transition()
                     .duration(200)
                     .style('font-size', value + 'px');
@@ -720,6 +716,16 @@ window.BarControlModule = (function() {
             // Handle animation easing control  
             else if (controlId === 'animationEasing') {
                 console.log(`🎬 Animation easing changed to: ${value}`);
+                // Re-animate bars to show the new easing effect
+                if (chart.chart && chart.data && chart.data.length > 0) {
+                    const easingFunction = chart.getD3EasingFunction(value);
+                    chart.chart.selectAll('.bar')
+                        .interrupt() // Stop any ongoing animations
+                        .transition()
+                        .duration(chart.config.animationDuration)
+                        .ease(easingFunction)
+                        .attr('opacity', chart.config.barOpacity);
+                }
             }
             // Handle config-only controls that don't need immediate visual changes
             else if (['enableHover', 'enableClick', 'enableTooltip', 'hoverOpacity', 'categorySpacing'].includes(controlId)) {

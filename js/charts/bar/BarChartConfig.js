@@ -42,7 +42,7 @@ window.BarChartConfig = (function() {
             
             // Labels
             showBarLabels: true,
-            labelPosition: 'top',   // 'top', 'middle', 'bottom'
+            labelPosition: 'outside_end',   // 'outside_end', 'inside_end', 'inside_center', 'outside_start'
             labelOffset: 8,
             labelColor: '#374151',
             labelFontSize: 12,
@@ -54,7 +54,7 @@ window.BarChartConfig = (function() {
             currencySymbol: '$',
             decimalPlaces: 0,
             
-            // Interactivity
+            // Interactivity (hover always enabled)
             enableHover: true,
             enableClick: true,
             enableTooltip: true,
@@ -64,7 +64,7 @@ window.BarChartConfig = (function() {
             customColors: [],
             
             // Background and theming
-            backgroundColor: '#f8f9fa',
+            backgroundColor: '#f5f0db',
             titleFont: 'Inter',
             titleColor: '#1f2937',
             
