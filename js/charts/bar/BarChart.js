@@ -308,15 +308,15 @@ class PulseBarChart {
             // For waterfall, calculate cumulative values
             let cumulative = 0;
             const cumulativeValues = this.data.map(d => {
-                cumulative += (d.value || 0);
+                cumulative += this.getPrimaryValue(d);
                 return cumulative;
             });
             maxValue = d3.max(cumulativeValues);
             minValue = d3.min([0, ...cumulativeValues]);
         } else {
             // Default: simple bar chart
-            maxValue = d3.max(this.data, d => d.value || 0);
-            minValue = d3.min(this.data, d => d.value || 0);
+            maxValue = d3.max(this.data, d => this.getPrimaryValue(d));
+            minValue = d3.min(this.data, d => this.getPrimaryValue(d));
         }
         
         const valueRange = maxValue - Math.min(0, minValue);
@@ -534,8 +534,8 @@ class PulseBarChart {
             bars.transition()
                 .duration(this.config.animationDuration)
                 .ease(easingFunction)
-                .attr('x', d => this.xScale(Math.min(0, d.value)))
-                .attr('width', d => Math.abs(this.xScale(d.value) - this.xScale(0)));
+                .attr('x', d => this.xScale(Math.min(0, this.getPrimaryValue(d))))
+                .attr('width', d => Math.abs(this.xScale(this.getPrimaryValue(d)) - this.xScale(0)));
 
             // Add interactivity
             this.addBarInteractivity(bars);
@@ -571,8 +571,8 @@ class PulseBarChart {
             bars.transition()
                 .duration(this.config.animationDuration)
                 .ease(easingFunction)
-                .attr('y', d => this.yScale(Math.max(0, d.value)))
-                .attr('height', d => Math.abs(this.yScale(d.value) - this.yScale(0)));
+                .attr('y', d => this.yScale(Math.max(0, this.getPrimaryValue(d))))
+                .attr('height', d => Math.abs(this.yScale(this.getPrimaryValue(d)) - this.yScale(0)));
 
             // Add interactivity
             this.addBarInteractivity(bars);
@@ -599,6 +599,9 @@ class PulseBarChart {
         
         console.log('🔍 renderGroupedBars: Found numeric columns:', numericColumns);
         console.log('🔍 renderGroupedBars: Numeric columns count:', numericColumns.length);
+        console.log('🔍 renderGroupedBars: DETAILED - All data keys:', this.data.map(row => Object.keys(row)));
+        console.log('🔍 renderGroupedBars: DETAILED - First row values:', this.data[0]);
+        console.log('🔍 renderGroupedBars: DETAILED - All rows:', this.data);
         
         if (numericColumns.length < 2) {
             console.warn('🔍 renderGroupedBars: Grouped chart requires multiple numeric columns. Falling back to simple chart.');
@@ -615,8 +618,13 @@ class PulseBarChart {
                 category: d.category,
                 label: d.label || d.category 
             }));
+            console.log(`🔧 GROUPED DATA - Category: ${d.category}, Values count: ${values.length}`, values);
             return { category: d.category, values };
         });
+        
+        console.log('🔧 FINAL GROUPED DATA:', groupedData);
+        console.log('🔧 EXPECTED BARS PER CATEGORY:', numericColumns.length);
+        console.log('🔧 ACTUAL BARS PER CATEGORY:', groupedData[0]?.values?.length || 0);
         
         // Create sub-scale for groups
         // For horizontal: categories are on Y-axis (band scale), values on X-axis (linear scale)
@@ -649,8 +657,13 @@ class PulseBarChart {
             allGroups.each(function(groupData) {
                 const group = d3.select(this);
                 
+                console.log(`🔧 HORIZONTAL BAR CREATION - Category: ${groupData.category}, Values:`, groupData.values);
+                console.log(`🔧 HORIZONTAL BAR CREATION - About to create ${groupData.values.length} bars for ${groupData.category}`);
+                
                 const barSelection = group.selectAll('.bar')
                     .data(groupData.values);
+                
+                console.log(`🔧 HORIZONTAL BAR SELECTION - Data count: ${groupData.values.length}, Existing bars: ${barSelection.size()}`);
                 
                 // Remove old bars
                 barSelection.exit().remove();
@@ -672,7 +685,7 @@ class PulseBarChart {
                     
                 allBars.transition()
                     .duration(self.config.animationDuration)
-                    .attr('width', d => self.xScale(d.value));
+                    .attr('width', d => self.xScale(d.value || 0));
             });
             
             // Add interactivity to grouped bars only (avoid duplicate bar selection)
@@ -724,8 +737,8 @@ class PulseBarChart {
                     
                 allBars.transition()
                     .duration(self.config.animationDuration)
-                    .attr('y', d => self.yScale(d.value))
-                    .attr('height', d => self.yScale(0) - self.yScale(d.value));
+                    .attr('y', d => self.yScale(d.value || 0))
+                    .attr('height', d => self.yScale(0) - self.yScale(d.value || 0));
             });
             
             // Add interactivity to grouped bars only (avoid duplicate bar selection)
@@ -1030,7 +1043,7 @@ class PulseBarChart {
         
         // Calculate cumulative values
         const waterfallData = this.data.map((d, i) => {
-            const value = d.value || 0;
+            const value = this.getPrimaryValue(d);
             const start = cumulative;
             cumulative += value;
             return {
@@ -1101,7 +1114,7 @@ class PulseBarChart {
         const radius = Math.min(centerX, centerY) - 50;
         
         const colors = this.getBarColors();
-        const maxValue = d3.max(this.data, d => d.value);
+        const maxValue = d3.max(this.data, d => this.getPrimaryValue(d));
         
         // Create radial scale
         const radiusScale = d3.scaleLinear()
@@ -1128,7 +1141,7 @@ class PulseBarChart {
         // Calculate arc paths
         const arc = d3.arc()
             .innerRadius(0)
-            .outerRadius(d => radiusScale(d.value))
+            .outerRadius(d => radiusScale(this.getPrimaryValue(d)))
             .startAngle(d => angleScale(d.category))
             .endAngle(d => angleScale(d.category) + angleScale.bandwidth());
             
@@ -1190,7 +1203,7 @@ class PulseBarChart {
             .duration(this.config.animationDuration)
             .attr('transform', d => {
                 const angle = angleScale(d.category) + angleScale.bandwidth() / 2;
-                const radius = radiusScale(d.value) + 20;
+                const radius = radiusScale(this.getPrimaryValue(d)) + 20;
                 const x = centerX + Math.cos(angle - Math.PI / 2) * radius;
                 const y = centerY + Math.sin(angle - Math.PI / 2) * radius;
                 return `translate(${x}, ${y})`;
@@ -1206,7 +1219,7 @@ class PulseBarChart {
                 .enter()
                 .append('text')
                 .attr('class', 'bar-label')
-                .attr('x', d => this.xScale(d.value) + this.config.labelOffset)
+                .attr('x', d => this.xScale(this.getPrimaryValue(d)) + this.config.labelOffset)
                 .attr('y', d => this.yScale(d.category) + this.yScale.bandwidth() / 2)
                 .attr('text-anchor', 'start')
                 .attr('dominant-baseline', 'middle')
@@ -1358,16 +1371,24 @@ class PulseBarChart {
     }
 
     formatValue(value) {
+        // Handle undefined, null, or non-numeric values
+        if (value == null || isNaN(value) || !isFinite(value)) {
+            return '0';
+        }
+        
+        // Ensure value is a number
+        const numValue = Number(value);
+        
         switch (this.config.valueFormat) {
             case 'currency':
-                return this.config.currencySymbol + value.toLocaleString(undefined, {
+                return this.config.currencySymbol + numValue.toLocaleString(undefined, {
                     minimumFractionDigits: this.config.decimalPlaces,
                     maximumFractionDigits: this.config.decimalPlaces
                 });
             case 'percentage':
-                return (value * 100).toFixed(this.config.decimalPlaces) + '%';
+                return (numValue * 100).toFixed(this.config.decimalPlaces) + '%';
             default:
-                return value.toLocaleString(undefined, {
+                return numValue.toLocaleString(undefined, {
                     minimumFractionDigits: this.config.decimalPlaces,
                     maximumFractionDigits: this.config.decimalPlaces
                 });
@@ -1426,7 +1447,7 @@ class PulseBarChart {
         if (window.ChartExports && window.ChartExports.exportToCSV) {
             const csvData = this.data.map(d => ({
                 Category: d.category,
-                Value: d.value,
+                Value: this.getPrimaryValue(d),
                 Label: d.label
             }));
             return ChartExports.exportToCSV.call(this, csvData, filename);
@@ -1569,81 +1590,70 @@ class PulseBarChart {
     getNumericColumns() {
         if (!this.data || this.data.length === 0) return [];
         
-        // More comprehensive list of excluded categorical/metadata columns
-        const excludedColumns = ['category', 'label', 'name', 'id', 'key', 'index', 'row', 'rowindex'];
         const allColumns = Object.keys(this.data[0] || {});
-        
         console.log('🔍 getNumericColumns: All columns found:', allColumns);
         console.log('🔍 getNumericColumns: Sample data row:', this.data[0]);
         
-        const numericColumns = allColumns.filter(column => {
-            // Skip excluded categorical columns (case insensitive)
-            if (excludedColumns.some(excluded => column.toLowerCase().includes(excluded.toLowerCase()))) {
-                console.log(`❌ Column '${column}' excluded due to categorical name pattern`);
+        // ROBUST APPROACH: Start with strict known value column patterns
+        const valueColumns = allColumns.filter(column => {
+            // Match value column patterns: value, value_1, value_2, value_3, etc.
+            const isValueColumn = /^value(_?\d+)?$/.test(column);
+            
+            if (!isValueColumn) {
+                console.log(`❌ Column '${column}' excluded - doesn't match value pattern`);
                 return false;
             }
             
-            // Check all rows for this column to ensure it's truly numeric
-            let numericCount = 0;
-            let nonNullCount = 0;
-            let hasValidNumbers = false;
-            let allValues = [];
+            // Verify it's actually numeric
+            let allNumeric = true;
+            let hasValidData = false;
             
             for (const row of this.data) {
                 const value = row[column];
                 
                 // Skip null/undefined values
                 if (value == null) continue;
-                nonNullCount++;
-                allValues.push(value);
                 
-                // Check if it's a genuine number (not a string that looks like a number)
-                if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
-                    numericCount++;
-                    // Ensure we have meaningful numeric values (not just 0s and 1s which could be categorical)
-                    if (Math.abs(value) > 1e-10) hasValidNumbers = true;
+                // Check if it's a genuine number
+                if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                    allNumeric = false;
+                    break;
                 }
+                
+                // Has at least one non-zero value
+                if (Math.abs(value) > 1e-10) hasValidData = true;
             }
             
-            // Additional check: reject columns that look like indices or IDs
-            const seemsLikeIndex = allValues.every((val, idx) => val === idx || val === idx + 1);
-            if (seemsLikeIndex && allValues.length > 1) {
-                console.log(`❌ Column '${column}' excluded - appears to be an index/ID column:`, allValues);
+            if (allNumeric && hasValidData) {
+                console.log(`✅ Column '${column}' confirmed as valid numeric value column`);
+                return true;
+            } else {
+                console.log(`❌ Column '${column}' excluded - not properly numeric (allNumeric: ${allNumeric}, hasValidData: ${hasValidData})`);
                 return false;
             }
-            
-            // A column is considered numeric if:
-            // 1. ALL non-null values are genuine numbers (100% ratio for safety)
-            // 2. It has at least one meaningful numeric value
-            // 3. It has at least one non-null value
-            const numericRatio = nonNullCount > 0 ? numericCount / nonNullCount : 0;
-            
-            const isNumeric = numericRatio === 1.0 && hasValidNumbers && nonNullCount > 0;
-            
-            if (isNumeric) {
-                console.log(`✅ Column '${column}' identified as numeric (${numericCount}/${nonNullCount} values are numbers, values: [${allValues.join(', ')}])`);
-            } else {
-                console.log(`❌ Column '${column}' excluded from numeric columns (${numericCount}/${nonNullCount} values are numbers, hasValidNumbers: ${hasValidNumbers}, ratio: ${numericRatio})`);
-            }
-            
-            return isNumeric;
         });
         
-        console.log('🔍 getNumericColumns: Final numeric columns:', numericColumns);
+        console.log('🔧 FINAL: Detected value columns:', valueColumns);
+        console.log('🔧 FINAL: Column count:', valueColumns.length);
         
-        // DEFINITIVE FIX: Only use expected numeric columns, filter out any extras
-        const expectedColumns = ['value', 'value_2', 'value_3'];
-        const filteredColumns = numericColumns.filter(col => expectedColumns.includes(col));
-        
-        console.log('🔧 FILTERED to expected columns only:', filteredColumns);
-        console.log('🔧 Rejected columns:', numericColumns.filter(col => !expectedColumns.includes(col)));
-        
-        // If we found the expected columns, use them; otherwise fall back to the detected ones
-        if (filteredColumns.length > 0) {
-            return filteredColumns;
+        return valueColumns;
+    }
+    
+    // Helper method to get the primary value from any data row (for simple charts)
+    getPrimaryValue(dataRow) {
+        // Try to find a 'value' property first
+        if (dataRow.value !== undefined && dataRow.value !== null) {
+            return Number(dataRow.value) || 0;
         }
         
-        return numericColumns;
+        // Otherwise, use the first numeric column
+        const numericColumns = this.getNumericColumns();
+        if (numericColumns.length > 0) {
+            const firstColumn = numericColumns[0];
+            return Number(dataRow[firstColumn]) || 0;
+        }
+        
+        return 0;
     }
     
     // Process data method required by control system
@@ -1685,10 +1695,9 @@ class PulseBarChart {
                         console.log(`📊 Added column ${columnName} = ${result[columnName]} for ${category}`);
                     });
                     
-                    // Ensure backwards compatibility with 'value' column (use first series)
-                    if (!result.value && result.value !== 0) {
-                        result.value = data.series[0].data[categoryIndex] || 0;
-                    }
+                    // DON'T add backwards compatibility 'value' column - it creates duplicates!
+                    // The numeric columns already include proper series data
+                    console.log('📊 🎯 Skipping backwards compatibility value column to prevent duplicates');
                     
                     // Add label for compatibility
                     result.label = category;
@@ -1714,15 +1723,8 @@ class PulseBarChart {
                         }
                     });
                     
-                    // Ensure backwards compatibility with 'value' column
-                    if (!result.value && result.value !== 0) {
-                        // Get the first numeric column as the default 'value'
-                        const numericKeys = Object.keys(result).filter(k => 
-                            k !== 'category' && k !== 'label' && 
-                            typeof result[k] === 'number' && !isNaN(result[k]) && isFinite(result[k])
-                        );
-                        result.value = numericKeys.length > 0 ? result[numericKeys[0]] : 0;
-                    }
+                    // DON'T add backwards compatibility 'value' column - causes duplicate bars!
+                    console.log('📊 🎯 Skipping backwards compatibility value column in flat format');
                     
                     return result;
                 });
@@ -1754,10 +1756,8 @@ class PulseBarChart {
                         }
                     });
                     
-                    // Ensure value exists
-                    if (!result.value && result.value !== 0) {
-                        result.value = parseFloat(d.value) || 0;
-                    }
+                    // DON'T add redundant 'value' column - let getNumericColumns() handle filtering
+                    console.log('📊 🎯 Skipping redundant value column in array format');
                     
                     return result;
                 });
@@ -1802,8 +1802,8 @@ class PulseBarChart {
         return {
             totalLayers: 1, // Bar charts have a single layer
             categories: this.data.map(d => d.category),
-            maxValue: Math.max(...this.data.map(d => d.value)),
-            minValue: Math.min(...this.data.map(d => d.value))
+            maxValue: Math.max(...this.data.map(d => this.getPrimaryValue(d))),
+            minValue: Math.min(...this.data.map(d => this.getPrimaryValue(d)))
         };
     }
 
@@ -1840,7 +1840,7 @@ class PulseBarChart {
             return this.yScale(d.category) + this.yScale.bandwidth() / 2;
         } else {
             // Vertical bars
-            const barTop = this.yScale(Math.max(0, d.value));
+            const barTop = this.yScale(Math.max(0, this.getPrimaryValue(d)));
             const barBottom = this.yScale(0);
             const barHeight = Math.abs(barBottom - barTop);
             
@@ -1869,10 +1869,10 @@ class PulseBarChart {
         
         if (showLabels && showValues) {
             // Show both: "Category: $value"
-            return `${d.label}: ${this.formatValue(d.value)}`;
+            return `${d.label}: ${this.formatValue(this.getPrimaryValue(d))}`;
         } else if (showValues) {
             // Show only values
-            return this.formatValue(d.value);
+            return this.formatValue(this.getPrimaryValue(d));
         } else if (showLabels) {
             // Show only labels
             return d.label;
@@ -1949,10 +1949,10 @@ class PulseBarChart {
             // Horizontal grouped bar labels
             groupedData.forEach(groupData => {
                 groupData.values.forEach(d => {
-                    if (d.value > 0) { // Only show labels for bars with values
+                    if ((d.value || 0) > 0) { // Only show labels for bars with values
                         this.chart.append('text')
                             .attr('class', 'grouped-bar-label')
-                            .attr('x', this.xScale(d.value) + this.config.labelOffset)
+                            .attr('x', this.xScale(d.value || 0) + this.config.labelOffset)
                             .attr('y', this.yScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2)
                             .attr('text-anchor', 'start')
                             .attr('dominant-baseline', 'middle')
@@ -1972,12 +1972,12 @@ class PulseBarChart {
             // Vertical grouped bar labels
             groupedData.forEach(groupData => {
                 groupData.values.forEach(d => {
-                    if (d.value > 0) { // Only show labels for bars with values
+                    if ((d.value || 0) > 0) { // Only show labels for bars with values
                         const labelY = this.config.labelPosition === 'top' ? 
-                            this.yScale(d.value) - this.config.labelOffset :
+                            this.yScale(d.value || 0) - this.config.labelOffset :
                             this.config.labelPosition === 'bottom' ?
                             this.yScale(0) + this.config.labelOffset :
-                            this.yScale(d.value / 2); // middle
+                            this.yScale((d.value || 0) / 2); // middle
                             
                         this.chart.append('text')
                             .attr('class', 'grouped-bar-label')
@@ -2077,17 +2077,17 @@ class PulseBarChart {
         const bars = this.chart.selectAll('.bar');
         
         bars.each((d, i, nodes) => {
-            const value = d.value || (d.end - d.start);
+            const value = this.getPrimaryValue(d) || (d.end - d.start);
             
             if (Math.abs(value) > 0) { // Only show labels for bars with values
                 let labelX, labelY;
                 
                 if (this.config.orientation === 'horizontal') {
-                    labelX = this.xScale(Math.max(d.start || 0, d.end || d.value || 0)) + this.config.labelOffset;
+                    labelX = this.xScale(Math.max(d.start || 0, d.end || this.getPrimaryValue(d))) + this.config.labelOffset;
                     labelY = this.yScale(d.category) + this.yScale.bandwidth() / 2;
                 } else {
                     labelX = this.xScale(d.category) + this.xScale.bandwidth() / 2;
-                    labelY = this.yScale(Math.max(d.start || 0, d.end || d.value || 0)) - this.config.labelOffset;
+                    labelY = this.yScale(Math.max(d.start || 0, d.end || this.getPrimaryValue(d))) - this.config.labelOffset;
                 }
                 
                 this.chart.append('text')
@@ -2120,10 +2120,10 @@ class PulseBarChart {
         
         if (showLabels && showValues) {
             // Show both: "Category: $value" (same as simple chart)
-            return `${d.label || d.category}: ${this.formatValue(d.value)}`;
+            return `${d.label || d.category}: ${this.formatValue(d.value || 0)}`;
         } else if (showValues) {
             // Show only values (same as simple chart)
-            return this.formatValue(d.value);
+            return this.formatValue(d.value || 0);
         } else if (showLabels) {
             // Show only category labels (same as simple chart)
             return d.label || d.category;
@@ -2160,7 +2160,7 @@ class PulseBarChart {
         
         if (!showLabels && !showValues) return '';
         
-        const value = d.value || (d.end - d.start);
+        const value = this.getPrimaryValue(d) || (d.end - d.start);
         const label = d.label || d.category || '';
         
         if (showLabels && showValues) {
