@@ -119,7 +119,18 @@ window.BarControlModule = (function() {
                             type: "toggle",
                             label: "Auto Sort by Value",
                             default: false,
-                            description: "Automatically sort bars by value (descending) or keep user order"
+                            description: "Automatically sort bars by value or keep user order"
+                        },
+                        {
+                            id: "sortDirection",
+                            type: "dropdown",
+                            label: "Sort Direction",
+                            default: "descending",
+                            options: [
+                                { value: "descending", label: "Descending (High to Low)" },
+                                { value: "ascending", label: "Ascending (Low to High)" }
+                            ],
+                            description: "Direction for auto-sorting (when enabled)"
                         }
                     ]
                 },
@@ -461,6 +472,7 @@ window.BarControlModule = (function() {
                 barCornerRadius: 4,
                 cornerRadiusStyle: true,
                 autoSort: false,
+                sortDirection: 'descending',
                 defaultBarColor: '#3498db',
                 hoverColor: '#2980b9',
                 barOpacity: 1,

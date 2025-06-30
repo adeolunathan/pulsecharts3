@@ -241,15 +241,19 @@ class PulseBarChart {
         // Apply auto sort if enabled (for when sort toggle is changed after initial load)
         if (this.config.autoSort === true) {
             console.log('📊 Auto-sorting data during render (autoSort enabled)');
-            console.log('📊 BEFORE RENDER SORT:', this.data.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+            console.log('📊 Chart type:', this.config.barChartType);
+            console.log('📊 Sort direction:', this.config.sortDirection);
+            console.log('📊 BEFORE RENDER SORT:', this.data.map(d => ({ category: d.category, sortValue: this.getSortValue(d) })));
+            
+            const isDescending = this.config.sortDirection === 'descending';
             
             this.data.sort((a, b) => {
-                const valueA = this.getPrimaryValue(a);
-                const valueB = this.getPrimaryValue(b);
-                return valueB - valueA; // Descending order
+                const valueA = this.getSortValue(a);
+                const valueB = this.getSortValue(b);
+                return isDescending ? valueB - valueA : valueA - valueB;
             });
             
-            console.log('📊 AFTER RENDER SORT:', this.data.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+            console.log('📊 AFTER RENDER SORT:', this.data.map(d => ({ category: d.category, sortValue: this.getSortValue(d) })));
         } else if (this.config.autoSort === false && this.originalData) {
             // Restore original order when sort is disabled
             console.log('📊 Restoring original data order (autoSort disabled)');
@@ -2391,6 +2395,79 @@ class PulseBarChart {
         
         return 0;
     }
+
+    // Get the appropriate sort value based on chart type (industry standard practices)
+    getSortValue(dataRow) {
+        if (!dataRow) return 0;
+        
+        const chartType = this.config.barChartType || 'simple';
+        
+        switch (chartType) {
+            case 'simple':
+                // Simple charts: sort by single value
+                return this.getPrimaryValue(dataRow);
+                
+            case 'grouped':
+                // Grouped charts: sort by SUM of all series (industry standard)
+                if (dataRow.seriesData) {
+                    return Object.values(dataRow.seriesData).reduce((sum, val) => sum + (Number(val) || 0), 0);
+                }
+                // Fallback: sum all value_* columns
+                return this.getSumOfAllValues(dataRow);
+                
+            case 'stacked':
+            case 'stacked100':
+                // Stacked charts: sort by total stack height (industry standard)
+                if (dataRow.seriesData) {
+                    return Object.values(dataRow.seriesData).reduce((sum, val) => sum + (Number(val) || 0), 0);
+                }
+                // Fallback: sum all value_* columns
+                return this.getSumOfAllValues(dataRow);
+                
+            case 'waterfall':
+                // Waterfall: sort by cumulative value (if available) or primary value
+                return dataRow.end !== undefined ? dataRow.end : this.getPrimaryValue(dataRow);
+                
+            case 'range':
+                // Range charts: sort by the maximum value (end of range)
+                if (dataRow.valueEnd !== undefined) {
+                    return Number(dataRow.valueEnd) || 0;
+                }
+                return this.getPrimaryValue(dataRow);
+                
+            case 'polar':
+                // Polar charts: sort by primary value
+                return this.getPrimaryValue(dataRow);
+                
+            default:
+                // Default: use primary value
+                return this.getPrimaryValue(dataRow);
+        }
+    }
+
+    // Helper method to sum all numeric value columns
+    getSumOfAllValues(dataRow) {
+        if (!dataRow) return 0;
+        
+        let total = 0;
+        
+        // Sum all value_* pattern columns
+        const valueColumns = Object.keys(dataRow).filter(key => /^value(_?\d+)?$/.test(key));
+        for (const column of valueColumns) {
+            total += Number(dataRow[column]) || 0;
+        }
+        
+        // If no value_* columns found, try other numeric properties
+        if (valueColumns.length === 0) {
+            for (const key of Object.keys(dataRow)) {
+                if (key !== 'category' && key !== 'label' && typeof dataRow[key] === 'number') {
+                    total += Number(dataRow[key]) || 0;
+                }
+            }
+        }
+        
+        return total;
+    }
     
     // Process data method required by control system
     processData(data) {
@@ -2508,17 +2585,21 @@ class PulseBarChart {
             console.log('📊 AutoSort enabled?', this.config.autoSort === true);
             
             if (this.config.autoSort === true) {
-                console.log('📊 BEFORE SORT:', processedData.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
+                console.log('📊 BEFORE SORT:', processedData.map(d => ({ category: d.category, sortValue: this.getSortValue(d) })));
+                console.log('📊 Sort method for chart type:', this.config.barChartType);
+                console.log('📊 Sort direction:', this.config.sortDirection);
+                
+                const isDescending = this.config.sortDirection === 'descending';
                 
                 processedData.sort((a, b) => {
-                    const valueA = this.getPrimaryValue(a);
-                    const valueB = this.getPrimaryValue(b);
+                    const valueA = this.getSortValue(a);
+                    const valueB = this.getSortValue(b);
                     console.log(`📊 Comparing ${a.category}(${valueA}) vs ${b.category}(${valueB})`);
-                    return valueB - valueA;
+                    return isDescending ? valueB - valueA : valueA - valueB;
                 });
                 
-                console.log('📊 AFTER SORT:', processedData.map(d => ({ category: d.category, primaryValue: this.getPrimaryValue(d) })));
-                console.log('📊 Data sorted by primary value (autoSort enabled)');
+                console.log('📊 AFTER SORT:', processedData.map(d => ({ category: d.category, sortValue: this.getSortValue(d) })));
+                console.log('📊 Data sorted by appropriate method for', this.config.barChartType, 'chart');
             }
 
             console.log('✅ Processed bar chart data:', processedData);
