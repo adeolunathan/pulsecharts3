@@ -658,14 +658,31 @@ window.BarControlModule = (function() {
 
             // Handle chart type changes with control filtering
             if (controlId === 'barChartType') {
+                console.log(`📊 Chart type changing to: ${value} - immediate update`);
+                
                 // Update control availability for new chart type
                 this.updateControlsForChartType(value);
                 
-                // Regenerate control panel with new control states
+                // Update chart config immediately
+                chart.config.barChartType = value;
+                
+                // Force immediate render with current data if available
+                if (chart.data && chart.data.length > 0) {
+                    console.log(`📊 Rendering immediately with existing data for chart type: ${value}`);
+                    chart.render();
+                } else {
+                    console.log(`📊 No data available, triggering data refresh for chart type: ${value}`);
+                    // Trigger data refresh from BarDataEditor
+                    window.dispatchEvent(new CustomEvent('chartTypeChanged', { 
+                        detail: { newType: value, chart: chart } 
+                    }));
+                }
+                
+                // Regenerate control panel with new control states (non-blocking)
                 if (window.pulseApp && window.pulseApp.controlPanel) {
-                    setTimeout(() => {
+                    requestAnimationFrame(() => {
                         window.pulseApp.controlPanel.generateControls();
-                    }, 100);
+                    });
                 }
             }
 
@@ -724,20 +741,11 @@ window.BarControlModule = (function() {
             if (!chart.config) chart.config = {};
             chart.config[controlId] = value;
 
-            // Handle special cases that require re-rendering
-            if (['barChartType', 'orientation', 'colorScheme', 'useColorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
+            // Handle special cases that require re-rendering (removed barPadding - it has its own efficient handler)
+            if (['orientation', 'colorScheme', 'useColorScheme', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
                 console.log(`🔄 Re-rendering chart for ${controlId} change`);
                 
-                if (controlId === 'barChartType') {
-                    console.log(`📊 Chart type changing to: ${value}`);
-                    chart.config.barChartType = value;
-                    if (chart.data && chart.data.length > 0) {
-                        console.log(`📊 Immediate render for chart type change to: ${value}`);
-                        chart.render();
-                    } else {
-                        console.warn('⚠️ No chart data available for chart type change');
-                    }
-                } else if (controlId === 'orientation') {
+                if (controlId === 'orientation') {
                     console.log(`📊 Orientation changing to: ${value}`);
                     if (chart.data && chart.data.length > 0) {
                         chart.render();
@@ -756,6 +764,18 @@ window.BarControlModule = (function() {
                     }
                 } else {
                     chart.render();
+                }
+            }
+            // Handle bar padding with efficient real-time updates
+            else if (controlId === 'barPadding') {
+                console.log(`📊 Bar padding changing to: ${value} (efficient real-time update)`);
+                if (chart.updateBarSpacing && chart.data && chart.data.length > 0) {
+                    chart.updateBarSpacing(parseFloat(value));
+                } else if (chart.data && chart.data.length > 0) {
+                    console.warn('⚠️ updateBarSpacing method not available, using full render');
+                    chart.render();
+                } else {
+                    console.warn('⚠️ No chart data available for bar padding change');
                 }
             }
             // Handle font changes - apply to all text elements
@@ -794,33 +814,38 @@ window.BarControlModule = (function() {
             }
             // Handle controls that need immediate visual updates without full re-render
             else if (controlId === 'barCornerRadius') {
-                console.log(`🔄 BarControls: Updating corner radius to: ${value}px`);
+                console.log(`🔄 BarControls: Updating corner radius to: ${value}px (real-time)`);
                 
                 // Update config first
                 chart.config.barCornerRadius = parseFloat(value);
                 
-                // Apply corner radius using the appropriate method
+                // Apply corner radius immediately without waiting for any events
                 if (chart.applyCornerRadius) {
-                    chart.applyCornerRadius();
+                    // Use immediate application without debouncing
+                    requestAnimationFrame(() => {
+                        chart.applyCornerRadius();
+                    });
                 } else {
-                    // Fallback to regular corner radius
-                    chart.chart.selectAll('.bar')
-                        .transition()
-                        .duration(200)
-                        .attr('rx', value)
-                        .attr('ry', value);
+                    // Fallback to regular corner radius with immediate application
+                    requestAnimationFrame(() => {
+                        chart.chart.selectAll('.bar')
+                            .attr('rx', value)
+                            .attr('ry', value);
+                    });
                 }
             }
             // Handle corner radius style toggle
             else if (controlId === 'cornerRadiusStyle') {
-                console.log(`🔄 BarControls: Corner radius style changed to: ${value ? 'Top Only' : 'All Corners'}`);
+                console.log(`🔄 BarControls: Corner radius style changed to: ${value ? 'Top Only' : 'All Corners'} (real-time)`);
                 
                 // Update config first
                 chart.config.cornerRadiusStyle = value;
                 
-                // Apply the appropriate corner radius style
+                // Apply the appropriate corner radius style immediately
                 if (chart.applyCornerRadius) {
-                    chart.applyCornerRadius();
+                    requestAnimationFrame(() => {
+                        chart.applyCornerRadius();
+                    });
                 }
             }
             // Handle font size changes that need immediate updates

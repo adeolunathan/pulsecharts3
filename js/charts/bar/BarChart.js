@@ -864,98 +864,102 @@ class PulseBarChart {
 
     // Enhanced bar update method for spacing changes
     updateBarsForSpacingChange() {
+        const chartType = this.config.barChartType || 'simple';
         const bars = this.chart.selectAll('.bar');
+        
+        // Get consistent subgroup scales for grouped charts
+        let subScaleX = null;
+        let subScaleY = null;
+        
+        if (chartType === 'grouped') {
+            // Create consistent subgroup scales based on available series
+            const numericColumns = this.getNumericColumns();
+            if (numericColumns.length > 1) {
+                subScaleX = d3.scaleBand()
+                    .domain(numericColumns)
+                    .range([0, this.xScale.bandwidth()])
+                    .padding(0.05);
+                    
+                subScaleY = d3.scaleBand()
+                    .domain(numericColumns)
+                    .range([0, this.yScale.bandwidth()])
+                    .padding(0.05);
+            }
+        }
         
         if (this.config.orientation === 'vertical') {
             // Update horizontal positioning for vertical bars
             bars.transition().duration(100)
                 .attr('x', d => {
-                    // Handle different chart types properly
-                    if (this.config.barChartType === 'grouped' && d.series) {
-                        // For grouped bars, use subgroup scale
-                        const subScale = d3.scaleBand()
-                            .domain(Object.keys(d.seriesData || {}))
-                            .range([0, this.xScale.bandwidth()])
-                            .padding(0.05);
-                        return this.xScale(d.category) + subScale(d.series);
-                    } else if (this.config.barChartType === 'stacked' && d.series) {
-                        // For stacked bars, use category position
-                        return this.xScale(d.category);
+                    if (chartType === 'grouped' && d.series && subScaleX) {
+                        return this.xScale(d.category) + subScaleX(d.series);
+                    } else if (chartType === 'stacked' && d.data) {
+                        // Stacked bars stay centered on category
+                        return this.xScale(d.data.category);
                     }
+                    // Simple bars stay centered on category
                     return this.xScale(d.category);
                 })
                 .attr('width', d => {
-                    // Handle different chart types properly
-                    if (this.config.barChartType === 'grouped' && d.series) {
-                        const subScale = d3.scaleBand()
-                            .domain(Object.keys(d.seriesData || {}))
-                            .range([0, this.xScale.bandwidth()])
-                            .padding(0.05);
-                        return subScale.bandwidth();
+                    if (chartType === 'grouped' && d.series && subScaleX) {
+                        return subScaleX.bandwidth();
                     }
+                    // Stacked and simple bars use full bandwidth
                     return this.xScale.bandwidth();
                 });
         } else {
             // Update vertical positioning for horizontal bars
             bars.transition().duration(100)
                 .attr('y', d => {
-                    // Handle different chart types properly
-                    if (this.config.barChartType === 'grouped' && d.series) {
-                        const subScale = d3.scaleBand()
-                            .domain(Object.keys(d.seriesData || {}))
-                            .range([0, this.yScale.bandwidth()])
-                            .padding(0.05);
-                        return this.yScale(d.category) + subScale(d.series);
-                    } else if (this.config.barChartType === 'stacked' && d.series) {
-                        return this.yScale(d.category);
+                    if (chartType === 'grouped' && d.series && subScaleY) {
+                        return this.yScale(d.category) + subScaleY(d.series);
+                    } else if (chartType === 'stacked' && d.data) {
+                        // Stacked bars stay centered on category
+                        return this.yScale(d.data.category);
                     }
+                    // Simple bars stay centered on category
                     return this.yScale(d.category);
                 })
                 .attr('height', d => {
-                    // Handle different chart types properly
-                    if (this.config.barChartType === 'grouped' && d.series) {
-                        const subScale = d3.scaleBand()
-                            .domain(Object.keys(d.seriesData || {}))
-                            .range([0, this.yScale.bandwidth()])
-                            .padding(0.05);
-                        return subScale.bandwidth();
+                    if (chartType === 'grouped' && d.series && subScaleY) {
+                        return subScaleY.bandwidth();
                     }
+                    // Stacked and simple bars use full bandwidth
                     return this.yScale.bandwidth();
                 });
         }
         
         // Also update labels if they exist
-        this.updateLabelsForSpacingChange();
+        this.updateLabelsForSpacingChange(subScaleX, subScaleY);
     }
 
     // Update labels for spacing changes
-    updateLabelsForSpacingChange() {
+    updateLabelsForSpacingChange(subScaleX = null, subScaleY = null) {
+        const chartType = this.config.barChartType || 'simple';
         const labels = this.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label');
         
         if (this.config.orientation === 'vertical') {
             labels.transition().duration(100)
                 .attr('x', d => {
-                    if (this.config.barChartType === 'grouped' && d.series) {
-                        const subScale = d3.scaleBand()
-                            .domain(Object.keys(d.seriesData || {}))
-                            .range([0, this.xScale.bandwidth()])
-                            .padding(0.05);
-                        return this.xScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2;
+                    if (chartType === 'grouped' && d.series && subScaleX) {
+                        return this.xScale(d.category) + subScaleX(d.series) + subScaleX.bandwidth() / 2;
+                    } else if (chartType === 'stacked' && d.data) {
+                        // Stacked labels centered on category
+                        return this.xScale(d.data.category) + this.xScale.bandwidth() / 2;
                     }
-                    if (Array.isArray(d)) return this.xScale(d.data.category) + this.xScale.bandwidth() / 2;
+                    // Simple chart labels centered on category
                     return this.xScale(d.category) + this.xScale.bandwidth() / 2;
                 });
         } else {
             labels.transition().duration(100)
                 .attr('y', d => {
-                    if (this.config.barChartType === 'grouped' && d.series) {
-                        const subScale = d3.scaleBand()
-                            .domain(Object.keys(d.seriesData || {}))
-                            .range([0, this.yScale.bandwidth()])
-                            .padding(0.05);
-                        return this.yScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2;
+                    if (chartType === 'grouped' && d.series && subScaleY) {
+                        return this.yScale(d.category) + subScaleY(d.series) + subScaleY.bandwidth() / 2;
+                    } else if (chartType === 'stacked' && d.data) {
+                        // Stacked labels centered on category
+                        return this.yScale(d.data.category) + this.yScale.bandwidth() / 2;
                     }
-                    if (Array.isArray(d)) return this.yScale(d.data.category) + this.yScale.bandwidth() / 2;
+                    // Simple chart labels centered on category
                     return this.yScale(d.category) + this.yScale.bandwidth() / 2;
                 });
         }
@@ -1384,6 +1388,9 @@ class PulseBarChart {
             this.bars = groupedBars; // Store bars reference
         }
         
+        // Apply corner radius after rendering grouped bars
+        setTimeout(() => this.applyCornerRadius(), 0);
+        
         // Render labels for grouped bars
         if (this.config.showBarLabels || this.config.showValues) {
             this.renderGroupedBarLabels();
@@ -1513,6 +1520,9 @@ class PulseBarChart {
             this.bars = stackedBars; // Store bars reference
         }
         
+        // Apply corner radius after rendering stacked bars
+        setTimeout(() => this.applyCornerRadius(), 0);
+        
         // Render labels for stacked bars
         if (this.config.showBarLabels || this.config.showValues) {
             this.renderStackedBarLabels();
@@ -1604,6 +1614,9 @@ class PulseBarChart {
         
         this.bars = this.chart.selectAll('.bar');
         
+        // Apply corner radius after rendering stacked100 bars
+        setTimeout(() => this.applyCornerRadius(), 0);
+        
         // Render labels for stacked100 bars
         if (this.config.showBarLabels || this.config.showValues) {
             this.renderStackedBarLabels(); // Same as stacked but with percentage values
@@ -1672,6 +1685,9 @@ class PulseBarChart {
         
         this.bars = this.chart.selectAll('.bar');
         this.addBarInteractivity(this.bars);
+        
+        // Apply corner radius after rendering range bars
+        setTimeout(() => this.applyCornerRadius(), 0);
     }
     
     renderWaterfallBars() {
@@ -1732,6 +1748,9 @@ class PulseBarChart {
         
         this.bars = this.chart.selectAll('.bar');
         this.addBarInteractivity(this.bars);
+        
+        // Apply corner radius after rendering waterfall bars
+        setTimeout(() => this.applyCornerRadius(), 0);
         
         // Render labels for waterfall bars
         if (this.config.showBarLabels || this.config.showValues) {
@@ -3242,25 +3261,41 @@ class PulseBarChart {
         return '';
     }
 
-    // Apply corner radius based on style setting
+    // Apply corner radius based on style setting and chart type
     applyCornerRadius() {
         const radius = this.config.barCornerRadius || 0;
         const topOnly = this.config.cornerRadiusStyle === true;
+        const chartType = this.config.barChartType || 'simple';
         
-        console.log(`🔄 Applying corner radius: ${radius}px, topOnly: ${topOnly}`);
+        console.log(`🔄 Applying corner radius: ${radius}px, topOnly: ${topOnly}, chartType: ${chartType}`);
         console.log(`🔄 Full config:`, this.config);
         console.log(`🔄 cornerRadiusStyle value:`, this.config.cornerRadiusStyle);
         
-        // Ensure we have bars to work with
-        const bars = this.chart.selectAll('.bar');
+        // Get appropriate bars based on chart type
+        let bars;
+        if (chartType === 'stacked' || chartType === 'stacked100') {
+            // For stacked charts, we need special handling
+            if (topOnly) {
+                // Only apply to top segments of each stack
+                bars = this.getTopStackSegments();
+            } else {
+                // Apply to all segments
+                bars = this.chart.selectAll('.bar');
+            }
+        } else {
+            // For simple, grouped, etc. - apply to all bars
+            bars = this.chart.selectAll('.bar');
+        }
+        
         if (bars.empty()) {
             console.log('⚠️ No bars found for corner radius application');
             return;
         }
         
         if (radius <= 0) {
-            // Remove any corner radius and clipPaths
-            bars.attr('rx', 0)
+            // Remove any corner radius and clipPaths from ALL bars
+            this.chart.selectAll('.bar')
+                .attr('rx', 0)
                 .attr('ry', 0)
                 .attr('clip-path', null);
             
@@ -3274,23 +3309,61 @@ class PulseBarChart {
         }
         
         if (topOnly) {
-            this.applyTopOnlyCornerRadius();
+            this.applyTopOnlyCornerRadius(bars);
         } else {
-            this.applyAllCornersRadius();
+            this.applyAllCornersRadius(bars);
         }
         
-        console.log(`✅ Applied corner radius: ${radius}px, style: ${topOnly ? 'top-only' : 'all-corners'}`);
+        console.log(`✅ Applied corner radius: ${radius}px, style: ${topOnly ? 'top-only' : 'all-corners'}, chart: ${chartType}`);
+    }
+
+    // Get only the top segments of stacked charts
+    getTopStackSegments() {
+        const chartType = this.config.barChartType || 'simple';
+        
+        if (chartType !== 'stacked' && chartType !== 'stacked100') {
+            return this.chart.selectAll('.bar');
+        }
+        
+        // For stacked charts, find the topmost bar in each category
+        const categories = [...new Set(this.data.map(d => d.category))];
+        const topBars = [];
+        
+        categories.forEach(category => {
+            // Find all bars for this category
+            const categoryBars = [];
+            this.chart.selectAll('.bar').each(function(d) {
+                if (d && d.data && d.data.category === category) {
+                    categoryBars.push({
+                        element: this,
+                        data: d,
+                        y1: d[1] // Top of this segment
+                    });
+                }
+            });
+            
+            // Find the bar with the highest y1 value (topmost)
+            if (categoryBars.length > 0) {
+                const topBar = categoryBars.reduce((max, current) => 
+                    current.y1 > max.y1 ? current : max
+                );
+                topBars.push(topBar.element);
+            }
+        });
+        
+        console.log(`🔄 Found ${topBars.length} top stack segments out of ${categories.length} categories`);
+        return d3.selectAll(topBars);
     }
     
     // Apply top-only corner radius using clipPath
-    applyTopOnlyCornerRadius() {
+    applyTopOnlyCornerRadius(targetBars = null) {
         const radius = this.config.barCornerRadius || 0;
         
         console.log('🔄 Applying top-only corner radius:', radius);
         console.log('🔄 Chart orientation:', this.config.orientation);
         
-        // Get bars first
-        const bars = this.chart.selectAll('.bar');
+        // Use provided bars or get all bars
+        const bars = targetBars || this.chart.selectAll('.bar');
         if (bars.empty()) {
             console.log('⚠️ No bars found for top-only corner radius');
             return;
@@ -3379,13 +3452,13 @@ class PulseBarChart {
     }
     
     // Apply regular corner radius to all corners
-    applyAllCornersRadius() {
+    applyAllCornersRadius(targetBars = null) {
         const radius = this.config.barCornerRadius || 0;
         
         console.log('🔄 Applying all-corners radius:', radius);
         
-        // Get bars first
-        const bars = this.chart.selectAll('.bar');
+        // Use provided bars or get all bars
+        const bars = targetBars || this.chart.selectAll('.bar');
         if (bars.empty()) {
             console.log('⚠️ No bars found for all-corners radius');
             return;
