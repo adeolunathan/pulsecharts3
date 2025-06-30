@@ -741,9 +741,9 @@ window.BarControlModule = (function() {
             if (!chart.config) chart.config = {};
             chart.config[controlId] = value;
 
-            // Handle special cases that require re-rendering (removed barPadding - it has its own efficient handler)
-            if (['orientation', 'colorScheme', 'useColorScheme', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
-                console.log(`🔄 Re-rendering chart for ${controlId} change`);
+            // Handle special cases that require re-rendering (only for structural changes)
+            if (['orientation'].includes(controlId)) {
+                console.log(`🔄 Re-rendering chart for structural change: ${controlId} = ${value}`);
                 
                 if (controlId === 'orientation') {
                     console.log(`📊 Orientation changing to: ${value}`);
@@ -752,18 +752,44 @@ window.BarControlModule = (function() {
                     } else {
                         console.warn('⚠️ No chart data available for orientation change');
                     }
-                } else if (controlId === 'barPadding') {
-                    console.log(`📊 Bar padding changing to: ${value} (efficient real-time update)`);
-                    if (chart.updateBarSpacing && chart.data && chart.data.length > 0) {
-                        chart.updateBarSpacing(parseFloat(value));
-                    } else if (chart.data && chart.data.length > 0) {
-                        console.warn('⚠️ updateBarSpacing method not available, using full render');
-                        chart.render();
-                    } else {
-                        console.warn('⚠️ No chart data available for bar padding change');
-                    }
-                } else {
-                    chart.render();
+                }
+            }
+            // Handle visual-only changes with real-time updates (no re-render needed)
+            else if (['colorScheme', 'useColorScheme'].includes(controlId)) {
+                console.log(`🎨 Applying visual-only change: ${controlId} = ${value} (real-time)`);
+                if (controlId === 'colorScheme' || controlId === 'useColorScheme') {
+                    // Update colors immediately without re-rendering
+                    const colors = chart.getBarColors ? chart.getBarColors() : ['#3498db', '#2ecc71', '#e74c3c', '#f39c12'];
+                    chart.chart.selectAll('.bar')
+                        .transition()
+                        .duration(300)
+                        .attr('fill', (d, i) => {
+                            if (chart.config.useColorScheme) {
+                                return chart.customColors?.[d.category] || colors[i % colors.length];
+                            } else {
+                                return chart.config.defaultBarColor || colors[0];
+                            }
+                        });
+                }
+            }
+            // Handle axis and grid toggles with real-time updates
+            else if (['showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
+                console.log(`📏 Toggling ${controlId}: ${value} (real-time)`);
+                if (controlId === 'showGrid') {
+                    chart.chart.selectAll('.grid')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', value ? chart.config.gridOpacity || 0.5 : 0);
+                } else if (controlId === 'showXAxis') {
+                    chart.svg.selectAll('.x-axis')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', value ? 1 : 0);
+                } else if (controlId === 'showYAxis') {
+                    chart.svg.selectAll('.y-axis')
+                        .transition()
+                        .duration(200)
+                        .style('opacity', value ? 1 : 0);
                 }
             }
             // Handle bar padding with efficient real-time updates
@@ -857,34 +883,55 @@ window.BarControlModule = (function() {
             }
             // Handle label controls with efficient label update
             else if (['showBarLabels', 'showValues', 'labelPosition', 'labelOffset'].includes(controlId)) {
-                console.log(`🏷️ Updating labels for control: ${controlId} = ${value}`);
-                if (chart.updateLabels) {
+                console.log(`🏷️ Updating labels for control: ${controlId} = ${value} (real-time)`);
+                if (controlId === 'showBarLabels' || controlId === 'showValues') {
+                    // Toggle label visibility immediately
+                    if (chart.chart) {
+                        chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label')
+                            .transition()
+                            .duration(200)
+                            .style('opacity', (chart.config.showBarLabels || chart.config.showValues) ? 1 : 0);
+                    }
+                } else if (chart.updateLabels) {
+                    // For position and offset changes, use the existing efficient method
                     chart.updateLabels();
                 } else {
+                    // Fallback to re-render only if no efficient method exists
+                    console.warn('⚠️ updateLabels method not available, using re-render');
                     chart.render();
                 }
             }
-            // Handle value formatting controls with full re-render
+            // Handle value formatting controls (some need re-render, some don't)
             else if (['valueFormat', 'currencySymbol'].includes(controlId)) {
                 console.log(`🔄 Re-rendering for value format control: ${controlId} = ${value}`);
                 chart.render();
             }
             // Handle decimal places control with efficient update (no re-render needed)
             else if (controlId === 'decimalPlaces') {
-                console.log(`💰 Updating decimal places to: ${value}`);
+                console.log(`💰 Updating decimal places to: ${value} (real-time)`);
                 // Just update the displayed text values without re-rendering
                 if (chart.chart) {
                     chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label')
-                        .text(function(d) {
-                            // Re-format the value with new decimal places
-                            if (d.series) { // Grouped
-                                return chart.getGroupedBarLabelText(d);
-                            } else if (Array.isArray(d)) { // Stacked
-                                const segmentValue = d[1] - d[0];
-                                return chart.getStackedBarLabelText(d, segmentValue);
-                            } else { // Simple
-                                return chart.getBarLabelText(d);
-                            }
+                        .transition()
+                        .duration(150)
+                        .tween('text', function(d) {
+                            const element = d3.select(this);
+                            const currentText = element.text();
+                            
+                            return function(t) {
+                                if (t === 1) { // At the end of transition, set the properly formatted text
+                                    let newText = '';
+                                    if (d.series) { // Grouped
+                                        newText = chart.getGroupedBarLabelText ? chart.getGroupedBarLabelText(d) : currentText;
+                                    } else if (Array.isArray(d)) { // Stacked
+                                        const segmentValue = d[1] - d[0];
+                                        newText = chart.getStackedBarLabelText ? chart.getStackedBarLabelText(d, segmentValue) : currentText;
+                                    } else { // Simple
+                                        newText = chart.getBarLabelText ? chart.getBarLabelText(d) : currentText;
+                                    }
+                                    element.text(newText);
+                                }
+                            };
                         });
                 }
             }
@@ -895,28 +942,16 @@ window.BarControlModule = (function() {
                     chart.render();
                 }
             }
-            // Handle animation easing control  
+            // Handle animation easing control (config-only, no immediate visual change needed)
             else if (controlId === 'animationEasing') {
-                console.log(`🎬 Animation easing changed to: ${value}`);
-                // Re-animate bars to show the new easing effect
-                if (chart.chart && chart.data && chart.data.length > 0) {
-                    const easingFunction = chart.getD3EasingFunction(value);
-                    chart.chart.selectAll('.bar')
-                        .interrupt() // Stop any ongoing animations
-                        .transition()
-                        .duration(chart.config.animationDuration)
-                        .ease(easingFunction)
-                        .attr('opacity', chart.config.barOpacity);
-                }
+                console.log(`🎬 Animation easing changed to: ${value} (config-only)`);
+                // No immediate visual change needed - the new easing will be used in future animations
             }
             // Handle config-only controls that don't need immediate visual changes
             else if (['enableHover', 'enableClick', 'enableTooltip', 'hoverOpacity', 'categorySpacing'].includes(controlId)) {
                 console.log(`📝 Updated config-only control: ${controlId} = ${value}`);
             }
-            // Handle toggle controls for axes and grid
-            else if (['showXAxis', 'showYAxis', 'showGrid'].includes(controlId)) {
-                console.log(`🔄 Axis/Grid toggle handled: ${controlId} = ${value}`);
-            }
+            // Axis/Grid toggles are now handled above with real-time updates
 
             console.log(`✅ Applied bar chart control: ${controlId}`);
         }
