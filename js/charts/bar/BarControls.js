@@ -7,7 +7,7 @@ window.BarControlModule = (function() {
     // Chart type to control mapping
     const CHART_TYPE_CONTROLS = {
         simple: {
-            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort', 
+            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort', 
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'useColorScheme', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
@@ -16,7 +16,7 @@ window.BarControlModule = (function() {
             disabled: ['showBarLabels']
         },
         grouped: {
-            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
+            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
@@ -25,7 +25,7 @@ window.BarControlModule = (function() {
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked: {
-            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
+            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
@@ -34,7 +34,7 @@ window.BarControlModule = (function() {
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked100: {
-            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
+            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
@@ -42,7 +42,7 @@ window.BarControlModule = (function() {
             disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces', 'showBarLabels'] // Always shows percentages
         },
         range: {
-            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort',
+            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
@@ -51,7 +51,7 @@ window.BarControlModule = (function() {
             disabled: ['showBarLabels']
         },
         waterfall: {
-            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius',
+            enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle',
                      'defaultBarColor', 'hoverColor', 'barOpacity',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
@@ -113,27 +113,6 @@ window.BarControlModule = (function() {
                                 { value: "horizontal", label: "Horizontal Bars" }
                             ],
                             description: "Direction of the bars"
-                        },
-                        {
-                            id: "barPadding",
-                            type: "slider",
-                            label: "Bar Spacing",
-                            min: 0.05,
-                            max: 0.5,
-                            default: 0.1,
-                            step: 0.05,
-                            description: "Space between bars (0 = no space, 0.5 = maximum space)"
-                        },
-                        {
-                            id: "barCornerRadius",
-                            type: "slider",
-                            label: "Corner Radius",
-                            min: 0,
-                            max: 20,
-                            default: 4,
-                            step: 1,
-                            unit: "px",
-                            description: "Rounded corners for bars"
                         },
                         {
                             id: "autoSort",
@@ -417,6 +396,34 @@ window.BarControlModule = (function() {
                                 { value: "vibrant", label: "Vibrant" }
                             ],
                             description: "Predefined color schemes for bars"
+                        },
+                        {
+                            id: "barPadding",
+                            type: "slider",
+                            label: "Bar Spacing",
+                            min: 0.05,
+                            max: 0.5,
+                            default: 0.1,
+                            step: 0.05,
+                            description: "Space between bars (0 = no space, 0.5 = maximum space)"
+                        },
+                        {
+                            id: "barCornerRadius",
+                            type: "slider",
+                            label: "Corner Radius",
+                            min: 0,
+                            max: 80,
+                            default: 4,
+                            step: 1,
+                            unit: "px",
+                            description: "Rounded corners for bars"
+                        },
+                        {
+                            id: "cornerRadiusStyle",
+                            type: "toggle",
+                            label: "Top Corners Only",
+                            default: true,
+                            description: "Round only top corners (ON) or all corners (OFF)"
                         }
                     ],
                     isDynamic: true
@@ -452,6 +459,7 @@ window.BarControlModule = (function() {
                 orientation: 'vertical',
                 barPadding: 0.1,
                 barCornerRadius: 4,
+                cornerRadiusStyle: true,
                 autoSort: false,
                 defaultBarColor: '#3498db',
                 hoverColor: '#2980b9',
@@ -507,7 +515,7 @@ window.BarControlModule = (function() {
             }
 
             // Always ensure static controls are present - don't clear them
-            const staticControlIds = ['defaultBarColor', 'hoverColor', 'barOpacity', 'useColorScheme', 'colorScheme'];
+            const staticControlIds = ['defaultBarColor', 'hoverColor', 'barOpacity', 'useColorScheme', 'colorScheme', 'barCornerRadius', 'cornerRadiusStyle'];
             const hasStaticControls = staticControlIds.every(id => 
                 this.capabilities.colors.controls.some(control => control.id === id)
             );
@@ -557,6 +565,24 @@ window.BarControlModule = (function() {
                             { value: "vibrant", label: "Vibrant" }
                         ],
                         description: "Predefined color schemes for bars"
+                    },
+                    {
+                        id: "barCornerRadius",
+                        type: "slider",
+                        label: "Corner Radius",
+                        min: 0,
+                        max: 20,
+                        default: 4,
+                        step: 1,
+                        unit: "px",
+                        description: "Rounded corners for bars"
+                    },
+                    {
+                        id: "cornerRadiusStyle",
+                        type: "toggle",
+                        label: "Top Corners Only",
+                        default: true,
+                        description: "Round only top corners (ON) or all corners (OFF)"
                     }
                 ];
                 
@@ -707,8 +733,11 @@ window.BarControlModule = (function() {
                         console.warn('⚠️ No chart data available for orientation change');
                     }
                 } else if (controlId === 'barPadding') {
-                    console.log(`📊 Bar padding changing to: ${value}`);
-                    if (chart.data && chart.data.length > 0) {
+                    console.log(`📊 Bar padding changing to: ${value} (efficient real-time update)`);
+                    if (chart.updateBarSpacing && chart.data && chart.data.length > 0) {
+                        chart.updateBarSpacing(parseFloat(value));
+                    } else if (chart.data && chart.data.length > 0) {
+                        console.warn('⚠️ updateBarSpacing method not available, using full render');
                         chart.render();
                     } else {
                         console.warn('⚠️ No chart data available for bar padding change');
@@ -753,11 +782,34 @@ window.BarControlModule = (function() {
             }
             // Handle controls that need immediate visual updates without full re-render
             else if (controlId === 'barCornerRadius') {
-                chart.chart.selectAll('.bar')
-                    .transition()
-                    .duration(200)
-                    .attr('rx', value)
-                    .attr('ry', value);
+                console.log(`🔄 BarControls: Updating corner radius to: ${value}px`);
+                
+                // Update config first
+                chart.config.barCornerRadius = parseFloat(value);
+                
+                // Apply corner radius using the appropriate method
+                if (chart.applyCornerRadius) {
+                    chart.applyCornerRadius();
+                } else {
+                    // Fallback to regular corner radius
+                    chart.chart.selectAll('.bar')
+                        .transition()
+                        .duration(200)
+                        .attr('rx', value)
+                        .attr('ry', value);
+                }
+            }
+            // Handle corner radius style toggle
+            else if (controlId === 'cornerRadiusStyle') {
+                console.log(`🔄 BarControls: Corner radius style changed to: ${value ? 'Top Only' : 'All Corners'}`);
+                
+                // Update config first
+                chart.config.cornerRadiusStyle = value;
+                
+                // Apply the appropriate corner radius style
+                if (chart.applyCornerRadius) {
+                    chart.applyCornerRadius();
+                }
             }
             // Handle font size changes that need immediate updates
             else if (controlId === 'labelFontSize') {

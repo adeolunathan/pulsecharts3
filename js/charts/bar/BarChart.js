@@ -831,6 +831,132 @@ class PulseBarChart {
         }
     }
 
+    // Efficient real-time bar spacing update method
+    updateBarSpacing(newPadding) {
+        console.log(`📊 Updating bar spacing to ${newPadding} (real-time)`);
+        
+        // Update the configuration
+        this.config.barPadding = newPadding;
+        
+        // Update the appropriate band scale padding
+        if (this.config.orientation === 'vertical') {
+            this.xScale.padding(newPadding);
+        } else {
+            this.yScale.padding(newPadding);
+        }
+        
+        // Update bars efficiently with proper handling for all chart types
+        this.updateBarsForSpacingChange();
+        
+        // Reapply corner radius after repositioning to maintain consistency
+        setTimeout(() => {
+            if (this.config.barCornerRadius > 0) {
+                this.applyCornerRadius();
+            }
+        }, 110); // Slightly after transition completes
+        
+        console.log(`✅ Bar spacing updated to ${newPadding} with smooth transition and corner radius consistency`);
+    }
+
+    // Enhanced bar update method for spacing changes
+    updateBarsForSpacingChange() {
+        const bars = this.chart.selectAll('.bar');
+        
+        if (this.config.orientation === 'vertical') {
+            // Update horizontal positioning for vertical bars
+            bars.transition().duration(100)
+                .attr('x', d => {
+                    // Handle different chart types properly
+                    if (this.config.barChartType === 'grouped' && d.series) {
+                        // For grouped bars, use subgroup scale
+                        const subScale = d3.scaleBand()
+                            .domain(Object.keys(d.seriesData || {}))
+                            .range([0, this.xScale.bandwidth()])
+                            .padding(0.05);
+                        return this.xScale(d.category) + subScale(d.series);
+                    } else if (this.config.barChartType === 'stacked' && d.series) {
+                        // For stacked bars, use category position
+                        return this.xScale(d.category);
+                    }
+                    return this.xScale(d.category);
+                })
+                .attr('width', d => {
+                    // Handle different chart types properly
+                    if (this.config.barChartType === 'grouped' && d.series) {
+                        const subScale = d3.scaleBand()
+                            .domain(Object.keys(d.seriesData || {}))
+                            .range([0, this.xScale.bandwidth()])
+                            .padding(0.05);
+                        return subScale.bandwidth();
+                    }
+                    return this.xScale.bandwidth();
+                });
+        } else {
+            // Update vertical positioning for horizontal bars
+            bars.transition().duration(100)
+                .attr('y', d => {
+                    // Handle different chart types properly
+                    if (this.config.barChartType === 'grouped' && d.series) {
+                        const subScale = d3.scaleBand()
+                            .domain(Object.keys(d.seriesData || {}))
+                            .range([0, this.yScale.bandwidth()])
+                            .padding(0.05);
+                        return this.yScale(d.category) + subScale(d.series);
+                    } else if (this.config.barChartType === 'stacked' && d.series) {
+                        return this.yScale(d.category);
+                    }
+                    return this.yScale(d.category);
+                })
+                .attr('height', d => {
+                    // Handle different chart types properly
+                    if (this.config.barChartType === 'grouped' && d.series) {
+                        const subScale = d3.scaleBand()
+                            .domain(Object.keys(d.seriesData || {}))
+                            .range([0, this.yScale.bandwidth()])
+                            .padding(0.05);
+                        return subScale.bandwidth();
+                    }
+                    return this.yScale.bandwidth();
+                });
+        }
+        
+        // Also update labels if they exist
+        this.updateLabelsForSpacingChange();
+    }
+
+    // Update labels for spacing changes
+    updateLabelsForSpacingChange() {
+        const labels = this.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label');
+        
+        if (this.config.orientation === 'vertical') {
+            labels.transition().duration(100)
+                .attr('x', d => {
+                    if (this.config.barChartType === 'grouped' && d.series) {
+                        const subScale = d3.scaleBand()
+                            .domain(Object.keys(d.seriesData || {}))
+                            .range([0, this.xScale.bandwidth()])
+                            .padding(0.05);
+                        return this.xScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2;
+                    }
+                    if (Array.isArray(d)) return this.xScale(d.data.category) + this.xScale.bandwidth() / 2;
+                    return this.xScale(d.category) + this.xScale.bandwidth() / 2;
+                });
+        } else {
+            labels.transition().duration(100)
+                .attr('y', d => {
+                    if (this.config.barChartType === 'grouped' && d.series) {
+                        const subScale = d3.scaleBand()
+                            .domain(Object.keys(d.seriesData || {}))
+                            .range([0, this.yScale.bandwidth()])
+                            .padding(0.05);
+                        return this.yScale(d.category) + subScale(d.series) + subScale.bandwidth() / 2;
+                    }
+                    if (Array.isArray(d)) return this.yScale(d.data.category) + this.yScale.bandwidth() / 2;
+                    return this.yScale(d.category) + this.yScale.bandwidth() / 2;
+                });
+        }
+    }
+
     updateScaleDomain(axisType, newDomain) {
         const scale = axisType === 'x' ? this.xScale : this.yScale;
         const axis = axisType === 'x' ? this.xAxis : this.yAxis;
@@ -1009,8 +1135,8 @@ class PulseBarChart {
                     }
                 })
                 .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius)
-                .attr('ry', this.config.barCornerRadius)
+                .attr('rx', 0)
+                .attr('ry', 0)
                 .style('cursor', 'pointer');
 
             // Get D3 easing function
@@ -1021,7 +1147,14 @@ class PulseBarChart {
                 .duration(this.config.animationDuration)
                 .ease(easingFunction)
                 .attr('x', d => this.xScale(Math.min(0, this.getPrimaryValue(d))))
-                .attr('width', d => Math.abs(this.xScale(this.getPrimaryValue(d)) - this.xScale(0)));
+                .attr('width', d => Math.abs(this.xScale(this.getPrimaryValue(d)) - this.xScale(0)))
+                .on('end', () => {
+                    // Apply corner radius after animation completes
+                    this.applyCornerRadius();
+                });
+
+            // Apply corner radius immediately (before animation starts)
+            setTimeout(() => this.applyCornerRadius(), 0);
 
             // Add interactivity
             this.addBarInteractivity(bars);
@@ -1052,8 +1185,8 @@ class PulseBarChart {
                     }
                 })
                 .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius)
-                .attr('ry', this.config.barCornerRadius)
+                .attr('rx', 0)
+                .attr('ry', 0)
                 .style('cursor', 'pointer');
 
             // Get D3 easing function
@@ -1064,7 +1197,14 @@ class PulseBarChart {
                 .duration(this.config.animationDuration)
                 .ease(easingFunction)
                 .attr('y', d => this.yScale(Math.max(0, this.getPrimaryValue(d))))
-                .attr('height', d => Math.abs(this.yScale(this.getPrimaryValue(d)) - this.yScale(0)));
+                .attr('height', d => Math.abs(this.yScale(this.getPrimaryValue(d)) - this.yScale(0)))
+                .on('end', () => {
+                    // Apply corner radius after animation completes
+                    this.applyCornerRadius();
+                });
+
+            // Apply corner radius immediately (before animation starts)
+            setTimeout(() => this.applyCornerRadius(), 0);
 
             // Add interactivity
             this.addBarInteractivity(bars);
@@ -1174,7 +1314,7 @@ class PulseBarChart {
                     .attr('height', subScale.bandwidth())
                     .attr('fill', (d, i) => colors[i % colors.length])
                     .attr('opacity', self.config.barOpacity)
-                    .attr('rx', self.config.barCornerRadius);
+                    .attr('rx', 0);
                     
                 allBars.transition()
                     .duration(self.config.animationDuration)
@@ -1226,7 +1366,7 @@ class PulseBarChart {
                     .attr('width', subScale.bandwidth())
                     .attr('fill', (d, i) => colors[i % colors.length])
                     .attr('opacity', self.config.barOpacity)
-                    .attr('rx', self.config.barCornerRadius);
+                    .attr('rx', 0);
                     
                 allBars.transition()
                     .duration(self.config.animationDuration)
@@ -1303,7 +1443,7 @@ class PulseBarChart {
                     .attr('y', d => self.yScale(d.data.category))
                     .attr('height', self.yScale.bandwidth())
                     .attr('opacity', self.config.barOpacity)
-                    .attr('rx', self.config.barCornerRadius);
+                    .attr('rx', 0);
                     
                 allBars.transition()
                     .duration(self.config.animationDuration)
@@ -1355,7 +1495,7 @@ class PulseBarChart {
                     .attr('x', d => self.xScale(d.data.category))
                     .attr('width', self.xScale.bandwidth())
                     .attr('opacity', self.config.barOpacity)
-                    .attr('rx', self.config.barCornerRadius);
+                    .attr('rx', 0);
                     
                 allBars.transition()
                     .duration(self.config.animationDuration)
@@ -1500,7 +1640,7 @@ class PulseBarChart {
                 .attr('width', 0)
                 .attr('fill', (d, i) => colors[i % colors.length])
                 .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+                .attr('rx', 0);
                 
             bars.transition()
                 .duration(this.config.animationDuration)
@@ -1518,7 +1658,7 @@ class PulseBarChart {
                 .attr('height', 0)
                 .attr('fill', (d, i) => colors[i % colors.length])
                 .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+                .attr('rx', 0);
                 
             bars.transition()
                 .duration(this.config.animationDuration)
@@ -1560,7 +1700,7 @@ class PulseBarChart {
                 .attr('width', 0)
                 .attr('fill', d => d.isPositive ? colors[0] : colors[1])
                 .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+                .attr('rx', 0);
                 
             bars.transition()
                 .duration(this.config.animationDuration)
@@ -1578,7 +1718,7 @@ class PulseBarChart {
                 .attr('height', 0)
                 .attr('fill', d => d.isPositive ? colors[0] : colors[1])
                 .attr('opacity', this.config.barOpacity)
-                .attr('rx', this.config.barCornerRadius);
+                .attr('rx', 0);
                 
             bars.transition()
                 .duration(this.config.animationDuration)
@@ -3019,5 +3159,170 @@ class PulseBarChart {
         }
         
         return '';
+    }
+
+    // Apply corner radius based on style setting
+    applyCornerRadius() {
+        const radius = this.config.barCornerRadius || 0;
+        const topOnly = this.config.cornerRadiusStyle === true;
+        
+        console.log(`🔄 Applying corner radius: ${radius}px, topOnly: ${topOnly}`);
+        console.log(`🔄 Full config:`, this.config);
+        console.log(`🔄 cornerRadiusStyle value:`, this.config.cornerRadiusStyle);
+        
+        // Ensure we have bars to work with
+        const bars = this.chart.selectAll('.bar');
+        if (bars.empty()) {
+            console.log('⚠️ No bars found for corner radius application');
+            return;
+        }
+        
+        if (radius <= 0) {
+            // Remove any corner radius and clipPaths
+            bars.attr('rx', 0)
+                .attr('ry', 0)
+                .attr('clip-path', null);
+            
+            // Clean up any clipPath definitions
+            const svg = d3.select(this.chart.node().ownerSVGElement);
+            if (!svg.empty()) {
+                svg.selectAll('defs clipPath[id^="clip-top-corners-"]').remove();
+            }
+            console.log('✅ Removed corner radius');
+            return;
+        }
+        
+        if (topOnly) {
+            this.applyTopOnlyCornerRadius();
+        } else {
+            this.applyAllCornersRadius();
+        }
+        
+        console.log(`✅ Applied corner radius: ${radius}px, style: ${topOnly ? 'top-only' : 'all-corners'}`);
+    }
+    
+    // Apply top-only corner radius using clipPath
+    applyTopOnlyCornerRadius() {
+        const radius = this.config.barCornerRadius || 0;
+        
+        console.log('🔄 Applying top-only corner radius:', radius);
+        console.log('🔄 Chart orientation:', this.config.orientation);
+        
+        // Get bars first
+        const bars = this.chart.selectAll('.bar');
+        if (bars.empty()) {
+            console.log('⚠️ No bars found for top-only corner radius');
+            return;
+        }
+        
+        // First remove any existing rx/ry and clipPaths
+        bars.attr('rx', 0)
+            .attr('ry', 0)
+            .attr('clip-path', null);
+        
+        // Clean up old clipPaths
+        const svg = d3.select(this.chart.node().ownerSVGElement);
+        if (!svg.empty()) {
+            svg.selectAll('defs clipPath[id^="clip-top-corners-"]').remove();
+        }
+        
+        if (radius <= 0) return;
+        
+        // Get or create defs element
+        let defs = svg.select('defs');
+        if (defs.empty()) {
+            defs = svg.append('defs');
+        }
+        
+        // Apply clipPath to each bar for top-only rounded corners
+        console.log('🔄 Processing bars for top-only corners, count:', bars.size());
+        
+        // Capture chart reference for use inside the callback
+        const chartInstance = this;
+        
+        bars.each(function(d, i) {
+            const bar = d3.select(this);
+            const x = parseFloat(bar.attr('x')) || 0;
+            const y = parseFloat(bar.attr('y')) || 0;
+            const width = parseFloat(bar.attr('width')) || 0;
+            const height = parseFloat(bar.attr('height')) || 0;
+            
+            console.log(`🔄 Processing bar ${i}:`, { x, y, width, height });
+            
+            // Skip bars that don't have valid dimensions yet
+            if (width <= 0 || height <= 0) {
+                console.log('🔴 Skipping bar with invalid dimensions:', { x, y, width, height });
+                return;
+            }
+            
+            // Create unique clipPath ID
+            const clipId = `clip-top-corners-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Calculate effective radius
+            const effectiveRadius = Math.min(radius, width / 2, height / 2);
+            
+            // Create clipPath with orientation-aware "top" rounded corners
+            const clipPath = defs.append('clipPath').attr('id', clipId);
+            let pathData;
+            
+            if (chartInstance.config.orientation === 'vertical') {
+                // For vertical bars, "top" means the top edge (smaller y value)
+                pathData = `M ${x},${y + height}
+                           L ${x},${y + effectiveRadius}
+                           Q ${x},${y} ${x + effectiveRadius},${y}
+                           L ${x + width - effectiveRadius},${y}
+                           Q ${x + width},${y} ${x + width},${y + effectiveRadius}
+                           L ${x + width},${y + height}
+                           Z`;
+            } else {
+                // For horizontal bars, "top" means the right edge (larger x value) 
+                pathData = `M ${x},${y}
+                           L ${x + width - effectiveRadius},${y}
+                           Q ${x + width},${y} ${x + width},${y + effectiveRadius}
+                           L ${x + width},${y + height - effectiveRadius}
+                           Q ${x + width},${y + height} ${x + width - effectiveRadius},${y + height}
+                           L ${x},${y + height}
+                           Z`;
+            }
+            
+            clipPath.append('path').attr('d', pathData);
+            
+            // Apply the clipPath to the bar
+            bar.attr('clip-path', `url(#${clipId})`);
+            
+            console.log('🎨 Applied top-only corner radius to bar:', { x, y, width, height, effectiveRadius, clipId });
+            console.log('🎨 ClipPath created with pathData:', pathData);
+        });
+        
+        console.log('✅ Top-only corner radius applied to all valid bars');
+    }
+    
+    // Apply regular corner radius to all corners
+    applyAllCornersRadius() {
+        const radius = this.config.barCornerRadius || 0;
+        
+        console.log('🔄 Applying all-corners radius:', radius);
+        
+        // Get bars first
+        const bars = this.chart.selectAll('.bar');
+        if (bars.empty()) {
+            console.log('⚠️ No bars found for all-corners radius');
+            return;
+        }
+        
+        // Remove any existing clipPaths
+        bars.attr('clip-path', null);
+        
+        // Clean up clipPath definitions
+        const svg = d3.select(this.chart.node().ownerSVGElement);
+        if (!svg.empty()) {
+            svg.selectAll('defs clipPath[id^="clip-top-corners-"]').remove();
+        }
+        
+        // Apply regular rx/ry for all corners
+        bars.attr('rx', radius)
+            .attr('ry', radius);
+            
+        console.log('✅ All-corners radius applied to all bars');
     }
 }
