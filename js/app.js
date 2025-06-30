@@ -643,7 +643,11 @@ async function initializePulseApp() {
         
         // Global error handling
         window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
+            if (event.error) {
+                console.error('Global error:', event.error);
+            } else {
+                console.warn('Global error event with no error details:', event);
+            }
         });
 
         window.addEventListener('unhandledrejection', (event) => {

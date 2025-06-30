@@ -1001,7 +1001,13 @@ class PulseBarChart {
                 .attr('height', this.yScale.bandwidth())
                 .attr('x', 0) // Start from left edge
                 .attr('width', 0) // Start with 0 width for animation
-                .attr('fill', (d, i) => this.customColors[d.category] || colors[i % colors.length])
+                .attr('fill', (d, i) => {
+                    if (this.config.useColorScheme) {
+                        return this.customColors[d.category] || colors[i % colors.length];
+                    } else {
+                        return this.config.defaultBarColor || colors[0];
+                    }
+                })
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', this.config.barCornerRadius)
                 .attr('ry', this.config.barCornerRadius)
@@ -1038,7 +1044,13 @@ class PulseBarChart {
                 .attr('width', this.xScale.bandwidth())
                 .attr('y', this.yScale(0)) // Start from baseline
                 .attr('height', 0) // Start with 0 height for animation
-                .attr('fill', (d, i) => this.customColors[d.category] || colors[i % colors.length])
+                .attr('fill', (d, i) => {
+                    if (this.config.useColorScheme) {
+                        return this.customColors[d.category] || colors[i % colors.length];
+                    } else {
+                        return this.config.defaultBarColor || colors[0];
+                    }
+                })
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', this.config.barCornerRadius)
                 .attr('ry', this.config.barCornerRadius)
@@ -1778,7 +1790,16 @@ class PulseBarChart {
                     } else {
                         // Simple chart: d = { category, value, label }
                         const categoryIndex = this.data.findIndex(item => item.category === d.category);
-                        originalColor = this.customColors[d.category] || colors[categoryIndex % colors.length];
+                        
+                        // **ENHANCED: Always check custom colors first**
+                        // **FIXED: Check custom colors first, regardless of color scheme setting**
+                        if (this.customColors && this.customColors[d.category]) {
+                            originalColor = this.customColors[d.category];
+                        } else if (this.config.useColorScheme) {
+                            originalColor = colors[categoryIndex % colors.length];
+                        } else {
+                            originalColor = this.config.defaultBarColor || colors[0];
+                        }
                     }
                     
                     d3.select(event.currentTarget)
@@ -2087,7 +2108,11 @@ class PulseBarChart {
                 .transition()
                 .duration(300)
                 .attr('fill', (d, i) => {
-                    return this.customColors[d.category] || this.getBarColors()[i % this.getBarColors().length];
+                    if (this.config.useColorScheme) {
+                        return this.customColors[d.category] || this.getBarColors()[i % this.getBarColors().length];
+                    } else {
+                        return this.config.defaultBarColor || this.getBarColors()[0];
+                    }
                 });
         }
     }

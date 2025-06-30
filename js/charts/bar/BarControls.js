@@ -8,7 +8,7 @@ window.BarControlModule = (function() {
     const CHART_TYPE_CONTROLS = {
         simple: {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'autoSort', 
-                     'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
+                     'defaultBarColor', 'hoverColor', 'barOpacity', 'useColorScheme', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
@@ -145,50 +145,6 @@ window.BarControlModule = (function() {
                     ]
                 },
 
-                // Visual Styling
-                styling: {
-                    title: "Bar Styling",
-                    icon: "🎨",
-                    collapsed: true,
-                    controls: [
-                        {
-                            id: "defaultBarColor",
-                            type: "color_picker",
-                            label: "Default Bar Color",
-                            default: "#3498db"
-                        },
-                        {
-                            id: "hoverColor",
-                            type: "color_picker",
-                            label: "Hover Color",
-                            default: "#2980b9"
-                        },
-                        {
-                            id: "barOpacity",
-                            type: "slider",
-                            label: "Bar Opacity",
-                            min: 0.1,
-                            max: 1.0,
-                            default: 0.8,
-                            step: 0.1,
-                            description: "Transparency of bars"
-                        },
-                        {
-                            id: "colorScheme",
-                            type: "dropdown",
-                            label: "Color Scheme",
-                            default: "default",
-                            options: [
-                                { value: "default", label: "Default Blues" },
-                                { value: "category10", label: "Category 10" },
-                                { value: "financial", label: "Financial" },
-                                { value: "pastel", label: "Pastel" },
-                                { value: "vibrant", label: "Vibrant" }
-                            ],
-                            description: "Predefined color schemes for bars"
-                        }
-                    ]
-                },
 
                 // Axes and Grid
                 axes: {
@@ -413,12 +369,56 @@ window.BarControlModule = (function() {
                     ]
                 },
 
-                // Dynamic colors section
+                // Bar styling section with color controls
                 colors: {
-                    title: "Bar Colors",
-                    icon: "🌈",
+                    title: "Bar Styling",
+                    icon: "🎨",
                     collapsed: true,
-                    controls: [],
+                    controls: [
+                        {
+                            id: "defaultBarColor",
+                            type: "color_picker",
+                            label: "Default Bar Color",
+                            default: "#3498db"
+                        },
+                        {
+                            id: "hoverColor",
+                            type: "color_picker",
+                            label: "Hover Color",
+                            default: "#2980b9"
+                        },
+                        {
+                            id: "barOpacity",
+                            type: "slider",
+                            label: "Bar Opacity",
+                            min: 0.1,
+                            max: 1.0,
+                            default: 0.8,
+                            step: 0.1,
+                            description: "Transparency of bars"
+                        },
+                        {
+                            id: "useColorScheme",
+                            type: "toggle",
+                            label: "Use Color Scheme",
+                            default: false,
+                            description: "Toggle between single color and color scheme"
+                        },
+                        {
+                            id: "colorScheme",
+                            type: "dropdown",
+                            label: "Color Scheme",
+                            default: "default",
+                            options: [
+                                { value: "default", label: "Default Blues" },
+                                { value: "category10", label: "Category 10" },
+                                { value: "financial", label: "Financial" },
+                                { value: "pastel", label: "Pastel" },
+                                { value: "vibrant", label: "Vibrant" }
+                            ],
+                            description: "Predefined color schemes for bars"
+                        }
+                    ],
                     isDynamic: true
                 }
             };
@@ -456,6 +456,7 @@ window.BarControlModule = (function() {
                 defaultBarColor: '#3498db',
                 hoverColor: '#2980b9',
                 barOpacity: 1,
+                useColorScheme: false,
                 colorScheme: 'default',
                 showXAxis: true,
                 showYAxis: true,
@@ -505,21 +506,82 @@ window.BarControlModule = (function() {
                 return;
             }
 
+            // Always ensure static controls are present - don't clear them
+            const staticControlIds = ['defaultBarColor', 'hoverColor', 'barOpacity', 'useColorScheme', 'colorScheme'];
+            const hasStaticControls = staticControlIds.every(id => 
+                this.capabilities.colors.controls.some(control => control.id === id)
+            );
+
+            if (!hasStaticControls) {
+                // Add static controls if they're missing
+                const staticControls = [
+                    {
+                        id: "defaultBarColor",
+                        type: "color_picker",
+                        label: "Default Bar Color",
+                        default: "#3498db"
+                    },
+                    {
+                        id: "hoverColor",
+                        type: "color_picker",
+                        label: "Hover Color",
+                        default: "#2980b9"
+                    },
+                    {
+                        id: "barOpacity",
+                        type: "slider",
+                        label: "Bar Opacity",
+                        min: 0.1,
+                        max: 1.0,
+                        default: 0.8,
+                        step: 0.1,
+                        description: "Transparency of bars"
+                    },
+                    {
+                        id: "useColorScheme",
+                        type: "toggle",
+                        label: "Use Color Scheme",
+                        default: false,
+                        description: "Toggle between single color and color scheme"
+                    },
+                    {
+                        id: "colorScheme",
+                        type: "dropdown",
+                        label: "Color Scheme",
+                        default: "default",
+                        options: [
+                            { value: "default", label: "Default Blues" },
+                            { value: "category10", label: "Category 10" },
+                            { value: "financial", label: "Financial" },
+                            { value: "pastel", label: "Pastel" },
+                            { value: "vibrant", label: "Vibrant" }
+                        ],
+                        description: "Predefined color schemes for bars"
+                    }
+                ];
+                
+                // Remove any existing individual bar color controls and add static controls
+                this.capabilities.colors.controls = this.capabilities.colors.controls.filter(control => 
+                    !control.id.startsWith('barColor_')
+                );
+                this.capabilities.colors.controls = [...staticControls, ...this.capabilities.colors.controls];
+            }
+
             if (!chart.data || !chart.data.length) {
                 console.log('📊 No bar chart data available for dynamic color population');
-                this.capabilities.colors.controls = [{
-                    id: "defaultBarColor",
-                    type: "color_picker", 
-                    label: "Default Bar Color",
-                    default: "#3498db",
-                    description: "Default color for all bars"
-                }];
+                // Remove individual bar color controls but keep static controls
+                this.capabilities.colors.controls = this.capabilities.colors.controls.filter(control => 
+                    !control.id.startsWith('barColor_')
+                );
                 return;
             }
 
             console.log('🎨 Populating dynamic colors for bar chart with', chart.data.length, 'bars');
 
-            this.capabilities.colors.controls = [];
+            // Remove existing individual bar color controls but keep static controls
+            this.capabilities.colors.controls = this.capabilities.colors.controls.filter(control => 
+                !control.id.startsWith('barColor_')
+            );
             this.dynamicColors.clear();
 
             const colors = chart.getBarColors ? chart.getBarColors() : ['#3498db', '#2ecc71', '#e74c3c', '#f39c12'];
@@ -604,6 +666,18 @@ window.BarControlModule = (function() {
                     chart.svg.selectAll('.x-axis, .y-axis').selectAll('path, line, text').style('stroke', value).style('fill', value);
                 } else if (controlId === 'gridColor' && chart.chart) {
                     chart.chart.selectAll('.grid line').style('stroke', value);
+                } else if (controlId === 'defaultBarColor') {
+                    // Handle default bar color change immediately when not using color scheme
+                    console.log(`🎨 Default bar color changed to: ${value}, useColorScheme: ${chart.config.useColorScheme}`);
+                    if (!chart.config.useColorScheme && chart.chart) {
+                        chart.chart.selectAll('.bar')
+                            .transition()
+                            .duration(200)
+                            .attr('fill', value);
+                    }
+                } else if (controlId === 'hoverColor') {
+                    // Update hover color config but no immediate visual change needed
+                    console.log(`🎨 Hover color changed to: ${value}`);
                 }
                 return;
             }
@@ -613,7 +687,7 @@ window.BarControlModule = (function() {
             chart.config[controlId] = value;
 
             // Handle special cases that require re-rendering
-            if (['barChartType', 'orientation', 'colorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
+            if (['barChartType', 'orientation', 'colorScheme', 'useColorScheme', 'barPadding', 'showGrid', 'showXAxis', 'showYAxis'].includes(controlId)) {
                 console.log(`🔄 Re-rendering chart for ${controlId} change`);
                 
                 if (controlId === 'barChartType') {

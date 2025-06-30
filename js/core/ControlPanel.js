@@ -112,6 +112,25 @@ class PulseControlPanel {
         colorControls.forEach(control => {
             this.createColorItem(colorGrid, control);
         });
+
+        // Add non-color controls (like toggles, dropdowns, sliders) to the color section
+        const nonColorControls = section.controls.filter(c => 
+            c.type !== 'color' && c.type !== 'color_picker' && c.type !== 'preset_controls'
+        );
+        
+        if (nonColorControls.length > 0) {
+            // Create a separate container for non-color controls in the color section
+            const controlsContainer = colorDiv
+                .append('div')
+                .attr('class', 'color-section-controls')
+                .style('margin-top', '20px')
+                .style('padding-top', '20px')
+                .style('border-top', '1px solid rgba(226, 232, 240, 0.6)');
+            
+            nonColorControls.forEach(control => {
+                this.createControl(controlsContainer, control);
+            });
+        }
     }
 
     // Create modern color preset buttons
