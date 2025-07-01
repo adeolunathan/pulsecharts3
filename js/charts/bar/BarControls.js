@@ -12,7 +12,8 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['showBarLabels']
         },
         grouped: {
@@ -21,7 +22,8 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked: {
@@ -30,7 +32,8 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked100: {
@@ -38,7 +41,8 @@ window.BarControlModule = (function() {
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
-                     'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces', 'showBarLabels'] // Always shows percentages
         },
         range: {
@@ -47,7 +51,8 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['showBarLabels']
         },
         waterfall: {
@@ -56,7 +61,8 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['autoSort', 'colorScheme', 'showBarLabels'] // Waterfall has specific ordering and colors
         },
         polar: {
@@ -64,7 +70,8 @@ window.BarControlModule = (function() {
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
                      'showBarLabels', 'showValues', 'labelFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize'],
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['orientation', 'barCornerRadius', // No orientation or corners in polar
                       'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor', // No traditional axes
                       'labelPosition', 'labelOffset', 'showBarLabels'] // Polar has specific label positioning
@@ -438,6 +445,77 @@ window.BarControlModule = (function() {
                         }
                     ],
                     isDynamic: true
+                },
+
+                // Chart Layout & Dimensions
+                layout: {
+                    title: "Chart Layout",
+                    icon: "📐",
+                    collapsed: true,
+                    controls: [
+                        {
+                            id: "chartWidthScale",
+                            type: "slider",
+                            label: "Chart Width",
+                            min: 0.5,
+                            max: 1.0,
+                            default: 0.8,
+                            step: 0.05,
+                            unit: "%",
+                            description: "How much of the container width to use (50% - 100%)"
+                        },
+                        {
+                            id: "autoFitContainer",
+                            type: "toggle",
+                            label: "Auto-Fit Container",
+                            default: false,
+                            description: "Automatically size chart to fill container width"
+                        },
+                        {
+                            id: "leftMargin",
+                            type: "slider",
+                            label: "Left Margin",
+                            min: 50,
+                            max: 300,
+                            default: 150,
+                            step: 10,
+                            unit: "px",
+                            description: "Left margin space for axis labels"
+                        },
+                        {
+                            id: "rightMargin",
+                            type: "slider",
+                            label: "Right Margin",
+                            min: 50,
+                            max: 300,
+                            default: 150,
+                            step: 10,
+                            unit: "px",
+                            description: "Right margin space for legends"
+                        },
+                        {
+                            id: "topMargin",
+                            type: "slider",
+                            label: "Top Margin",
+                            min: 30,
+                            max: 200,
+                            default: 80,
+                            step: 10,
+                            unit: "px",
+                            description: "Top margin space for titles"
+                        },
+                        {
+                            id: "bottomMargin",
+                            type: "slider",
+                            label: "Bottom Margin",
+                            min: 30,
+                            max: 200,
+                            default: 80,
+                            step: 10,
+                            unit: "px",
+                            description: "Bottom margin space for axis labels"
+                        }
+                    ]
                 }
             };
 
@@ -502,7 +580,14 @@ window.BarControlModule = (function() {
                 backgroundColor: '#f5f0db',
                 titleFont: 'Inter',
                 titleColor: '#1f2937',
-                titleSize: 20
+                titleSize: 20,
+                // Layout controls
+                chartWidthScale: 0.85,
+                autoFitContainer: false,
+                leftMargin: 150,
+                rightMargin: 150,
+                topMargin: 80,
+                bottomMargin: 80
             };
         }
 
@@ -949,6 +1034,26 @@ window.BarControlModule = (function() {
             else if (controlId === 'animationEasing') {
                 console.log(`🎬 Animation easing changed to: ${value} (config-only)`);
                 // No immediate visual change needed - the new easing will be used in future animations
+            }
+            // Handle layout and margin controls
+            else if (['chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'].includes(controlId)) {
+                console.log(`📐 Layout control changed: ${controlId} = ${value}`);
+                
+                if (controlId === 'autoFitContainer' && value) {
+                    // Auto-fit overrides width scale
+                    if (!chart.config) chart.config = {};
+                    chart.config.autoFitContainer = true;
+                    chart.config.chartWidthScale = 1.0; // Full width when auto-fit
+                    console.log('🔄 Auto-fit enabled, setting width scale to 100%');
+                }
+                
+                // Update chart dimensions and re-render
+                if (chart.updateChartDimensions) {
+                    chart.updateChartDimensions();
+                } else {
+                    console.log('🔄 Re-rendering chart for layout change');
+                    chart.render();
+                }
             }
             // Handle config-only controls that don't need immediate visual changes
             else if (['enableHover', 'enableClick', 'enableTooltip', 'hoverOpacity', 'categorySpacing'].includes(controlId)) {

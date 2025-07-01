@@ -922,7 +922,10 @@ class PulseControlPanel {
             'useColorScheme',
             
             // Background controls
-            'backgroundColor'
+            'backgroundColor',
+            
+            // Layout controls - should provide immediate visual feedback
+            'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'
         ];
 
         // **FIXED: Handle controls that need immediate updates**

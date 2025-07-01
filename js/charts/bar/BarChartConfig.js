@@ -15,6 +15,14 @@ window.BarChartConfig = (function() {
             height: 700,
             margin: { top: 80, right: 150, bottom: 80, left: 150 },
             
+            // Chart Layout & Dimensions
+            chartWidthScale: 0.85, // Use 85% of container width by default for better utilization
+            autoFitContainer: false,
+            leftMargin: 150,
+            rightMargin: 150,
+            topMargin: 80,
+            bottomMargin: 80,
+            
             // Bar specific settings
             barChartType: 'simple',  // 'simple', 'grouped', 'stacked', 'stacked100', 'range', 'waterfall', 'polar'
             barPadding: 0.1,        // Space between bars (0-1)

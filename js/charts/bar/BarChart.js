@@ -149,20 +149,103 @@ class PulseBarChart {
         }
     }
 
+    calculateChartDimensions() {
+        // Get container dimensions
+        const containerNode = this.container.node();
+        const containerWidth = containerNode ? containerNode.getBoundingClientRect().width : 1200;
+        const containerHeight = 700; // Fixed height for now
+        
+        // Use config margins or defaults
+        const margins = {
+            top: this.config.topMargin || this.config.margin?.top || 80,
+            right: this.config.rightMargin || this.config.margin?.right || 150,
+            bottom: this.config.bottomMargin || this.config.margin?.bottom || 80,
+            left: this.config.leftMargin || this.config.margin?.left || 150
+        };
+        
+        // Calculate total width based on scale and auto-fit settings
+        let totalWidth = this.config.width || 1200;
+        
+        if (this.config.autoFitContainer) {
+            // Auto-fit: use container width but ensure minimum chart area
+            const minChartWidth = 400; // Minimum drawable chart area
+            const requiredMargins = margins.left + margins.right;
+            const minTotalWidth = minChartWidth + requiredMargins;
+            totalWidth = Math.max(minTotalWidth, containerWidth * 0.98); // 98% of container
+        } else if (this.config.chartWidthScale) {
+            // Manual scale: apply scale to container width
+            const minChartWidth = 300;
+            const requiredMargins = margins.left + margins.right;
+            const minTotalWidth = minChartWidth + requiredMargins;
+            totalWidth = Math.max(minTotalWidth, containerWidth * this.config.chartWidthScale);
+        }
+        
+        console.log(`📐 Chart dimensions calculated:`, {
+            containerWidth,
+            totalWidth,
+            chartWidth: totalWidth - margins.left - margins.right,
+            chartHeight: containerHeight - margins.top - margins.bottom,
+            margins,
+            widthScale: this.config.chartWidthScale,
+            autoFit: this.config.autoFitContainer
+        });
+        
+        return {
+            width: Math.round(totalWidth),
+            height: containerHeight,
+            margins
+        };
+    }
+
+    updateChartDimensions() {
+        console.log('📐 Updating chart dimensions...');
+        
+        if (!this.svg) {
+            console.warn('⚠️ SVG not initialized, calling initializeChart instead');
+            this.initializeChart();
+            return;
+        }
+        
+        // Calculate new dimensions
+        const { width, height, margins } = this.calculateChartDimensions();
+        
+        // Update SVG dimensions and viewBox
+        this.svg
+            .attr('width', width)
+            .attr('height', height)
+            .attr('viewBox', `0 0 ${width} ${height}`);
+        
+        // Update chart group position with new margins
+        if (this.chart) {
+            this.chart.attr('transform', `translate(${margins.left}, ${margins.top})`);
+        }
+        
+        // Clear any existing chart content to force fresh render with new dimensions
+        if (this.chart) {
+            this.chart.selectAll('.bar, .bar-group, .layer, .grid, .x-axis, .y-axis').remove();
+        }
+        
+        // Re-render with current data using new dimensions
+        if (this.data && this.data.length > 0) {
+            console.log('🔄 Re-rendering chart with new dimensions');
+            this.render(this.data);
+        } else {
+            console.log('⚠️ No data available for re-render after dimension update');
+        }
+    }
+
     initializeChart() {
         this.container.selectAll('*').remove();
         
-        const dimensions = {
-            width: this.config.width - this.config.margin.left - this.config.margin.right,
-            height: this.config.height - this.config.margin.top - this.config.margin.bottom
-        };
+        // Calculate dynamic dimensions
+        const { width, height, margins } = this.calculateChartDimensions();
 
         this.svg = this.container
             .append('svg')
             .attr('class', 'chart-svg')
-            .attr('width', this.config.width)
-            .attr('height', this.config.height)
-            .attr('viewBox', `0 0 ${this.config.width} ${this.config.height}`)
+            .attr('width', width)
+            .attr('height', height)
+            .attr('viewBox', `0 0 ${width} ${height}`)
             .style('background-color', this.config.backgroundColor);
 
         // Create zoom container
@@ -173,7 +256,7 @@ class PulseBarChart {
         this.chart = this.zoomContainer
             .append('g')
             .attr('class', 'chart-group')
-            .attr('transform', `translate(${this.config.margin.left}, ${this.config.margin.top})`);
+            .attr('transform', `translate(${margins.left}, ${margins.top})`);
 
         // Initialize zoom and pan functionality using reusable module
         this.initializeZoomWithRetry();
@@ -351,9 +434,10 @@ class PulseBarChart {
         this.chart.selectAll('.waterfall-bar-label').remove();
         this.chart.selectAll('.polar-label').remove();
 
-        // Calculate dimensions
-        const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
-        const chartHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        // Calculate dynamic dimensions
+        const { width, height, margins } = this.calculateChartDimensions();
+        const chartWidth = width - margins.left - margins.right;
+        const chartHeight = height - margins.top - margins.bottom;
 
         // For polar charts, skip traditional scales, grid, and axes
         if (this.config.barChartType === 'polar') {
@@ -1694,9 +1778,10 @@ class PulseBarChart {
         console.log('🔧 Expected max value per stack:', stackedData.map(layer => 
             layer.map(d => d[1]).join(', ')).join(' | '));
             
-        // Create percentage scale - using the actual chart dimensions
-        const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
-        const chartHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        // Create percentage scale - using the dynamic chart dimensions
+        const { width, height, margins } = this.calculateChartDimensions();
+        const chartWidth = width - margins.left - margins.right;
+        const chartHeight = height - margins.top - margins.bottom;
         
         const percentScale = this.config.orientation === 'horizontal' ? 
             d3.scaleLinear().domain([0, 100]).range([0, chartWidth]) :
