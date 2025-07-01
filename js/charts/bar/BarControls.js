@@ -10,7 +10,7 @@ window.BarControlModule = (function() {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort', 
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'useColorScheme', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
@@ -20,7 +20,7 @@ window.BarControlModule = (function() {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
@@ -30,7 +30,7 @@ window.BarControlModule = (function() {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
@@ -40,7 +40,7 @@ window.BarControlModule = (function() {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces', 'showBarLabels'] // Always shows percentages
@@ -49,7 +49,7 @@ window.BarControlModule = (function() {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle', 'autoSort',
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
@@ -59,7 +59,7 @@ window.BarControlModule = (function() {
             enabled: ['barChartType', 'orientation', 'barPadding', 'barCornerRadius', 'cornerRadiusStyle',
                      'defaultBarColor', 'hoverColor', 'barOpacity',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
-                     'showBarLabels', 'showValues', 'labelPosition', 'labelOffset', 'labelFontSize', 'labelColor',
+                     'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
@@ -68,13 +68,13 @@ window.BarControlModule = (function() {
         polar: {
             enabled: ['barChartType', 'barPadding', 'autoSort',
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
-                     'showBarLabels', 'showValues', 'labelFontSize', 'labelColor',
+                     'showBarLabels', 'showValues', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['orientation', 'barCornerRadius', // No orientation or corners in polar
                       'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor', // No traditional axes
-                      'labelPosition', 'labelOffset', 'showBarLabels'] // Polar has specific label positioning
+                      'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'showBarLabels'] // Polar has specific label positioning
         }
     };
 
@@ -222,7 +222,21 @@ window.BarControlModule = (function() {
                                 { value: "inside_start", label: "Inside Start" },
                                 { value: "outside_start", label: "Outside Start" }
                             ],
-                            description: "Where to position the value labels relative to bars"
+                            description: "Where to position the category labels relative to bars"
+                        },
+                        {
+                            id: "valuePosition",
+                            type: "dropdown",
+                            label: "Value Position",
+                            default: "outside_end",
+                            options: [
+                                { value: "outside_end", label: "Outside End" },
+                                { value: "inside_end", label: "Inside End" },
+                                { value: "inside_center", label: "Inside Center" },
+                                { value: "inside_start", label: "Inside Start" },
+                                { value: "outside_start", label: "Outside Start" }
+                            ],
+                            description: "Where to position the value numbers relative to bars"
                         },
                         {
                             id: "labelOffset",
@@ -244,7 +258,29 @@ window.BarControlModule = (function() {
                             default: 12,
                             step: 1,
                             unit: "px",
-                            description: "Size of bar labels"
+                            description: "Size of category labels"
+                        },
+                        {
+                            id: "valueFontSize",
+                            type: "slider",
+                            label: "Value Font Size",
+                            min: 8,
+                            max: 20,
+                            default: 12,
+                            step: 1,
+                            unit: "px",
+                            description: "Size of value numbers"
+                        },
+                        {
+                            id: "valueOffset",
+                            type: "slider",
+                            label: "Value Offset",
+                            min: 0,
+                            max: 20,
+                            default: 8,
+                            step: 1,
+                            unit: "px",
+                            description: "Distance of values from bars"
                         },
                         {
                             id: "labelColor",
@@ -565,8 +601,11 @@ window.BarControlModule = (function() {
                 showBarLabels: false,
                 showValues: true,
                 labelPosition: 'outside_end',
+                valuePosition: 'outside_end',
                 labelOffset: 8,
+                valueOffset: 8,
                 labelFontSize: 12,
+                valueFontSize: 12,
                 labelColor: '#374151',
                 valueFormat: 'currency',
                 currencySymbol: '$',
@@ -969,16 +1008,31 @@ window.BarControlModule = (function() {
                     .duration(200)
                     .style('font-size', value + 'px');
             }
+            else if (controlId === 'valueFontSize') {
+                chart.chart.selectAll('.bar-value, .grouped-bar-value, .stacked-bar-value, .waterfall-bar-value, .polar-value')
+                    .transition()
+                    .duration(200)
+                    .style('font-size', value + 'px');
+            }
             // Handle label controls with efficient label update
-            else if (['showBarLabels', 'showValues', 'labelPosition', 'labelOffset'].includes(controlId)) {
+            else if (['showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset'].includes(controlId)) {
                 console.log(`🏷️ Updating labels for control: ${controlId} = ${value} (real-time)`);
-                if (controlId === 'showBarLabels' || controlId === 'showValues') {
-                    // Toggle label visibility immediately
+                
+                if (controlId === 'showBarLabels') {
+                    // Toggle ONLY label visibility immediately
                     if (chart.chart) {
                         chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label')
                             .transition()
                             .duration(200)
-                            .style('opacity', (chart.config.showBarLabels || chart.config.showValues) ? 1 : 0);
+                            .style('opacity', value ? 1 : 0);
+                    }
+                } else if (controlId === 'showValues') {
+                    // Toggle ONLY value visibility immediately
+                    if (chart.chart) {
+                        chart.chart.selectAll('.bar-value, .grouped-bar-value, .stacked-bar-value, .waterfall-bar-value, .polar-value')
+                            .transition()
+                            .duration(200)
+                            .style('opacity', value ? 1 : 0);
                     }
                 } else if (chart.updateLabels) {
                     // For position and offset changes, use the existing efficient method

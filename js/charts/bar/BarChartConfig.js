@@ -51,9 +51,12 @@ window.BarChartConfig = (function() {
             // Labels
             showBarLabels: false,  // Changed to false by default
             labelPosition: 'outside_end',   // 'outside_end', 'inside_end', 'inside_center', 'inside_start', 'outside_start'
+            valuePosition: 'outside_end',   // 'outside_end', 'inside_end', 'inside_center', 'inside_start', 'outside_start'
             labelOffset: 8,
+            valueOffset: 8,
             labelColor: '#374151',
             labelFontSize: 12,
+            valueFontSize: 12,
             labelFontWeight: '600',
             
             // Value formatting

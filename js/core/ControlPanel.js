@@ -925,7 +925,10 @@ class PulseControlPanel {
             'backgroundColor',
             
             // Layout controls - should provide immediate visual feedback
-            'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'
+            'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin',
+            
+            // Label positioning controls - should provide immediate visual feedback
+            'valuePosition', 'valueFontSize', 'valueOffset'
         ];
 
         // **FIXED: Handle controls that need immediate updates**

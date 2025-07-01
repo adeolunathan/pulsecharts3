@@ -2305,54 +2305,116 @@ class PulseBarChart {
     }
 
     renderBarLabels() {
+        // Render category labels and values as separate elements with independent positioning
+        
         if (this.config.orientation === 'horizontal') {
-            // **HORIZONTAL BAR LABELS**
-            const labels = this.chart.selectAll('.bar-label')
-                .data(this.data)
-                .enter()
-                .append('text')
-                .attr('class', 'bar-label')
-                .attr('x', d => this.getLabelX(d))
-                .attr('y', d => this.yScale(d.category) + this.yScale.bandwidth() / 2)
-                .attr('text-anchor', this.getLabelTextAnchor())
-                .attr('dominant-baseline', 'middle')
-                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                .style('font-size', `${this.config.labelFontSize}px`)
-                .style('font-weight', this.config.labelFontWeight)
-                .style('fill', this.config.labelColor)
-                .style('opacity', 0)
-                .text(d => this.getBarLabelText(d));
+            // **HORIZONTAL BAR LABELS & VALUES**
+            
+            // Render category labels
+            if (this.config.showBarLabels) {
+                const labels = this.chart.selectAll('.bar-label')
+                    .data(this.data)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'bar-label')
+                    .attr('x', d => this.getLabelX(d))
+                    .attr('y', d => this.getLabelY(d))
+                    .attr('text-anchor', this.getLabelTextAnchor())
+                    .attr('dominant-baseline', 'middle')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.labelFontSize}px`)
+                    .style('font-weight', this.config.labelFontWeight)
+                    .style('fill', this.config.labelColor)
+                    .style('opacity', 0)
+                    .text(d => this.getBarLabelText(d));
 
-            // Animate labels
-            labels.transition()
-                .delay(this.config.animationDuration * 0.5)
-                .duration(this.config.animationDuration * 0.5)
-                .style('opacity', 1);
+                // Animate labels
+                labels.transition()
+                    .delay(this.config.animationDuration * 0.5)
+                    .duration(this.config.animationDuration * 0.5)
+                    .style('opacity', 1);
+            }
+
+            // Render values separately
+            if (this.config.showValues) {
+                const values = this.chart.selectAll('.bar-value')
+                    .data(this.data)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'bar-value')
+                    .attr('x', d => this.getValueX(d))
+                    .attr('y', d => this.getValueY(d))
+                    .attr('text-anchor', this.getValueTextAnchor())
+                    .attr('dominant-baseline', 'middle')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.valueFontSize || this.config.labelFontSize}px`)
+                    .style('font-weight', this.config.labelFontWeight)
+                    .style('fill', this.config.labelColor)
+                    .style('opacity', 0)
+                    .text(d => this.getBarValueText(d));
+
+                // Animate values
+                values.transition()
+                    .delay(this.config.animationDuration * 0.5)
+                    .duration(this.config.animationDuration * 0.5)
+                    .style('opacity', 1);
+            }
         } else {
-            // **VERTICAL BAR LABELS (default)**
-            const labels = this.chart.selectAll('.bar-label')
-                .data(this.data)
-                .enter()
-                .append('text')
-                .attr('class', 'bar-label')
-                .attr('x', d => this.xScale(d.category) + this.xScale.bandwidth() / 2)
-                .attr('y', d => this.getLabelY(d))
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 
-                    this.config.labelPosition === 'inside_center' || this.config.labelPosition === 'middle' ? 'middle' : 
-                    this.config.labelPosition === 'outside_start' || this.config.labelPosition === 'bottom' ? 'hanging' : 'auto')
-                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                .style('font-size', `${this.config.labelFontSize}px`)
-                .style('font-weight', this.config.labelFontWeight)
-                .style('fill', this.config.labelColor)
-                .style('opacity', 0)
-                .text(d => this.getBarLabelText(d));
+            // **VERTICAL BAR LABELS & VALUES (default)**
+            
+            // Render category labels
+            if (this.config.showBarLabels) {
+                const labels = this.chart.selectAll('.bar-label')
+                    .data(this.data)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'bar-label')
+                    .attr('x', d => this.getLabelX(d))
+                    .attr('y', d => this.getLabelY(d))
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 
+                        this.config.labelPosition === 'inside_center' || this.config.labelPosition === 'middle' ? 'middle' : 
+                        this.config.labelPosition === 'outside_start' || this.config.labelPosition === 'bottom' ? 'hanging' : 'auto')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.labelFontSize}px`)
+                    .style('font-weight', this.config.labelFontWeight)
+                    .style('fill', this.config.labelColor)
+                    .style('opacity', 0)
+                    .text(d => this.getBarLabelText(d));
 
-            // Animate labels
-            labels.transition()
-                .delay(this.config.animationDuration * 0.5)
-                .duration(this.config.animationDuration * 0.5)
-                .style('opacity', 1);
+                // Animate labels
+                labels.transition()
+                    .delay(this.config.animationDuration * 0.5)
+                    .duration(this.config.animationDuration * 0.5)
+                    .style('opacity', 1);
+            }
+
+            // Render values separately
+            if (this.config.showValues) {
+                const values = this.chart.selectAll('.bar-value')
+                    .data(this.data)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'bar-value')
+                    .attr('x', d => this.getValueX(d))
+                    .attr('y', d => this.getValueY(d))
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 
+                        this.config.valuePosition === 'inside_center' || this.config.valuePosition === 'middle' ? 'middle' : 
+                        this.config.valuePosition === 'outside_start' || this.config.valuePosition === 'bottom' ? 'hanging' : 'auto')
+                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                    .style('font-size', `${this.config.valueFontSize || this.config.labelFontSize}px`)
+                    .style('font-weight', this.config.labelFontWeight)
+                    .style('fill', this.config.labelColor)
+                    .style('opacity', 0)
+                    .text(d => this.getBarValueText(d));
+
+                // Animate values
+                values.transition()
+                    .delay(this.config.animationDuration * 0.5)
+                    .duration(this.config.animationDuration * 0.5)
+                    .style('opacity', 1);
+            }
         }
     }
 
@@ -3285,6 +3347,40 @@ class PulseBarChart {
         return easingMap[easingName] || d3.easeQuadOut;
     }
 
+    // Calculate VALUE Y position based on valuePosition config
+    getValueY(d) {
+        if (this.config.orientation === 'horizontal') {
+            return this.yScale(d.category) + this.yScale.bandwidth() / 2;
+        } else {
+            // Vertical bars
+            const value = this.getPrimaryValue(d);
+            const barTop = this.yScale(Math.max(0, value));
+            const barBottom = this.yScale(0);
+            const barHeight = Math.abs(barBottom - barTop);
+            
+            switch (this.config.valuePosition) {
+                case 'outside_end':
+                    // Above the bar (traditional top)
+                    return barTop - (this.config.valueOffset || this.config.labelOffset);
+                case 'inside_end':
+                    // Inside the bar near the top
+                    return barTop + (this.config.valueOffset || this.config.labelOffset);
+                case 'inside_center':
+                    // Center of the bar
+                    return barTop + barHeight / 2;
+                case 'inside_start':
+                    // Inside the bar near the bottom
+                    return barBottom - (this.config.valueOffset || this.config.labelOffset);
+                case 'outside_start':
+                    // Below the bar
+                    return barBottom + (this.config.valueOffset || this.config.labelOffset);
+                default:
+                    // Default to outside_end
+                    return barTop - (this.config.valueOffset || this.config.labelOffset);
+            }
+        }
+    }
+
     // Calculate label Y position based on labelPosition config
     getLabelY(d) {
         if (this.config.orientation === 'horizontal') {
@@ -3321,6 +3417,41 @@ class PulseBarChart {
                     return barBottom + this.config.labelOffset + 15;
                 default:
                     return barTop - this.config.labelOffset;
+            }
+        }
+    }
+
+    // Calculate VALUE X position based on valuePosition config (for horizontal bars)
+    getValueX(d) {
+        if (this.config.orientation === 'vertical') {
+            // For vertical bars, X is just centered on the bar
+            return this.xScale(d.category) + this.xScale.bandwidth() / 2;
+        } else {
+            // Horizontal bars
+            const value = this.getPrimaryValue(d);
+            const barLeft = this.xScale(0);
+            const barRight = this.xScale(value);
+            const barWidth = Math.abs(barRight - barLeft);
+            
+            switch (this.config.valuePosition) {
+                case 'outside_end':
+                    // Right of the bar
+                    return barRight + (this.config.valueOffset || this.config.labelOffset);
+                case 'inside_end':
+                    // Inside the bar near the right
+                    return barRight - (this.config.valueOffset || this.config.labelOffset);
+                case 'inside_center':
+                    // Center of the bar
+                    return barLeft + barWidth / 2;
+                case 'inside_start':
+                    // Inside the bar near the left
+                    return barLeft + (this.config.valueOffset || this.config.labelOffset);
+                case 'outside_start':
+                    // Left of the bar
+                    return barLeft - (this.config.valueOffset || this.config.labelOffset);
+                default:
+                    // Default to outside_end
+                    return barRight + (this.config.valueOffset || this.config.labelOffset);
             }
         }
     }
@@ -3367,6 +3498,26 @@ class PulseBarChart {
     }
 
     // Get text anchor based on label position
+    getValueTextAnchor() {
+        if (this.config.orientation === 'vertical') {
+            return 'middle';
+        } else {
+            // Horizontal bars
+            switch (this.config.valuePosition) {
+                case 'outside_end':
+                case 'inside_end':
+                    return 'start';
+                case 'inside_center':
+                    return 'middle';
+                case 'inside_start':
+                case 'outside_start':
+                    return 'end';
+                default:
+                    return 'start';
+            }
+        }
+    }
+
     getLabelTextAnchor() {
         if (this.config.orientation === 'vertical') {
             return 'middle';
@@ -3544,38 +3695,42 @@ class PulseBarChart {
 
     // Get the text to display on bar labels based on config
     getBarLabelText(d) {
+        // Only return label text, not values (they have separate positioning now)
         const showLabels = this.config.showBarLabels;
-        const showValues = this.config.showValues;
         
-        // If neither is enabled, return empty string
-        if (!showLabels && !showValues) {
+        if (!showLabels) {
             return '';
         }
         
-        if (showLabels && showValues) {
-            // Show both: "Category: $value"
-            return `${d.label}: ${this.formatValue(this.getPrimaryValue(d))}`;
-        } else if (showValues) {
-            // Show only values
-            return this.formatValue(this.getPrimaryValue(d));
-        } else if (showLabels) {
-            // Show only labels
-            return d.label;
+        return d.label || d.category || '';
+    }
+
+    getBarValueText(d) {
+        // Only return value text, not labels (they have separate positioning now)
+        const showValues = this.config.showValues;
+        
+        if (!showValues) {
+            return '';
         }
         
-        return '';
+        return this.formatValue(this.getPrimaryValue(d));
     }
 
     // Update existing labels based on current config (for better performance)
     updateLabels() {
         const shouldShowLabels = this.config.showBarLabels || this.config.showValues;
         
-        // Remove ALL existing labels (all types)
+        // Remove ALL existing labels AND values (all types)
         this.chart.selectAll('.bar-label').remove();
+        this.chart.selectAll('.bar-value').remove();
         this.chart.selectAll('.grouped-bar-label').remove();
+        this.chart.selectAll('.grouped-bar-value').remove();
         this.chart.selectAll('.stacked-bar-label').remove();
+        this.chart.selectAll('.stacked-bar-value').remove();
         this.chart.selectAll('.waterfall-bar-label').remove();
+        this.chart.selectAll('.waterfall-bar-value').remove();
         this.chart.selectAll('.polar-label').remove();
+        this.chart.selectAll('.polar-value').remove();
         
         // Add labels if needed based on current chart type
         if (shouldShowLabels) {
