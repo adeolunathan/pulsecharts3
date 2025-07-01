@@ -16,6 +16,9 @@ class PulseBarChart {
         // Custom color storage
         this.customColors = {};
         
+        // Waterfall subtotal tracking
+        this.waterfallSubtotals = new Set(); // Track which categories are marked as subtotals
+        
         // Color picker state
         this.isColorPickerActive = false;
         this.selectedElement = null;
@@ -232,17 +235,44 @@ class PulseBarChart {
     }
 
     updateBarColor(barData, newColor) {
+        console.log(`🎨 ===== UPDATEBARCOLOR CALLED =====`);
+        console.log(`🎨 Category: ${barData?.category}`);
+        console.log(`🎨 New color: ${newColor}`);
+        console.log(`🎨 Chart type: ${this.config.barChartType}`);
+        console.log(`🎨 Bar data:`, barData);
+        
         // Store custom color
         this.customColors[barData.category] = newColor;
+        console.log(`🎨 Stored in customColors:`, this.customColors);
         
-        // Update the visual element
-        this.chart.selectAll('.bar')
-            .filter(d => d.category === barData.category)
-            .transition()
-            .duration(200)
-            .attr('fill', newColor);
+        // For waterfall charts, use the proper color calculation
+        if (this.config.barChartType === 'waterfall') {
+            console.log(`🎨 Applying waterfall color update...`);
+            const colors = this.getBarColors();
+            const matchingBars = this.chart.selectAll('.bar')
+                .filter(d => d.category === barData.category);
+            
+            console.log(`🎨 Found ${matchingBars.size()} matching bars for ${barData.category}`);
+            
+            matchingBars
+                .transition()
+                .duration(200)
+                .attr('fill', d => {
+                    const color = this.getWaterfallBarColor(d, colors);
+                    console.log(`🎨 Applying color ${color} to bar:`, d.category);
+                    return color;
+                });
+        } else {
+            console.log(`🎨 Applying direct color update...`);
+            // For other chart types, apply color directly
+            this.chart.selectAll('.bar')
+                .filter(d => d.category === barData.category)
+                .transition()
+                .duration(200)
+                .attr('fill', newColor);
+        }
         
-        console.log(`🎨 Bar color updated for ${barData.category}: ${newColor}`);
+        console.log(`🎨 Bar color update completed for ${barData.category}: ${newColor}`);
     }
 
     createTooltip() {
@@ -1893,17 +1923,35 @@ class PulseBarChart {
         const colors = this.getBarColors();
         let cumulative = 0;
         
-        // Calculate cumulative values
+        // Calculate cumulative values with proper subtotal handling
         const waterfallData = this.data.map((d, i) => {
             const value = this.getPrimaryValue(d);
-            const start = cumulative;
-            cumulative += value;
+            const isSubtotal = this.waterfallSubtotals.has(d.category);
+            
+            let start, end, barType;
+            
+            if (isSubtotal) {
+                // Subtotal: bar goes from 0 to cumulative total
+                start = 0;
+                end = cumulative;
+                barType = 'subtotal';
+            } else {
+                // Regular bar: floating bar showing the change
+                start = cumulative;
+                cumulative += value;
+                end = cumulative;
+                barType = value >= 0 ? 'positive' : 'negative';
+            }
+            
             return {
                 ...d,
                 start,
-                end: cumulative,
-                value,
-                isPositive: value >= 0
+                end,
+                value: isSubtotal ? cumulative : value, // For subtotals, show total value
+                originalValue: value, // Keep original for calculations
+                isPositive: isSubtotal ? true : value >= 0,
+                isSubtotal,
+                barType
             };
         });
         
@@ -1928,7 +1976,7 @@ class PulseBarChart {
                 .attr('height', this.yScale.bandwidth())
                 .attr('x', 0)
                 .attr('width', 0)
-                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('fill', d => this.getWaterfallBarColor(d, colors))
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', 0);
                 
@@ -1936,7 +1984,7 @@ class PulseBarChart {
             const allBars = newBars.merge(barSelection)
                 .attr('y', d => this.yScale(d.category))
                 .attr('height', this.yScale.bandwidth())
-                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('fill', d => this.getWaterfallBarColor(d, colors))
                 .attr('opacity', this.config.barOpacity);
                 
             allBars.transition()
@@ -1960,7 +2008,7 @@ class PulseBarChart {
                 .attr('width', this.xScale.bandwidth())
                 .attr('y', this.yScale(0))
                 .attr('height', 0)
-                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('fill', d => this.getWaterfallBarColor(d, colors))
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', 0);
                 
@@ -1968,7 +2016,7 @@ class PulseBarChart {
             const allBars = newBars.merge(barSelection)
                 .attr('x', d => this.xScale(d.category))
                 .attr('width', this.xScale.bandwidth())
-                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('fill', d => this.getWaterfallBarColor(d, colors))
                 .attr('opacity', this.config.barOpacity);
                 
             allBars.transition()
@@ -1981,15 +2029,85 @@ class PulseBarChart {
         this.bars = this.chart.selectAll('.bar');
         this.addBarInteractivity(this.bars);
         
+        // Add connecting lines between bars
+        this.renderWaterfallConnectors(waterfallData);
+        
         // Apply corner radius and render labels after animation completes
         setTimeout(() => {
             this.applyCornerRadius();
+            
+            // Apply subtotal styling for waterfall charts
+            this.updateWaterfallVisuals();
             
             // Render labels for waterfall bars AFTER bars are fully rendered
             if (this.config.showBarLabels || this.config.showValues) {
                 this.renderWaterfallBarLabels();
             }
         }, this.config.animationDuration + 50); // Wait for animation to complete
+    }
+
+    getWaterfallBarColor(d, colors) {
+        // Check for custom colors first (from color picker)
+        if (this.customColors && this.customColors[d.category]) {
+            return this.customColors[d.category];
+        }
+        
+        // Default waterfall color scheme
+        if (d.isSubtotal) {
+            return '#64748b'; // Gray for subtotals/totals
+        } else if (d.barType === 'positive') {
+            return '#22c55e'; // Green for positive changes
+        } else {
+            return '#ef4444'; // Red for negative changes
+        }
+    }
+
+    renderWaterfallConnectors(waterfallData) {
+        // Remove existing connectors
+        this.chart.selectAll('.waterfall-connector').remove();
+        
+        // Add connecting lines between bars
+        for (let i = 0; i < waterfallData.length - 1; i++) {
+            const current = waterfallData[i];
+            const next = waterfallData[i + 1];
+            
+            // Skip connector if next bar is a subtotal (it starts from 0)
+            if (next.isSubtotal) continue;
+            
+            if (this.config.orientation === 'horizontal') {
+                // Horizontal connectors
+                const y = this.yScale(current.category) + this.yScale.bandwidth() / 2;
+                const x1 = this.xScale(Math.max(current.start, current.end));
+                const x2 = this.xScale(next.start);
+                
+                this.chart.append('line')
+                    .attr('class', 'waterfall-connector')
+                    .attr('x1', x1)
+                    .attr('x2', x2)
+                    .attr('y1', y)
+                    .attr('y2', y)
+                    .style('stroke', '#94a3b8')
+                    .style('stroke-width', 1)
+                    .style('stroke-dasharray', '3,3')
+                    .style('opacity', 0.7);
+            } else {
+                // Vertical connectors
+                const x = this.xScale(current.category) + this.xScale.bandwidth() / 2;
+                const y1 = this.yScale(Math.min(current.start, current.end));
+                const y2 = this.yScale(next.start);
+                
+                this.chart.append('line')
+                    .attr('class', 'waterfall-connector')
+                    .attr('x1', x)
+                    .attr('x2', x)
+                    .attr('y1', y1)
+                    .attr('y2', y2)
+                    .style('stroke', '#94a3b8')
+                    .style('stroke-width', 1)
+                    .style('stroke-dasharray', '3,3')
+                    .style('opacity', 0.7);
+            }
+        }
     }
     
     renderPolarBars() {
@@ -2205,9 +2323,28 @@ class PulseBarChart {
                         .attr('opacity', this.config.barOpacity)
                         .attr('fill', originalColor);
 
-                    // Hide tooltip
+                    // Hide tooltip (but delay for waterfall charts to allow interaction)
                     if (this.config.enableTooltip) {
-                        this.hideTooltip();
+                        if (this.config.barChartType === 'waterfall') {
+                            // Delay hiding for waterfall charts to allow tooltip interaction
+                            setTimeout(() => {
+                                // Only hide if not hovering over tooltip
+                                const tooltipElement = this.tooltip.node();
+                                const tooltipRect = tooltipElement?.getBoundingClientRect();
+                                const mouseX = event.clientX;
+                                const mouseY = event.clientY;
+                                
+                                const isOverTooltip = tooltipRect && 
+                                    mouseX >= tooltipRect.left && mouseX <= tooltipRect.right &&
+                                    mouseY >= tooltipRect.top && mouseY <= tooltipRect.bottom;
+                                
+                                if (!isOverTooltip) {
+                                    this.hideTooltip();
+                                }
+                            }, 100);
+                        } else {
+                            this.hideTooltip();
+                        }
                     }
                 }
             })
@@ -2215,11 +2352,154 @@ class PulseBarChart {
                 if (this.config.enableClick) {
                     event.stopPropagation();
                     
-                    // Show color picker using reusable module
-                    const currentColor = this.customColors[d.category] || this.config.defaultBarColor;
-                    this.showColorPicker(event.currentTarget, currentColor);
+                    // Special handling for waterfall charts - show subtotal controls
+                    if (this.config.barChartType === 'waterfall') {
+                        this.showWaterfallTooltip(event, d);
+                    } else {
+                        // Regular charts - show color picker
+                        const currentColor = this.customColors[d.category] || this.config.defaultBarColor;
+                        this.showColorPicker(event.currentTarget, currentColor);
+                    }
                 }
             });
+    }
+
+    showWaterfallTooltip(event, data) {
+        // Create interactive tooltip for waterfall charts with subtotal controls
+        const tooltip = this.tooltip;
+        const isSubtotal = this.waterfallSubtotals.has(data.category);
+        
+        const label = data.label || data.category || 'Unknown';
+        const value = data.value || 0;
+        const formattedValue = this.formatValue(value);
+        
+        // Create tooltip content with subtotal controls
+        const tooltipHTML = `
+            <div style="font-weight: bold; margin-bottom: 8px;">${label}</div>
+            <div style="margin-bottom: 8px;">Value: ${formattedValue}</div>
+            <div style="margin-bottom: 12px;">Cumulative: ${this.formatValue(data.end || value)}</div>
+            
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                <button id="subtotal-toggle" style="
+                    padding: 6px 12px; 
+                    border: 1px solid #ddd; 
+                    border-radius: 4px; 
+                    background: ${isSubtotal ? '#3b82f6' : '#f9fafb'}; 
+                    color: ${isSubtotal ? 'white' : '#374151'};
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 500;
+                ">
+                    ${isSubtotal ? '✓ Subtotal' : 'Mark as Subtotal'}
+                </button>
+            </div>
+            
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <div style="
+                    width: 20px; 
+                    height: 20px; 
+                    background: ${this.customColors[data.category] || this.config.defaultBarColor}; 
+                    border: 1px solid #ddd; 
+                    border-radius: 3px;
+                    cursor: pointer;
+                " id="color-preview"></div>
+                <span style="font-size: 11px; color: #6b7280;">Click to change color</span>
+            </div>
+        `;
+        
+        // Position tooltip and make it stay visible
+        tooltip
+            .style('opacity', 1)
+            .style('pointer-events', 'auto') // CRITICAL: Allow mouse events on tooltip
+            .html(tooltipHTML)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 10) + 'px');
+        
+        // Store current data for tooltip interactions
+        this.currentTooltipData = data;
+        
+        // Add event listeners after tooltip is shown
+        setTimeout(() => {
+            const subtotalButton = document.getElementById('subtotal-toggle');
+            const colorPreview = document.getElementById('color-preview');
+            
+            if (subtotalButton) {
+                subtotalButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSubtotal(data.category);
+                    // Update button appearance immediately
+                    const newIsSubtotal = this.waterfallSubtotals.has(data.category);
+                    subtotalButton.style.background = newIsSubtotal ? '#3b82f6' : '#f9fafb';
+                    subtotalButton.style.color = newIsSubtotal ? 'white' : '#374151';
+                    subtotalButton.textContent = newIsSubtotal ? '✓ Subtotal' : 'Mark as Subtotal';
+                });
+            }
+            
+            if (colorPreview) {
+                colorPreview.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentColor = this.customColors[data.category] || this.config.defaultBarColor;
+                    
+                    // Find the actual bar element for this category
+                    const barElement = this.chart.selectAll('.bar')
+                        .filter(d => d.category === data.category)
+                        .node();
+                    
+                    console.log(`🎨 Opening color picker for waterfall bar: ${data.category}`);
+                    console.log(`🎨 Current color: ${currentColor}`);
+                    console.log(`🎨 Bar element found:`, !!barElement);
+                    
+                    if (barElement) {
+                        this.showColorPicker(barElement, currentColor);
+                    } else {
+                        console.error(`❌ Could not find bar element for category: ${data.category}`);
+                    }
+                    this.hideTooltip();
+                });
+            }
+        }, 10);
+    }
+
+    toggleSubtotal(category) {
+        console.log(`🏗️ Toggling subtotal for category: ${category}`);
+        
+        if (this.waterfallSubtotals.has(category)) {
+            // Remove from subtotals
+            this.waterfallSubtotals.delete(category);
+            console.log(`🏗️ Removed ${category} from subtotals`);
+        } else {
+            // Add to subtotals
+            this.waterfallSubtotals.add(category);
+            console.log(`🏗️ Added ${category} to subtotals`);
+        }
+        
+        console.log(`🏗️ Current subtotals:`, Array.from(this.waterfallSubtotals));
+        
+        // Re-render the entire waterfall chart to recalculate positioning
+        if (this.config.barChartType === 'waterfall') {
+            console.log(`🏗️ Re-rendering waterfall chart for subtotal change`);
+            this.renderWaterfallBars();
+        }
+    }
+
+    updateWaterfallVisuals() {
+        // Update visual indicators for subtotals without full re-render
+        this.chart.selectAll('.bar')
+            .style('stroke', (d) => {
+                if (this.waterfallSubtotals.has(d.category)) {
+                    return '#1f2937'; // Dark border for subtotals
+                } else {
+                    return 'none';
+                }
+            })
+            .style('stroke-width', (d) => {
+                return this.waterfallSubtotals.has(d.category) ? '2px' : '0px';
+            })
+            .style('stroke-dasharray', (d) => {
+                return this.waterfallSubtotals.has(d.category) ? '5,5' : 'none';
+            });
+        
+        console.log(`🏗️ Updated visual indicators for ${this.waterfallSubtotals.size} subtotals`);
     }
 
     showTooltip(event, data) {
