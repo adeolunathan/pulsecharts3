@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Dropdown Test</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Debug Dropdown Test</h1>
+    
+    <div class="test-container">
+        <h3>Test 1: Basic Dropdown Event</h3>
+        <select id="basic-dropdown">
+            <option value="simple">Simple</option>
+            <option value="grouped">Grouped</option>
+            <option value="stacked">Stacked</option>
+        </select>
+        <div id="basic-log" class="log"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Test 2: Replicate ControlPanel createDropdownControl</h3>
+        <div id="replicated-dropdown-container"></div>
+        <div id="replicated-log" class="log"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Test 3: Debugging Logs</h3>
+        <div id="debug-log" class="log"></div>
+    </div>
+
+    <script>
+        // Test 1: Basic dropdown event
+        document.getElementById('basic-dropdown').addEventListener('change', function(event) {
+            const log = document.getElementById('basic-log');
+            log.innerHTML += `Basic dropdown changed to: ${event.target.value}<br>`;
+        });
+
+        // Test 2: Replicate ControlPanel createDropdownControl method
+        function createDropdownControl(container, config) {
+            const log = document.getElementById('replicated-log');
+            log.innerHTML += `Creating dropdown control for ${config.id}<br>`;
+            
+            let currentValue = config.default;
+            
+            const select = container.append('select')
+                .attr('class', 'control-dropdown')
+                .style('width', '100%')
+                .style('padding', '8px')
+                .style('border-radius', '6px')
+                .style('border', '1px solid #d1d5db')
+                .on('change', (event) => {
+                    log.innerHTML += `🔥 Dropdown CHANGED: ${config.id} = ${event.target.value}<br>`;
+                    
+                    // Simulate the handleChange call
+                    handleChange(config.id, event.target.value);
+                });
+
+            config.options.forEach(option => {
+                select.append('option')
+                    .attr('value', option.value)
+                    .property('selected', option.value === currentValue)
+                    .text(option.label);
+            });
+            
+            log.innerHTML += `Dropdown created with ${config.options.length} options<br>`;
+        }
+
+        function handleChange(controlId, value) {
+            const log = document.getElementById('replicated-log');
+            log.innerHTML += `🎛️ handleChange called: ${controlId} = ${value}<br>`;
+            
+            // Simulate the control module call
+            if (controlId === 'barChartType') {
+                log.innerHTML += `📊 Processing barChartType change to: ${value}<br>`;
+                
+                // Simulate the bar controls module
+                handleBarControlChange(controlId, value);
+            }
+        }
+
+        function handleBarControlChange(controlId, value) {
+            const log = document.getElementById('replicated-log');
+            log.innerHTML += `🎨 BarControls.handleControlChange called: ${controlId} = ${value}<br>`;
+            
+            if (controlId === 'barChartType') {
+                log.innerHTML += `📊 Chart type changing to: ${value}<br>`;
+                
+                // Simulate chart updateConfig
+                updateChartConfig({ barChartType: value });
+            }
+        }
+
+        function updateChartConfig(config) {
+            const log = document.getElementById('replicated-log');
+            log.innerHTML += `🔧 Chart.updateConfig called with: ${JSON.stringify(config)}<br>`;
+            
+            if (config.barChartType) {
+                log.innerHTML += `✅ Visual update would happen here for chart type: ${config.barChartType}<br>`;
+            }
+        }
+
+        // Initialize Test 2
+        const container = d3.select('#replicated-dropdown-container');
+        const config = {
+            id: "barChartType",
+            type: "dropdown",
+            label: "Chart Type",
+            default: "simple",
+            options: [
+                { value: "simple", label: "Simple Bar Chart" },
+                { value: "grouped", label: "Grouped Bar Chart" },
+                { value: "stacked", label: "Stacked Bar Chart" }
+            ]
+        };
+        
+        createDropdownControl(container, config);
+
+        // Test 3: Debug logging
+        const debugLog = document.getElementById('debug-log');
+        debugLog.innerHTML = `
+            <strong>Browser Info:</strong><br>
+            User Agent: ${navigator.userAgent}<br>
+            D3 Version: ${d3.version}<br>
+            Window size: ${window.innerWidth}x${window.innerHeight}<br>
+            <br>
+            <strong>Event Handling Test:</strong><br>
+            Try changing the dropdowns above to see if events fire correctly.
+        `;
+    </script>
+</body>
+</html>

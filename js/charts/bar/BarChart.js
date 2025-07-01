@@ -42,12 +42,28 @@ class PulseBarChart {
     }
     
     updateConfig(newConfig) {
+        console.log('🔧 ===== BARCHART.UPDATECONFIG CALLED =====');
         console.log('🔧 Updating bar chart config:', newConfig);
         console.log('🔧 Current chart type:', this.config.barChartType);
+        console.log('🔧 New chart type:', newConfig.barChartType);
+        console.log('🔧 Chart instance exists:', !!this);
+        console.log('🔧 SVG exists:', !!this.svg);
+        console.log('🔧 Chart container exists:', !!this.chart);
         console.log('🔧 Current data available:', !!(this.data && this.data.length > 0));
+        console.log('🔧 Chart container exists:', !!this.chart);
+        console.log('🔧 Current data sample:', this.data?.slice(0, 2));
+        console.log('🔧 Original data available:', !!this.originalData);
+        console.log('🔧 SVG exists:', !!this.svg);
+        console.log('🔧 Chart dimensions:', {
+            width: this.config.width,
+            height: this.config.height,
+            svg: this.svg ? { width: this.svg.attr('width'), height: this.svg.attr('height') } : null
+        });
         
         const oldChartType = this.config.barChartType;
         this.config = { ...this.config, ...newConfig };
+        
+        console.log('🔧 Config updated. New chart type:', this.config.barChartType);
         
         // Apply background color immediately if changed
         if (newConfig.backgroundColor && this.svg) {
@@ -57,14 +73,43 @@ class PulseBarChart {
         // If chart type changed, re-render immediately
         if (newConfig.barChartType && newConfig.barChartType !== oldChartType) {
             console.log(`📊 Chart type changed from ${oldChartType} to ${newConfig.barChartType}, re-rendering immediately`);
-            console.log('📊 Available data for re-render:', this.data);
-            console.log('📊 Checking data sources...');
+            
+            // SIMPLE FIX: Force complete re-render immediately
+            if (this.data && this.data.length > 0) {
+                console.log('🔄 FORCING IMMEDIATE VISUAL UPDATE');
+                
+                // 1. Clear everything on screen
+                if (this.chart) {
+                    this.chart.selectAll('*').remove();
+                }
+                if (this.svg) {
+                    this.svg.selectAll('.bar, .bar-group, .layer').remove();
+                }
+                
+                // 2. Force browser to update display NOW
+                if (this.svg && this.svg.node()) {
+                    this.svg.node().offsetHeight; // Force immediate layout
+                }
+                
+                // 3. Re-render with current data immediately
+                this.render(this.data);
+                
+                // 4. Force browser to show the new chart NOW
+                if (this.svg && this.svg.node()) {
+                    this.svg.node().offsetHeight; // Force another layout
+                }
+                
+                console.log('✅ FORCED VISUAL UPDATE COMPLETE');
+                return;
+            }
+            
+            // If no existing data, try to get fresh data from various sources
+            console.log('📊 No existing data, checking data sources...');
             console.log('📊 window.pulseApp exists:', !!window.pulseApp);
             console.log('📊 window.pulseApp.currentData:', window.pulseApp?.currentData);
             console.log('📊 window.PulseDataBridge exists:', !!window.PulseDataBridge);
             console.log('📊 window.PulseDataBridge.getData():', window.PulseDataBridge?.getData());
             
-            // For chart type changes, we MUST reprocess data from original source to get proper format
             let freshDataFound = false;
             
             // Try to get fresh data from various sources
@@ -78,23 +123,16 @@ class PulseBarChart {
                 freshDataFound = true;
             }
             
-            // If no fresh data found, try to trigger data refresh from BarDataEditor
+            // If no fresh data found, trigger data refresh
             if (!freshDataFound) {
-                console.log('🔄 No fresh data source found, triggering BarDataEditor refresh...');
+                console.log('🔄 No data source found, triggering BarDataEditor refresh...');
                 
                 // Always trigger the event - BarDataEditor will handle it if present
                 window.dispatchEvent(new CustomEvent('chartTypeChanged', { 
                     detail: { newType: newConfig.barChartType, oldType: oldChartType } 
                 }));
                 
-                // For immediate feedback, also re-render with existing data
-                // The BarDataEditor will send fresh data shortly after
-                if (this.data && this.data.length > 0) {
-                    console.log('🔄 Using existing data for immediate chart type change feedback');
-                    this.render(); // Re-render with existing data
-                } else {
-                    console.warn('⚠️ No data available for chart type change re-render');
-                }
+                console.warn('⚠️ No data available for immediate chart type change - waiting for data refresh');
             }
         } else if (this.data && this.data.length > 0) {
             // Check for other significant changes that require re-rendering
@@ -229,7 +267,12 @@ class PulseBarChart {
 
 
     render(data = null) {
+        console.log('🎨 ===== BARCHART.RENDER CALLED =====');
+        console.log('🎨 Render called with data:', !!data);
+        console.log('🎨 Current chart type during render:', this.config?.barChartType);
+        
         if (data) {
+            console.log('🎨 Processing new data...');
             this.processData(data);
         }
 
@@ -237,6 +280,8 @@ class PulseBarChart {
             console.warn('⚠️ No data available for bar chart rendering');
             return;
         }
+        
+        console.log('🎨 Proceeding with render, data length:', this.data.length);
 
         // Apply auto sort if enabled (for when sort toggle is changed after initial load)
         if (this.config.autoSort === true) {
@@ -1073,6 +1118,9 @@ class PulseBarChart {
     }
 
     renderBars() {
+        console.log('🎨 ===== RENDERBARS CALLED =====');
+        console.log('🎨 Chart type from config:', this.config.barChartType);
+        
         // Intelligent chart type detection based on available data
         const numericColumns = this.getNumericColumns();
         let effectiveChartType = this.config.barChartType;
@@ -1161,19 +1209,21 @@ class PulseBarChart {
                     this.applyCornerRadius();
                 });
 
-            // Apply corner radius immediately (before animation starts)
-            setTimeout(() => this.applyCornerRadius(), 0);
-
-            // Add interactivity
+            // Add interactivity immediately
             this.addBarInteractivity(bars);
-
-            // Add labels if enabled (either labels or values or both)
-            if (this.config.showBarLabels || this.config.showValues) {
-                this.renderBarLabels();
-            }
 
             // Store bars reference
             this.bars = bars;
+            
+            // Apply corner radius and render labels after animation completes
+            setTimeout(() => {
+                this.applyCornerRadius();
+                
+                // Add labels if enabled AFTER bars are fully rendered
+                if (this.config.showBarLabels || this.config.showValues) {
+                    this.renderBarLabels();
+                }
+            }, this.config.animationDuration + 50); // Wait for animation to complete
         } else {
             // **VERTICAL BARS (default)**
             const bars = this.chart.selectAll('.bar')
@@ -1211,19 +1261,21 @@ class PulseBarChart {
                     this.applyCornerRadius();
                 });
 
-            // Apply corner radius immediately (before animation starts)
-            setTimeout(() => this.applyCornerRadius(), 0);
-
-            // Add interactivity
+            // Add interactivity immediately
             this.addBarInteractivity(bars);
-
-            // Add labels if enabled (either labels or values or both)
-            if (this.config.showBarLabels || this.config.showValues) {
-                this.renderBarLabels();
-            }
 
             // Store bars reference
             this.bars = bars;
+            
+            // Apply corner radius and render labels after animation completes
+            setTimeout(() => {
+                this.applyCornerRadius();
+                
+                // Add labels if enabled AFTER bars are fully rendered
+                if (this.config.showBarLabels || this.config.showValues) {
+                    this.renderBarLabels();
+                }
+            }, this.config.animationDuration + 50); // Wait for animation to complete
         }
     }
     
@@ -1275,6 +1327,12 @@ class PulseBarChart {
             .domain(numericColumns)
             .range([0, categoryScale.bandwidth()])
             .padding(0.05);
+            
+        console.log('🔧 SUB-SCALE INFO:');
+        console.log('🔧 Domain:', numericColumns);
+        console.log('🔧 Range:', [0, categoryScale.bandwidth()]);
+        console.log('🔧 Bandwidth per bar:', subScale.bandwidth());
+        console.log('🔧 Category scale bandwidth:', categoryScale.bandwidth());
         
         if (this.config.orientation === 'horizontal') {
             // Horizontal grouped bars - use proper data join pattern
@@ -1309,24 +1367,30 @@ class PulseBarChart {
                 // Remove old bars
                 barSelection.exit().remove();
                 
-                // Add new bars
+                // Add new bars with proper initial positioning
                 const newBars = barSelection.enter()
                     .append('rect')
                     .attr('class', 'bar')
                     .attr('x', 0)
-                    .attr('width', 0);
-                
-                // Update all bars (new + existing)
-                const allBars = newBars.merge(barSelection)
                     .attr('y', d => subScale(d.series))
+                    .attr('width', 0) // Start with 0 width for animation
                     .attr('height', subScale.bandwidth())
                     .attr('fill', (d, i) => colors[i % colors.length])
                     .attr('opacity', self.config.barOpacity)
                     .attr('rx', 0);
+                
+                // Update all bars (new + existing) - ensure consistent positioning
+                const allBars = newBars.merge(barSelection)
+                    .attr('y', d => subScale(d.series))
+                    .attr('height', subScale.bandwidth())
+                    .attr('fill', (d, i) => colors[i % colors.length])
+                    .attr('opacity', self.config.barOpacity);
                     
+                // Animate to final width
                 allBars.transition()
                     .duration(self.config.animationDuration)
-                    .attr('width', d => self.xScale(d.value || 0));
+                    .ease(d3.easeQuadOut)
+                    .attr('width', d => Math.max(0, self.xScale(d.value || 0)));
             });
             
             // Add interactivity to grouped bars only (avoid duplicate bar selection)
@@ -1361,25 +1425,31 @@ class PulseBarChart {
                 // Remove old bars
                 barSelection.exit().remove();
                 
-                // Add new bars
+                // Add new bars with proper initial positioning
                 const newBars = barSelection.enter()
                     .append('rect')
                     .attr('class', 'bar')
-                    .attr('y', self.yScale(0))
-                    .attr('height', 0);
+                    .attr('x', d => subScale(d.series))
+                    .attr('width', subScale.bandwidth())
+                    .attr('y', self.yScale(0)) // Start at baseline
+                    .attr('height', 0) // Start with 0 height for animation
+                    .attr('fill', (d, i) => colors[i % colors.length])
+                    .attr('opacity', self.config.barOpacity)
+                    .attr('rx', 0);
                 
-                // Update all bars (new + existing)
+                // Update all bars (new + existing) - ensure consistent positioning
                 const allBars = newBars.merge(barSelection)
                     .attr('x', d => subScale(d.series))
                     .attr('width', subScale.bandwidth())
                     .attr('fill', (d, i) => colors[i % colors.length])
-                    .attr('opacity', self.config.barOpacity)
-                    .attr('rx', 0);
+                    .attr('opacity', self.config.barOpacity);
                     
+                // Animate to final height and position
                 allBars.transition()
                     .duration(self.config.animationDuration)
-                    .attr('y', d => self.yScale(d.value || 0))
-                    .attr('height', d => self.yScale(0) - self.yScale(d.value || 0));
+                    .ease(d3.easeQuadOut)
+                    .attr('y', d => self.yScale(Math.max(0, d.value || 0)))
+                    .attr('height', d => Math.abs(self.yScale(0) - self.yScale(d.value || 0)));
             });
             
             // Add interactivity to grouped bars only (avoid duplicate bar selection)
@@ -1388,13 +1458,15 @@ class PulseBarChart {
             this.bars = groupedBars; // Store bars reference
         }
         
-        // Apply corner radius after rendering grouped bars
-        setTimeout(() => this.applyCornerRadius(), 0);
-        
-        // Render labels for grouped bars
-        if (this.config.showBarLabels || this.config.showValues) {
-            this.renderGroupedBarLabels();
-        }
+        // Apply corner radius and render labels after animation completes
+        setTimeout(() => {
+            this.applyCornerRadius();
+            
+            // Render labels for grouped bars AFTER bars are fully rendered
+            if (this.config.showBarLabels || this.config.showValues) {
+                this.renderGroupedBarLabels();
+            }
+        }, this.config.animationDuration + 50); // Wait for animation to complete
     }
     
     renderStackedBars() {
@@ -1520,13 +1592,15 @@ class PulseBarChart {
             this.bars = stackedBars; // Store bars reference
         }
         
-        // Apply corner radius after rendering stacked bars
-        setTimeout(() => this.applyCornerRadius(), 0);
-        
-        // Render labels for stacked bars
-        if (this.config.showBarLabels || this.config.showValues) {
-            this.renderStackedBarLabels();
-        }
+        // Apply corner radius and render labels after animation completes
+        setTimeout(() => {
+            this.applyCornerRadius();
+            
+            // Render labels for stacked bars AFTER bars are fully rendered
+            if (this.config.showBarLabels || this.config.showValues) {
+                this.renderStackedBarLabels();
+            }
+        }, this.config.animationDuration + 50); // Wait for animation to complete
     }
     
     renderStacked100Bars() {
@@ -1541,13 +1615,34 @@ class PulseBarChart {
             return;
         }
         
-        // Calculate percentages
+        // Calculate percentages - ensure each category totals to 100%
         const dataWithPercentages = this.data.map(d => {
             const total = numericColumns.reduce((sum, col) => sum + (d[col] || 0), 0);
             const newRow = { category: d.category };
-            numericColumns.forEach(col => {
-                newRow[col] = total > 0 ? (d[col] || 0) / total * 100 : 0;
-            });
+            
+            if (total > 0) {
+                // Calculate percentages and ensure they add up to exactly 100%
+                let percentageSum = 0;
+                const percentages = numericColumns.map(col => {
+                    const percentage = (d[col] || 0) / total * 100;
+                    percentageSum += percentage;
+                    return percentage;
+                });
+                
+                // Apply percentages to the row
+                numericColumns.forEach((col, i) => {
+                    newRow[col] = percentages[i];
+                });
+            } else {
+                // If total is 0, set all percentages to 0
+                numericColumns.forEach(col => {
+                    newRow[col] = 0;
+                });
+            }
+            
+            console.log(`🔧 100% STACKED - Category: ${d.category}, Total: ${total}, Percentages:`, 
+                numericColumns.map(col => `${col}: ${newRow[col].toFixed(1)}%`).join(', '));
+                
             return newRow;
         });
         
@@ -1555,72 +1650,121 @@ class PulseBarChart {
             .keys(numericColumns)
             (dataWithPercentages);
             
-        // Create percentage scale
+        console.log('🔧 100% STACKED DATA:', stackedData);
+        console.log('🔧 Expected max value per stack:', stackedData.map(layer => 
+            layer.map(d => d[1]).join(', ')).join(' | '));
+            
+        // Create percentage scale - using the actual chart dimensions
+        const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
+        const chartHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        
         const percentScale = this.config.orientation === 'horizontal' ? 
-            d3.scaleLinear().domain([0, 100]).range([0, this.xScale.range()[1]]) :
-            d3.scaleLinear().domain([0, 100]).range([this.yScale.range()[0], 0]);
+            d3.scaleLinear().domain([0, 100]).range([0, chartWidth]) :
+            d3.scaleLinear().domain([0, 100]).range([chartHeight, 0]);
             
         if (this.config.orientation === 'horizontal') {
-            const layers = this.chart.selectAll('.layer')
-                .data(stackedData)
-                .enter()
+            // Use proper data join pattern for layers
+            const layerSelection = this.chart.selectAll('.layer')
+                .data(stackedData);
+                
+            layerSelection.exit().remove();
+                
+            const layers = layerSelection.enter()
                 .append('g')
                 .attr('class', 'layer')
+                .merge(layerSelection)
                 .attr('fill', (d, i) => colors[i % colors.length]);
                 
-            const bars = layers.selectAll('.bar')
-                .data(d => d)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar')
-                .attr('y', d => this.yScale(d.data.category))
-                .attr('height', this.yScale.bandwidth())
-                .attr('x', 0)
-                .attr('width', 0)
-                .attr('opacity', this.config.barOpacity);
+            // Create bars within each layer
+            const self = this;
+            layers.each(function(layerData) {
+                const layer = d3.select(this);
                 
-            bars.transition()
-                .duration(this.config.animationDuration)
-                .attr('x', d => percentScale(d[0]))
-                .attr('width', d => percentScale(d[1]) - percentScale(d[0]));
+                const barSelection = layer.selectAll('.bar')
+                    .data(layerData);
+                    
+                barSelection.exit().remove();
                 
-            this.addBarInteractivity(bars);
+                const newBars = barSelection.enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('y', d => self.yScale(d.data.category))
+                    .attr('height', self.yScale.bandwidth())
+                    .attr('x', 0)
+                    .attr('width', 0)
+                    .attr('opacity', self.config.barOpacity);
+                    
+                const allBars = newBars.merge(barSelection)
+                    .attr('y', d => self.yScale(d.data.category))
+                    .attr('height', self.yScale.bandwidth())
+                    .attr('opacity', self.config.barOpacity);
+                    
+                allBars.transition()
+                    .duration(self.config.animationDuration)
+                    .ease(d3.easeQuadOut)
+                    .attr('x', d => percentScale(d[0]))
+                    .attr('width', d => Math.max(0, percentScale(d[1]) - percentScale(d[0])));
+            });
+                
+            this.addBarInteractivity(this.chart.selectAll('.bar'));
         } else {
-            const layers = this.chart.selectAll('.layer')
-                .data(stackedData)
-                .enter()
+            // Use proper data join pattern for layers
+            const layerSelection = this.chart.selectAll('.layer')
+                .data(stackedData);
+                
+            layerSelection.exit().remove();
+                
+            const layers = layerSelection.enter()
                 .append('g')
                 .attr('class', 'layer')
+                .merge(layerSelection)
                 .attr('fill', (d, i) => colors[i % colors.length]);
                 
-            const bars = layers.selectAll('.bar')
-                .data(d => d)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar')
-                .attr('x', d => this.xScale(d.data.category))
-                .attr('width', this.xScale.bandwidth())
-                .attr('y', percentScale(100))
-                .attr('height', 0)
-                .attr('opacity', this.config.barOpacity);
+            // Create bars within each layer
+            const self = this;
+            layers.each(function(layerData) {
+                const layer = d3.select(this);
                 
-            bars.transition()
-                .duration(this.config.animationDuration)
-                .attr('y', d => percentScale(d[1]))
-                .attr('height', d => percentScale(d[0]) - percentScale(d[1]));
+                const barSelection = layer.selectAll('.bar')
+                    .data(layerData);
+                    
+                barSelection.exit().remove();
                 
-            this.addBarInteractivity(bars);
+                const newBars = barSelection.enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', d => self.xScale(d.data.category))
+                    .attr('width', self.xScale.bandwidth())
+                    .attr('y', percentScale(100)) // Start at top (100%)
+                    .attr('height', 0) // Start with 0 height
+                    .attr('opacity', self.config.barOpacity);
+                    
+                const allBars = newBars.merge(barSelection)
+                    .attr('x', d => self.xScale(d.data.category))
+                    .attr('width', self.xScale.bandwidth())
+                    .attr('opacity', self.config.barOpacity);
+                    
+                allBars.transition()
+                    .duration(self.config.animationDuration)
+                    .ease(d3.easeQuadOut)
+                    .attr('y', d => percentScale(d[1]))
+                    .attr('height', d => Math.max(0, percentScale(d[0]) - percentScale(d[1])));
+            });
+                
+            this.addBarInteractivity(this.chart.selectAll('.bar'));
         }
         
         this.bars = this.chart.selectAll('.bar');
         
-        // Apply corner radius after rendering stacked100 bars
-        setTimeout(() => this.applyCornerRadius(), 0);
-        
-        // Render labels for stacked100 bars
-        if (this.config.showBarLabels || this.config.showValues) {
-            this.renderStackedBarLabels(); // Same as stacked but with percentage values
-        }
+        // Apply corner radius and render labels after animation completes
+        setTimeout(() => {
+            this.applyCornerRadius();
+            
+            // Render labels for stacked100 bars AFTER bars are fully rendered
+            if (this.config.showBarLabels || this.config.showValues) {
+                this.renderStackedBarLabels(); // Same as stacked but with percentage values
+            }
+        }, this.config.animationDuration + 50); // Wait for animation to complete
     }
     
     renderRangeBars() {
@@ -1645,10 +1789,26 @@ class PulseBarChart {
             }
         }
         
+        console.log('🔧 RANGE CHART INFO:');
+        console.log('🔧 minCol:', minCol, 'maxCol:', maxCol);
+        console.log('🔧 Sample data values:', this.data.slice(0, 2).map(d => ({
+            category: d.category,
+            minValue: d[minCol],
+            maxValue: d[maxCol]
+        })));
+        console.log('🔧 xScale domain:', this.xScale.domain());
+        console.log('🔧 yScale domain:', this.yScale.domain());
+        
         if (this.config.orientation === 'horizontal') {
-            const bars = this.chart.selectAll('.bar')
-                .data(this.data)
-                .enter()
+            // Use proper data join pattern
+            const barSelection = this.chart.selectAll('.bar')
+                .data(this.data);
+                
+            // Remove old bars
+            barSelection.exit().remove();
+            
+            // Add new bars
+            const newBars = barSelection.enter()
                 .append('rect')
                 .attr('class', 'bar')
                 .attr('y', d => this.yScale(d.category))
@@ -1659,14 +1819,28 @@ class PulseBarChart {
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', 0);
                 
-            bars.transition()
+            // Update all bars (new + existing)
+            const allBars = newBars.merge(barSelection)
+                .attr('y', d => this.yScale(d.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('fill', (d, i) => colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity);
+                
+            allBars.transition()
                 .duration(this.config.animationDuration)
-                .attr('x', d => this.xScale(Math.min(d[minCol], d[maxCol])))
-                .attr('width', d => Math.abs(this.xScale(d[maxCol]) - this.xScale(d[minCol])));
+                .ease(d3.easeQuadOut)
+                .attr('x', d => this.xScale(Math.min(d[minCol] || 0, d[maxCol] || 0)))
+                .attr('width', d => Math.abs(this.xScale(d[maxCol] || 0) - this.xScale(d[minCol] || 0)));
         } else {
-            const bars = this.chart.selectAll('.bar')
-                .data(this.data)
-                .enter()
+            // Use proper data join pattern
+            const barSelection = this.chart.selectAll('.bar')
+                .data(this.data);
+                
+            // Remove old bars
+            barSelection.exit().remove();
+            
+            // Add new bars
+            const newBars = barSelection.enter()
                 .append('rect')
                 .attr('class', 'bar')
                 .attr('x', d => this.xScale(d.category))
@@ -1677,17 +1851,32 @@ class PulseBarChart {
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', 0);
                 
-            bars.transition()
+            // Update all bars (new + existing)
+            const allBars = newBars.merge(barSelection)
+                .attr('x', d => this.xScale(d.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('fill', (d, i) => colors[i % colors.length])
+                .attr('opacity', this.config.barOpacity);
+                
+            allBars.transition()
                 .duration(this.config.animationDuration)
-                .attr('y', d => this.yScale(Math.max(d[minCol], d[maxCol])))
-                .attr('height', d => Math.abs(this.yScale(d[maxCol]) - this.yScale(d[minCol])));
+                .ease(d3.easeQuadOut)
+                .attr('y', d => this.yScale(Math.max(d[minCol] || 0, d[maxCol] || 0)))
+                .attr('height', d => Math.abs(this.yScale(d[maxCol] || 0) - this.yScale(d[minCol] || 0)));
         }
         
         this.bars = this.chart.selectAll('.bar');
         this.addBarInteractivity(this.bars);
         
-        // Apply corner radius after rendering range bars
-        setTimeout(() => this.applyCornerRadius(), 0);
+        // Apply corner radius and render labels after animation completes
+        setTimeout(() => {
+            this.applyCornerRadius();
+            
+            // Render labels for range bars AFTER bars are fully rendered
+            if (this.config.showBarLabels || this.config.showValues) {
+                this.renderBarLabels(); // Use standard bar labels for range charts
+            }
+        }, this.config.animationDuration + 50); // Wait for animation to complete
     }
     
     renderWaterfallBars() {
@@ -1708,10 +1897,21 @@ class PulseBarChart {
             };
         });
         
+        console.log('🔧 WATERFALL DATA:', waterfallData);
+        console.log('🔧 WATERFALL SCALE INFO:');
+        console.log('🔧 xScale domain:', this.xScale.domain());
+        console.log('🔧 yScale domain:', this.yScale.domain());
+        
         if (this.config.orientation === 'horizontal') {
-            const bars = this.chart.selectAll('.bar')
-                .data(waterfallData)
-                .enter()
+            // Use proper data join pattern
+            const barSelection = this.chart.selectAll('.bar')
+                .data(waterfallData);
+                
+            // Remove old bars
+            barSelection.exit().remove();
+            
+            // Add new bars
+            const newBars = barSelection.enter()
                 .append('rect')
                 .attr('class', 'bar')
                 .attr('y', d => this.yScale(d.category))
@@ -1722,14 +1922,28 @@ class PulseBarChart {
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', 0);
                 
-            bars.transition()
+            // Update all bars (new + existing)
+            const allBars = newBars.merge(barSelection)
+                .attr('y', d => this.yScale(d.category))
+                .attr('height', this.yScale.bandwidth())
+                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('opacity', this.config.barOpacity);
+                
+            allBars.transition()
                 .duration(this.config.animationDuration)
+                .ease(d3.easeQuadOut)
                 .attr('x', d => this.xScale(Math.min(d.start, d.end)))
                 .attr('width', d => Math.abs(this.xScale(d.end) - this.xScale(d.start)));
         } else {
-            const bars = this.chart.selectAll('.bar')
-                .data(waterfallData)
-                .enter()
+            // Use proper data join pattern
+            const barSelection = this.chart.selectAll('.bar')
+                .data(waterfallData);
+                
+            // Remove old bars
+            barSelection.exit().remove();
+            
+            // Add new bars
+            const newBars = barSelection.enter()
                 .append('rect')
                 .attr('class', 'bar')
                 .attr('x', d => this.xScale(d.category))
@@ -1740,8 +1954,16 @@ class PulseBarChart {
                 .attr('opacity', this.config.barOpacity)
                 .attr('rx', 0);
                 
-            bars.transition()
+            // Update all bars (new + existing)
+            const allBars = newBars.merge(barSelection)
+                .attr('x', d => this.xScale(d.category))
+                .attr('width', this.xScale.bandwidth())
+                .attr('fill', d => d.isPositive ? colors[0] : colors[1])
+                .attr('opacity', this.config.barOpacity);
+                
+            allBars.transition()
                 .duration(this.config.animationDuration)
+                .ease(d3.easeQuadOut)
                 .attr('y', d => this.yScale(Math.max(d.start, d.end)))
                 .attr('height', d => Math.abs(this.yScale(d.end) - this.yScale(d.start)));
         }
@@ -1749,13 +1971,15 @@ class PulseBarChart {
         this.bars = this.chart.selectAll('.bar');
         this.addBarInteractivity(this.bars);
         
-        // Apply corner radius after rendering waterfall bars
-        setTimeout(() => this.applyCornerRadius(), 0);
-        
-        // Render labels for waterfall bars
-        if (this.config.showBarLabels || this.config.showValues) {
-            this.renderWaterfallBarLabels();
-        }
+        // Apply corner radius and render labels after animation completes
+        setTimeout(() => {
+            this.applyCornerRadius();
+            
+            // Render labels for waterfall bars AFTER bars are fully rendered
+            if (this.config.showBarLabels || this.config.showValues) {
+                this.renderWaterfallBarLabels();
+            }
+        }, this.config.animationDuration + 50); // Wait for animation to complete
     }
     
     renderPolarBars() {

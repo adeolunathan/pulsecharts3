@@ -886,20 +886,48 @@ class PulseControlPanel {
 
     // FIXED: Handle control value changes with proper opacity updates
     handleChange(controlId, value) {
-        // Update local config
-        this.updateLocalConfig(controlId, value);
-
-        // **FIXED: Handle opacity controls with immediate visual feedback**
-        if (controlId === 'nodeOpacity' || controlId === 'linkOpacity') {
-            // Apply immediately without debounce for responsive feel
-            if (this.controlModule && this.controlModule.handleControlChange) {
-                this.controlModule.handleControlChange(controlId, value, this.chart);
-            }
+        console.log(`🎛️ ControlPanel.handleChange called: ${controlId} = ${value}`);
+        console.log(`🎛️ Chart exists: ${!!this.chart}`);
+        console.log(`🎛️ Chart type: ${this.chart?.constructor?.name}`);
+        console.log(`🎛️ Control module exists: ${!!this.controlModule}`);
+        console.log(`🎛️ Control module type: ${this.controlModule?.constructor?.name}`);
+        console.log(`🎛️ Control module has handleControlChange: ${typeof this.controlModule?.handleControlChange}`);
+        
+        if (!this.chart) {
+            console.error('❌ ControlPanel: No chart instance available for control change');
+            return;
+        }
+        
+        if (!this.controlModule) {
+            console.error('❌ ControlPanel: No control module available for control change');
             return;
         }
 
-        // **FIXED: Handle color controls with immediate update**
-        if (controlId.endsWith('Color')) {
+        // Update local config
+        this.updateLocalConfig(controlId, value);
+
+        // **UNIVERSAL FIX: Define controls that need immediate updates (no debounce)**
+        const IMMEDIATE_UPDATE_CONTROLS = [
+            // Chart type and structural controls - CRITICAL for immediate visual feedback
+            'barChartType', 'chartType', 'orientation',
+            
+            // Opacity controls - already working
+            'nodeOpacity', 'linkOpacity', 'barOpacity',
+            
+            // Font controls - typography should be instant
+            'titleFont', 'titleColor', 'titleSize',
+            
+            // Toggle controls that affect visibility - should be instant
+            'showGrid', 'showXAxis', 'showYAxis', 'showBarLabels', 'showValues',
+            'useColorScheme',
+            
+            // Background controls
+            'backgroundColor'
+        ];
+
+        // **FIXED: Handle controls that need immediate updates**
+        if (IMMEDIATE_UPDATE_CONTROLS.includes(controlId) || controlId.endsWith('Color')) {
+            console.log(`🚀 ControlPanel: Applying immediate update for ${controlId} = ${value}`);
             // Apply immediately without debounce for responsive feel
             if (this.controlModule && this.controlModule.handleControlChange) {
                 this.controlModule.handleControlChange(controlId, value, this.chart);

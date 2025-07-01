@@ -649,8 +649,15 @@ window.BarControlModule = (function() {
         }
 
         handleControlChange(controlId, value, chart) {
+            console.log(`🎛️ BarControls.handleControlChange called: ${controlId} = ${value}`);
+            console.log(`🎛️ Chart parameter exists: ${!!chart}`);
+            console.log(`🎛️ Chart type: ${chart?.constructor?.name}`);
+            console.log(`🎛️ Chart has updateConfig: ${typeof chart?.updateConfig}`);
+            console.log(`🎛️ Chart has render: ${typeof chart?.render}`);
+            console.log(`🎛️ Chart has data: ${!!(chart?.data && chart.data.length > 0)}`);
+            
             if (!chart) {
-                console.warn('⚠️ No chart reference available for control change');
+                console.error('❌ BarControls: No chart reference available for control change');
                 return;
             }
 
@@ -658,32 +665,28 @@ window.BarControlModule = (function() {
 
             // Handle chart type changes with control filtering
             if (controlId === 'barChartType') {
-                console.log(`📊 Chart type changing to: ${value} - immediate update`);
+                console.log(`📊 Chart type changing to: ${value}`);
                 
-                // Update control availability for new chart type
+                // Update control availability
                 this.updateControlsForChartType(value);
-                
-                // Update chart config immediately
-                chart.config.barChartType = value;
-                
-                // Force immediate render with current data if available
-                if (chart.data && chart.data.length > 0) {
-                    console.log(`📊 Rendering immediately with existing data for chart type: ${value}`);
-                    chart.render();
-                } else {
-                    console.log(`📊 No data available, triggering data refresh for chart type: ${value}`);
-                    // Trigger data refresh from BarDataEditor
-                    window.dispatchEvent(new CustomEvent('chartTypeChanged', { 
-                        detail: { newType: value, chart: chart } 
-                    }));
-                }
-                
-                // Regenerate control panel with new control states (non-blocking)
-                if (window.pulseApp && window.pulseApp.controlPanel) {
-                    requestAnimationFrame(() => {
+
+                // Trigger chart update BEFORE updating config so the change is detected
+                console.log(`📊 About to call chart.updateConfig with barChartType: ${value}`);
+                chart.updateConfig({ barChartType: value });
+                console.log(`📊 chart.updateConfig completed for barChartType: ${value}`);
+
+                // POTENTIAL FIX: Don't regenerate control panel immediately - it might be overriding the user's selection
+                // Instead, just update control availability after a delay to ensure chart renders first
+                setTimeout(() => {
+                    console.log(`📊 Regenerating control panel after chart update for: ${value}`);
+                    if (window.pulseApp && window.pulseApp.controlPanel) {
+                        // Ensure the control panel config is synced before regeneration
+                        window.pulseApp.controlPanel.config.barChartType = value;
                         window.pulseApp.controlPanel.generateControls();
-                    });
-                }
+                    }
+                }, 100); // Small delay to ensure chart renders completely first
+                
+                return;
             }
 
             // Handle bar-specific color changes
@@ -957,6 +960,14 @@ window.BarControlModule = (function() {
         }
 
         getCurrentValue(controlId, chart) {
+            // Debug logging for barChartType specifically
+            if (controlId === 'barChartType') {
+                console.log(`🔍 getCurrentValue for barChartType:`);
+                console.log(`🔍 chart.config exists:`, !!chart?.config);
+                console.log(`🔍 chart.config.barChartType:`, chart?.config?.barChartType);
+                console.log(`🔍 Will return:`, chart?.config?.barChartType || 'simple');
+            }
+            
             // Handle bar-specific color controls
             if (controlId.startsWith('barColor_')) {
                 const colorControl = this.capabilities.colors.controls.find(c => c.id === controlId);
