@@ -2310,50 +2310,50 @@ class PulseBarChart {
         if (this.config.orientation === 'horizontal') {
             // **HORIZONTAL BAR LABELS & VALUES**
             
-            // Render category labels
-            if (this.config.showBarLabels) {
-                const labels = this.chart.selectAll('.bar-label')
-                    .data(this.data)
-                    .enter()
-                    .append('text')
-                    .attr('class', 'bar-label')
-                    .attr('x', d => this.getLabelX(d))
-                    .attr('y', d => this.getLabelY(d))
-                    .attr('text-anchor', this.getLabelTextAnchor())
-                    .attr('dominant-baseline', 'middle')
-                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                    .style('font-size', `${this.config.labelFontSize}px`)
-                    .style('font-weight', this.config.labelFontWeight)
-                    .style('fill', this.config.labelColor)
-                    .style('opacity', 0)
-                    .text(d => this.getBarLabelText(d));
+            // Always render category labels (control visibility with opacity)
+            const labels = this.chart.selectAll('.bar-label')
+                .data(this.data)
+                .enter()
+                .append('text')
+                .attr('class', 'bar-label')
+                .attr('x', d => this.getLabelX(d))
+                .attr('y', d => this.getLabelY(d))
+                .attr('text-anchor', this.getLabelTextAnchor())
+                .attr('dominant-baseline', 'middle')
+                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                .style('font-size', `${this.config.labelFontSize}px`)
+                .style('font-weight', this.config.labelFontWeight)
+                .style('fill', this.config.labelColor)
+                .style('opacity', 0)
+                .text(d => this.getBarLabelText(d));
 
-                // Animate labels
+            // Animate labels based on showBarLabels setting
+            if (this.config.showBarLabels) {
                 labels.transition()
                     .delay(this.config.animationDuration * 0.5)
                     .duration(this.config.animationDuration * 0.5)
                     .style('opacity', 1);
             }
 
-            // Render values separately
-            if (this.config.showValues) {
-                const values = this.chart.selectAll('.bar-value')
-                    .data(this.data)
-                    .enter()
-                    .append('text')
-                    .attr('class', 'bar-value')
-                    .attr('x', d => this.getValueX(d))
-                    .attr('y', d => this.getValueY(d))
-                    .attr('text-anchor', this.getValueTextAnchor())
-                    .attr('dominant-baseline', 'middle')
-                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                    .style('font-size', `${this.config.valueFontSize || this.config.labelFontSize}px`)
-                    .style('font-weight', this.config.labelFontWeight)
-                    .style('fill', this.config.labelColor)
-                    .style('opacity', 0)
-                    .text(d => this.getBarValueText(d));
+            // Always render values (control visibility with opacity)
+            const values = this.chart.selectAll('.bar-value')
+                .data(this.data)
+                .enter()
+                .append('text')
+                .attr('class', 'bar-value')
+                .attr('x', d => this.getValueX(d))
+                .attr('y', d => this.getValueY(d))
+                .attr('text-anchor', this.getValueTextAnchor())
+                .attr('dominant-baseline', 'middle')
+                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                .style('font-size', `${this.config.valueFontSize || this.config.labelFontSize}px`)
+                .style('font-weight', this.config.labelFontWeight)
+                .style('fill', this.config.labelColor)
+                .style('opacity', 0)
+                .text(d => this.getBarValueText(d));
 
-                // Animate values
+            // Animate values based on showValues setting
+            if (this.config.showValues) {
                 values.transition()
                     .delay(this.config.animationDuration * 0.5)
                     .duration(this.config.animationDuration * 0.5)
@@ -2362,54 +2362,54 @@ class PulseBarChart {
         } else {
             // **VERTICAL BAR LABELS & VALUES (default)**
             
-            // Render category labels
-            if (this.config.showBarLabels) {
-                const labels = this.chart.selectAll('.bar-label')
-                    .data(this.data)
-                    .enter()
-                    .append('text')
-                    .attr('class', 'bar-label')
-                    .attr('x', d => this.getLabelX(d))
-                    .attr('y', d => this.getLabelY(d))
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 
-                        this.config.labelPosition === 'inside_center' || this.config.labelPosition === 'middle' ? 'middle' : 
-                        this.config.labelPosition === 'outside_start' || this.config.labelPosition === 'bottom' ? 'hanging' : 'auto')
-                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                    .style('font-size', `${this.config.labelFontSize}px`)
-                    .style('font-weight', this.config.labelFontWeight)
-                    .style('fill', this.config.labelColor)
-                    .style('opacity', 0)
-                    .text(d => this.getBarLabelText(d));
+            // Always render category labels (control visibility with opacity)
+            const labels = this.chart.selectAll('.bar-label')
+                .data(this.data)
+                .enter()
+                .append('text')
+                .attr('class', 'bar-label')
+                .attr('x', d => this.getLabelX(d))
+                .attr('y', d => this.getLabelY(d))
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 
+                    this.config.labelPosition === 'inside_center' || this.config.labelPosition === 'middle' ? 'middle' : 
+                    this.config.labelPosition === 'outside_start' || this.config.labelPosition === 'bottom' ? 'hanging' : 'auto')
+                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                .style('font-size', `${this.config.labelFontSize}px`)
+                .style('font-weight', this.config.labelFontWeight)
+                .style('fill', this.config.labelColor)
+                .style('opacity', 0)
+                .text(d => this.getBarLabelText(d));
 
-                // Animate labels
+            // Animate labels based on showBarLabels setting
+            if (this.config.showBarLabels) {
                 labels.transition()
                     .delay(this.config.animationDuration * 0.5)
                     .duration(this.config.animationDuration * 0.5)
                     .style('opacity', 1);
             }
 
-            // Render values separately
-            if (this.config.showValues) {
-                const values = this.chart.selectAll('.bar-value')
-                    .data(this.data)
-                    .enter()
-                    .append('text')
-                    .attr('class', 'bar-value')
-                    .attr('x', d => this.getValueX(d))
-                    .attr('y', d => this.getValueY(d))
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 
-                        this.config.valuePosition === 'inside_center' || this.config.valuePosition === 'middle' ? 'middle' : 
-                        this.config.valuePosition === 'outside_start' || this.config.valuePosition === 'bottom' ? 'hanging' : 'auto')
-                    .style('font-family', this.config.titleFont || 'Inter, sans-serif')
-                    .style('font-size', `${this.config.valueFontSize || this.config.labelFontSize}px`)
-                    .style('font-weight', this.config.labelFontWeight)
-                    .style('fill', this.config.labelColor)
-                    .style('opacity', 0)
-                    .text(d => this.getBarValueText(d));
+            // Always render values (control visibility with opacity)
+            const values = this.chart.selectAll('.bar-value')
+                .data(this.data)
+                .enter()
+                .append('text')
+                .attr('class', 'bar-value')
+                .attr('x', d => this.getValueX(d))
+                .attr('y', d => this.getValueY(d))
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 
+                    this.config.valuePosition === 'inside_center' || this.config.valuePosition === 'middle' ? 'middle' : 
+                    this.config.valuePosition === 'outside_start' || this.config.valuePosition === 'bottom' ? 'hanging' : 'auto')
+                .style('font-family', this.config.titleFont || 'Inter, sans-serif')
+                .style('font-size', `${this.config.valueFontSize || this.config.labelFontSize}px`)
+                .style('font-weight', this.config.labelFontWeight)
+                .style('fill', this.config.labelColor)
+                .style('opacity', 0)
+                .text(d => this.getBarValueText(d));
 
-                // Animate values
+            // Animate values based on showValues setting
+            if (this.config.showValues) {
                 values.transition()
                     .delay(this.config.animationDuration * 0.5)
                     .duration(this.config.animationDuration * 0.5)
@@ -2793,6 +2793,39 @@ class PulseBarChart {
         } else {
             console.warn('❌ ChartZoom utility not available');
         }
+    }
+
+    // Center chart on page without affecting axis scaling
+    centerChart() {
+        console.log('🎯 Centering chart without affecting axis scaling');
+        
+        if (!this.svg) {
+            console.warn('⚠️ SVG not available for centering');
+            return;
+        }
+
+        // Get current chart dimensions
+        const dimensions = this.calculateChartDimensions();
+        const containerNode = this.container.node();
+        if (!containerNode) {
+            console.warn('⚠️ Container not available for centering');
+            return;
+        }
+
+        const containerRect = containerNode.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const svgWidth = dimensions.width;
+
+        // Calculate centering values - center horizontally and vertically
+        const leftOffset = Math.max(0, (containerWidth - svgWidth) / 2);
+        
+        // Apply centering by updating SVG position/margin
+        this.svg
+            .style('margin-left', `${leftOffset}px`)
+            .style('margin-right', `${leftOffset}px`)
+            .style('display', 'block'); // Ensure block display for margin centering
+
+        console.log(`🎯 Chart centered with ${leftOffset}px margins`);
     }
 
     // Color picker wrapper methods
