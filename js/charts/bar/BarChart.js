@@ -2816,16 +2816,47 @@ class PulseBarChart {
         const containerWidth = containerRect.width;
         const svgWidth = dimensions.width;
 
-        // Calculate centering values - center horizontally and vertically
+        console.log(`🎯 Container width: ${containerWidth}px, SVG width: ${svgWidth}px`);
+
+        // Calculate centering values - center horizontally
         const leftOffset = Math.max(0, (containerWidth - svgWidth) / 2);
         
-        // Apply centering by updating SVG position/margin
+        // Clear any existing positioning styles first
         this.svg
-            .style('margin-left', `${leftOffset}px`)
-            .style('margin-right', `${leftOffset}px`)
-            .style('display', 'block'); // Ensure block display for margin centering
+            .style('margin-left', null)
+            .style('margin-right', null)
+            .style('margin', null)
+            .style('position', null)
+            .style('left', null)
+            .style('right', null)
+            .style('transform', null);
+
+        // Apply centering using multiple methods for better compatibility
+        if (leftOffset > 0) {
+            // Method 1: Use auto margins with block display
+            this.svg
+                .style('display', 'block')
+                .style('margin-left', `${leftOffset}px`)
+                .style('margin-right', `${leftOffset}px`);
+        } else {
+            // If chart is wider than container, just center it
+            this.svg
+                .style('display', 'block')
+                .style('margin-left', 'auto')
+                .style('margin-right', 'auto');
+        }
+
+        // Also center the container div itself if needed
+        this.container
+            .style('text-align', 'center')
+            .style('display', 'block');
 
         console.log(`🎯 Chart centered with ${leftOffset}px margins`);
+        console.log(`🎯 SVG computed styles:`, {
+            marginLeft: this.svg.style('margin-left'),
+            marginRight: this.svg.style('margin-right'),
+            display: this.svg.style('display')
+        });
     }
 
     // Color picker wrapper methods
