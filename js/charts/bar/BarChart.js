@@ -4324,7 +4324,7 @@ class PulseBarChart {
     }
 
     centerChart() {
-        console.log('🎯 Center Chart button clicked - NUCLEAR OPTION');
+        console.log('🎯 Center Chart button clicked');
         
         if (!this.svg || !this.chart) {
             console.warn('⚠️ Cannot center chart - SVG or chart group not available');
@@ -4336,11 +4336,10 @@ class PulseBarChart {
         const svgHeight = parseFloat(this.svg.attr('height'));
         console.log('📐 SVG dimensions:', svgWidth, 'x', svgHeight);
 
-        // NUCLEAR OPTION: Work with the zoom container instead of chart group
-        if (this.zoomContainer) {
-            console.log('🎯 Using zoom container for centering');
+        if (this.zoomContainer && this.zoom) {
+            console.log('🎯 Using zoom behavior for proper centering');
             
-            // Reset zoom container to identity
+            // Reset zoom container to identity first
             this.zoomContainer.attr('transform', 'translate(0,0) scale(1)');
             
             // Get the chart bounds AFTER resetting zoom container
@@ -4348,19 +4347,21 @@ class PulseBarChart {
             console.log('📐 Content bounds after reset:', contentBounds);
             
             // Calculate where content should be to appear centered
-            const targetX = (svgWidth - contentBounds.width) / 2;
-            const targetY = (svgHeight - contentBounds.height) / 2;
+            const targetX = (svgWidth - contentBounds.width) / 2 - contentBounds.x;
+            const targetY = (svgHeight - contentBounds.height) / 2 - contentBounds.y;
             
             console.log('🎯 Target position:', targetX, targetY);
             
-            // Apply to zoom container
-            this.zoomContainer
-                .transition()
+            // Use zoom.transform to properly update both the visual transform AND zoom behavior's internal state
+            this.svg.transition()
                 .duration(1000)
-                .attr('transform', `translate(${targetX}, ${targetY}) scale(1)`);
+                .call(
+                    this.zoom.transform,
+                    d3.zoomIdentity.translate(targetX, targetY).scale(1)
+                );
                 
         } else {
-            console.log('🎯 No zoom container, using direct chart positioning');
+            console.log('🎯 No zoom behavior, using direct chart positioning');
             
             // Direct approach: just put chart at SVG center minus half its size
             const contentBounds = this.chart.node().getBBox();
@@ -4378,6 +4379,6 @@ class PulseBarChart {
                 .attr('transform', `translate(${targetX}, ${targetY})`);
         }
         
-        console.log('✅ Applied nuclear centering option');
+        console.log('✅ Applied proper centering with zoom behavior sync');
     }
 }
