@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Center Chart Zoom Test</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    
+    <!-- Load utilities -->
+    <script src="js/utils/GlobalChartConfig.js"></script>
+    <script src="js/utils/ChartZoom.js"></script>
+    <script src="js/utils/ChartColorPicker.js"></script>
+    <script src="js/utils/ChartBrandingUtils.js"></script>
+    <script src="js/utils/ChartUtils.js"></script>
+    <script src="js/utils/ChartExports.js"></script>
+    
+    <!-- Load core classes -->
+    <script src="js/core/DataManager.js"></script>
+    <script src="js/core/ControlPanel.js"></script>
+    
+    <!-- Load bar chart -->
+    <script src="js/charts/bar/BarChartConfig.js"></script>
+    <script src="js/charts/bar/BarControls.js"></script>
+    <script src="js/charts/bar/BarChart.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .button-group {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button.danger {
+            background: #dc3545;
+        }
+        
+        button.success {
+            background: #28a745;
+        }
+        
+        button.warning {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #e9ecef;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        #chart-container {
+            width: 100%;
+            height: 500px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Center Chart Zoom Level Test</h1>
+        <p>This test verifies that the "Center Chart" button works correctly at any zoom level.</p>
+        
+        <div class="button-group">
+            <button onclick="testAtZoom(0.5)" class="warning">Zoom 50% → Center</button>
+            <button onclick="testAtZoom(1.0)" class="success">Zoom 100% → Center</button>
+            <button onclick="testAtZoom(1.5)" class="warning">Zoom 150% → Center</button>
+            <button onclick="testAtZoom(2.0)" class="danger">Zoom 200% → Center</button>
+            <button onclick="testAtZoom(3.0)" class="danger">Zoom 300% → Center</button>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="chart.centerChart()">🎯 Center Chart (Manual)</button>
+            <button onclick="resetChart()">🔄 Reset Chart</button>
+            <button onclick="runAutoTest()">🚀 Run Auto Test</button>
+        </div>
+        
+        <div id="status" class="status">Ready to test...</div>
+        
+        <div id="chart-container"></div>
+    </div>
+
+    <script>
+        let chart = null;
+        let testResults = [];
+        
+        // Sample data for testing
+        const sampleData = [
+            { category: "Q1 Revenue", value: 125000 },
+            { category: "Q2 Revenue", value: 142000 },
+            { category: "Q3 Revenue", value: 138000 },
+            { category: "Q4 Revenue", value: 165000 },
+            { category: "Q1 Expenses", value: -85000 },
+            { category: "Q2 Expenses", value: -92000 },
+            { category: "Q3 Expenses", value: -88000 },
+            { category: "Q4 Expenses", value: -95000 }
+        ];
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            status.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            status.scrollTop = status.scrollHeight;
+        }
+        
+        function initializeChart() {
+            updateStatus('Initializing bar chart...', 'info');
+            
+            // Clear container
+            const container = document.getElementById('chart-container');
+            container.innerHTML = '';
+            
+            // Create chart instance
+            chart = new PulseBarChart('chart-container');
+            
+            // Configure chart with proper margins
+            chart.config = {
+                orientation: 'vertical',
+                barChartType: 'simple',
+                defaultBarColor: '#3498db',
+                showValues: true,
+                showXAxis: true,
+                showYAxis: true,
+                // Use actual margin values used by the chart
+                leftMargin: 150,
+                rightMargin: 150,
+                topMargin: 80,
+                bottomMargin: 80
+            };
+            
+            // Load data and render
+            chart.loadData(sampleData);
+            chart.render();
+            
+            updateStatus('Chart initialized successfully', 'success');
+            updateStatus('Chart margins: left=150, right=150, top=80, bottom=80', 'info');
+        }
+        
+        function testAtZoom(zoomLevel) {
+            if (!chart) {
+                initializeChart();
+                setTimeout(() => testAtZoom(zoomLevel), 500);
+                return;
+            }
+            
+            updateStatus(`Testing center at zoom level ${zoomLevel}x...`, 'info');
+            
+            // Apply zoom
+            if (chart.zoom && chart.svg) {
+                chart.svg.transition()
+                    .duration(500)
+                    .call(chart.zoom.transform, d3.zoomIdentity.scale(zoomLevel));
+                
+                // Wait for zoom transition, then center
+                setTimeout(() => {
+                    updateStatus(`Zoom ${zoomLevel}x applied, now centering...`, 'info');
+                    chart.centerChart();
+                    
+                    // Record test result
+                    setTimeout(() => {
+                        const currentTransform = d3.zoomTransform(chart.svg.node());
+                        updateStatus(`✅ Center test at ${zoomLevel}x completed. Final scale: ${currentTransform.k.toFixed(2)}`, 'success');
+                        testResults.push({
+                            zoom: zoomLevel,
+                            finalScale: currentTransform.k,
+                            success: Math.abs(currentTransform.k - zoomLevel) < 0.01
+                        });
+                    }, 1200);
+                }, 600);
+            } else {
+                updateStatus('❌ Zoom not available on chart', 'error');
+            }
+        }
+        
+        function resetChart() {
+            if (chart && chart.svg && chart.zoom) {
+                chart.svg.transition()
+                    .duration(500)
+                    .call(chart.zoom.transform, d3.zoomIdentity);
+                updateStatus('Chart reset to default position and zoom', 'info');
+            }
+        }
+        
+        function runAutoTest() {
+            updateStatus('🚀 Starting automated test sequence...', 'info');
+            testResults = [];
+            
+            const zoomLevels = [0.5, 1.0, 1.5, 2.0, 3.0];
+            let currentTest = 0;
+            
+            function runNextTest() {
+                if (currentTest >= zoomLevels.length) {
+                    // Test completed
+                    updateStatus('🎉 All tests completed!', 'success');
+                    
+                    // Show results summary
+                    const passedTests = testResults.filter(r => r.success).length;
+                    updateStatus(`Results: ${passedTests}/${testResults.length} tests passed`, 
+                               passedTests === testResults.length ? 'success' : 'warning');
+                    
+                    testResults.forEach(result => {
+                        const status = result.success ? '✅' : '❌';
+                        updateStatus(`${status} Zoom ${result.zoom}x: Final scale ${result.finalScale.toFixed(2)}`, 
+                                   result.success ? 'success' : 'error');
+                    });
+                    return;
+                }
+                
+                const zoomLevel = zoomLevels[currentTest];
+                updateStatus(`Auto test ${currentTest + 1}/${zoomLevels.length}: Testing zoom ${zoomLevel}x`, 'info');
+                
+                testAtZoom(zoomLevel);
+                currentTest++;
+                
+                // Schedule next test
+                setTimeout(runNextTest, 3000);
+            }
+            
+            runNextTest();
+        }
+        
+        // Initialize chart when page loads
+        window.addEventListener('load', () => {
+            updateStatus('Page loaded, initializing chart...', 'info');
+            setTimeout(initializeChart, 100);
+        });
+    </script>
+</body>
+</html>
