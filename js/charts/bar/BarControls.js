@@ -792,6 +792,17 @@ window.BarControlModule = (function() {
                 return;
             }
 
+            // Handle button actions first
+            if (controlId === 'centerChart') {
+                console.log('🎯 Center Chart button action triggered');
+                if (chart.centerChart && typeof chart.centerChart === 'function') {
+                    chart.centerChart();
+                } else {
+                    console.error('❌ centerChart method not available on chart instance');
+                }
+                return;
+            }
+
             console.log(`🎛️ Applying bar chart control change: ${controlId} = ${value}`);
 
             // Handle chart type changes with control filtering

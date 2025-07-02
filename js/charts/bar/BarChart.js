@@ -2797,66 +2797,91 @@ class PulseBarChart {
 
     // Center chart on page without affecting axis scaling
     centerChart() {
-        console.log('🎯 Centering chart without affecting axis scaling');
+        console.log('🎯 ===== CENTER CHART METHOD CALLED =====');
+        console.log('🎯 SVG exists:', !!this.svg);
+        console.log('🎯 Chart group exists:', !!this.chart);
+        console.log('🎯 Centering chart content without affecting axis scaling');
         
-        if (!this.svg) {
-            console.warn('⚠️ SVG not available for centering');
+        if (!this.svg || !this.chart) {
+            console.warn('⚠️ SVG or chart group not available for centering');
+            console.warn('⚠️ SVG:', this.svg);
+            console.warn('⚠️ Chart:', this.chart);
             return;
         }
 
-        // Get current chart dimensions
-        const dimensions = this.calculateChartDimensions();
-        const containerNode = this.container.node();
-        if (!containerNode) {
-            console.warn('⚠️ Container not available for centering');
-            return;
+        try {
+            // Get SVG dimensions
+            const svgNode = this.svg.node();
+            const svgWidth = parseInt(this.svg.attr('width')) || svgNode.clientWidth;
+            const svgHeight = parseInt(this.svg.attr('height')) || svgNode.clientHeight;
+            
+            console.log(`🎯 SVG dimensions: ${svgWidth}x${svgHeight}`);
+            
+            // Get chart content bounds
+            const chartBounds = this.chart.node().getBBox();
+            console.log(`🎯 Chart content bounds:`, chartBounds);
+            
+            // Proper centering: position chart so its content is centered in SVG
+            const svgCenterX = svgWidth / 2;
+            const svgCenterY = svgHeight / 2;
+            
+            console.log(`🎯 SVG center: (${svgCenterX}, ${svgCenterY})`);
+            console.log(`🎯 Chart content bounds:`, chartBounds);
+            
+            // Calculate where to position the chart group so the content center aligns with SVG center
+            // We need to move the chart group to compensate for the content's bounds
+            const chartContentCenterX = chartBounds.x + (chartBounds.width / 2);
+            const chartContentCenterY = chartBounds.y + (chartBounds.height / 2);
+            
+            // Calculate the offset needed to center the content
+            const finalX = svgCenterX - chartContentCenterX;
+            const finalY = svgCenterY - chartContentCenterY;
+            
+            console.log(`🎯 Chart content center: (${chartContentCenterX}, ${chartContentCenterY})`);
+            console.log(`🎯 Final transform position: x=${finalX}, y=${finalY}`);
+            
+            // Add a smooth transition for visual feedback
+            this.chart
+                .transition()
+                .duration(300)
+                .attr('transform', `translate(${finalX}, ${finalY})`);
+            
+            // Verify the transform was applied
+            setTimeout(() => {
+                const newTransform = this.chart.attr('transform');
+                console.log(`🎯 New transform after centering: ${newTransform}`);
+                console.log(`🎯 Chart content centered at translate(${finalX}, ${finalY})`);
+            }, 350);
+            
+            // Add temporary visual indicator to show centering is working
+            const indicator = this.svg.append('circle')
+                .attr('cx', svgWidth / 2)
+                .attr('cy', svgHeight / 2)
+                .attr('r', 5)
+                .attr('fill', 'red')
+                .attr('opacity', 0.8);
+            
+            // Remove indicator after 2 seconds
+            setTimeout(() => {
+                indicator.remove();
+            }, 2000);
+            
+            console.log(`🎯 Added red center indicator at SVG center (${svgWidth/2}, ${svgHeight/2})`);
+            
+        } catch (error) {
+            console.error('❌ Error centering chart:', error);
+            
+            // Fallback: simple center positioning
+            const svgWidth = parseInt(this.svg.attr('width')) || 1200;
+            const svgHeight = parseInt(this.svg.attr('height')) || 700;
+            
+            // Use margins for centering if transform fails
+            const centerX = svgWidth / 2;
+            const centerY = svgHeight / 2;
+            
+            this.chart.attr('transform', `translate(${centerX / 2}, ${centerY / 2})`);
+            console.log(`🎯 Fallback centering applied`);
         }
-
-        const containerRect = containerNode.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const svgWidth = dimensions.width;
-
-        console.log(`🎯 Container width: ${containerWidth}px, SVG width: ${svgWidth}px`);
-
-        // Calculate centering values - center horizontally
-        const leftOffset = Math.max(0, (containerWidth - svgWidth) / 2);
-        
-        // Clear any existing positioning styles first
-        this.svg
-            .style('margin-left', null)
-            .style('margin-right', null)
-            .style('margin', null)
-            .style('position', null)
-            .style('left', null)
-            .style('right', null)
-            .style('transform', null);
-
-        // Apply centering using multiple methods for better compatibility
-        if (leftOffset > 0) {
-            // Method 1: Use auto margins with block display
-            this.svg
-                .style('display', 'block')
-                .style('margin-left', `${leftOffset}px`)
-                .style('margin-right', `${leftOffset}px`);
-        } else {
-            // If chart is wider than container, just center it
-            this.svg
-                .style('display', 'block')
-                .style('margin-left', 'auto')
-                .style('margin-right', 'auto');
-        }
-
-        // Also center the container div itself if needed
-        this.container
-            .style('text-align', 'center')
-            .style('display', 'block');
-
-        console.log(`🎯 Chart centered with ${leftOffset}px margins`);
-        console.log(`🎯 SVG computed styles:`, {
-            marginLeft: this.svg.style('margin-left'),
-            marginRight: this.svg.style('margin-right'),
-            display: this.svg.style('display')
-        });
     }
 
     // Color picker wrapper methods
@@ -4296,5 +4321,63 @@ class PulseBarChart {
             .attr('ry', radius);
             
         console.log('✅ All-corners radius applied to all bars');
+    }
+
+    centerChart() {
+        console.log('🎯 Center Chart button clicked - NUCLEAR OPTION');
+        
+        if (!this.svg || !this.chart) {
+            console.warn('⚠️ Cannot center chart - SVG or chart group not available');
+            return;
+        }
+
+        // Get SVG dimensions
+        const svgWidth = parseFloat(this.svg.attr('width'));
+        const svgHeight = parseFloat(this.svg.attr('height'));
+        console.log('📐 SVG dimensions:', svgWidth, 'x', svgHeight);
+
+        // NUCLEAR OPTION: Work with the zoom container instead of chart group
+        if (this.zoomContainer) {
+            console.log('🎯 Using zoom container for centering');
+            
+            // Reset zoom container to identity
+            this.zoomContainer.attr('transform', 'translate(0,0) scale(1)');
+            
+            // Get the chart bounds AFTER resetting zoom container
+            const contentBounds = this.chart.node().getBBox();
+            console.log('📐 Content bounds after reset:', contentBounds);
+            
+            // Calculate where content should be to appear centered
+            const targetX = (svgWidth - contentBounds.width) / 2;
+            const targetY = (svgHeight - contentBounds.height) / 2;
+            
+            console.log('🎯 Target position:', targetX, targetY);
+            
+            // Apply to zoom container
+            this.zoomContainer
+                .transition()
+                .duration(1000)
+                .attr('transform', `translate(${targetX}, ${targetY}) scale(1)`);
+                
+        } else {
+            console.log('🎯 No zoom container, using direct chart positioning');
+            
+            // Direct approach: just put chart at SVG center minus half its size
+            const contentBounds = this.chart.node().getBBox();
+            console.log('📐 Content bounds:', contentBounds);
+            
+            // Calculate position to center the content
+            const targetX = (svgWidth / 2) - (contentBounds.width / 2);
+            const targetY = (svgHeight / 2) - (contentBounds.height / 2);
+            
+            console.log('🎯 Centering at:', targetX, targetY);
+            
+            this.chart
+                .transition()
+                .duration(1000)
+                .attr('transform', `translate(${targetX}, ${targetY})`);
+        }
+        
+        console.log('✅ Applied nuclear centering option');
     }
 }
