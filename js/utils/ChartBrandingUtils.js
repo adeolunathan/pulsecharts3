@@ -61,7 +61,7 @@
         const hasCustomBranding = userLogoUrl || this.data?.metadata?.company;
         
         const logoImage = footerGroup.append('image')
-            .attr('x', 10)
+            .attr('x', 2)  // Moved closer to left edge (was 10, now 2)
             .attr('y', -100)  // Moved up slightly for larger logo
             .attr('width', hasBackendLogo ? 200 : 32)  // Much larger for backend logo: 72px
             .attr('height', hasBackendLogo ? 200 : 32)
@@ -91,7 +91,7 @@
             const companyName = this.data?.metadata?.company || 'PULSE ANALYTICS';
             
             footerGroup.append('text')
-                .attr('x', hasCustomBranding ? 65 : 50)  // Adjust position for larger custom logo
+                .attr('x', hasCustomBranding ? 57 : 42)  // Adjusted for new logo position (was 65/50, now 57/42)
                 .attr('y', -25)
                 .attr('font-size', '16px')
                 .attr('font-weight', '800')

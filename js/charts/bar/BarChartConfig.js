@@ -75,7 +75,7 @@ window.BarChartConfig = (function() {
             customColors: [],
             
             // Background and theming (now uses global default)
-            backgroundColor: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : '#f8f9fa',
+            backgroundColor: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : '#faf9f0',
             titleFont: 'Inter',
             titleColor: '#1f2937',
             

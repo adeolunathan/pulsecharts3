@@ -30,7 +30,7 @@ body {
     flex-direction: column;
     max-width: 1400px;
     margin: 0 auto;
-    background-color: white;
+    background-color: #faf9f0;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -303,7 +303,7 @@ body {
 
 .chart-wrapper {
     padding: 2rem;
-    background-color: white;
+    background-color: #faf9f0;
     min-height: 600px;
     position: relative;
 }
