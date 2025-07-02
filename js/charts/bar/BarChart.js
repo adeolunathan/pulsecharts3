@@ -70,6 +70,8 @@ class PulseBarChart {
         
         // Apply background color immediately if changed
         if (newConfig.backgroundColor && this.svg) {
+            // Update both container and SVG to ensure consistent background
+            this.container.style('background-color', newConfig.backgroundColor);
             this.svg.style('background-color', newConfig.backgroundColor);
         }
         
@@ -240,6 +242,9 @@ class PulseBarChart {
         // Calculate dynamic dimensions
         const { width, height, margins } = this.calculateChartDimensions();
 
+        // Ensure container background matches chart background to avoid layering
+        this.container.style('background-color', this.config.backgroundColor);
+        
         this.svg = this.container
             .append('svg')
             .attr('class', 'chart-svg')

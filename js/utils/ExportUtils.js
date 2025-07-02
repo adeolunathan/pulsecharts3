@@ -9,7 +9,7 @@ window.ExportUtils = (function() {
         const settings = {
             scale: options.scale || 2, // High DPI for crisp images
             quality: options.quality || 0.95,
-            backgroundColor: options.backgroundColor || '#ffffff',
+            backgroundColor: options.backgroundColor || window.GlobalChartConfig?.getGlobalBackgroundColor() || '#ffffff',
             ...options
         };
 
@@ -26,6 +26,13 @@ window.ExportUtils = (function() {
             // Ensure SVG has proper namespace
             clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
             clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            
+            // Clean up SVG background styles to prevent duplicate layers
+            clonedSvg.style.removeProperty('background-color');
+            clonedSvg.style.removeProperty('background');
+            if (clonedSvg.getAttribute('style') === '') {
+                clonedSvg.removeAttribute('style');
+            }
             
             // Inline styles to make SVG standalone
             inlineStyles(clonedSvg);
@@ -168,10 +175,51 @@ window.ExportUtils = (function() {
             
             // Set background if specified
             if (options.backgroundColor) {
+                // Remove any existing background styles to avoid duplicate layers
+                clonedSvg.style.removeProperty('background-color');
+                clonedSvg.style.removeProperty('background');
+                
+                // Remove the entire style attribute if it only contains background properties
+                const styleAttr = clonedSvg.getAttribute('style');
+                if (styleAttr) {
+                    // Remove background-related properties from style attribute
+                    const cleanedStyle = styleAttr
+                        .split(';')
+                        .filter(prop => {
+                            const trimmed = prop.trim().toLowerCase();
+                            return !trimmed.startsWith('background') && trimmed !== '';
+                        })
+                        .join(';');
+                    
+                    if (cleanedStyle.length > 0) {
+                        clonedSvg.setAttribute('style', cleanedStyle);
+                    } else {
+                        clonedSvg.removeAttribute('style');
+                    }
+                }
+                
+                // Remove ALL existing background rectangles to prevent duplicates
+                const existingBackgrounds = clonedSvg.querySelectorAll('rect');
+                existingBackgrounds.forEach(rect => {
+                    const width = rect.getAttribute('width');
+                    const height = rect.getAttribute('height');
+                    const fill = rect.getAttribute('fill');
+                    const className = rect.getAttribute('class');
+                    
+                    // Remove rectangles that look like backgrounds
+                    if ((width === '100%' && height === '100%') || 
+                        className === 'export-background' ||
+                        (rect.parentNode === clonedSvg && fill && rect.previousSibling === null)) {
+                        rect.remove();
+                    }
+                });
+                
+                // Add a single clean background rectangle as the first element
                 const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 background.setAttribute('width', '100%');
                 background.setAttribute('height', '100%');
                 background.setAttribute('fill', options.backgroundColor);
+                background.setAttribute('class', 'export-background');
                 clonedSvg.insertBefore(background, clonedSvg.firstChild);
             }
             
