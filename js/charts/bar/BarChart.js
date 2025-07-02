@@ -4337,39 +4337,51 @@ class PulseBarChart {
         console.log('📐 SVG dimensions:', svgWidth, 'x', svgHeight);
 
         if (this.zoomContainer && this.zoom) {
-            console.log('🎯 Using zoom behavior for proper centering');
+            console.log('🎯 Simple centering: move zoom container to center of SVG');
             
-            // Reset zoom container to identity first
-            this.zoomContainer.attr('transform', 'translate(0,0) scale(1)');
+            // Get current zoom scale to preserve it
+            const currentTransform = d3.zoomTransform(this.svg.node());
+            const currentScale = currentTransform.k;
             
-            // Get the chart bounds AFTER resetting zoom container
-            const contentBounds = this.chart.node().getBBox();
-            console.log('📐 Content bounds after reset:', contentBounds);
+            // Get the zoom container bounds (this includes everything: bars, axes, margins)
+            const containerBounds = this.zoomContainer.node().getBBox();
             
-            // Calculate where content should be to appear centered
-            const targetX = (svgWidth - contentBounds.width) / 2 - contentBounds.x;
-            const targetY = (svgHeight - contentBounds.height) / 2 - contentBounds.y;
+            // Calculate simple center: put container center at SVG center
+            const containerCenterX = containerBounds.x + containerBounds.width / 2;
+            const containerCenterY = containerBounds.y + containerBounds.height / 2;
             
+            const targetX = (svgWidth / 2) - containerCenterX;
+            const targetY = (svgHeight / 2) - containerCenterY;
+            
+            console.log('📐 Container bounds:', containerBounds);
+            console.log('🎯 Container center:', containerCenterX, containerCenterY);
+            console.log('🎯 SVG center:', svgWidth/2, svgHeight/2);
             console.log('🎯 Target position:', targetX, targetY);
+            console.log('🔍 Preserving zoom scale:', currentScale);
             
-            // Use zoom.transform to properly update both the visual transform AND zoom behavior's internal state
+            // Move zoom container to center, preserve current zoom scale
             this.svg.transition()
                 .duration(1000)
                 .call(
                     this.zoom.transform,
-                    d3.zoomIdentity.translate(targetX, targetY).scale(1)
+                    d3.zoomIdentity.translate(targetX, targetY).scale(currentScale)
                 );
                 
         } else {
             console.log('🎯 No zoom behavior, using direct chart positioning');
             
-            // Direct approach: just put chart at SVG center minus half its size
-            const contentBounds = this.chart.node().getBBox();
-            console.log('📐 Content bounds:', contentBounds);
+            // Get bounds of ONLY the visible bars for consistent centering
+            const visualBounds = this.getVisualBarBounds();
+            console.log('📐 Visual bar bounds:', visualBounds);
             
-            // Calculate position to center the content
-            const targetX = (svgWidth / 2) - (contentBounds.width / 2);
-            const targetY = (svgHeight / 2) - (contentBounds.height / 2);
+            if (!visualBounds) {
+                console.warn('⚠️ No visible bars found for centering');
+                return;
+            }
+            
+            // Calculate position to center the visual content
+            const targetX = (svgWidth / 2) - (visualBounds.centerX);
+            const targetY = (svgHeight / 2) - (visualBounds.centerY);
             
             console.log('🎯 Centering at:', targetX, targetY);
             
@@ -4380,5 +4392,60 @@ class PulseBarChart {
         }
         
         console.log('✅ Applied proper centering with zoom behavior sync');
+    }
+
+    /**
+     * Calculate the bounds of only the visible bar elements (excluding invisible drag zones, grid, etc.)
+     * Returns the actual visual center of the chart content
+     */
+    getVisualBarBounds() {
+        // Find all visible bar elements
+        const bars = this.chart.selectAll('.bar');
+        
+        if (bars.empty()) {
+            console.warn('⚠️ No bars found in chart');
+            return null;
+        }
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        // Calculate bounds from actual bar positions
+        bars.each(function() {
+            const bar = d3.select(this);
+            const x = parseFloat(bar.attr('x'));
+            const y = parseFloat(bar.attr('y'));
+            const width = parseFloat(bar.attr('width'));
+            const height = parseFloat(bar.attr('height'));
+
+            // Skip bars with invalid dimensions
+            if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
+                return;
+            }
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + width);
+            maxY = Math.max(maxY, y + height);
+        });
+
+        // Return bounds if we found valid bars
+        if (minX !== Infinity) {
+            const bounds = {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY,
+                centerX: minX + (maxX - minX) / 2,
+                centerY: minY + (maxY - minY) / 2
+            };
+
+            console.log('📊 Calculated visual bar bounds:', bounds);
+            return bounds;
+        }
+
+        return null;
     }
 }
