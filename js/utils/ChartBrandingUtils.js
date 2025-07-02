@@ -394,6 +394,10 @@
      */
     function updateBackgroundColor(color) {
         this.config.backgroundColor = color;
+        // Update both container and SVG to ensure consistent background
+        if (this.container) {
+            this.container.style('background-color', color);
+        }
         if (this.svg) {
             this.svg.style('background-color', color);
         }

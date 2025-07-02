@@ -11,7 +11,7 @@ window.GlobalChartConfig = (function() {
     function getGlobalDefaults() {
         return {
             // Global Background Color - Single source of truth
-            backgroundColor: '#faf9f0',  // Light gray background for all charts
+            backgroundColor: '#F5F5DC',  // Light gray background for all charts
             
             // Global Font Settings
             fontFamily: 'Inter',
@@ -80,11 +80,21 @@ window.GlobalChartConfig = (function() {
         return getGlobalDefaults().backgroundColor;
     }
 
+    /**
+     * Helper function to get background color with fallback
+     * Use this everywhere instead of hardcoding colors
+     * @returns {string} The global background color
+     */
+    function getSafeBackgroundColor() {
+        return getGlobalBackgroundColor();
+    }
+
     // Public API
     return {
         getGlobalDefaults: getGlobalDefaults,
         mergeWithGlobalDefaults: mergeWithGlobalDefaults,
         updateGlobalBackgroundColor: updateGlobalBackgroundColor,
-        getGlobalBackgroundColor: getGlobalBackgroundColor
+        getGlobalBackgroundColor: getGlobalBackgroundColor,
+        getSafeBackgroundColor: getSafeBackgroundColor // Helper for easy use
     };
 })();

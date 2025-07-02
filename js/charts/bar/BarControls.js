@@ -363,7 +363,7 @@ window.BarControlModule = (function() {
                             id: "backgroundColor",
                             type: "color_picker",
                             label: "Background Color",
-                            default: "#f5f0db"
+                            default: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : "#faf9f0"
                         },
                         {
                             id: "titleFont",
@@ -623,7 +623,7 @@ window.BarControlModule = (function() {
                 hoverOpacity: 1.0,
                 animationDuration: 700,
                 animationEasing: 'easeQuadOut',
-                backgroundColor: '#f5f0db',
+                backgroundColor: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : '#faf9f0',
                 titleFont: 'Inter',
                 titleColor: '#1f2937',
                 titleSize: 20,

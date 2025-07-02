@@ -97,6 +97,9 @@ class PulseSankeyChart {
             height: this.config.height - this.config.margin.top - this.config.margin.bottom
         };
 
+        // Set container background to ensure consistent beige background
+        this.container.style('background-color', this.config.backgroundColor);
+        
         this.svg = this.container
             .append('svg')
             .attr('class', 'chart-svg')
@@ -519,6 +522,10 @@ class PulseSankeyChart {
     updateBackgroundColorFallback(color) {
         console.warn('⚠️ Using fallback background color update');
         this.config.backgroundColor = color;
+        // Update both container and SVG to ensure consistent background
+        if (this.container) {
+            this.container.style('background-color', color);
+        }
         if (this.svg) {
             this.svg.style('background-color', color);
         }

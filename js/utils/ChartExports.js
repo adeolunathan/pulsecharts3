@@ -11,11 +11,16 @@ window.ChartExports = (function() {
      */
     function exportToPNG() {
         const filename = this.generateFileName('png');
+        console.log('📊 CHART TYPE:', this.constructor.name);
+        console.log('🎨 CHART CONFIG BACKGROUND:', this.config.backgroundColor);
+        
         const options = {
             scale: 2,
             quality: 0.95,
-            backgroundColor: this.config.backgroundColor // Match the chart background
+            backgroundColor: this.config.backgroundColor
         };
+        
+        console.log('🎨 FINAL EXPORT BACKGROUND:', options.backgroundColor);
         
         if (window.ExportUtils) {
             window.ExportUtils.exportToPNG(this.svg, filename, options);
@@ -31,10 +36,14 @@ window.ChartExports = (function() {
      */
     function exportToSVG() {
         const filename = this.generateFileName('svg');
+        console.log('🔍 SVG Export - Chart config backgroundColor:', this.config.backgroundColor);
+        
         const options = {
             includeStyles: true,
-            backgroundColor: this.config.backgroundColor // Match the chart background
+            backgroundColor: this.config.backgroundColor || window.GlobalChartConfig?.getGlobalBackgroundColor() || '#faf9f0' // Force beige
         };
+        
+        console.log('🔍 SVG Export options backgroundColor:', options.backgroundColor);
         
         if (window.ExportUtils) {
             window.ExportUtils.exportToSVG(this.svg, filename, options);

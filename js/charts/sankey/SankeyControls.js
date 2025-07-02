@@ -69,7 +69,7 @@ class SankeyControlModule {
                         id: "backgroundColor",
                         type: "color_picker",
                         label: "Background Color",
-                        default: "#f8f9fa"
+                        default: window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : "#faf9f0"
                     },
                     {
                         id: "titleFont",
@@ -1001,7 +1001,7 @@ class SankeyControlModule {
     getCurrentValue(controlId, chart) {
         // Handle backgroundColor specially
         if (controlId === 'backgroundColor') {
-            return chart && chart.config ? chart.config.backgroundColor : '#f8f9fa';
+            return chart && chart.config ? chart.config.backgroundColor : (window.GlobalChartConfig ? window.GlobalChartConfig.getGlobalBackgroundColor() : '#faf9f0');
         }
         
         // Handle titleFont specially

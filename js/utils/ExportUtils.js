@@ -9,12 +9,13 @@ window.ExportUtils = (function() {
         const settings = {
             scale: options.scale || 2, // High DPI for crisp images
             quality: options.quality || 0.95,
-            backgroundColor: options.backgroundColor || window.GlobalChartConfig?.getGlobalBackgroundColor() || '#ffffff',
+            backgroundColor: options.backgroundColor || window.GlobalChartConfig?.getGlobalBackgroundColor() || '#faf9f0',
             ...options
         };
 
         try {
             console.log('🖼️ Starting PNG export process...');
+            console.log('🎨 Using background color:', settings.backgroundColor);
             
             // Get SVG dimensions
             const svgNode = svgElement.node ? svgElement.node() : svgElement;
@@ -27,12 +28,8 @@ window.ExportUtils = (function() {
             clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
             clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
             
-            // Clean up SVG background styles to prevent duplicate layers
-            clonedSvg.style.removeProperty('background-color');
-            clonedSvg.style.removeProperty('background');
-            if (clonedSvg.getAttribute('style') === '') {
-                clonedSvg.removeAttribute('style');
-            }
+            // Simple approach: Set SVG background directly
+            clonedSvg.style.backgroundColor = settings.backgroundColor;
             
             // Inline styles to make SVG standalone
             inlineStyles(clonedSvg);
@@ -475,7 +472,7 @@ window.ExportUtils = (function() {
         const pngOptions = {
             scale: 3, // Very high resolution for print
             quality: 1.0,
-            backgroundColor: '#ffffff'
+            backgroundColor: window.GlobalChartConfig?.getGlobalBackgroundColor() || '#faf9f0'
         };
         
         const pngFilename = filename.replace('.pdf', '-high-res.png');
@@ -845,7 +842,7 @@ window.ExportUtils = (function() {
             png: {
                 scale: 2,
                 quality: 0.95,
-                backgroundColor: '#ffffff'
+                backgroundColor: window.GlobalChartConfig?.getGlobalBackgroundColor() || '#faf9f0'
             },
             svg: {
                 includeStyles: true,
