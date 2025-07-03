@@ -3513,10 +3513,12 @@ class PulseSankeyChart {
         switch (mode) {
             case 'arrange':
                 this.showArrangeInstructions();
+                this.enableLinkOrdering();
                 break;
             case 'normal':
                 this.clearInteractionState();
                 this.hideInstructions();
+                this.disableLinkOrdering();
                 break;
         }
         
@@ -3560,8 +3562,8 @@ class PulseSankeyChart {
             .style('box-shadow', '0 4px 12px rgba(0,0,0,0.15)')
             .html(`
                 <div style="font-weight: 600; margin-bottom: 6px;">🔄 Arrangement Mode Active</div>
-                <div>• Drag nodes horizontally between layers</div>
-                <div>• Drag vertically to reorder within layer</div>
+                <div>• Drag nodes to reposition</div>
+                <div>• <strong>Click nodes</strong> to reorder their outgoing links</div>
                 <div>• Changes update automatically</div>
                 <div style="margin-top: 8px; font-size: 10px; opacity: 0.8;">
                     Click Exit to return to normal mode
@@ -4981,6 +4983,527 @@ class PulseSankeyChart {
     }
 
     // Clear brand logo
+    
+    // ===== LINK ORDERING METHODS FOR ARRANGE MODE =====
+    
+    enableLinkOrdering() {
+        // Add click handlers to nodes for link ordering
+        this.chart.selectAll('.sankey-node rect')
+            .on('click.linkOrdering', (event, nodeData) => {
+                if (this.interactionMode.mode === 'arrange') {
+                    event.stopPropagation();
+                    this.showLinkOrderingPanel(nodeData);
+                }
+            });
+    }
+    
+    disableLinkOrdering() {
+        // Remove click handlers
+        this.chart.selectAll('.sankey-node rect')
+            .on('click.linkOrdering', null);
+    }
+    
+    showLinkOrderingPanel(nodeData) {
+        // Only show if node has outgoing links
+        if (!nodeData.sourceLinks || nodeData.sourceLinks.length <= 1) {
+            return; // No need to reorder if 1 or fewer links
+        }
+        
+        // Hide tooltip and remove existing panel
+        this.hideTooltip();
+        this.container.select('.link-ordering-panel').remove();
+        
+        const panel = this.container
+            .append('div')
+            .attr('class', 'link-ordering-panel')
+            .style('position', 'fixed')
+            .style('top', '50%')
+            .style('left', '50%')
+            .style('transform', 'translate(-50%, -50%)')
+            .style('background', 'white')
+            .style('border-radius', '12px')
+            .style('box-shadow', '0 12px 32px rgba(0, 0, 0, 0.15)')
+            .style('padding', '20px')
+            .style('z-index', '2000')
+            .style('max-width', '350px')
+            .style('width', '90%')
+            .style('border', '1px solid rgba(0,0,0,0.1)');
+            
+        // Header
+        const header = panel
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'space-between')
+            .style('margin-bottom', '16px')
+            .style('padding-bottom', '12px')
+            .style('border-bottom', '1px solid #f3f4f6');
+            
+        header
+            .append('h3')
+            .style('margin', '0')
+            .style('color', '#1f2937')
+            .style('font-size', '16px')
+            .style('font-weight', '600')
+            .html(`🔗 Reorder Links from "<span style="color: #7c3aed;">${nodeData.id}</span>"`);
+            
+        header
+            .append('button')
+            .style('background', 'none')
+            .style('border', 'none')
+            .style('font-size', '20px')
+            .style('cursor', 'pointer')
+            .style('color', '#6b7280')
+            .style('padding', '4px')
+            .style('border-radius', '4px')
+            .style('transition', 'background 0.2s')
+            .text('×')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#f3f4f6');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', 'none');
+            })
+            .on('click', () => panel.remove());
+        
+        // Instructions
+        panel
+            .append('div')
+            .style('font-size', '12px')
+            .style('color', '#6b7280')
+            .style('margin-bottom', '12px')
+            .style('padding', '8px 12px')
+            .style('background', '#f8fafc')
+            .style('border-radius', '6px')
+            .style('border-left', '3px solid #7c3aed')
+            .text('Drag and drop links to change the stacking order (top to bottom):');
+        
+        // Link list container
+        const linkListContainer = panel
+            .append('div')
+            .style('margin-bottom', '16px')
+            .style('max-height', '300px')
+            .style('overflow-y', 'auto');
+            
+        // Create the link list
+        this.createLinkOrderingList(linkListContainer, nodeData);
+        
+        // Action buttons
+        const actions = panel
+            .append('div')
+            .style('display', 'flex')
+            .style('gap', '12px')
+            .style('margin-top', '16px');
+            
+        actions
+            .append('button')
+            .style('flex', '1')
+            .style('padding', '10px 16px')
+            .style('background', '#7c3aed')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '8px')
+            .style('cursor', 'pointer')
+            .style('font-size', '13px')
+            .style('font-weight', '600')
+            .style('transition', 'background 0.2s')
+            .text('Apply New Order')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#6d28d9');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#7c3aed');
+            })
+            .on('click', () => {
+                this.applyLinkOrder(nodeData);
+                panel.remove();
+            });
+            
+        actions
+            .append('button')
+            .style('flex', '1')
+            .style('padding', '10px 16px')
+            .style('background', '#f3f4f6')
+            .style('color', '#374151')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '8px')
+            .style('cursor', 'pointer')
+            .style('font-size', '13px')
+            .style('font-weight', '500')
+            .style('transition', 'background 0.2s')
+            .text('Cancel')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#e5e7eb');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#f3f4f6');
+            })
+            .on('click', () => panel.remove());
+    }
+    
+    createLinkOrderingList(container, nodeData) {
+        // Store original order for reference
+        this.originalLinkOrder = [...nodeData.sourceLinks];
+        
+        const linkItems = container
+            .selectAll('.link-order-item')
+            .data(nodeData.sourceLinks, d => d.target.id)
+            .enter()
+            .append('div')
+            .attr('class', 'link-order-item')
+            .style('background', '#ffffff')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '8px')
+            .style('padding', '12px')
+            .style('margin-bottom', '6px')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'space-between')
+            .style('font-size', '12px')
+            .style('transition', 'all 0.2s ease')
+            .style('box-shadow', '0 1px 3px rgba(0,0,0,0.1)')
+            .style('cursor', 'grab')
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('background', '#f8fafc')
+                    .style('border-color', '#7c3aed');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('background', '#ffffff')
+                    .style('border-color', '#e5e7eb');
+            });
+            
+        // Link info section
+        const linkInfo = linkItems
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '10px')
+            .style('flex', '1');
+            
+        // Color indicator
+        linkInfo
+            .append('div')
+            .style('width', '16px')
+            .style('height', '16px')
+            .style('border-radius', '4px')
+            .style('border', '1px solid rgba(0,0,0,0.1)')
+            .style('background', d => this.getLinkColor(d));
+            
+        // Link details
+        const linkDetails = linkInfo
+            .append('div')
+            .style('flex', '1');
+            
+        linkDetails
+            .append('div')
+            .style('font-weight', '600')
+            .style('color', '#1f2937')
+            .style('margin-bottom', '2px')
+            .text(d => `→ ${d.target.id}`);
+            
+        linkDetails
+            .append('div')
+            .style('font-size', '11px')
+            .style('color', '#6b7280')
+            .text(d => this.formatCurrency(d.value, d.target));
+        
+        // Add drag handle and enable drag-and-drop
+        this.addDragHandleAndSorting(linkItems, container, nodeData);
+    }
+    
+    addDragHandleAndSorting(linkItems, container, nodeData) {
+        // Add drag handle to each item
+        linkItems
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('color', '#9ca3af')
+            .style('font-size', '14px')
+            .style('cursor', 'grab')
+            .style('padding', '4px')
+            .style('border-radius', '4px')
+            .style('transition', 'color 0.2s')
+            .text('⋮⋮')
+            .on('mouseover', function() {
+                d3.select(this).style('color', '#7c3aed');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('color', '#9ca3af');
+            });
+        
+        // Enable drag and drop sorting
+        this.enableLinkItemDragSort(linkItems, container, nodeData);
+    }
+    
+    enableLinkItemDragSort(linkItems, container, nodeData) {
+        let draggedItem = null;
+        let draggedData = null;
+        let allItems = [];
+        let startY = 0;
+        
+        linkItems.call(d3.drag()
+            .on('start', function(event, d) {
+                draggedItem = this;
+                draggedData = d;
+                startY = event.y;
+                
+                // Get all items for sorting
+                allItems = Array.from(container.selectAll('.link-order-item').nodes());
+                
+                try {
+                    d3.select(this)
+                        .style('cursor', 'grabbing')
+                        .style('opacity', '0.7')
+                        .style('transform', 'rotate(2deg) scale(1.02)')
+                        .style('z-index', '1000')
+                        .style('position', 'relative')
+                        .style('box-shadow', '0 8px 25px rgba(124, 58, 237, 0.3)');
+                } catch (error) {
+                    console.warn('⚠️ Error applying drag start styles:', error);
+                }
+                
+                console.log(`🔄 Started dragging: ${d.target.id}`);
+            })
+            .on('drag', function(event) {
+                const currentY = event.y;
+                const deltaY = currentY - startY;
+                
+                // Update visual position of dragged item
+                try {
+                    d3.select(this)
+                        .style('transform', `rotate(2deg) scale(1.02) translateY(${deltaY}px)`);
+                } catch (error) {
+                    console.warn('⚠️ Error updating drag position:', error);
+                }
+                
+                // Find the item we're hovering over
+                let targetItem = null;
+                let targetIndex = -1;
+                
+                for (let i = 0; i < allItems.length; i++) {
+                    const item = allItems[i];
+                    if (item === draggedItem) continue;
+                    
+                    const rect = item.getBoundingClientRect();
+                    if (currentY >= rect.top && currentY <= rect.bottom) {
+                        targetItem = item;
+                        targetIndex = i;
+                        break;
+                    }
+                }
+                
+                // Highlight target item safely
+                try {
+                    container.selectAll('.link-order-item')
+                        .style('background', function() {
+                            return this === targetItem ? '#f3f4f6' : '#ffffff';
+                        })
+                        .style('border-color', function() {
+                            return this === targetItem ? '#7c3aed' : '#e5e7eb';
+                        });
+                } catch (error) {
+                    console.warn('⚠️ Error highlighting target item:', error);
+                }
+            })
+            .on('end', function(event) {
+                const currentY = event.y;
+                
+                // Find target position - improved logic
+                let targetIndex = -1;
+                let insertBefore = true;
+                
+                console.log(`🎯 Looking for drop target at Y: ${currentY}`);
+                console.log(`📋 Available items: ${allItems.length}`);
+                
+                // Find the closest item to drop position
+                let closestDistance = Infinity;
+                let closestIndex = -1;
+                
+                for (let i = 0; i < allItems.length; i++) {
+                    const item = allItems[i];
+                    if (item === draggedItem) continue;
+                    
+                    const rect = item.getBoundingClientRect();
+                    const itemMiddle = rect.top + rect.height / 2;
+                    const distance = Math.abs(currentY - itemMiddle);
+                    
+                    console.log(`📍 Item ${i}: top=${rect.top}, bottom=${rect.bottom}, middle=${itemMiddle}, distance=${distance}`);
+                    
+                    // Check if mouse is within item bounds OR if it's the closest item
+                    if ((currentY >= rect.top && currentY <= rect.bottom) || distance < closestDistance) {
+                        if (currentY >= rect.top && currentY <= rect.bottom) {
+                            // Direct hit
+                            targetIndex = i;
+                            insertBefore = currentY < itemMiddle;
+                            console.log(`🎯 Direct hit on item ${i}, insertBefore: ${insertBefore}`);
+                            break;
+                        } else if (distance < closestDistance) {
+                            // Track closest item as fallback
+                            closestDistance = distance;
+                            closestIndex = i;
+                        }
+                    }
+                }
+                
+                // If no direct hit, use closest item
+                if (targetIndex === -1 && closestIndex !== -1) {
+                    targetIndex = closestIndex;
+                    const closestRect = allItems[closestIndex].getBoundingClientRect();
+                    const closestMiddle = closestRect.top + closestRect.height / 2;
+                    insertBefore = currentY < closestMiddle;
+                    console.log(`🎯 Using closest item ${closestIndex}, insertBefore: ${insertBefore}`);
+                }
+                
+                // Perform the reorder
+                if (targetIndex !== -1) {
+                    const draggedIndex = nodeData.sourceLinks.indexOf(draggedData);
+                    
+                    // Get the actual data of the target item to find its index in sourceLinks
+                    const targetItem = allItems[targetIndex];
+                    const targetData = d3.select(targetItem).datum();
+                    const targetSourceIndex = nodeData.sourceLinks.indexOf(targetData);
+                    
+                    console.log(`🎯 Drop target: DOM index ${targetIndex}, sourceLinks index ${targetSourceIndex}, insertBefore: ${insertBefore}`);
+                    console.log(`📍 Dragged sourceLinks index: ${draggedIndex}`);
+                    
+                    let newIndex = targetSourceIndex;
+                    
+                    // Adjust for insertion position
+                    if (!insertBefore) {
+                        newIndex++;
+                    }
+                    
+                    // Adjust if dragging downward (skip the dragged item itself)
+                    if (draggedIndex < newIndex) {
+                        newIndex--;
+                    }
+                    
+                    console.log(`🔄 Final target index: ${newIndex}`);
+                    
+                    if (draggedIndex !== newIndex && newIndex >= 0 && newIndex < nodeData.sourceLinks.length) {
+                        const success = this.moveLinkInOrder(nodeData, draggedIndex, newIndex);
+                        if (success) {
+                            this.refreshLinkOrderingList(container, nodeData);
+                        }
+                    } else {
+                        console.log(`❌ Invalid reorder: ${draggedIndex} → ${newIndex}`);
+                    }
+                } else {
+                    console.log(`❌ No valid drop target found`);
+                }
+                
+                // Clean up visual state - use draggedItem instead of this
+                if (draggedItem) {
+                    d3.select(draggedItem)
+                        .style('cursor', 'grab')
+                        .style('opacity', '1')
+                        .style('transform', 'none')
+                        .style('z-index', 'auto')
+                        .style('position', 'static')
+                        .style('box-shadow', '0 1px 3px rgba(0,0,0,0.1)');
+                }
+                
+                // Reset all item styles safely
+                try {
+                    container.selectAll('.link-order-item')
+                        .style('background', '#ffffff')
+                        .style('border-color', '#e5e7eb');
+                } catch (error) {
+                    console.warn('⚠️ Error resetting item styles:', error);
+                }
+                
+                draggedItem = null;
+                draggedData = null;
+                allItems = [];
+            }.bind(this))
+        );
+    }
+    
+    moveLinkInOrder(nodeData, fromIndex, toIndex) {
+        // Ensure valid indices
+        if (fromIndex < 0 || fromIndex >= nodeData.sourceLinks.length || 
+            toIndex < 0 || toIndex >= nodeData.sourceLinks.length || 
+            fromIndex === toIndex) {
+            console.log(`❌ Invalid move: ${fromIndex} → ${toIndex}`);
+            return false;
+        }
+        
+        // Move link from one position to another in the sourceLinks array
+        const link = nodeData.sourceLinks.splice(fromIndex, 1)[0];
+        nodeData.sourceLinks.splice(toIndex, 0, link);
+        
+        console.log(`🔄 Moved link "${link.target.id}" from position ${fromIndex} to ${toIndex}`);
+        console.log(`📋 New order:`, nodeData.sourceLinks.map(l => l.target.id));
+        return true;
+    }
+    
+    refreshLinkOrderingList(container, nodeData) {
+        console.log(`🔄 Refreshing list with new order:`, nodeData.sourceLinks.map(l => l.target.id));
+        
+        // Remove and recreate the list with updated order
+        container.selectAll('.link-order-item').remove();
+        this.createLinkOrderingList(container, nodeData);
+        
+        console.log(`✅ List refreshed with ${nodeData.sourceLinks.length} items`);
+    }
+    
+    applyLinkOrder(nodeData) {
+        console.log(`🔗 Applying new link order for node: ${nodeData.id}`);
+        console.log(`📋 Current link order:`, nodeData.sourceLinks.map(l => l.target.id));
+        
+        // Recalculate link positions with new order
+        console.log(`⚙️ Recalculating link positions...`);
+        this.calculateLinkPositions();
+        
+        // Force a complete re-render of links
+        console.log(`🎨 Re-rendering links...`);
+        this.chart.selectAll('.sankey-link').remove();
+        this.renderLinks();
+        
+        // Show success feedback
+        this.showLinkOrderingSuccess(nodeData);
+        
+        console.log(`✅ Link order applied successfully`);
+    }
+    
+    showLinkOrderingSuccess(nodeData) {
+        // Create a temporary success message
+        const successMsg = this.container
+            .append('div')
+            .style('position', 'fixed')
+            .style('top', '20px')
+            .style('right', '20px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('padding', '12px 16px')
+            .style('border-radius', '8px')
+            .style('font-size', '13px')
+            .style('font-weight', '600')
+            .style('z-index', '3000')
+            .style('box-shadow', '0 4px 12px rgba(16, 185, 129, 0.4)')
+            .style('opacity', '0')
+            .style('transform', 'translateY(-10px)')
+            .text(`✅ Link order updated for "${nodeData.id}"`);
+        
+        // Animate in
+        successMsg
+            .transition()
+            .duration(200)
+            .style('opacity', '1')
+            .style('transform', 'translateY(0px)');
+        
+        // Animate out and remove
+        setTimeout(() => {
+            successMsg
+                .transition()
+                .duration(300)
+                .style('opacity', '0')
+                .style('transform', 'translateY(-10px)')
+                .on('end', () => successMsg.remove());
+        }, 2500);
+    }
 }
 
 // Export for module systems
