@@ -30,6 +30,7 @@ class PulseSankeyChart {
         
         this.config = SankeyChartConfig.getInitialConfig();
         this.initializeChart();
+        this.initializeInteractiveMode();
     }
 
 
@@ -948,11 +949,13 @@ class PulseSankeyChart {
         };
 
         const nodesByDepth = d3.group(this.nodes, d => d.depth);
-        const depths = Array.from(nodesByDepth.keys());
+        const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
         const maxDepth = Math.max(...depths);
+        const minDepth = Math.min(...depths);
 
+        // Create scale that properly distributes all depth levels
         const xScale = d3.scaleLinear()
-            .domain([0, maxDepth])
+            .domain([minDepth, maxDepth])
             .range([0, dimensions.width - this.config.nodeWidth]);
 
         this.nodes.forEach(node => {
@@ -1789,6 +1792,11 @@ class PulseSankeyChart {
             });
 
         this.addDragBehavior(nodeGroups);
+        
+        // Initialize click handlers for interaction modes
+        if (this.interactionMode) {
+            this.updateNodeClickHandlers();
+        }
     }
 
     addDragBehavior(nodeGroups) {
@@ -1813,17 +1821,8 @@ class PulseSankeyChart {
                 self.showDragHint(d);
             })
             .on('drag', function(event, d) {
-                const newY = Math.max(20, Math.min(
-                    self.config.height - self.config.margin.top - self.config.margin.bottom - d.height - 20,
-                    event.y
-                ));
-                
-                d.y = newY;
-                d.manualY = newY;
-                d3.select(this).attr('transform', `translate(${d.x}, ${d.y})`);
-                
-                self.updateNodeLinks(d);
-                self.updateDragHint(d, newY);
+                // Enable both horizontal and vertical movement in all modes
+                self.handleArrangementDrag(event, d, this);
             })
             .on('end', function(event, d) {
                 self.isDragging = false;
@@ -1834,13 +1833,14 @@ class PulseSankeyChart {
                     .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
                 
                 self.hideDragHint();
+                self.hideLayerSnapFeedback(); // Hide snap feedback when drag ends
                 
                 self.calculateLinkPositions();
                 self.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
                 self.renderLabels();
                 self.renderLinks();
                 
-                console.log(`📍 Node "${d.id}" repositioned to Y: ${d.y.toFixed(1)}`);
+                console.log(`📍 Node "${d.id}" repositioned to X: ${d.x.toFixed(1)}, Y: ${d.y.toFixed(1)}`);
                 
                 // Save manual position to metadata for persistence
                 self.saveManualPositionToMetadata(d);
@@ -1939,6 +1939,33 @@ class PulseSankeyChart {
         if (this.dragHint) {
             this.dragHint.remove();
             this.dragHint = null;
+        }
+    }
+    
+    showLayerSnapFeedback(targetX, isSnapping) {
+        // Remove existing feedback
+        this.hideLayerSnapFeedback();
+        
+        if (isSnapping) {
+            // Show snap line for layer feedback
+            this.snapFeedback = this.chart.append('line')
+                .attr('class', 'layer-snap-feedback')
+                .attr('x1', targetX)
+                .attr('y1', 0)
+                .attr('x2', targetX)
+                .attr('y2', this.config.height - this.config.margin.top - this.config.margin.bottom)
+                .style('stroke', '#3b82f6')
+                .style('stroke-width', '2px')
+                .style('stroke-dasharray', '5,5')
+                .style('opacity', '0.7')
+                .style('pointer-events', 'none');
+        }
+    }
+    
+    hideLayerSnapFeedback() {
+        if (this.snapFeedback) {
+            this.snapFeedback.remove();
+            this.snapFeedback = null;
         }
     }
 
@@ -2354,6 +2381,11 @@ class PulseSankeyChart {
      * ENHANCED: Get node color with revenue segment support
      */
     getNodeColor(node) {
+        // Check for node-specific custom color first
+        if (node.customColor) {
+            return node.customColor;
+        }
+        
         // Check for individual revenue segment color first
         if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && this.revenueSegmentColors.has(node.id)) {
             return this.revenueSegmentColors.get(node.id);
@@ -3305,6 +3337,1084 @@ class PulseSankeyChart {
             console.error('❌ Error during chart centering:', error);
         }
     }
+
+    // ===== INTERACTIVE NODE CREATION AND ARRANGEMENT SYSTEM =====
+    
+    initializeInteractiveMode() {
+        // Initialize interaction mode state
+        this.interactionMode = {
+            mode: 'normal', // 'normal', 'arrange'
+        };
+        
+        // Add mode toggle buttons to chart container
+        this.addInteractionModeToggle();
+        
+        // Update existing node click handlers
+        this.updateNodeClickHandlers();
+    }
+    
+    addInteractionModeToggle() {
+        // Remove existing toggle if present
+        this.container.select('.interaction-mode-toggle').remove();
+        
+        const toggleContainer = this.container
+            .insert('div', ':first-child')
+            .attr('class', 'interaction-mode-toggle')
+            .style('position', 'absolute')
+            .style('top', '10px')
+            .style('right', '10px')
+            .style('z-index', '1000')
+            .style('display', 'flex')
+            .style('gap', '8px');
+            
+            
+        // Arrange Mode Button
+        const arrangeButton = toggleContainer
+            .append('button')
+            .attr('class', 'arrange-mode-btn')
+            .style('padding', '8px 16px')
+            .style('background', '#8b5cf6')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
+            .style('transition', 'all 0.2s ease')
+            .html('🔄 Arrange')
+            .on('click', () => this.setInteractionMode('arrange'));
+            
+        // Normal Mode Button (to exit special modes)
+        const normalButton = toggleContainer
+            .append('button')
+            .attr('class', 'normal-mode-btn')
+            .style('padding', '8px 16px')
+            .style('background', '#6b7280')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
+            .style('transition', 'all 0.2s ease')
+            .html('✖️ Exit')
+            .style('display', 'none') // Hidden by default
+            .on('click', () => this.setInteractionMode('normal'));
+    }
+    
+    setInteractionMode(mode) {
+        const previousMode = this.interactionMode.mode;
+        this.interactionMode.mode = mode;
+        
+        // Update button appearances
+        this.updateModeButtonAppearances();
+        
+        // Handle mode-specific setup
+        switch (mode) {
+            case 'arrange':
+                this.showArrangeInstructions();
+                break;
+            case 'normal':
+                this.clearInteractionState();
+                this.hideInstructions();
+                break;
+        }
+        
+        // Update node interaction behavior
+        this.updateNodeInteractionMode();
+        
+        console.log(`🔄 Interaction mode changed: ${previousMode} → ${mode}`);
+    }
+    
+    updateModeButtonAppearances() {
+        const mode = this.interactionMode.mode;
+        
+        // Update Arrange button  
+        const arrangeBtn = this.container.select('.arrange-mode-btn');
+        arrangeBtn.style('background', mode === 'arrange' ? '#7c3aed' : '#8b5cf6')
+                 .html(mode === 'arrange' ? '🔄 Active' : '🔄 Arrange');
+        
+        // Show/hide Exit button
+        const exitBtn = this.container.select('.normal-mode-btn');
+        exitBtn.style('display', mode === 'normal' ? 'none' : 'flex');
+    }
+    
+    
+    showArrangeInstructions() {
+        // Remove existing instructions
+        this.hideInstructions();
+        
+        const instructions = this.container
+            .insert('div', ':first-child')
+            .attr('class', 'arrangement-instructions')
+            .style('position', 'absolute')
+            .style('top', '50px')
+            .style('right', '10px')
+            .style('background', 'rgba(139, 92, 246, 0.9)')
+            .style('color', 'white')
+            .style('padding', '12px 16px')
+            .style('border-radius', '6px')
+            .style('font-size', '12px')
+            .style('max-width', '250px')
+            .style('z-index', '999')
+            .style('box-shadow', '0 4px 12px rgba(0,0,0,0.15)')
+            .html(`
+                <div style="font-weight: 600; margin-bottom: 6px;">🔄 Arrangement Mode Active</div>
+                <div>• Drag nodes horizontally between layers</div>
+                <div>• Drag vertically to reorder within layer</div>
+                <div>• Changes update automatically</div>
+                <div style="margin-top: 8px; font-size: 10px; opacity: 0.8;">
+                    Click Exit to return to normal mode
+                </div>
+            `);
+    }
+    
+    hideInstructions() {
+        this.container.select('.arrangement-instructions').remove();
+    }
+    
+    updateNodeClickHandlers() {
+        // Add click handlers to existing nodes
+        this.chart.selectAll('.sankey-node')
+            .style('cursor', () => {
+                switch (this.interactionMode.mode) {
+                    case 'arrange': return 'move';
+                    default: return 'pointer';
+                }
+            })
+            .on('click', (event, d) => {
+                event.stopPropagation();
+                
+                // Always show enhanced color picker with add node option
+                this.showEnhancedColorPicker(event, d);
+            });
+    }
+    
+    updateNodeInteractionMode() {
+        const mode = this.interactionMode.mode;
+        
+        this.chart.selectAll('.sankey-node')
+            .style('cursor', () => {
+                switch (mode) {
+                    case 'arrange': return 'move';
+                    default: return 'pointer';
+                }
+            });
+            
+        // Update visual state of nodes based on mode
+        switch (mode) {
+            case 'arrange':
+                this.chart.selectAll('.sankey-node rect')
+                    .style('stroke-width', '3px')
+                    .style('stroke', '#8b5cf6')
+                    .style('opacity', '1');
+                break;
+            default:
+                this.chart.selectAll('.sankey-node rect')
+                    .style('stroke-width', '2px')
+                    .style('stroke', 'white')
+                    .style('opacity', '1');
+                break;
+        }
+    }
+    
+    // ===== ENHANCED COLOR PICKER WITH ADD NODE FUNCTIONALITY =====
+    
+    showEnhancedColorPicker(event, nodeData) {
+        // Remove any existing enhanced color picker
+        this.container.select('.enhanced-color-picker').remove();
+        
+        // Create enhanced modal
+        const modal = this.container
+            .append('div')
+            .attr('class', 'enhanced-color-picker')
+            .style('position', 'fixed')
+            .style('top', '0')
+            .style('left', '0')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('background', 'rgba(0, 0, 0, 0.6)')
+            .style('z-index', '2000')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('backdrop-filter', 'blur(4px)');
+            
+        const content = modal
+            .append('div')
+            .style('background', 'white')
+            .style('border-radius', '16px')
+            .style('padding', '0')
+            .style('box-shadow', '0 20px 40px rgba(0, 0, 0, 0.15)')
+            .style('max-width', '200px')
+            .style('width', '70%')
+            .style('max-height', '90vh')
+            .style('overflow', 'hidden')
+            .style('animation', 'modal-scale-in 0.2s ease-out');
+            
+        // Add CSS animation
+        if (!document.querySelector('#modal-animations')) {
+            const style = document.createElement('style');
+            style.id = 'modal-animations';
+            style.innerHTML = `
+                @keyframes modal-scale-in {
+                    from { transform: scale(0.9); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+                .glass-effect {
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Header with node info
+        const header = content
+            .append('div')
+            .style('padding', '12px 12px 0 12px')
+            .style('border-bottom', '1px solid #f3f4f6')
+            .style('margin-bottom', '8px');
+            
+        const headerFlex = header
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px')
+            .style('margin-bottom', '8px');
+            
+        // Node icon
+        headerFlex
+            .append('div')
+            .style('width', '32px')
+            .style('height', '32px')
+            .style('background', this.getNodeColor(nodeData))
+            .style('border-radius', '8px')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('color', 'white')
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.15)')
+            .text('📊');
+            
+        const headerText = headerFlex
+            .append('div');
+            
+        headerText
+            .append('h3')
+            .style('margin', '0')
+            .style('color', '#1f2937')
+            .style('font-size', '16px')
+            .style('font-weight', '600')
+            .text(nodeData.id);
+            
+        headerText
+            .append('p')
+            .style('margin', '2px 0 0 0')
+            .style('color', '#6b7280')
+            .style('font-size', '12px')
+            .text(`${nodeData.category || 'Node'} • Value: ${(nodeData.value || 0).toLocaleString()}`);
+        
+        // Main content area
+        const mainContent = content
+            .append('div')
+            .style('padding', '0 12px 12px 12px');
+        
+        // Shared variable for selected color (accessible by both sections)
+        this.modalSelectedColor = this.getNodeColor(nodeData);
+        
+        // Color picker section
+        this.addColorPickerSection(mainContent, nodeData);
+        
+        // Add node section
+        this.addNodeCreationSection(mainContent, nodeData);
+        
+        // Close button (X in top right)
+        content
+            .append('button')
+            .style('position', 'absolute')
+            .style('top', '16px')
+            .style('right', '16px')
+            .style('width', '32px')
+            .style('height', '32px')
+            .style('border', 'none')
+            .style('background', 'rgba(107, 114, 128, 0.1)')
+            .style('border-radius', '50%')
+            .style('cursor', 'pointer')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('color', '#6b7280')
+            .style('font-size', '16px')
+            .style('transition', 'background 0.2s ease')
+            .text('✕')
+            .on('mouseover', function() {
+                d3.select(this).style('background', 'rgba(107, 114, 128, 0.2)');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', 'rgba(107, 114, 128, 0.1)');
+            })
+            .on('click', () => modal.remove());
+            
+        // Click outside to close
+        modal.on('click', function(event) {
+            if (event.target === this) {
+                modal.remove();
+            }
+        });
+    }
+    
+    addColorPickerSection(container, nodeData) {
+        // Color picker section - more compact
+        const colorSection = container
+            .append('div')
+            .style('margin-bottom', '10px');
+            
+        // Small header for new node color
+        colorSection
+            .append('div')
+            .style('font-size', '10px')
+            .style('color', '#6b7280')
+            .style('margin-bottom', '6px')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .html('<span>New node color:</span><div style="width: 16px; height: 16px; background: ' + this.modalSelectedColor + '; border: 1px solid #e5e7eb; border-radius: 3px;"></div>');
+            
+        // Current chart colors
+        const currentColors = this.getCurrentChartColors();
+        
+        let selectedColor = this.modalSelectedColor;
+        
+        // Chart colors grid
+        if (currentColors.length > 0) {
+            const chartColorsGrid = colorSection
+                .append('div')
+                .style('display', 'flex')
+                .style('gap', '6px')
+                .style('flex-wrap', 'wrap')
+                .style('margin-bottom', '8px');
+                
+            currentColors.forEach(color => {
+                const isSelected = color === selectedColor;
+                chartColorsGrid
+                    .append('button')
+                    .attr('class', 'chart-color-btn')
+                    .style('width', '24px')
+                    .style('height', '24px')
+                    .style('background', color)
+                    .style('border', isSelected ? '3px solid #3b82f6' : '2px solid white')
+                    .style('border-radius', '6px')
+                    .style('cursor', 'pointer')
+                    .style('box-shadow', '0 2px 4px rgba(0, 0, 0, 0.1)')
+                    .style('transition', 'all 0.1s ease')
+                    .style('position', 'relative')
+                    .on('mouseover', function() {
+                        if (!isSelected) {
+                            d3.select(this).style('transform', 'scale(1.1)');
+                        }
+                    })
+                    .on('mouseout', function() {
+                        if (!isSelected) {
+                            d3.select(this).style('transform', 'scale(1)');
+                        }
+                    })
+                    .on('click', (event) => {
+                        selectedColor = color;
+                        this.modalSelectedColor = color; // Update shared variable for new node
+                        // Update all chart color buttons
+                        chartColorsGrid.selectAll('.chart-color-btn')
+                            .style('border', '2px solid white')
+                            .style('transform', 'scale(1)');
+                        d3.select(event.target)
+                            .style('border', '3px solid #3b82f6');
+                        // Update color indicator
+                        colorSection.select('div').select('div').style('background', color);
+                    });
+            });
+        }
+        
+        // Custom color picker row
+        const customColorRow = colorSection
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px');
+            
+        // Small custom color input
+        const colorInput = customColorRow
+            .append('input')
+            .attr('type', 'color')
+            .attr('value', selectedColor)
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('border', '2px solid #e5e7eb')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('background', 'none');
+            
+        // Custom color label (minimal text)
+        customColorRow
+            .append('span')
+            .style('font-size', '11px')
+            .style('color', '#6b7280')
+            .style('flex', '1')
+            .text('Custom');
+            
+        // Apply custom color button
+        customColorRow
+            .append('button')
+            .style('padding', '4px 8px')
+            .style('background', '#6b7280')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '4px')
+            .style('cursor', 'pointer')
+            .style('font-size', '10px')
+            .style('transition', 'background 0.2s ease')
+            .text('Apply')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#4b5563');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#6b7280');
+            })
+            .on('click', () => {
+                const customColor = colorInput.node().value;
+                this.modalSelectedColor = customColor; // Update shared variable for new node
+                
+                // Update visual feedback - highlight the custom color picker
+                colorInput.style('border-color', '#3b82f6');
+                // Reset chart color buttons
+                if (colorSection.select('.chart-color-btn')) {
+                    colorSection.selectAll('.chart-color-btn')
+                        .style('border', '2px solid white')
+                        .style('transform', 'scale(1)');
+                }
+                // Update color indicator
+                colorSection.select('div').select('div').style('background', customColor);
+            });
+    }
+    
+    addNodeCreationSection(container, parentNode) {
+        // Separator
+        container
+            .append('div')
+            .style('height', '1px')
+            .style('background', '#f3f4f6')
+            .style('margin', '8px 0');
+            
+        // Add node section
+        const addSection = container
+            .append('div');
+            
+        const addHeader = addSection
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px')
+            .style('margin-bottom', '8px');
+            
+        addHeader
+            .append('div')
+            .style('width', '20px')
+            .style('height', '20px')
+            .style('background', '#10b981')
+            .style('border-radius', '50%')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('color', 'white')
+            .style('font-size', '10px')
+            .style('font-weight', 'bold')
+            .text('➕');
+            
+        addHeader
+            .append('h4')
+            .style('margin', '0')
+            .style('color', '#374151')
+            .style('font-size', '11px')
+            .style('font-weight', '600')
+            .text('Add Node');
+            
+        // Orientation choice
+        const orientationSection = addSection
+            .append('div')
+            .style('margin-bottom', '16px');
+            
+        orientationSection
+            .append('label')
+            .style('display', 'block')
+            .style('margin-bottom', '8px')
+            .style('color', '#6b7280')
+            .style('font-size', '14px')
+            .style('font-weight', '500')
+            .text('Choose direction:');
+            
+        const orientationGrid = orientationSection
+            .append('div')
+            .style('display', 'grid')
+            .style('grid-template-columns', '1fr 1fr')
+            .style('gap', '6px');
+            
+        // Left orientation button
+        const leftBtn = orientationGrid
+            .append('button')
+            .attr('class', 'orientation-btn')
+            .attr('data-orientation', 'left')
+            .style('padding', '8px 6px')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '6px')
+            .style('background', 'white')
+            .style('cursor', 'pointer')
+            .style('text-align', 'center')
+            .style('transition', 'all 0.2s ease')
+            .style('font-size', '10px')
+            .html('⬅️<br>Left')
+            .on('mouseover', function() {
+                d3.select(this).style('border-color', '#3b82f6').style('background', '#f8fafc');
+            })
+            .on('mouseout', function() {
+                if (!d3.select(this).classed('selected')) {
+                    d3.select(this).style('border-color', '#e5e7eb').style('background', 'white');
+                }
+            });
+            
+        // Right orientation button
+        const rightBtn = orientationGrid
+            .append('button')
+            .attr('class', 'orientation-btn')
+            .attr('data-orientation', 'right')
+            .style('padding', '8px 6px')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '6px')
+            .style('background', 'white')
+            .style('cursor', 'pointer')
+            .style('text-align', 'center')
+            .style('transition', 'all 0.2s ease')
+            .style('font-size', '10px')
+            .html('➡️<br>Right')
+            .on('mouseover', function() {
+                d3.select(this).style('border-color', '#3b82f6').style('background', '#f8fafc');
+            })
+            .on('mouseout', function() {
+                if (!d3.select(this).classed('selected')) {
+                    d3.select(this).style('border-color', '#e5e7eb').style('background', 'white');
+                }
+            });
+            
+        // Handle orientation selection
+        let selectedOrientation = 'right'; // Default
+        rightBtn.classed('selected', true)
+               .style('border-color', '#10b981')
+               .style('background', '#f0fdf4');
+               
+        container.selectAll('.orientation-btn').on('click', function() {
+            // Reset all buttons
+            container.selectAll('.orientation-btn')
+                .classed('selected', false)
+                .style('border-color', '#e5e7eb')
+                .style('background', 'white');
+                
+            // Select clicked button
+            const btn = d3.select(this);
+            btn.classed('selected', true)
+               .style('border-color', '#10b981')
+               .style('background', '#f0fdf4');
+               
+            selectedOrientation = btn.attr('data-orientation');
+        });
+        
+        // Create node function
+        const createNode = () => {
+            const name = nameInput.node().value.trim();
+            const value = parseFloat(valueInput.node().value) || 50;
+            
+            if (!name) {
+                alert('Please enter a node name');
+                nameInput.node().focus();
+                return;
+            }
+            
+            if (this.nodeNameExists(name)) {
+                alert('A node with this name already exists. Please choose a different name.');
+                nameInput.node().focus();
+                return;
+            }
+            
+            // Close modal and create node with selected color
+            this.container.select('.enhanced-color-picker').remove();
+            this.createConnectedNodeWithOrientation(name, value, selectedOrientation, parentNode, this.modalSelectedColor);
+        };
+
+        // Node creation form
+        const formContainer = addSection
+            .append('div')
+            .style('display', 'grid')
+            .style('gap', '8px')
+            .style('margin-bottom', '12px');
+            
+        // Name input
+        const nameInput = formContainer
+            .append('input')
+            .attr('type', 'text')
+            .attr('placeholder', 'Node name')
+            .style('width', '100%')
+            .style('padding', '8px 12px')
+            .style('border', '2px solid #e5e7eb')
+            .style('border-radius', '8px')
+            .style('font-size', '12px')
+            .style('box-sizing', 'border-box')
+            .style('transition', 'border-color 0.2s ease')
+            .on('focus', function() {
+                d3.select(this).style('border-color', '#10b981');
+            })
+            .on('blur', function() {
+                d3.select(this).style('border-color', '#e5e7eb');
+            })
+            .on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    createNode();
+                }
+            });
+            
+        // Value input
+        const valueInput = formContainer
+            .append('input')
+            .attr('type', 'number')
+            .attr('placeholder', 'Flow value (optional)')
+            .style('width', '100%')
+            .style('padding', '8px 12px')
+            .style('border', '2px solid #e5e7eb')
+            .style('border-radius', '8px')
+            .style('font-size', '12px')
+            .style('box-sizing', 'border-box')
+            .style('transition', 'border-color 0.2s ease')
+            .on('focus', function() {
+                d3.select(this).style('border-color', '#10b981');
+            })
+            .on('blur', function() {
+                d3.select(this).style('border-color', '#e5e7eb');
+            })
+            .on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    createNode();
+                }
+            });
+        
+        // Add button
+        addSection
+            .append('button')
+            .style('width', '100%')
+            .style('padding', '10px 16px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '8px')
+            .style('cursor', 'pointer')
+            .style('font-size', '12px')
+            .style('font-weight', '600')
+            .style('transition', 'background 0.2s ease')
+            .text('Create Node (or press Enter)')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#059669');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#10b981');
+            })
+            .on('click', createNode);
+    }
+    
+    
+    nodeNameExists(name) {
+        return this.nodes.some(node => node.id === name);
+    }
+    
+    getCurrentChartColors() {
+        const colors = new Set();
+        
+        // Get colors from nodes
+        this.nodes.forEach(node => {
+            const nodeColor = this.getNodeColor(node);
+            if (nodeColor && nodeColor !== '#95a5a6') { // Exclude default gray
+                colors.add(nodeColor);
+            }
+        });
+        
+        // Get colors from custom colors map
+        Object.values(this.customColors).forEach(color => {
+            if (color && color !== '#95a5a6') {
+                colors.add(color);
+            }
+        });
+        
+        // Get colors from revenue segment colors
+        if (this.revenueSegmentColors) {
+            this.revenueSegmentColors.forEach(color => {
+                if (color && color !== '#95a5a6') {
+                    colors.add(color);
+                }
+            });
+        }
+        
+        return Array.from(colors).slice(0, 8); // Limit to 8 colors for clean UI
+    }
+    
+    createConnectedNodeWithOrientation(name, value, orientation, parentNode, customColor = null) {
+        // Calculate position based on orientation - place on adjacent layer
+        let newDepth, nodeX;
+        
+        if (orientation === 'left') {
+            // Add to the left - new node goes on layer BEFORE parent
+            newDepth = parentNode.depth - 1;
+            
+            // If this would be negative, shift all nodes right
+            if (newDepth < 0) {
+                this.nodes.forEach(node => {
+                    node.depth += 1;
+                });
+                newDepth = 0;
+            }
+        } else {
+            // Add to the right - new node goes on layer AFTER parent
+            newDepth = parentNode.depth + 1;
+        }
+        
+        // Calculate X position based on new depth
+        const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
+        const existingDepths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+        const totalLayers = Math.max(...existingDepths) + 1;
+        const layerSpacing = chartWidth / (totalLayers + 1);
+        nodeX = newDepth * layerSpacing;
+        
+        // Calculate Y position near parent but avoiding overlaps
+        const { y: nodeY } = this.calculateConnectedNodePosition(parentNode, newDepth);
+        
+        // Use custom color if provided, otherwise use a default color
+        const nodeColor = customColor || '#3b82f6'; // Default to blue if no color specified
+        
+        const newNode = {
+            id: name,
+            depth: newDepth,
+            value: value || 50,
+            category: 'user_created',
+            description: `Connected to ${parentNode.id}`,
+            x: nodeX,
+            y: nodeY,
+            height: Math.max(20, (value || 50) / 20),
+            manuallyPositioned: true,
+            manualY: nodeY,
+            sourceLinks: [],
+            targetLinks: [],
+            userCreated: true,
+            customColor: nodeColor
+        };
+        
+        // Store color in customColors map for consistency
+        this.customColors[name] = nodeColor;
+        
+        // Add to nodes array
+        this.nodes.push(newNode);
+        
+        // Create connection link
+        const newLink = {
+            source: orientation === 'left' ? newNode : parentNode,
+            target: orientation === 'left' ? parentNode : newNode,
+            value: value || 50,
+            type: 'user_created',
+            description: `Flow ${orientation === 'left' ? 'from' : 'to'} ${name}`
+        };
+        
+        // Add link to arrays and node connections
+        this.links.push(newLink);
+        
+        if (orientation === 'left') {
+            // New node feeds into parent
+            if (!newNode.sourceLinks) newNode.sourceLinks = [];
+            newNode.sourceLinks.push(newLink);
+            if (!parentNode.targetLinks) parentNode.targetLinks = [];
+            parentNode.targetLinks.push(newLink);
+        } else {
+            // Parent feeds into new node
+            if (!parentNode.sourceLinks) parentNode.sourceLinks = [];
+            parentNode.sourceLinks.push(newLink);
+            if (!newNode.targetLinks) newNode.targetLinks = [];
+            newNode.targetLinks.push(newLink);
+        }
+        
+        // Recalculate layout and re-render
+        this.calculateLayout();
+        
+        // Re-render chart components
+        this.chart.selectAll('.sankey-node').remove();
+        this.chart.selectAll('.sankey-link').remove();
+        this.chart.selectAll('.node-text-group').remove();
+        
+        this.renderNodes();
+        this.renderLinks();
+        this.renderLabels();
+        
+        // Update spreadsheet data
+        this.syncToSpreadsheet();
+        
+        // Show success message
+        this.showNodeCreationSuccess(name, parentNode.id, orientation);
+        
+        console.log(`✅ Created ${orientation}-facing node: "${name}" linked to "${parentNode.id}"`);
+    }
+    
+    calculateConnectedNodePosition(parentNode, newDepth) {
+        // Calculate X position based on depth - ensure proper layer spacing
+        const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
+        const allDepths = [...new Set(this.nodes.map(n => n.depth)), newDepth].sort((a, b) => a - b);
+        const totalLayers = allDepths.length;
+        const layerSpacing = chartWidth / (totalLayers + 1);
+        
+        // Position based on layer index in sorted order
+        const layerIndex = allDepths.indexOf(newDepth);
+        const nodeX = (layerIndex + 1) * layerSpacing;
+        
+        // Calculate Y position - try to align with parent, but avoid overlaps
+        let nodeY = parentNode.y;
+        
+        // Check for overlaps and adjust if necessary
+        const nodesAtSameDepth = this.nodes.filter(n => n.depth === newDepth);
+        const minSpacing = 60;
+        
+        // Find a non-overlapping position
+        while (this.hasOverlapAtPosition(nodeY, nodeX, nodesAtSameDepth, 40)) {
+            nodeY += minSpacing;
+        }
+        
+        // Ensure within chart bounds
+        const chartHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+        nodeY = Math.max(20, Math.min(nodeY, chartHeight - 60));
+        
+        return { x: nodeX, y: nodeY };
+    }
+    
+    hasOverlapAtPosition(y, x, existingNodes, nodeHeight) {
+        const minSpacing = 20;
+        
+        return existingNodes.some(node => {
+            const distance = Math.abs(node.y - y);
+            return distance < (nodeHeight + (node.height || 30)) / 2 + minSpacing;
+        });
+    }
+    
+    
+    syncToSpreadsheet() {
+        // This method will update the data spreadsheet with the new node
+        // For now, we'll just update the internal data structure
+        // The actual spreadsheet sync would depend on the spreadsheet implementation
+        
+        if (window.spreadsheetController && window.spreadsheetController.addNodeRow) {
+            // If the spreadsheet controller exists, add the new node
+            const newNodeData = this.nodes.filter(n => n.userCreated);
+            newNodeData.forEach(node => {
+                window.spreadsheetController.addNodeRow({
+                    source: node.id,
+                    target: '',
+                    value: node.value,
+                    description: node.description
+                });
+            });
+        }
+        
+        console.log('📊 Data synced to spreadsheet');
+    }
+    
+    showNodeCreationSuccess(nodeName, parentNodeName, orientation) {
+        // Remove existing success messages
+        this.container.select('.node-creation-success').remove();
+        
+        const direction = orientation === 'left' ? 'left of' : 'right of';
+        const success = this.container
+            .append('div')
+            .attr('class', 'node-creation-success')
+            .style('position', 'absolute')
+            .style('top', '120px')
+            .style('right', '10px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('padding', '12px 16px')
+            .style('border-radius', '6px')
+            .style('font-size', '14px')
+            .style('max-width', '300px')
+            .style('z-index', '1001')
+            .style('box-shadow', '0 4px 12px rgba(0,0,0,0.15)')
+            .html(`✅ Node "${nodeName}" created ${direction} "${parentNodeName}"!`);
+            
+        // Auto-remove after 4 seconds
+        setTimeout(() => success.remove(), 4000);
+    }
+    
+    // ===== NODE ARRANGEMENT SYSTEM =====
+    
+    handleArrangementDrag(event, draggedNode, element) {
+        // Calculate potential new position
+        const newX = event.x;
+        const newY = Math.max(20, Math.min(
+            this.config.height - this.config.margin.top - this.config.margin.bottom - draggedNode.height - 20,
+            event.y
+        ));
+        
+        // Determine if moving to a different layer with enhanced snapping
+        const potentialLayer = this.calculateLayerFromX(newX);
+        const currentLayer = draggedNode.depth;
+        const snapThreshold = 60; // Increased snap threshold for better UX
+        
+        // Get the target layer X position for visual feedback
+        const targetLayerX = this.calculateLayerX(potentialLayer);
+        const snapDistance = Math.abs(newX - targetLayerX);
+        
+        // Show visual snapping feedback
+        this.showLayerSnapFeedback(targetLayerX, snapDistance < snapThreshold);
+        
+        if (potentialLayer !== currentLayer && this.isValidLayerMove(draggedNode, potentialLayer) && snapDistance < snapThreshold) {
+            // Snap to different layer
+            this.moveNodeToLayer(draggedNode, potentialLayer, newY, element);
+        } else {
+            // Free movement - allow horizontal movement within constraints
+            const constrainedX = Math.max(0, Math.min(newX, this.config.width - this.config.margin.left - this.config.margin.right - this.config.nodeWidth));
+            
+            draggedNode.x = constrainedX;
+            draggedNode.y = newY;
+            draggedNode.manualY = newY;
+            draggedNode.manualX = constrainedX; // Store manual X position
+            
+            d3.select(element).attr('transform', `translate(${draggedNode.x}, ${draggedNode.y})`);
+            
+            this.updateNodeLinks(draggedNode);
+            this.updateArrangementHint(draggedNode, draggedNode.depth, newY);
+        }
+    }
+    
+    calculateLayerFromX(x) {
+        // Calculate which layer this X position corresponds to with enhanced snapping
+        const layerPositions = [...new Set(this.nodes.map(n => n.x))].sort((a, b) => a - b);
+        const depths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+        
+        // Create a map of X positions to depth values
+        const xToDepthMap = new Map();
+        this.nodes.forEach(node => {
+            if (!xToDepthMap.has(node.x)) {
+                xToDepthMap.set(node.x, node.depth);
+            }
+        });
+        
+        // Find the closest layer position with snapping threshold
+        let closestLayerX = layerPositions[0];
+        let minDistance = Math.abs(x - layerPositions[0]);
+        const snapThreshold = 50; // Snap within 50px
+        
+        layerPositions.forEach((layerX) => {
+            const distance = Math.abs(x - layerX);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestLayerX = layerX;
+            }
+        });
+        
+        // Return the depth corresponding to the closest X position
+        return xToDepthMap.get(closestLayerX) || 0;
+    }
+    
+    isValidLayerMove(node, newLayer) {
+        // Check if moving the node to the new layer would violate flow direction
+        const maxSourceLayer = Math.max(-1, ...node.targetLinks.map(link => link.source.depth));
+        const minTargetLayer = Math.min(Infinity, ...node.sourceLinks.map(link => link.target.depth));
+        
+        // Node must be after all source nodes and before all target nodes
+        return newLayer > maxSourceLayer && newLayer < minTargetLayer;
+    }
+    
+    moveNodeToLayer(node, newLayer, newY, element) {
+        // Update node layer
+        const oldLayer = node.depth;
+        node.depth = newLayer;
+        
+        // Calculate new X position based on layer
+        const layerX = this.calculateLayerX(newLayer);
+        node.x = layerX;
+        node.y = newY;
+        node.manualY = newY;
+        
+        // Update visual position
+        d3.select(element).attr('transform', `translate(${node.x}, ${node.y})`);
+        
+        // Update all links
+        this.calculateLinkPositions();
+        this.renderLinks();
+        
+        this.updateArrangementHint(node, newLayer, newY);
+        
+        console.log(`🔄 Node "${node.id}" moved from layer ${oldLayer} to layer ${newLayer}`);
+    }
+    
+    calculateLayerX(layer) {
+        // Calculate X position for a given layer
+        const layers = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
+        const layerIndex = layers.indexOf(layer);
+        
+        if (layerIndex === -1) {
+            // New layer, calculate position
+            const chartWidth = this.config.width - this.config.margin.left - this.config.margin.right;
+            const totalLayers = layers.length + 1;
+            return (layerIndex + 1) * (chartWidth / totalLayers);
+        }
+        
+        // Find existing node at this layer to get X position
+        const nodeAtLayer = this.nodes.find(n => n.depth === layer);
+        return nodeAtLayer ? nodeAtLayer.x : 0;
+    }
+    
+    updateArrangementHint(node, layer, y) {
+        // Remove existing hint
+        this.container.select('.arrangement-hint').remove();
+        
+        // Show hint with layer and position info
+        const hint = this.container
+            .append('div')
+            .attr('class', 'arrangement-hint')
+            .style('position', 'absolute')
+            .style('top', '120px')
+            .style('left', '10px')
+            .style('background', 'rgba(139, 92, 246, 0.9)')
+            .style('color', 'white')
+            .style('padding', '8px 12px')
+            .style('border-radius', '4px')
+            .style('font-size', '12px')
+            .style('pointer-events', 'none')
+            .style('z-index', '1000')
+            .html(`
+                <div style="font-weight: 600;">${node.id}</div>
+                <div>Layer: ${layer}</div>
+                <div>Y: ${Math.round(y)}</div>
+            `);
+    }
+    
+    hideDragHint() {
+        this.container.select('.drag-hint').remove();
+        this.container.select('.arrangement-hint').remove();
+    }
+    
+    clearInteractionState() {
+        // Remove any temporary UI elements
+        this.container.select('.enhanced-color-picker').remove();
+        this.container.select('.node-creation-success').remove();
+    }
+    
 
 
     // Export methods using ChartExports for consistency across all charts
