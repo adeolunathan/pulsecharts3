@@ -217,27 +217,16 @@ class SankeyControlModule {
             },
             
             viewControls: {
-                title: "View Controls",
-                icon: "🔍",
+                title: "Chart View",
+                icon: "🎯",
                 collapsed: true,
                 controls: [
                     { 
-                        id: "resetZoom", 
+                        id: "centerChart", 
                         type: "button", 
-                        label: "Reset View", 
-                        action: "resetZoom",
-                        description: "Reset chart to original position and scale" 
-                    },
-                    { 
-                        id: "zoomLevel", 
-                        type: "slider", 
-                        label: "Zoom Level", 
-                        min: 0.1, 
-                        max: 5.0, 
-                        default: 1.0, 
-                        step: 0.05, 
-                        unit: "x", 
-                        description: "Adjust chart zoom level" 
+                        label: "Center Chart", 
+                        action: "centerChart",
+                        description: "Center the chart including all labels within the canvas" 
                     }
                 ]
             },
@@ -796,17 +785,13 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle zoomLevel slider with ChartZoom utility or fallback
-        if (controlId === 'zoomLevel') {
-            if (window.ChartZoom && window.ChartZoom.setZoomLevel) {
-                ChartZoom.setZoomLevel.call(chart, value);
-                console.log(`🔍 Set zoom level to ${value}x via ChartZoom.setZoomLevel method`);
-            } else if (chart.setZoomLevel && typeof chart.setZoomLevel === 'function') {
-                chart.setZoomLevel(value);
-                console.log(`🔍 Set zoom level to ${value}x via chart.setZoomLevel method`);
+        // Handle centerChart button action
+        if (controlId === 'centerChart') {
+            console.log('🎯 Center Chart button action triggered');
+            if (chart.centerChart && typeof chart.centerChart === 'function') {
+                chart.centerChart();
             } else {
-                console.warn('⚠️ No zoom level method available, falling back to updateConfig');
-                chart.updateConfig({ zoomLevel: value });
+                console.error('❌ centerChart method not available on chart instance');
             }
             return;
         }
