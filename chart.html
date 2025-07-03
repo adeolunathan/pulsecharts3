@@ -2188,7 +2188,8 @@
                 if (previousCol) previousCol.style.display = 'none';
                 if (varianceCol) varianceCol.style.display = 'none';
 
-                // Old spreadsheet controller removed - using BarDataEditor instead
+                // Initialize SpreadsheetController for Sankey flow builder
+                window.spreadsheetController = new SpreadsheetController();
                 
                 // Initialize modern export dropdown
                 initializeExportDropdown();
