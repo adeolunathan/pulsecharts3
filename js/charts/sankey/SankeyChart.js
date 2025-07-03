@@ -1821,6 +1821,8 @@ class PulseSankeyChart {
                 self.showDragHint(d);
             })
             .on('drag', function(event, d) {
+                // Ensure tooltip stays hidden during drag
+                self.hideTooltip();
                 // Enable both horizontal and vertical movement in all modes
                 self.handleArrangementDrag(event, d, this);
             })
@@ -2523,6 +2525,18 @@ class PulseSankeyChart {
             return ChartUtils.lightenColor(sourceColor, 15);
         }
         
+        // ENHANCED: Check for user-created nodes with custom colors
+        // Links should inherit the color from the node they originate from
+        if (link.source.userCreated || link.source.customColor) {
+            const sourceColor = this.getNodeColor(link.source);
+            return ChartUtils.lightenColor(sourceColor, 15);
+        }
+        
+        if (link.target.userCreated || link.target.customColor) {
+            const targetColor = this.getNodeColor(link.target);
+            return ChartUtils.lightenColor(targetColor, 15);
+        }
+        
         // Existing logic: Post-revenue links use TARGET color
         const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
         
@@ -2536,6 +2550,17 @@ class PulseSankeyChart {
     }
 
     getLinkColor_Balance(link) {
+        // ENHANCED: Check for user-created nodes with custom colors first
+        if (link.source.userCreated || link.source.customColor) {
+            const sourceColor = this.getNodeColor(link.source);
+            return ChartUtils.hexToRgba(sourceColor, 0.65);
+        }
+        
+        if (link.target.userCreated || link.target.customColor) {
+            const targetColor = this.getNodeColor(link.target);
+            return ChartUtils.hexToRgba(targetColor, 0.65);
+        }
+        
         const sourceColorGroup = this.colorGroups.get(link.source.id);
         const targetColorGroup = this.colorGroups.get(link.target.id);
         
@@ -2872,18 +2897,14 @@ class PulseSankeyChart {
         }
 
         const content = `
-            <div style="font-size: 16px; color: #60a5fa; margin-bottom: 8px; font-weight: 600;">
-                ${this.formatCurrency(d.value, d)}
-            </div>
-            ${marginText ? `<div style="font-size: 12px; color: #e2e8f0; margin-bottom: 4px;">${marginText}</div>` : ''}
-            <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
-                ${d.description || 'Financial component'}
-            </div>
+            <div style="font-weight: 600; margin-bottom: 2px;">${d.id}</div>
+            <div style="color: #60a5fa;">${this.formatCurrency(d.value, d)}</div>
+            ${marginText ? `<div style="color: #a3d977; font-size: 10px;">${marginText}</div>` : ''}
         `;
 
         this.tooltip.html(content)
-            .style('left', (event.pageX) + 'px')
-            .style('top', (event.pageY - 10) + 'px')
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 30) + 'px')
             .style('opacity', 1);
     }
 
@@ -2896,22 +2917,15 @@ class PulseSankeyChart {
         }
             
         const content = `
-            <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">
-                ${d.source.id} → ${d.target.id}
-            </div>
-            <div style="font-size: 16px; color: #60a5fa; margin-bottom: 8px; font-weight: 600;">
-                ${this.formatCurrency(d.value, d.target)}
-            </div>
-            ${marginText ? `<div style="font-size: 12px; color: #e2e8f0; margin-bottom: 4px;">${marginText}</div>` : ''}
-            <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
-                ${d.target.description || 'Flow connection'}
-            </div>
+            <div style="font-weight: 600; margin-bottom: 2px;">${d.source.id} → ${d.target.id}</div>
+            <div style="color: #60a5fa;">${this.formatCurrency(d.value, d.target)}</div>
+            ${marginText ? `<div style="color: #a3d977; font-size: 10px;">${marginText}</div>` : ''}
         `;
         
         this.tooltip
             .html(content)
-            .style('left', (event.pageX) + 'px')
-            .style('top', (event.pageY - 10) + 'px')
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 30) + 'px')
             .style('opacity', 1);
     }
 

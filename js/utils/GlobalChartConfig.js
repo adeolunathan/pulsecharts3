@@ -11,7 +11,7 @@ window.GlobalChartConfig = (function() {
     function getGlobalDefaults() {
         return {
             // Global Background Color - Single source of truth
-            backgroundColor: '#F5F5DC',  // Light gray background for all charts
+            backgroundColor: '#faf9f0',  // Light gray background for all charts
             
             // Global Font Settings
             fontFamily: 'Inter',
