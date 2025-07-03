@@ -3244,45 +3244,39 @@ class PulseSankeyChart {
             console.log('🔍 BEFORE - Current scale:', currentScale);
             console.log('🔍 BEFORE - Current position:', currentX, currentY);
             
-            // Get bounds of ALL visible content including labels
-            const containerBounds = this.getContentBoundsWithLabels();
-            console.log('📐 Content bounds with labels:', containerBounds);
+            // Use the same approach as bar chart - get zoom container bounds
+            const containerBounds = this.zoomContainer.node().getBBox();
+            console.log('📐 Zoom container unscaled bounds:', containerBounds);
             
-            // Calculate the center of the content in chart coordinates
-            const contentCenterX = containerBounds.x + containerBounds.width / 2;
-            const contentCenterY = containerBounds.y + containerBounds.height / 2;
+            // Calculate where the center of the content currently appears on screen
+            // The current visual center = unscaled center * scale + current translation
+            const unscaledCenterX = containerBounds.x + containerBounds.width / 2;
+            const unscaledCenterY = containerBounds.y + containerBounds.height / 2;
             
-            console.log('📍 Content center (chart coords):', contentCenterX, contentCenterY);
+            const currentVisualCenterX = unscaledCenterX * currentScale + currentX;
+            const currentVisualCenterY = unscaledCenterY * currentScale + currentY;
+            
+            console.log('🎯 Unscaled content center:', unscaledCenterX, unscaledCenterY);
+            console.log('🎯 Current visual center on screen:', currentVisualCenterX, currentVisualCenterY);
             
             // Get SVG dimensions
             const svgWidth = parseFloat(this.svg.attr('width'));
             const svgHeight = parseFloat(this.svg.attr('height'));
-            const margins = this.config.margin;
             
-            // Calculate the center of the available viewport (in SVG coordinates)
-            const viewportCenterX = margins.left + (svgWidth - margins.left - margins.right) / 2;
-            const viewportCenterY = margins.top + (svgHeight - margins.top - margins.bottom) / 2;
+            // Calculate how much we need to move to center the visual content in the SVG
+            const svgCenterX = svgWidth / 2;
+            const svgCenterY = svgHeight / 2;
             
-            console.log('📍 Viewport center (SVG coords):', viewportCenterX, viewportCenterY);
-            console.log('📐 Available space:', svgWidth - margins.left - margins.right, 'x', svgHeight - margins.top - margins.bottom);
-            console.log('📐 Margins:', margins);
+            console.log('📍 SVG center:', svgCenterX, svgCenterY);
             
-            // Calculate where the content center currently appears in SVG coordinates
-            // Content is in chart coordinates, but chart is translated by margins and scaled/translated by zoom
-            const currentContentCenterX = margins.left + (contentCenterX * currentScale) + currentX;
-            const currentContentCenterY = margins.top + (contentCenterY * currentScale) + currentY;
+            // The difference between where the content appears and where we want it
+            const moveX = svgCenterX - currentVisualCenterX;
+            const moveY = svgCenterY - currentVisualCenterY;
             
-            console.log('📍 Current content center (SVG coords):', currentContentCenterX, currentContentCenterY);
+            // Calculate required translation (add movement to current translation)
+            const requiredX = currentX + moveX;
+            const requiredY = currentY + moveY;
             
-            // Calculate the offset needed to move content center to viewport center
-            const offsetX = viewportCenterX - currentContentCenterX;
-            const offsetY = viewportCenterY - currentContentCenterY;
-            
-            // Calculate required translation (add offset to current translation)
-            const requiredX = currentX + offsetX;
-            const requiredY = currentY + offsetY;
-            
-            console.log('🔄 Offset needed:', offsetX, offsetY);
             console.log('🎯 Required translation:', requiredX, requiredY);
             
             // Apply the centering transform with smooth animation
@@ -3312,81 +3306,6 @@ class PulseSankeyChart {
         }
     }
 
-    // Get bounding box of all content including labels
-    getContentBoundsWithLabels() {
-        try {
-            // Get bounds of specific chart elements to be more precise
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            let hasElements = false;
-            
-            // Check nodes
-            const nodes = this.chart.selectAll('.sankey-node');
-            nodes.each(function() {
-                try {
-                    const bbox = this.getBBox();
-                    minX = Math.min(minX, bbox.x);
-                    minY = Math.min(minY, bbox.y);
-                    maxX = Math.max(maxX, bbox.x + bbox.width);
-                    maxY = Math.max(maxY, bbox.y + bbox.height);
-                    hasElements = true;
-                } catch (e) {}
-            });
-            
-            // Check links
-            const links = this.chart.selectAll('.sankey-link');
-            links.each(function() {
-                try {
-                    const bbox = this.getBBox();
-                    minX = Math.min(minX, bbox.x);
-                    minY = Math.min(minY, bbox.y);
-                    maxX = Math.max(maxX, bbox.x + bbox.width);
-                    maxY = Math.max(maxY, bbox.y + bbox.height);
-                    hasElements = true;
-                } catch (e) {}
-            });
-            
-            // Check labels (most important for extending bounds)
-            const labels = this.chart.selectAll('text');
-            labels.each(function() {
-                try {
-                    const bbox = this.getBBox();
-                    minX = Math.min(minX, bbox.x);
-                    minY = Math.min(minY, bbox.y);
-                    maxX = Math.max(maxX, bbox.x + bbox.width);
-                    maxY = Math.max(maxY, bbox.y + bbox.height);
-                    hasElements = true;
-                } catch (e) {}
-            });
-            
-            if (!hasElements || minX === Infinity) {
-                // Fallback to chart group bounds
-                console.warn('⚠️ No individual elements found, using chart group bounds');
-                const chartGroupBounds = this.chart.node().getBBox();
-                return {
-                    x: chartGroupBounds.x,
-                    y: chartGroupBounds.y,
-                    width: chartGroupBounds.width,
-                    height: chartGroupBounds.height
-                };
-            }
-            
-            const result = {
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY
-            };
-            
-            console.log('📊 Calculated precise bounds:', result);
-            console.log('📏 Found elements: nodes:', nodes.size(), 'links:', links.size(), 'labels:', labels.size());
-            return result;
-            
-        } catch (error) {
-            console.error('❌ Error calculating content bounds:', error);
-            // Fallback to a reasonable default
-            return { x: 0, y: 0, width: 800, height: 400 };
-        }
-    }
 
     // Export methods using ChartExports for consistency across all charts
     exportToPNG() {
