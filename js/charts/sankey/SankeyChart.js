@@ -1834,6 +1834,8 @@ class PulseSankeyChart {
                 
                 self.hideDragHint();
                 self.hideLayerSnapFeedback(); // Hide snap feedback when drag ends
+                self.hideLayerGuideLines(); // Hide guide lines when drag ends
+                self.showMagneticFeedback(null, false); // Hide magnetic feedback
                 
                 self.calculateLinkPositions();
                 self.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
@@ -1967,6 +1969,82 @@ class PulseSankeyChart {
             this.snapFeedback.remove();
             this.snapFeedback = null;
         }
+    }
+    
+    showLayerGuideLines() {
+        // Remove existing guide lines
+        this.chart.selectAll('.layer-guide-line').remove();
+        
+        // Get all unique layer X positions
+        const layerPositions = [...new Set(this.nodes.map(n => n.x))].sort((a, b) => a - b);
+        
+        // Show faint guide lines for all layers
+        layerPositions.forEach(x => {
+            this.chart.append('line')
+                .attr('class', 'layer-guide-line')
+                .attr('x1', x)
+                .attr('y1', 0)
+                .attr('x2', x)
+                .attr('y2', this.config.height - this.config.margin.top - this.config.margin.bottom)
+                .style('stroke', '#e5e7eb')
+                .style('stroke-width', '1px')
+                .style('stroke-dasharray', '2,2')
+                .style('opacity', '0.5')
+                .style('pointer-events', 'none');
+        });
+    }
+    
+    hideLayerGuideLines() {
+        this.chart.selectAll('.layer-guide-line').remove();
+    }
+    
+    showMagneticFeedback(x, isActive) {
+        // Remove existing magnetic feedback
+        this.chart.selectAll('.magnetic-feedback').remove();
+        
+        if (isActive && x !== null) {
+            // Show highlighted line for magnetic snap
+            this.chart.append('line')
+                .attr('class', 'magnetic-feedback')
+                .attr('x1', x)
+                .attr('y1', 0)
+                .attr('x2', x)
+                .attr('y2', this.config.height - this.config.margin.top - this.config.margin.bottom)
+                .style('stroke', '#10b981')
+                .style('stroke-width', '2px')
+                .style('opacity', '0.7')
+                .style('pointer-events', 'none');
+        }
+    }
+    
+    findNearestValidLayer(x, draggedNode) {
+        // Get all layer positions and depths
+        const layers = [];
+        const uniquePositions = [...new Set(this.nodes.map(n => n.x))];
+        
+        uniquePositions.forEach(layerX => {
+            const nodeAtLayer = this.nodes.find(n => n.x === layerX);
+            if (nodeAtLayer) {
+                layers.push({
+                    x: layerX,
+                    depth: nodeAtLayer.depth
+                });
+            }
+        });
+        
+        // Find the closest layer
+        let closestLayer = null;
+        let minDistance = Infinity;
+        
+        layers.forEach(layer => {
+            const distance = Math.abs(x - layer.x);
+            if (distance < minDistance && this.isValidLayerMove(draggedNode, layer.depth)) {
+                minDistance = distance;
+                closestLayer = layer;
+            }
+        });
+        
+        return closestLayer;
     }
 
     renderLabels() {
@@ -3528,9 +3606,14 @@ class PulseSankeyChart {
     
     // ===== ENHANCED COLOR PICKER WITH ADD NODE FUNCTIONALITY =====
     
-    showEnhancedColorPicker(event, nodeData) {
+    showEnhancedColorPicker(event, nodeData, mode = 'edit') {
         // Remove any existing enhanced color picker
         this.container.select('.enhanced-color-picker').remove();
+        
+        // Store modal mode and data
+        this.modalMode = mode;
+        this.modalNodeData = nodeData;
+        this.modalStep = mode === 'create' ? 1 : null;
         
         // Create enhanced modal
         const modal = this.container
@@ -3554,7 +3637,7 @@ class PulseSankeyChart {
             .style('border-radius', '16px')
             .style('padding', '0')
             .style('box-shadow', '0 20px 40px rgba(0, 0, 0, 0.15)')
-            .style('max-width', '200px')
+            .style('max-width', mode === 'create' && this.modalStep === 1 ? '180px' : '200px')
             .style('width', '70%')
             .style('max-height', '90vh')
             .style('overflow', 'hidden')
@@ -3616,28 +3699,49 @@ class PulseSankeyChart {
             .style('color', '#1f2937')
             .style('font-size', '16px')
             .style('font-weight', '600')
-            .text(nodeData.id);
+            .text(mode === 'edit' ? nodeData.id : (this.modalStep === 1 ? 'Add Node' : 'Configure Node'));
             
-        headerText
-            .append('p')
-            .style('margin', '2px 0 0 0')
-            .style('color', '#6b7280')
-            .style('font-size', '12px')
-            .text(`${nodeData.category || 'Node'} • Value: ${(nodeData.value || 0).toLocaleString()}`);
+        if (mode === 'edit') {
+            headerText
+                .append('p')
+                .style('margin', '2px 0 0 0')
+                .style('color', '#6b7280')
+                .style('font-size', '12px')
+                .text(`${nodeData.category || 'Node'} • Value: ${(nodeData.value || 0).toLocaleString()}`);
+        } else if (this.modalStep === 1) {
+            headerText
+                .append('p')
+                .style('margin', '2px 0 0 0')
+                .style('color', '#6b7280')
+                .style('font-size', '12px')
+                .text('Step 1: Choose color');
+        }
         
         // Main content area
         const mainContent = content
             .append('div')
             .style('padding', '0 12px 12px 12px');
         
-        // Shared variable for selected color (accessible by both sections)
-        this.modalSelectedColor = this.getNodeColor(nodeData);
+        // Set initial color based on mode
+        if (mode === 'edit') {
+            this.modalSelectedColor = this.getNodeColor(nodeData);
+        } else {
+            this.modalSelectedColor = this.getCurrentChartColors()[0] || '#3b82f6';
+        }
         
-        // Color picker section
-        this.addColorPickerSection(mainContent, nodeData);
-        
-        // Add node section
-        this.addNodeCreationSection(mainContent, nodeData);
+        // Show different content based on mode and step
+        if (mode === 'edit') {
+            // Edit mode: only show color picker for existing node
+            this.addEditColorSection(mainContent, nodeData);
+        } else if (mode === 'create') {
+            if (this.modalStep === 1) {
+                // Create mode step 1: just color picker and add button
+                this.addCreateStep1Section(mainContent, nodeData);
+            } else {
+                // Create mode step 2: full configuration
+                this.addCreateStep2Section(mainContent, nodeData);
+            }
+        }
         
         // Close button (X in top right)
         content
@@ -3674,26 +3778,463 @@ class PulseSankeyChart {
         });
     }
     
-    addColorPickerSection(container, nodeData) {
-        // Color picker section - more compact
+    showCreateNodeModal(parentNode) {
+        // Show create modal starting with step 1
+        this.showEnhancedColorPicker(null, parentNode, 'create');
+    }
+    
+    showCompleteNodeCreationModal(parentNode) {
+        // Remove any existing modal
+        this.container.select('.enhanced-color-picker').remove();
+        
+        // Set initial color
+        this.modalSelectedColor = this.getCurrentChartColors()[0] || '#3b82f6';
+        
+        // Create modal
+        const modal = this.container
+            .append('div')
+            .attr('class', 'enhanced-color-picker')
+            .style('position', 'fixed')
+            .style('top', '0')
+            .style('left', '0')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('background', 'rgba(0, 0, 0, 0.6)')
+            .style('z-index', '2000')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('backdrop-filter', 'blur(4px)');
+            
+        const content = modal
+            .append('div')
+            .style('background', 'white')
+            .style('border-radius', '16px')
+            .style('padding', '0')
+            .style('box-shadow', '0 20px 40px rgba(0, 0, 0, 0.15)')
+            .style('max-width', '220px')
+            .style('width', '75%')
+            .style('max-height', '90vh')
+            .style('overflow', 'hidden')
+            .style('animation', 'modal-scale-in 0.2s ease-out');
+        
+        // Header
+        const header = content
+            .append('div')
+            .style('padding', '12px 12px 0 12px')
+            .style('border-bottom', '1px solid #f3f4f6')
+            .style('margin-bottom', '8px');
+            
+        const headerFlex = header
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px')
+            .style('margin-bottom', '8px');
+            
+        headerFlex
+            .append('div')
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('background', '#10b981')
+            .style('border-radius', '8px')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('color', 'white')
+            .style('font-size', '12px')
+            .style('font-weight', 'bold')
+            .text('➕');
+            
+        headerFlex
+            .append('h3')
+            .style('margin', '0')
+            .style('color', '#1f2937')
+            .style('font-size', '14px')
+            .style('font-weight', '600')
+            .text('Add Node');
+        
+        // Main content
+        const mainContent = content
+            .append('div')
+            .style('padding', '0 12px 12px 12px');
+        
+        // Add all sections in one modal
+        this.addCompleteNodeCreationContent(mainContent, parentNode);
+        
+        // Close button
+        content
+            .append('button')
+            .style('position', 'absolute')
+            .style('top', '12px')
+            .style('right', '12px')
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('border', 'none')
+            .style('background', 'rgba(107, 114, 128, 0.1)')
+            .style('border-radius', '50%')
+            .style('cursor', 'pointer')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('color', '#6b7280')
+            .style('font-size', '14px')
+            .text('✕')
+            .on('click', () => modal.remove());
+            
+        // Click outside to close
+        modal.on('click', function(event) {
+            if (event.target === this) {
+                modal.remove();
+            }
+        });
+    }
+    
+    addCompleteNodeCreationContent(container, parentNode) {
+        // Color picker section
         const colorSection = container
             .append('div')
             .style('margin-bottom', '10px');
             
-        // Small header for new node color
         colorSection
             .append('div')
             .style('font-size', '10px')
             .style('color', '#6b7280')
             .style('margin-bottom', '6px')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('gap', '6px')
-            .html('<span>New node color:</span><div style="width: 16px; height: 16px; background: ' + this.modalSelectedColor + '; border: 1px solid #e5e7eb; border-radius: 3px;"></div>');
+            .text('Color:');
             
         // Current chart colors
         const currentColors = this.getCurrentChartColors();
+        let selectedColor = this.modalSelectedColor;
         
+        if (currentColors.length > 0) {
+            const chartColorsGrid = colorSection
+                .append('div')
+                .style('display', 'flex')
+                .style('gap', '4px')
+                .style('flex-wrap', 'wrap')
+                .style('margin-bottom', '8px');
+                
+            currentColors.forEach(color => {
+                const isSelected = color === selectedColor;
+                chartColorsGrid
+                    .append('button')
+                    .attr('class', 'chart-color-btn')
+                    .style('width', '20px')
+                    .style('height', '20px')
+                    .style('background', color)
+                    .style('border', isSelected ? '2px solid #3b82f6' : '1px solid white')
+                    .style('border-radius', '4px')
+                    .style('cursor', 'pointer')
+                    .style('box-shadow', '0 1px 2px rgba(0, 0, 0, 0.1)')
+                    .on('click', (event) => {
+                        selectedColor = color;
+                        this.modalSelectedColor = color;
+                        chartColorsGrid.selectAll('.chart-color-btn')
+                            .style('border', '1px solid white');
+                        d3.select(event.target)
+                            .style('border', '2px solid #3b82f6');
+                    });
+            });
+        }
+        
+        // Custom color row
+        const customColorRow = colorSection
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .style('margin-bottom', '12px');
+            
+        const colorInput = customColorRow
+            .append('input')
+            .attr('type', 'color')
+            .attr('value', selectedColor)
+            .style('width', '20px')
+            .style('height', '20px')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '4px')
+            .style('cursor', 'pointer')
+            .on('change', () => {
+                this.modalSelectedColor = colorInput.node().value;
+                colorSection.selectAll('.chart-color-btn')
+                    .style('border', '1px solid white');
+            });
+            
+        customColorRow
+            .append('span')
+            .style('font-size', '10px')
+            .style('color', '#6b7280')
+            .style('flex', '1')
+            .text('Custom');
+        
+        // Orientation section
+        const orientationSection = container
+            .append('div')
+            .style('margin-bottom', '10px');
+            
+        orientationSection
+            .append('div')
+            .style('font-size', '10px')
+            .style('color', '#6b7280')
+            .style('margin-bottom', '6px')
+            .text('Direction:');
+            
+        let selectedOrientation = 'right';
+        const orientationGrid = orientationSection
+            .append('div')
+            .style('display', 'grid')
+            .style('grid-template-columns', '1fr 1fr')
+            .style('gap', '4px');
+            
+        // Left and Right buttons
+        ['left', 'right'].forEach(orientation => {
+            const btn = orientationGrid
+                .append('button')
+                .attr('class', 'orientation-btn')
+                .attr('data-orientation', orientation)
+                .style('padding', '6px 4px')
+                .style('border', orientation === 'right' ? '2px solid #10b981' : '1px solid #e5e7eb')
+                .style('border-radius', '4px')
+                .style('background', orientation === 'right' ? '#f0fdf4' : 'white')
+                .style('cursor', 'pointer')
+                .style('text-align', 'center')
+                .style('font-size', '9px')
+                .html(orientation === 'left' ? '⬅️<br>Left' : '➡️<br>Right')
+                .on('click', function() {
+                    selectedOrientation = orientation;
+                    orientationGrid.selectAll('.orientation-btn')
+                        .style('border', '1px solid #e5e7eb')
+                        .style('background', 'white');
+                    d3.select(this)
+                        .style('border', '2px solid #10b981')
+                        .style('background', '#f0fdf4');
+                });
+        });
+        
+        // Form inputs
+        const formContainer = container
+            .append('div')
+            .style('margin-bottom', '10px');
+            
+        const nameInput = formContainer
+            .append('input')
+            .attr('type', 'text')
+            .attr('placeholder', 'Node name')
+            .style('width', '100%')
+            .style('padding', '6px 8px')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '4px')
+            .style('font-size', '11px')
+            .style('margin-bottom', '6px')
+            .style('box-sizing', 'border-box');
+            
+        const valueInput = formContainer
+            .append('input')
+            .attr('type', 'number')
+            .attr('placeholder', 'Value (optional)')
+            .style('width', '100%')
+            .style('padding', '6px 8px')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '4px')
+            .style('font-size', '11px')
+            .style('box-sizing', 'border-box');
+        
+        // Create function
+        const createNode = () => {
+            const name = nameInput.node().value.trim();
+            const value = parseFloat(valueInput.node().value) || 50;
+            
+            if (!name) {
+                alert('Please enter a node name');
+                nameInput.node().focus();
+                return;
+            }
+            
+            if (this.nodeNameExists(name)) {
+                alert('A node with this name already exists. Please choose a different name.');
+                nameInput.node().focus();
+                return;
+            }
+            
+            // Close modal and create node
+            this.container.select('.enhanced-color-picker').remove();
+            this.createConnectedNodeWithOrientation(name, value, selectedOrientation, parentNode, this.modalSelectedColor);
+        };
+        
+        // Add Enter key support
+        [nameInput, valueInput].forEach(input => {
+            input.on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    createNode();
+                }
+            });
+        });
+        
+        // Create button
+        container
+            .append('button')
+            .style('width', '100%')
+            .style('padding', '8px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '11px')
+            .style('font-weight', '600')
+            .style('transition', 'background 0.2s ease')
+            .text('Create Node')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#059669');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#10b981');
+            })
+            .on('click', createNode);
+    }
+    
+    addEditColorSection(container, nodeData) {
+        // Edit mode: simple color picker for existing node
+        const colorSection = container
+            .append('div')
+            .style('margin-bottom', '10px');
+            
+        // Standard theme colors for edit mode
+        const standardColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+        let selectedColor = this.modalSelectedColor;
+        
+        // Standard colors grid
+        const chartColorsGrid = colorSection
+            .append('div')
+            .style('display', 'flex')
+            .style('gap', '6px')
+            .style('flex-wrap', 'wrap')
+            .style('margin-bottom', '8px');
+            
+        standardColors.forEach(color => {
+                const isSelected = color === selectedColor;
+                chartColorsGrid
+                    .append('button')
+                    .attr('class', 'chart-color-btn')
+                    .style('width', '24px')
+                    .style('height', '24px')
+                    .style('background', color)
+                    .style('border', isSelected ? '3px solid #3b82f6' : '2px solid white')
+                    .style('border-radius', '6px')
+                    .style('cursor', 'pointer')
+                    .style('box-shadow', '0 2px 4px rgba(0, 0, 0, 0.1)')
+                    .style('transition', 'all 0.1s ease')
+                    .on('mouseover', function() {
+                        if (!isSelected) {
+                            d3.select(this).style('transform', 'scale(1.1)');
+                        }
+                    })
+                    .on('mouseout', function() {
+                        if (!isSelected) {
+                            d3.select(this).style('transform', 'scale(1)');
+                        }
+                    })
+                    .on('click', (event) => {
+                        selectedColor = color;
+                        this.modalSelectedColor = color;
+                        // Update all chart color buttons
+                        chartColorsGrid.selectAll('.chart-color-btn')
+                            .style('border', '2px solid white')
+                            .style('transform', 'scale(1)');
+                        d3.select(event.target)
+                            .style('border', '3px solid #3b82f6');
+                        // Apply immediately to existing node
+                        this.updateNodeColor(nodeData, color);
+                        this.container.select('.enhanced-color-picker').remove();
+                    });
+        });
+        
+        // Custom color picker row
+        const customColorRow = colorSection
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '8px');
+            
+        const colorInput = customColorRow
+            .append('input')
+            .attr('type', 'color')
+            .attr('value', selectedColor)
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('border', '2px solid #e5e7eb')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('background', 'none');
+            
+        customColorRow
+            .append('span')
+            .style('font-size', '11px')
+            .style('color', '#6b7280')
+            .style('flex', '1')
+            .text('Custom');
+            
+        customColorRow
+            .append('button')
+            .style('padding', '4px 8px')
+            .style('background', '#6b7280')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '4px')
+            .style('cursor', 'pointer')
+            .style('font-size', '10px')
+            .style('transition', 'background 0.2s ease')
+            .text('Apply')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#4b5563');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#6b7280');
+            })
+            .on('click', () => {
+                const customColor = colorInput.node().value;
+                this.updateNodeColor(nodeData, customColor);
+                this.container.select('.enhanced-color-picker').remove();
+            });
+        
+        // Add Node button for edit mode
+        container
+            .append('div')
+            .style('margin-top', '12px')
+            .append('button')
+            .style('width', '100%')
+            .style('padding', '8px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '11px')
+            .style('font-weight', '600')
+            .style('transition', 'background 0.2s ease')
+            .text('+ Add Node')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#059669');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#10b981');
+            })
+            .on('click', () => {
+                // Close current modal and open complete node creation modal
+                this.container.select('.enhanced-color-picker').remove();
+                this.showCompleteNodeCreationModal(nodeData);
+            });
+    }
+    
+    addCreateStep1Section(container, nodeData) {
+        // Create mode step 1: simple color picker + add button
+        const colorSection = container
+            .append('div')
+            .style('margin-bottom', '10px');
+            
+        // Current chart colors
+        const currentColors = this.getCurrentChartColors();
         let selectedColor = this.modalSelectedColor;
         
         // Chart colors grid
@@ -3718,40 +4259,25 @@ class PulseSankeyChart {
                     .style('cursor', 'pointer')
                     .style('box-shadow', '0 2px 4px rgba(0, 0, 0, 0.1)')
                     .style('transition', 'all 0.1s ease')
-                    .style('position', 'relative')
-                    .on('mouseover', function() {
-                        if (!isSelected) {
-                            d3.select(this).style('transform', 'scale(1.1)');
-                        }
-                    })
-                    .on('mouseout', function() {
-                        if (!isSelected) {
-                            d3.select(this).style('transform', 'scale(1)');
-                        }
-                    })
                     .on('click', (event) => {
                         selectedColor = color;
-                        this.modalSelectedColor = color; // Update shared variable for new node
-                        // Update all chart color buttons
+                        this.modalSelectedColor = color;
                         chartColorsGrid.selectAll('.chart-color-btn')
-                            .style('border', '2px solid white')
-                            .style('transform', 'scale(1)');
+                            .style('border', '2px solid white');
                         d3.select(event.target)
                             .style('border', '3px solid #3b82f6');
-                        // Update color indicator
-                        colorSection.select('div').select('div').style('background', color);
                     });
             });
         }
         
-        // Custom color picker row
+        // Custom color picker
         const customColorRow = colorSection
             .append('div')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('gap', '8px');
+            .style('gap', '8px')
+            .style('margin-bottom', '12px');
             
-        // Small custom color input
         const colorInput = customColorRow
             .append('input')
             .attr('type', 'color')
@@ -3761,50 +4287,51 @@ class PulseSankeyChart {
             .style('border', '2px solid #e5e7eb')
             .style('border-radius', '6px')
             .style('cursor', 'pointer')
-            .style('background', 'none');
+            .on('change', () => {
+                this.modalSelectedColor = colorInput.node().value;
+                chartColorsGrid.selectAll('.chart-color-btn')
+                    .style('border', '2px solid white');
+            });
             
-        // Custom color label (minimal text)
         customColorRow
             .append('span')
             .style('font-size', '11px')
             .style('color', '#6b7280')
             .style('flex', '1')
-            .text('Custom');
-            
-        // Apply custom color button
-        customColorRow
+            .text('Custom color');
+        
+        // Add Node button (proceed to step 2)
+        container
             .append('button')
-            .style('padding', '4px 8px')
-            .style('background', '#6b7280')
+            .style('width', '100%')
+            .style('padding', '10px')
+            .style('background', '#3b82f6')
             .style('color', 'white')
             .style('border', 'none')
-            .style('border-radius', '4px')
+            .style('border-radius', '8px')
             .style('cursor', 'pointer')
-            .style('font-size', '10px')
+            .style('font-size', '12px')
+            .style('font-weight', '600')
             .style('transition', 'background 0.2s ease')
-            .text('Apply')
+            .text('Add Node →')
             .on('mouseover', function() {
-                d3.select(this).style('background', '#4b5563');
+                d3.select(this).style('background', '#2563eb');
             })
             .on('mouseout', function() {
-                d3.select(this).style('background', '#6b7280');
+                d3.select(this).style('background', '#3b82f6');
             })
             .on('click', () => {
-                const customColor = colorInput.node().value;
-                this.modalSelectedColor = customColor; // Update shared variable for new node
-                
-                // Update visual feedback - highlight the custom color picker
-                colorInput.style('border-color', '#3b82f6');
-                // Reset chart color buttons
-                if (colorSection.select('.chart-color-btn')) {
-                    colorSection.selectAll('.chart-color-btn')
-                        .style('border', '2px solid white')
-                        .style('transform', 'scale(1)');
-                }
-                // Update color indicator
-                colorSection.select('div').select('div').style('background', customColor);
+                // Proceed to step 2
+                this.modalStep = 2;
+                this.showEnhancedColorPicker(null, nodeData, 'create');
             });
     }
+    
+    addCreateStep2Section(container, nodeData) {
+        // Create mode step 2: full configuration
+        this.addNodeCreationSection(container, nodeData);
+    }
+
     
     addNodeCreationSection(container, parentNode) {
         // Separator
@@ -4262,42 +4789,51 @@ class PulseSankeyChart {
     // ===== NODE ARRANGEMENT SYSTEM =====
     
     handleArrangementDrag(event, draggedNode, element) {
-        // Calculate potential new position
+        // Calculate potential new position with free movement
         const newX = event.x;
         const newY = Math.max(20, Math.min(
             this.config.height - this.config.margin.top - this.config.margin.bottom - draggedNode.height - 20,
             event.y
         ));
         
-        // Determine if moving to a different layer with enhanced snapping
-        const potentialLayer = this.calculateLayerFromX(newX);
-        const currentLayer = draggedNode.depth;
-        const snapThreshold = 60; // Increased snap threshold for better UX
+        // Constrain X position within chart boundaries
+        const constrainedX = Math.max(0, Math.min(newX, this.config.width - this.config.margin.left - this.config.margin.right - this.config.nodeWidth));
         
-        // Get the target layer X position for visual feedback
-        const targetLayerX = this.calculateLayerX(potentialLayer);
-        const snapDistance = Math.abs(newX - targetLayerX);
+        // Show all layer guide lines during drag
+        this.showLayerGuideLines();
         
-        // Show visual snapping feedback
-        this.showLayerSnapFeedback(targetLayerX, snapDistance < snapThreshold);
+        // Check for magnetic snapping to layers
+        const nearestLayer = this.findNearestValidLayer(constrainedX, draggedNode);
+        const magneticThreshold = 35; // Balanced magnetic snap distance
         
-        if (potentialLayer !== currentLayer && this.isValidLayerMove(draggedNode, potentialLayer) && snapDistance < snapThreshold) {
-            // Snap to different layer
-            this.moveNodeToLayer(draggedNode, potentialLayer, newY, element);
+        let finalX = constrainedX;
+        let shouldSnapToLayer = false;
+        
+        if (nearestLayer && Math.abs(constrainedX - nearestLayer.x) < magneticThreshold) {
+            // Show strong magnetic feedback
+            this.showMagneticFeedback(nearestLayer.x, true);
+            finalX = nearestLayer.x;
+            shouldSnapToLayer = true;
+            
+            // Update node depth if snapping to a different layer
+            if (nearestLayer.depth !== draggedNode.depth) {
+                draggedNode.depth = nearestLayer.depth;
+            }
         } else {
-            // Free movement - allow horizontal movement within constraints
-            const constrainedX = Math.max(0, Math.min(newX, this.config.width - this.config.margin.left - this.config.margin.right - this.config.nodeWidth));
-            
-            draggedNode.x = constrainedX;
-            draggedNode.y = newY;
-            draggedNode.manualY = newY;
-            draggedNode.manualX = constrainedX; // Store manual X position
-            
-            d3.select(element).attr('transform', `translate(${draggedNode.x}, ${draggedNode.y})`);
-            
-            this.updateNodeLinks(draggedNode);
-            this.updateArrangementHint(draggedNode, draggedNode.depth, newY);
+            // Hide magnetic feedback when not near a layer
+            this.showMagneticFeedback(null, false);
         }
+        
+        // Update position (free movement or snapped)
+        draggedNode.x = finalX;
+        draggedNode.y = newY;
+        draggedNode.manualY = newY;
+        draggedNode.manualX = finalX;
+        
+        d3.select(element).attr('transform', `translate(${draggedNode.x}, ${draggedNode.y})`);
+        
+        this.updateNodeLinks(draggedNode);
+        this.updateArrangementHint(draggedNode, draggedNode.depth, newY);
     }
     
     calculateLayerFromX(x) {
