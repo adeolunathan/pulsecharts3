@@ -246,7 +246,6 @@ window.BarControlModule = (function() {
                             max: 20,
                             default: 8,
                             step: 1,
-                            unit: "px",
                             description: "Distance of labels from bars"
                         },
                         {
@@ -257,7 +256,6 @@ window.BarControlModule = (function() {
                             max: 20,
                             default: 12,
                             step: 1,
-                            unit: "px",
                             description: "Size of category labels"
                         },
                         {
@@ -268,7 +266,6 @@ window.BarControlModule = (function() {
                             max: 20,
                             default: 12,
                             step: 1,
-                            unit: "px",
                             description: "Size of value numbers"
                         },
                         {
@@ -279,7 +276,6 @@ window.BarControlModule = (function() {
                             max: 20,
                             default: 8,
                             step: 1,
-                            unit: "px",
                             description: "Distance of values from bars"
                         },
                         {
@@ -396,7 +392,6 @@ window.BarControlModule = (function() {
                             max: 50,
                             default: 20,
                             step: 1,
-                            unit: "px",
                             description: "Size of the chart title"
                         }
                     ]
@@ -469,7 +464,6 @@ window.BarControlModule = (function() {
                             max: 80,
                             default: 4,
                             step: 1,
-                            unit: "px",
                             description: "Rounded corners for bars"
                         },
                         {
@@ -515,7 +509,6 @@ window.BarControlModule = (function() {
                             max: 300,
                             default: 150,
                             step: 10,
-                            unit: "px",
                             description: "Left margin space for axis labels"
                         },
                         {
@@ -526,7 +519,6 @@ window.BarControlModule = (function() {
                             max: 300,
                             default: 150,
                             step: 10,
-                            unit: "px",
                             description: "Right margin space for legends"
                         },
                         {
@@ -537,7 +529,6 @@ window.BarControlModule = (function() {
                             max: 200,
                             default: 80,
                             step: 10,
-                            unit: "px",
                             description: "Top margin space for titles"
                         },
                         {
@@ -548,7 +539,6 @@ window.BarControlModule = (function() {
                             max: 200,
                             default: 80,
                             step: 10,
-                            unit: "px",
                             description: "Bottom margin space for axis labels"
                         },
                     ]

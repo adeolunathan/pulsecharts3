@@ -138,8 +138,8 @@ body {
     justify-content: flex-start;
     gap: 8px;
     padding: 0 24px;
-    max-width: 1800px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
     min-height: 48px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
@@ -237,16 +237,31 @@ body {
 }
 
 .dropdown-content {
-    padding: 6px 8px;
+    padding: 2px 4px;
     max-height: 50vh;
     overflow-y: auto;
 }
 
-/* Ensure all dropdowns are left-aligned for consistency at all screen sizes */
+/* Microsoft Word-style menu positioning - Force left alignment */
 .menu-dropdown {
+    position: absolute !important;
+    top: 100% !important;
     left: 0 !important;
-    right: auto !important;
-    transform: translateX(0) !important;
+    right: unset !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Override any responsive positioning */
+.menu-section .menu-dropdown {
+    left: 0 !important;
+    right: unset !important;
+    transform: translateY(-8px) !important;
+}
+
+.menu-section .menu-dropdown.active {
+    transform: translateY(0) !important;
 }
 
 /* ===== ACTION BUTTONS ===== */
@@ -341,9 +356,11 @@ body {
     .menu-dropdown {
         min-width: 280px;
         max-width: calc(100vw - 32px);
+        position: absolute !important;
         left: 0 !important;
-        right: auto !important;
+        right: unset !important;
         transform: translateY(-8px) !important;
+        margin-left: 0 !important;
     }
     
     .menu-dropdown.active {
@@ -371,11 +388,11 @@ body {
     transform: rotate(180deg);
 }
 
-/* ===== MENU DROPDOWN SECTIONS (COMPACT) ===== */
+/* ===== MENU DROPDOWN SECTIONS (ULTRA-COMPACT) ===== */
 .menu-control-section {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    margin-bottom: 3px;
-    padding-bottom: 3px;
+    margin-bottom: 1px;
+    padding-bottom: 1px;
 }
 
 .menu-control-section:last-child {
@@ -429,13 +446,13 @@ body {
     transform: rotate(-90deg);
 }
 
-/* ===== CONTROL ITEMS IN DROPDOWNS (COMPACT) ===== */
+/* ===== CONTROL ITEMS IN DROPDOWNS (ULTRA-COMPACT) ===== */
 .dropdown-content .control-item {
-    margin-bottom: 1px;
+    margin-bottom: 0px;
 }
 
 .dropdown-content .control-header {
-    margin-bottom: 1px;
+    margin-bottom: 0px;
 }
 
 .dropdown-content .control-label {
@@ -1135,6 +1152,28 @@ body {
 /* Hide slider value displays for clean look */
 .slider-value {
     display: none;
+}
+
+/* Slider styling for interactive tooltips */
+.control-slider {
+    position: relative;
+}
+
+/* Dynamic slider tooltip styling */
+.slider-tooltip {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.15s ease !important;
+}
+
+.slider-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
 }
 
 .slider-value:hover {

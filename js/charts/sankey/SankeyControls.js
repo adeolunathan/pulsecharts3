@@ -104,7 +104,6 @@ class SankeyControlModule {
                         max: 18,
                         default: 12,
                         step: 1,
-                        unit: "px",
                         description: "Adjust the size of all text elements on the chart"
                     }
                 ]
