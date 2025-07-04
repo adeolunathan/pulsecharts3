@@ -433,107 +433,51 @@ class PulseControlPanel {
         });
     }
 
-    // Create individual color item with modern compact design
+    // Create individual color item with minimalistic design
     createColorItem(container, config) {
         const colorItem = container
             .append('div')
-            .attr('class', 'color-item-modern')
+            .attr('class', 'color-item-minimal')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('gap', '16px')
-            .style('padding', '12px 20px')
-            .style('background', 'rgba(248, 250, 252, 0.6)')
-            .style('border-radius', '12px')
-            .style('border', '1px solid rgba(226, 232, 240, 0.8)')
-            .style('transition', 'all 0.2s ease')
-            .style('cursor', 'pointer')
-            .on('mouseover', function() {
-                d3.select(this)
-                    .style('background', 'rgba(241, 245, 249, 0.8)')
-                    .style('border-color', 'rgba(99, 102, 241, 0.3)')
-                    .style('transform', 'translateY(-1px)')
-                    .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.05)');
-            })
-            .on('mouseout', function() {
-                d3.select(this)
-                    .style('background', 'rgba(248, 250, 252, 0.6)')
-                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
-                    .style('transform', 'translateY(0)')
-                    .style('box-shadow', 'none');
-            });
+            .style('gap', '8px')
+            .style('padding', '2px 0')
+            .style('margin-bottom', '1px');
 
         // **CRITICAL: Get current color from chart, not just config defaults**
         let currentValue = this.getCurrentValue(config);
         
         console.log(`🎨 Creating color control for ${config.id}, current value: ${currentValue}`);
 
-        // Small square color picker
+        // Minimal color picker
         const colorPicker = colorItem
             .append('input')
             .attr('type', 'color')
-            .attr('class', 'color-picker-square')
+            .attr('class', 'color-picker-minimal')
             .attr('value', currentValue)
-            .style('width', '24px')
-            .style('height', '24px')
-            .style('border', '2px solid rgba(226, 232, 240, 0.8)')
-            .style('border-radius', '6px')
+            .style('width', '16px')
+            .style('height', '16px')
+            .style('border', 'none')
+            .style('border-radius', '2px')
             .style('cursor', 'pointer')
             .style('background', 'none')
             .style('padding', '0')
-            .style('transition', 'all 0.2s ease')
-            .style('flex-shrink', '0')
-            .on('mouseover', function() {
-                d3.select(this)
-                    .style('border-color', '#6366f1')
-                    .style('transform', 'scale(1.15)')
-                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.3)');
-            })
-            .on('mouseout', function() {
-                d3.select(this)
-                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
-                    .style('transform', 'scale(1)')
-                    .style('box-shadow', 'none');
-            })
+            .style('margin', '0')
+            .style('outline', 'none')
             .on('change', (event) => {
                 console.log(`🎨 Color changed for ${config.id}: ${event.target.value}`);
                 this.handleChange(config.id, event.target.value);
-                // Update the visual indicator
-                d3.select(colorPicker.node())
-                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.4)');
-                setTimeout(() => {
-                    d3.select(colorPicker.node())
-                        .style('box-shadow', 'none');
-                }, 300);
             });
 
-        const colorInfo = colorItem
-            .append('div')
-            .attr('class', 'color-info-modern')
-            .style('flex', '1')
-            .style('min-width', '0');
-
-        colorInfo
-            .append('div')
-            .attr('class', 'color-label-modern')
-            .style('font-weight', '600')
-            .style('color', '#1e293b')
-            .style('font-size', '14px')
-            .style('margin-bottom', '4px')
-            .style('letter-spacing', '-0.01em')
+        // Minimal label only
+        colorItem
+            .append('span')
+            .attr('class', 'color-label-minimal')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('color', '#374151')
+            .style('line-height', '1.2')
             .text(config.label);
-
-        if (config.description) {
-            colorInfo
-                .append('div')
-                .attr('class', 'color-description-modern')
-                .style('font-size', '12px')
-                .style('color', '#64748b')
-                .style('line-height', '1.4')
-                .style('overflow', 'hidden')
-                .style('text-overflow', 'ellipsis')
-                .style('white-space', 'nowrap')
-                .text(config.description);
-        }
     }
 
     // Create individual control elements
@@ -579,6 +523,9 @@ class PulseControlPanel {
                 break;
             case 'text':
                 this.createTextControl(controlDiv, config);
+                break;
+            case 'header':
+                this.createHeaderControl(controlDiv, config);
                 break;
             default:
                 console.warn(`Unknown control type: ${config.type}`);
@@ -864,7 +811,21 @@ class PulseControlPanel {
             });
     }
 
-    // Create color picker control with modern compact design
+    // Create header control (for section headers within dropdowns)
+    createHeaderControl(container, config) {
+        const headerDiv = container.append('div')
+            .attr('class', 'control-header-item')
+            .style('font-size', '13px')
+            .style('font-weight', '600')
+            .style('color', '#374151')
+            .style('margin', '8px 0 4px 0')
+            .style('padding', '0')
+            .style('border-bottom', '1px solid rgba(0, 0, 0, 0.08)')
+            .style('padding-bottom', '2px')
+            .text(config.label || config.text || 'Header');
+    }
+
+    // Create color picker control with minimalistic design
     createColorPickerControl(container, config) {
         const currentValue = this.getCurrentValue(config);
         
@@ -872,95 +833,42 @@ class PulseControlPanel {
 
         const colorItem = container
             .append('div')
-            .attr('class', 'color-picker-item-modern')
+            .attr('class', 'color-picker-item-minimal')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('gap', '16px')
-            .style('padding', '12px 20px')
-            .style('background', 'rgba(248, 250, 252, 0.6)')
-            .style('border-radius', '12px')
-            .style('border', '1px solid rgba(226, 232, 240, 0.8)')
-            .style('transition', 'all 0.2s ease')
-            .style('cursor', 'pointer')
-            .on('mouseover', function() {
-                d3.select(this)
-                    .style('background', 'rgba(241, 245, 249, 0.8)')
-                    .style('border-color', 'rgba(99, 102, 241, 0.3)')
-                    .style('transform', 'translateY(-1px)')
-                    .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.05)');
-            })
-            .on('mouseout', function() {
-                d3.select(this)
-                    .style('background', 'rgba(248, 250, 252, 0.6)')
-                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
-                    .style('transform', 'translateY(0)')
-                    .style('box-shadow', 'none');
-            });
+            .style('gap', '8px')
+            .style('padding', '2px 0')
+            .style('margin-bottom', '1px');
 
-        // Small square color picker
+        // Minimal color picker
         const colorPicker = colorItem
             .append('input')
             .attr('type', 'color')
-            .attr('class', 'color-picker-square')
+            .attr('class', 'color-picker-minimal')
             .attr('value', currentValue)
-            .style('width', '24px')
-            .style('height', '24px')
-            .style('border', '2px solid rgba(226, 232, 240, 0.8)')
-            .style('border-radius', '6px')
+            .style('width', '16px')
+            .style('height', '16px')
+            .style('border', 'none')
+            .style('border-radius', '2px')
             .style('cursor', 'pointer')
             .style('background', 'none')
             .style('padding', '0')
-            .style('transition', 'all 0.2s ease')
-            .style('flex-shrink', '0')
-            .on('mouseover', function() {
-                d3.select(this)
-                    .style('border-color', '#6366f1')
-                    .style('transform', 'scale(1.15)')
-                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.3)');
-            })
-            .on('mouseout', function() {
-                d3.select(this)
-                    .style('border-color', 'rgba(226, 232, 240, 0.8)')
-                    .style('transform', 'scale(1)')
-                    .style('box-shadow', 'none');
-            })
+            .style('margin', '0')
+            .style('outline', 'none')
             .on('change', (event) => {
                 const newValue = event.target.value;
                 this.handleChange(config.id, newValue);
-                // Update the visual indicator
-                d3.select(colorPicker.node())
-                    .style('box-shadow', '0 2px 8px rgba(99, 102, 241, 0.4)');
-                setTimeout(() => {
-                    d3.select(colorPicker.node())
-                        .style('box-shadow', 'none');
-                }, 300);
             });
 
-        const colorInfo = colorItem
-            .append('div')
-            .attr('class', 'color-info-modern')
-            .style('flex', '1')
-            .style('min-width', '0');
-
-        colorInfo
-            .append('div')
-            .attr('class', 'color-label-modern')
-            .style('font-weight', '600')
-            .style('color', '#1e293b')
-            .style('font-size', '14px')
-            .style('margin-bottom', '4px')
-            .style('letter-spacing', '-0.01em')
+        // Minimal label only
+        colorItem
+            .append('span')
+            .attr('class', 'color-label-minimal')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('color', '#374151')
+            .style('line-height', '1.2')
             .text(config.label);
-
-        if (config.description) {
-            colorInfo
-                .append('div')
-                .attr('class', 'color-description-modern')
-                .style('font-size', '12px')
-                .style('color', '#64748b')
-                .style('line-height', '1.4')
-                .text(config.description);
-        }
     }
 
     /**
