@@ -1839,10 +1839,8 @@ class PulseSankeyChart {
                 self.hideLayerGuideLines(); // Hide guide lines when drag ends
                 self.showMagneticFeedback(null, false); // Hide magnetic feedback
                 
+                // Only update link positions without full re-render
                 self.calculateLinkPositions();
-                self.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
-                self.renderLabels();
-                self.renderLinks();
                 
                 console.log(`📍 Node "${d.id}" repositioned to X: ${d.x.toFixed(1)}, Y: ${d.y.toFixed(1)}`);
                 
@@ -3587,8 +3585,12 @@ class PulseSankeyChart {
             .on('click', (event, d) => {
                 event.stopPropagation();
                 
-                // Always show enhanced color picker with add node option
-                this.showEnhancedColorPicker(event, d);
+                // Show appropriate interface based on interaction mode
+                if (this.interactionMode.mode === 'arrange') {
+                    this.showLinkOrderingPanel(d);
+                } else {
+                    this.showEnhancedColorPicker(event, d);
+                }
             });
     }
     
@@ -5347,13 +5349,23 @@ class PulseSankeyChart {
                     }
                 }
                 
-                // If no direct hit, use closest item
+                // If no direct hit, use closest item or handle drop at end
                 if (targetIndex === -1 && closestIndex !== -1) {
-                    targetIndex = closestIndex;
-                    const closestRect = allItems[closestIndex].getBoundingClientRect();
-                    const closestMiddle = closestRect.top + closestRect.height / 2;
-                    insertBefore = currentY < closestMiddle;
-                    console.log(`🎯 Using closest item ${closestIndex}, insertBefore: ${insertBefore}`);
+                    // Check if we're dragging below all items
+                    const lastItemRect = allItems[allItems.length - 1].getBoundingClientRect();
+                    if (currentY > lastItemRect.bottom) {
+                        // Dropping below all items - append to end
+                        targetIndex = allItems.length - 1;
+                        insertBefore = false;
+                        console.log(`🎯 Dropping below all items, appending to end`);
+                    } else {
+                        // Use existing closest item logic
+                        targetIndex = closestIndex;
+                        const closestRect = allItems[closestIndex].getBoundingClientRect();
+                        const closestMiddle = closestRect.top + closestRect.height / 2;
+                        insertBefore = currentY < closestMiddle;
+                        console.log(`🎯 Using closest item ${closestIndex}, insertBefore: ${insertBefore}`);
+                    }
                 }
                 
                 // Perform the reorder
@@ -5382,7 +5394,7 @@ class PulseSankeyChart {
                     
                     console.log(`🔄 Final target index: ${newIndex}`);
                     
-                    if (draggedIndex !== newIndex && newIndex >= 0 && newIndex < nodeData.sourceLinks.length) {
+                    if (draggedIndex !== newIndex && newIndex >= 0 && newIndex <= nodeData.sourceLinks.length) {
                         const success = this.moveLinkInOrder(nodeData, draggedIndex, newIndex);
                         if (success) {
                             this.refreshLinkOrderingList(container, nodeData);
@@ -5424,7 +5436,7 @@ class PulseSankeyChart {
     moveLinkInOrder(nodeData, fromIndex, toIndex) {
         // Ensure valid indices
         if (fromIndex < 0 || fromIndex >= nodeData.sourceLinks.length || 
-            toIndex < 0 || toIndex >= nodeData.sourceLinks.length || 
+            toIndex < 0 || toIndex > nodeData.sourceLinks.length || 
             fromIndex === toIndex) {
             console.log(`❌ Invalid move: ${fromIndex} → ${toIndex}`);
             return false;
@@ -5453,19 +5465,66 @@ class PulseSankeyChart {
         console.log(`🔗 Applying new link order for node: ${nodeData.id}`);
         console.log(`📋 Current link order:`, nodeData.sourceLinks.map(l => l.target.id));
         
-        // Recalculate link positions with new order
+        // Reorder target nodes to match the new link order
+        this.reorderTargetNodes(nodeData);
+        
+        // Only recalculate link positions, not full layout
         console.log(`⚙️ Recalculating link positions...`);
         this.calculateLinkPositions();
         
-        // Force a complete re-render of links
-        console.log(`🎨 Re-rendering links...`);
+        // Re-render links and nodes to show new positions
+        console.log(`🎨 Re-rendering links and nodes...`);
         this.chart.selectAll('.sankey-link').remove();
+        this.chart.selectAll('.sankey-node').remove();
+        this.chart.selectAll('.node-text-group').remove();
+        this.renderNodes();
         this.renderLinks();
+        this.renderLabels();
         
         // Show success feedback
         this.showLinkOrderingSuccess(nodeData);
         
         console.log(`✅ Link order applied successfully`);
+    }
+    
+    reorderTargetNodes(sourceNode) {
+        console.log(`🔄 Reordering ONLY target nodes for: ${sourceNode.id}`);
+        
+        // Get all target nodes from this source node's links (ONLY these should move)
+        const targetNodes = sourceNode.sourceLinks.map(link => link.target);
+        console.log(`🎯 Target nodes to reorder:`, targetNodes.map(n => n.id));
+        
+        // Don't do anything if no target nodes
+        if (targetNodes.length === 0) return;
+        
+        // Calculate new Y positions for target nodes based on source node position
+        const sourceY = sourceNode.y;
+        const sourceHeight = sourceNode.height;
+        
+        // Calculate the total height of all target nodes
+        const totalTargetHeight = targetNodes.reduce((sum, node) => sum + node.height, 0);
+        const spacing = 10; // Spacing between nodes
+        const totalSpacing = (targetNodes.length - 1) * spacing;
+        const totalHeight = totalTargetHeight + totalSpacing;
+        
+        // Start position to center the target nodes around the source node
+        let startY = sourceY + (sourceHeight / 2) - (totalHeight / 2);
+        
+        // Ensure we don't go below 0
+        startY = Math.max(startY, 20);
+        
+        // Position ONLY the target nodes in their new order
+        let currentY = startY;
+        targetNodes.forEach((node, index) => {
+            console.log(`📍 Positioning target node ${node.id} at Y: ${currentY}`);
+            node.y = currentY;
+            node.manualY = currentY;
+            node.manuallyPositioned = true;
+            currentY += node.height + spacing;
+        });
+        
+        // DO NOT touch other nodes in the layer - leave them exactly where they are
+        console.log(`✅ ONLY target nodes repositioned, other nodes left untouched`);
     }
     
     showLinkOrderingSuccess(nodeData) {
