@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pulse Analytics - Guided Chart Builder</title>
     
+    <!-- Security: Content Security Policy (meta tag version - some directives require HTTP headers) -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://d3js.org https://cdn.jsdelivr.net; 
+                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; 
+                   font-src 'self' https://fonts.gstatic.com; 
+                   img-src 'self' data: blob:; 
+                   connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;">
+    
+    <!-- Note: X-Frame-Options, X-Content-Type-Options, and frame-ancestors CSP directive 
+         must be set via HTTP headers, not meta tags. See server configuration below. -->
+    
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
     
-    <!-- D3.js Library -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+    <!-- D3.js Library - Note: SRI hashes need to be verified for production -->
+    <script src="https://d3js.org/d3.v7.min.js" 
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js" 
+            crossorigin="anonymous"></script>
     
     <!-- Utility Libraries -->
     <script src="js/utils/ExportUtils.js"></script>
@@ -303,7 +317,22 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            console.log(`📁 Processing uploaded file: ${file.name}`);
+            // Security: File size validation (10MB limit)
+            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File too large. Maximum size is ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(1)}MB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`);
+                return;
+            }
+
+            // Security: File type validation
+            const allowedTypes = ['.json', '.csv', '.txt'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            if (!allowedTypes.includes(fileExtension)) {
+                alert(`Invalid file type. Only ${allowedTypes.join(', ')} files are allowed.`);
+                return;
+            }
+
+            console.log(`📁 Processing uploaded file: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -721,37 +750,72 @@
             const previewDiv = document.getElementById('upload-preview');
             const contentDiv = document.getElementById('preview-content');
             
-            // Create simple summary
-            const summary = `
-                <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-                    <div style="font-size: 18px; font-weight: 600; color: #0369a1; margin-bottom: 8px;">📊 Data Ready</div>
-                    <div style="font-size: 14px; color: #374151;">
-                        ${flowData.metadata?.company || 'Company'} • ${flowData.metadata?.currency || 'USD'} (${flowData.metadata?.unit || 'millions'})
-                    </div>
-                </div>
-            `;
-
-            // Create simple action area
-            const actionArea = `
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-                    <h4 style="margin: 0 0 12px 0; color: #1f2937; font-size: 16px;">✅ Data Successfully Loaded</h4>
-                    <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 14px;">Your financial data is ready to be visualized. Continue to customize and view your chart.</p>
-                    
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" onclick="showUploadDialog()" style="display: inline-flex; align-items: center; gap: 8px;">
-                            📁 Upload Different File
-                        </button>
-                        <button class="btn btn-secondary" onclick="downloadTemplate()" style="display: inline-flex; align-items: center; gap: 8px;">
-                            📋 Download Template
-                        </button>
-                        <button class="btn btn-primary" onclick="acceptUploadedData()" style="display: inline-flex; align-items: center; gap: 8px;">
-                            ✅ Use This Data
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            contentDiv.innerHTML = summary + actionArea;
+            // Clear content safely
+            contentDiv.innerHTML = '';
+            
+            // Create summary section safely
+            const summaryDiv = document.createElement('div');
+            summaryDiv.style.cssText = 'background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center;';
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.style.cssText = 'font-size: 18px; font-weight: 600; color: #0369a1; margin-bottom: 8px;';
+            statusDiv.textContent = '📊 Data Ready';
+            
+            const detailsDiv = document.createElement('div');
+            detailsDiv.style.cssText = 'font-size: 14px; color: #374151;';
+            // Safe handling of user metadata
+            const company = String(flowData.metadata?.company || 'Company');
+            const currency = String(flowData.metadata?.currency || 'USD');
+            const unit = String(flowData.metadata?.unit || 'millions');
+            detailsDiv.textContent = `${company} • ${currency} (${unit})`;
+            
+            summaryDiv.appendChild(statusDiv);
+            summaryDiv.appendChild(detailsDiv);
+            
+            // Create action area safely
+            const actionDiv = document.createElement('div');
+            actionDiv.style.cssText = 'background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;';
+            
+            const titleH4 = document.createElement('h4');
+            titleH4.style.cssText = 'margin: 0 0 12px 0; color: #1f2937; font-size: 16px;';
+            titleH4.textContent = '✅ Data Successfully Loaded';
+            
+            const descP = document.createElement('p');
+            descP.style.cssText = 'margin: 0 0 20px 0; color: #6b7280; font-size: 14px;';
+            descP.textContent = 'Your financial data is ready to be visualized. Continue to customize and view your chart.';
+            
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.style.cssText = 'display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;';
+            
+            // Create buttons safely
+            const uploadBtn = document.createElement('button');
+            uploadBtn.className = 'btn btn-secondary';
+            uploadBtn.style.cssText = 'display: inline-flex; align-items: center; gap: 8px;';
+            uploadBtn.textContent = '📁 Upload Different File';
+            uploadBtn.onclick = showUploadDialog;
+            
+            const templateBtn = document.createElement('button');
+            templateBtn.className = 'btn btn-secondary';
+            templateBtn.style.cssText = 'display: inline-flex; align-items: center; gap: 8px;';
+            templateBtn.textContent = '📋 Download Template';
+            templateBtn.onclick = downloadTemplate;
+            
+            const useBtn = document.createElement('button');
+            useBtn.className = 'btn btn-primary';
+            useBtn.style.cssText = 'display: inline-flex; align-items: center; gap: 8px;';
+            useBtn.textContent = '✅ Use This Data';
+            useBtn.onclick = acceptUploadedData;
+            
+            buttonsDiv.appendChild(uploadBtn);
+            buttonsDiv.appendChild(templateBtn);
+            buttonsDiv.appendChild(useBtn);
+            
+            actionDiv.appendChild(titleH4);
+            actionDiv.appendChild(descP);
+            actionDiv.appendChild(buttonsDiv);
+            
+            contentDiv.appendChild(summaryDiv);
+            contentDiv.appendChild(actionDiv);
             previewDiv.style.display = 'block';
             
             // Scroll to preview

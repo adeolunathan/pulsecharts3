@@ -1809,6 +1809,7 @@ class PulseSankeyChart {
                 self.hideTooltip();
                 
                 d.manuallyPositioned = true;
+                d.initialDragY = d.y; // Store initial Y position for child movement calculation
                 const maxDepth = Math.max(...self.nodes.map(n => n.depth));
                 const isMiddle = d.depth !== 0 && d.depth !== maxDepth;
                 d.preserveLabelsAbove = isMiddle ? (d.layerIndex === 0) : null;
@@ -1839,8 +1840,23 @@ class PulseSankeyChart {
                 self.hideLayerGuideLines(); // Hide guide lines when drag ends
                 self.showMagneticFeedback(null, false); // Hide magnetic feedback
                 
+                // Move child nodes if this node has children
+                console.log(`🐛 Debug: Node ${d.id} drag ended. Has sourceLinks: ${d.sourceLinks ? d.sourceLinks.length : 'none'}, initialDragY: ${d.initialDragY}, finalY: ${d.y}`);
+                if (d.sourceLinks && d.sourceLinks.length > 0 && d.initialDragY !== undefined) {
+                    const deltaY = d.y - d.initialDragY;
+                    console.log(`🐛 Debug: deltaY = ${deltaY}, threshold check: ${Math.abs(deltaY) > 5}`);
+                    if (Math.abs(deltaY) > 5) { // Only move if significant movement
+                        console.log(`🚀 Calling moveChildNodesWithParent for ${d.id}`);
+                        self.moveChildNodesWithParent(d, deltaY);
+                    }
+                }
+                
                 // Only update link positions without full re-render
                 self.calculateLinkPositions();
+                
+                // Update labels after movement
+                self.chart.selectAll('.node-text-group').remove();
+                self.renderLabels();
                 
                 console.log(`📍 Node "${d.id}" repositioned to X: ${d.x.toFixed(1)}, Y: ${d.y.toFixed(1)}`);
                 
@@ -2843,15 +2859,6 @@ class PulseSankeyChart {
         }
     }
     
-    getRevenueSegmentNodes() {
-        console.warn('getRevenueSegmentNodes() has been moved to FinancialDataProcessor - using fallback');
-        return [];
-    }
-
-    getPreRevenueNodes() {
-        console.warn('getPreRevenueNodes() has been moved to FinancialDataProcessor - using fallback');
-        return [];
-    }
 
     rerenderWithNewColors() {
         if (!this.chart) return;
@@ -4855,6 +4862,44 @@ class PulseSankeyChart {
         this.updateArrangementHint(draggedNode, draggedNode.depth, newY);
     }
     
+    moveChildNodesWithParent(parentNode, deltaY) {
+        console.log(`🔄 moveChildNodesWithParent called for: ${parentNode.id}, deltaY: ${deltaY}`);
+        console.log(`🔗 Parent has ${parentNode.sourceLinks ? parentNode.sourceLinks.length : 0} source links`);
+        
+        // Only move immediate children (next depth level)
+        if (!parentNode.sourceLinks || parentNode.sourceLinks.length === 0) {
+            console.log(`❌ No source links found for ${parentNode.id}`);
+            return;
+        }
+        
+        parentNode.sourceLinks.forEach(link => {
+            const childNode = link.target;
+            console.log(`🎯 Examining child: ${childNode.id}, parent depth: ${parentNode.depth}, child depth: ${childNode.depth}`);
+            
+            // Only move direct children in the next layer
+            if (childNode.depth === parentNode.depth + 1) {
+                const newY = childNode.y + deltaY;
+                
+                // Constrain within chart boundaries
+                const constrainedY = Math.max(20, Math.min(
+                    this.config.height - this.config.margin.top - this.config.margin.bottom - childNode.height - 20,
+                    newY
+                ));
+                
+                // Update child node position
+                childNode.y = constrainedY;
+                childNode.manualY = constrainedY;
+                childNode.manuallyPositioned = true;
+                
+                // Update visual position of child node
+                this.chart.select(`[data-node-id="${childNode.id}"]`)
+                    .attr('transform', `translate(${childNode.x}, ${childNode.y})`);
+                
+                console.log(`📍 Moved child node: ${childNode.id} to Y: ${constrainedY}`);
+            }
+        });
+    }
+    
     calculateLayerFromX(x) {
         // Calculate which layer this X position corresponds to with enhanced snapping
         const layerPositions = [...new Set(this.nodes.map(n => n.x))].sort((a, b) => a - b);
@@ -5490,43 +5535,180 @@ class PulseSankeyChart {
     }
     
     reorderTargetNodes(sourceNode) {
-        console.log(`🔄 Reordering ONLY target nodes for: ${sourceNode.id}`);
+        console.log(`🔄 Reordering target nodes and handling collisions for: ${sourceNode.id}`);
         
-        // Get all target nodes from this source node's links (ONLY these should move)
+        // Get all target nodes from this source node's links
         const targetNodes = sourceNode.sourceLinks.map(link => link.target);
         console.log(`🎯 Target nodes to reorder:`, targetNodes.map(n => n.id));
         
-        // Don't do anything if no target nodes
         if (targetNodes.length === 0) return;
         
-        // Calculate new Y positions for target nodes based on source node position
+        // Store original positions before any changes
+        const originalPositions = new Map();
+        targetNodes.forEach(node => {
+            originalPositions.set(node.id, { y: node.y, children: this.getAllChildNodes(node) });
+        });
+        
+        // Calculate new Y positions for target nodes
         const sourceY = sourceNode.y;
         const sourceHeight = sourceNode.height;
-        
-        // Calculate the total height of all target nodes
         const totalTargetHeight = targetNodes.reduce((sum, node) => sum + node.height, 0);
-        const spacing = 10; // Spacing between nodes
+        const spacing = 10;
         const totalSpacing = (targetNodes.length - 1) * spacing;
         const totalHeight = totalTargetHeight + totalSpacing;
         
-        // Start position to center the target nodes around the source node
         let startY = sourceY + (sourceHeight / 2) - (totalHeight / 2);
-        
-        // Ensure we don't go below 0
         startY = Math.max(startY, 20);
         
-        // Position ONLY the target nodes in their new order
+        // Position target nodes in new order
         let currentY = startY;
         targetNodes.forEach((node, index) => {
-            console.log(`📍 Positioning target node ${node.id} at Y: ${currentY}`);
+            const oldY = node.y;
             node.y = currentY;
             node.manualY = currentY;
             node.manuallyPositioned = true;
+            
+            console.log(`📍 Moving ${node.id}: ${oldY} → ${currentY}`);
             currentY += node.height + spacing;
         });
         
-        // DO NOT touch other nodes in the layer - leave them exactly where they are
-        console.log(`✅ ONLY target nodes repositioned, other nodes left untouched`);
+        // Now handle children and displacement
+        this.repositionChildrenAndHandleCollisions(targetNodes, originalPositions);
+        
+        console.log(`✅ Target nodes repositioned with collision handling`);
+    }
+    
+    getAllChildNodes(node) {
+        const children = [];
+        if (node.sourceLinks) {
+            node.sourceLinks.forEach(link => {
+                children.push(link.target);
+                // Recursively get grandchildren
+                children.push(...this.getAllChildNodes(link.target));
+            });
+        }
+        return children;
+    }
+    
+    repositionChildrenAndHandleCollisions(movedNodes, originalPositions) {
+        // First, move all children of the moved nodes
+        movedNodes.forEach(node => {
+            const original = originalPositions.get(node.id);
+            const deltaY = node.y - original.y;
+            
+            if (Math.abs(deltaY) > 5 && node.sourceLinks) {
+                console.log(`🔄 Moving children of ${node.id} by deltaY: ${deltaY}`);
+                this.moveChildrenRecursively(node, deltaY);
+            }
+        });
+        
+        // Then resolve collisions by displacing nodes that are now overlapping
+        this.resolveOverlaps();
+    }
+    
+    moveChildrenRecursively(parentNode, deltaY) {
+        if (!parentNode.sourceLinks) return;
+        
+        parentNode.sourceLinks.forEach(link => {
+            const childNode = link.target;
+            if (childNode.depth === parentNode.depth + 1) {
+                const newY = childNode.y + deltaY;
+                const constrainedY = Math.max(20, Math.min(
+                    this.config.height - this.config.margin.top - this.config.margin.bottom - childNode.height - 20,
+                    newY
+                ));
+                
+                childNode.y = constrainedY;
+                childNode.manualY = constrainedY;
+                childNode.manuallyPositioned = true;
+                
+                console.log(`📍 Moved child: ${childNode.id} to Y: ${constrainedY}`);
+                
+                // Recursively move grandchildren
+                this.moveChildrenRecursively(childNode, deltaY);
+            }
+        });
+    }
+    
+    resolveOverlaps() {
+        console.log(`🔧 Starting overlap resolution...`);
+        
+        // Group nodes by depth (layer)
+        const nodesByDepth = new Map();
+        this.nodes.forEach(node => {
+            if (!nodesByDepth.has(node.depth)) {
+                nodesByDepth.set(node.depth, []);
+            }
+            nodesByDepth.get(node.depth).push(node);
+        });
+        
+        // Keep resolving overlaps until no more are found
+        let maxIterations = 10;
+        let iteration = 0;
+        let hasOverlaps = true;
+        
+        while (hasOverlaps && iteration < maxIterations) {
+            hasOverlaps = false;
+            iteration++;
+            console.log(`🔄 Overlap resolution iteration ${iteration}`);
+            
+            // For each layer, check for overlaps and resolve them
+            nodesByDepth.forEach((nodesInLayer, depth) => {
+                // Sort nodes by Y position
+                nodesInLayer.sort((a, b) => a.y - b.y);
+                
+                // Check for overlaps and adjust positions
+                for (let i = 1; i < nodesInLayer.length; i++) {
+                    const currentNode = nodesInLayer[i];
+                    const previousNode = nodesInLayer[i - 1];
+                    
+                    const minGap = 10;
+                    const requiredY = previousNode.y + previousNode.height + minGap;
+                    
+                    if (currentNode.y < requiredY) {
+                        console.log(`⚠️ Iteration ${iteration}: ${currentNode.id} overlaps with ${previousNode.id}`);
+                        const deltaY = requiredY - currentNode.y;
+                        
+                        // Move the overlapping node and its children (but don't call recursively)
+                        currentNode.y = requiredY;
+                        currentNode.manualY = requiredY;
+                        console.log(`🔧 Displaced ${currentNode.id} by ${deltaY} to Y: ${requiredY}`);
+                        
+                        // Mark that we found overlaps and need another iteration
+                        hasOverlaps = true;
+                    }
+                }
+            });
+        }
+        
+        console.log(`✅ Overlap resolution completed after ${iteration} iterations`);
+    }
+    
+    moveNodeAndChildren(node, deltaY) {
+        node.y += deltaY;
+        node.manualY = node.y;
+        console.log(`🔧 Displaced ${node.id} by ${deltaY} to avoid overlap`);
+        
+        // Move children too
+        this.moveChildrenRecursively(node, deltaY);
+    }
+    
+    moveChildrenWithNode(parentNode, deltaY) {
+        if (!parentNode.sourceLinks) return;
+        
+        parentNode.sourceLinks.forEach(link => {
+            const childNode = link.target;
+            if (childNode.depth === parentNode.depth + 1) {
+                childNode.y += deltaY;
+                childNode.manualY = childNode.y;
+                childNode.manuallyPositioned = true;
+                
+                console.log(`📍 Moved child ${childNode.id} by ${deltaY} to Y: ${childNode.y}`);
+                
+                // Recursively move grandchildren
+                this.moveChildrenWithNode(childNode, deltaY);
+            }
+        });
     }
     
     showLinkOrderingSuccess(nodeData) {

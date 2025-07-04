@@ -360,7 +360,7 @@ class BarDataEditor {
                     padding: 8px 12px; min-height: 20px; background: transparent;
                     text-align: ${column.type === 'number' ? 'right' : 'left'};
                 `;
-                cellContent.innerHTML = this.formatCellValue(row[column.id] || '', column.type);
+                cellContent.textContent = this.formatCellValueSafe(row[column.id] || '', column.type);
                 
                 td.appendChild(cellContent);
                 tr.appendChild(td);
@@ -408,6 +408,13 @@ class BarDataEditor {
             return typeof value === 'number' ? value.toLocaleString() : (value || '0');
         }
         return this.escapeHtml(value || '');
+    }
+
+    formatCellValueSafe(value, type) {
+        if (type === 'number') {
+            return typeof value === 'number' ? value.toLocaleString() : (value || '0');
+        }
+        return String(value || ''); // Safe for textContent
     }
 
     handleCellClick(e) {
@@ -542,7 +549,7 @@ class BarDataEditor {
                 const row = parseInt(cell.dataset.row);
                 const col = cell.dataset.col;
                 const column = this.columns.find(c => c.id === col);
-                content.innerHTML = this.formatCellValue(this.data[row][col], column.type);
+                content.textContent = this.formatCellValueSafe(this.data[row][col], column.type);
             }
             
             // Update chart with small delay to ensure data is set

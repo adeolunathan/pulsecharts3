@@ -1,0 +1,37 @@
+# Security Headers for PulseCharts Application
+# This file provides HTTP-level security headers that cannot be set via HTML meta tags
+
+# Content Security Policy (complete version with frame-ancestors)
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://d3js.org https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none';"
+
+# Prevent clickjacking attacks
+Header always set X-Frame-Options "DENY"
+
+# Prevent MIME type sniffing
+Header always set X-Content-Type-Options "nosniff"
+
+# Control referrer information
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Enable XSS protection (legacy browsers)
+Header always set X-XSS-Protection "1; mode=block"
+
+# Strict Transport Security (HTTPS only - uncomment if using HTTPS)
+# Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+# Remove server information
+Header always unset Server
+Header always unset X-Powered-By
+
+# Cache control for security-sensitive files
+<FilesMatch "\.(html|htm)$">
+    Header always set Cache-Control "no-cache, no-store, must-revalidate"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+</FilesMatch>
+
+# Secure file access
+<FilesMatch "\.(env|log|config)$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>

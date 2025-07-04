@@ -430,7 +430,7 @@ class SankeyControlModule {
         
         // Add individual node controls for pre-revenue segments (income statements only)
         if (this.statementType !== 'balance' && chart) {
-            const preRevenueNodes = chart.getPreRevenueNodes();
+            const preRevenueNodes = window.FinancialDataProcessor?.getPreRevenueNodes?.(chart.nodes || [], chart.revenueHubLayer || 0) || [];
             
             if (preRevenueNodes.length > 0) {
                 // Add section header

@@ -38,6 +38,12 @@ Since this is a client-side JavaScript application without a package.json, no bu
 - Charts register with the bridge to receive data updates from other instances
 - Prevents infinite loops with source tracking
 
+**4. Capabilities-Driven Control System**
+- Control modules use a `capabilities` object to define available controls dynamically
+- Supports immediate updates (colors, opacity) vs debounced updates (layout changes) 
+- Dynamic control generation based on chart data (e.g., Sankey layer spacing, Bar chart series colors)
+- Chart-type-aware filtering (Bar chart controls change based on chart subtype)
+
 ### Key Components
 
 **Main Application (`js/app.js`)**
@@ -56,20 +62,24 @@ Since this is a client-side JavaScript application without a package.json, no bu
 - Dynamic controls can be generated based on chart data (e.g., layer spacing controls)
 
 **Data Management**
-- `PulseDataManager` (`js/core/DataManager.js`) - Handles data loading and validation
+- `PulseDataManager` (`js/core/DataManager.js`) - Handles data loading, validation, and caching
 - `FinancialDataProcessor` (`js/charts/sankey/FinancialDataProcessor.js`) - Converts financial data to Sankey format
 - Support for income statements, balance sheets, and custom JSON data
+- Automatic statement type detection (Income Statement vs Balance Sheet)
+- Intelligent data format validation with chart-type-specific rules
 
 ### Utility Modules
 
 The codebase uses a modular utility system:
 
 - **`ChartUtils.js`** - Common chart operations and calculations
-- **`ChartExports.js`** - PNG, SVG, and CSV export functionality
+- **`ChartExports.js`** - PNG, SVG, and CSV export functionality  
 - **`ChartZoom.js`** - Pan and zoom capabilities for charts
 - **`ChartColorPicker.js`** - Interactive color selection tools
 - **`ChartBrandingUtils.js`** - Logo and branding integration
 - **`GlobalChartConfig.js`** - Shared configuration constants
+- **`ExportUtils.js`** - Comprehensive export system with multi-format support (PNG, SVG, CSV, JSON)
+- **`FinancialDataProcessor.js`** - Specialized financial data analysis and transformation
 
 ### Data Flow Patterns
 
@@ -120,12 +130,22 @@ Immediate re-render (colors, opacity) or debounced update
 - Provide `handleControlChange()` method for config updates
 - Support `hasDynamicControls()` for data-dependent controls
 - Use `getCurrentValue()` for proper control state synchronization
+- Use immediate vs debounced updates: colors/opacity update immediately, layout changes are debounced
 
 **Color System**
 - Charts store custom colors in `this.customColors` object
 - Control modules handle color changes via `handleControlChange()`
 - Color presets are managed through control module methods
 - Support for both individual color controls and preset application
+- Hierarchical color management: Global defaults → Chart-specific → User overrides → Dynamic detection
+
+**Chart Implementation Interface**
+All charts must implement:
+- `render(data)` - Core rendering method
+- `updateConfig(newConfig)` - Apply configuration changes
+- `exportToPNG()`, `exportToSVG()`, `exportDataToCSV()` - Export methods
+- `getInitialConfig()` - Return default configuration
+- `applyControlDefaults()` - Apply control module defaults
 
 ## Important Implementation Notes
 
@@ -149,103 +169,35 @@ Immediate re-render (colors, opacity) or debounced update
 - Chart type can be specified with `?type=` parameter
 - Custom data can be passed with `?data=` parameter (URL-encoded JSON)
 
-## Using Gemini CLI for Large Codebase Analysis
+## Data Formats and Processing
 
-When analyzing large codebases or multiple files that might exceed context limits, use the Gemini CLI with its massive context window. Use `gemini -p` to leverage Google Gemini's large context capacity.
+**Supported Data Formats:**
+- **Sankey Charts**: `{nodes: [...], links: [...]}` or `{flows: [...]}` format
+- **Bar Charts**: `{categories: [...], values: [...]}` or array of objects with category/value properties
+- **Financial Data**: Income statement and balance sheet formats with automatic conversion
 
-### File and Directory Inclusion Syntax
+**Data Validation Patterns:**
+- Chart-type-specific validation using `DataManager.validateData()`
+- Automatic format detection: `isBarChartData = data.categories || data.series || data.values`
+- Financial statement type detection: Income Statement vs Balance Sheet
 
-Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the gemini command:
-
-#### Examples:
-
-**Single file analysis:**
-```bash
-gemini -p "@src/main.py Explain this file's purpose and structure"
+**Data Transformation Pipeline:**
+```
+Raw Data → Format Detection → Validation → Chart-Specific Processing → Render
 ```
 
-**Multiple files:**
-```bash
-gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
-```
+**Financial Data Processing:**
+- Automatic detection of financial statement types
+- Revenue hub analysis for Sankey positioning
+- Hierarchical color assignment based on financial categories
+- Support for both percentage and absolute value representations
 
-**Entire directory:**
-```bash
-gemini -p "@src/ Summarize the architecture of this codebase"
-```
 
-**Multiple directories:**
-```bash
-gemini -p "@src/ @tests/ Analyze test coverage for the source code"
-```
+## Code Review Guidelines
 
-**Current directory and subdirectories:**
-```bash
-gemini -p "@./ Give me an overview of this entire project"
-```
+Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
+Add a review section to the [todo.md](http://todo.md/) file with a summary of the changes you made and any other relevant information.
 
-**Or use --all_files flag:**
-```bash
-gemini --all_files -p "Analyze the project structure and dependencies"
-```
+## Security and Vulnerability Checks
 
-### Implementation Verification Examples
-
-**Check if a feature is implemented:**
-```bash
-gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
-```
-
-**Verify authentication implementation:**
-```bash
-gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
-```
-
-**Check for specific patterns:**
-```bash
-gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
-```
-
-**Verify error handling:**
-```bash
-gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
-```
-
-**Check for rate limiting:**
-```bash
-gemini -p "@backend/ @middleware/ Is rate limiting implemented for the API? Show the implementation details"
-```
-
-**Verify caching strategy:**
-```bash
-gemini -p "@src/ @lib/ @services/ Is Redis caching implemented? List all cache-related functions and their usage"
-```
-
-**Check for specific security measures:**
-```bash
-gemini -p "@src/ @api/ Are SQL injection protections implemented? Show how user inputs are sanitized"
-```
-
-**Verify test coverage for features:**
-```bash
-gemini -p "@src/payment/ @tests/ Is the payment processing module fully tested? List all test cases"
-```
-
-### When to Use Gemini CLI
-
-Use `gemini -p` when:
-- Analyzing entire codebases or large directories
-- Comparing multiple large files
-- Need to understand project-wide patterns or architecture
-- Current context window is insufficient for the task
-- Working with files totaling more than 100KB
-- Verifying if specific features, patterns, or security measures are implemented
-- Checking for the presence of certain coding patterns across the entire codebase
-
-### Important Notes
-
-- Paths in @ syntax are relative to your current working directory when invoking gemini
-- The CLI will include file contents directly in the context
-- No need for --yolo flag for read-only analysis
-- Gemini's context window can handle entire codebases that would overflow Claude's context
-- When checking implementations, be specific about what you're looking for to get accurate results
+Please check through all the code you just wrote and make sure it follows security best practices. make sure there are no sensitive information in the front and and there are no vulnerabilities that can be exploited

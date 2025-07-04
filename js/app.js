@@ -438,6 +438,21 @@ class PulseApplication {
         const file = event.target.files[0];
         if (!file) return;
 
+        // Security: File size validation (10MB limit)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_FILE_SIZE) {
+            alert(`File too large. Maximum size is ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(1)}MB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`);
+            return;
+        }
+
+        // Security: File type validation
+        if (!file.name.toLowerCase().endsWith('.json')) {
+            alert('Invalid file type. Only JSON files are allowed.');
+            return;
+        }
+
+        console.log(`📁 Processing uploaded file: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -561,19 +576,45 @@ class PulseApplication {
             const errorIcon = isExternalFileError ? '📁❌' : '⚠️';
             const errorTitle = isExternalFileError ? 'External File Loading Failed' : 'Error Loading Chart';
             
-            container.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; text-align: center; padding: 2rem;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">${errorIcon}</div>
-                    <h3 style="color: #e74c3c; margin-bottom: 12px;">${errorTitle}</h3>
-                    <div style="color: #6c757d; max-width: 600px; margin-bottom: 16px; white-space: pre-line; font-family: monospace; font-size: 13px; background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #e74c3c;">
-                        ${message}
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="location.reload()" class="btn btn-primary">Reload</button>
-                        <button onclick="pulseApp.loadCustomData()" class="btn btn-secondary">Load Custom Data</button>
-                    </div>
-                </div>
-            `;
+            // Create error display safely without innerHTML
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; text-align: center; padding: 2rem;';
+            
+            const iconDiv = document.createElement('div');
+            iconDiv.style.cssText = 'font-size: 48px; margin-bottom: 16px;';
+            iconDiv.textContent = errorIcon;
+            
+            const titleH3 = document.createElement('h3');
+            titleH3.style.cssText = 'color: #e74c3c; margin-bottom: 12px;';
+            titleH3.textContent = errorTitle;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = 'color: #6c757d; max-width: 600px; margin-bottom: 16px; white-space: pre-line; font-family: monospace; font-size: 13px; background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #e74c3c;';
+            messageDiv.textContent = message; // Safe from XSS
+            
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.style.cssText = 'display: flex; gap: 10px;';
+            
+            const reloadBtn = document.createElement('button');
+            reloadBtn.className = 'btn btn-primary';
+            reloadBtn.textContent = 'Reload';
+            reloadBtn.onclick = () => location.reload();
+            
+            const loadBtn = document.createElement('button');
+            loadBtn.className = 'btn btn-secondary';
+            loadBtn.textContent = 'Load Custom Data';
+            loadBtn.onclick = () => pulseApp.loadCustomData();
+            
+            buttonsDiv.appendChild(reloadBtn);
+            buttonsDiv.appendChild(loadBtn);
+            
+            errorDiv.appendChild(iconDiv);
+            errorDiv.appendChild(titleH3);
+            errorDiv.appendChild(messageDiv);
+            errorDiv.appendChild(buttonsDiv);
+            
+            container.innerHTML = ''; // Clear container
+            container.appendChild(errorDiv);
         }
         this.setStatus('Error - External files not accessible', 'error');
     }
