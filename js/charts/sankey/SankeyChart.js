@@ -1809,7 +1809,6 @@ class PulseSankeyChart {
                 self.hideTooltip();
                 
                 d.manuallyPositioned = true;
-                d.initialDragY = d.y; // Store initial Y position for child movement calculation
                 const maxDepth = Math.max(...self.nodes.map(n => n.depth));
                 const isMiddle = d.depth !== 0 && d.depth !== maxDepth;
                 d.preserveLabelsAbove = isMiddle ? (d.layerIndex === 0) : null;
@@ -1840,19 +1839,12 @@ class PulseSankeyChart {
                 self.hideLayerGuideLines(); // Hide guide lines when drag ends
                 self.showMagneticFeedback(null, false); // Hide magnetic feedback
                 
-                // Move child nodes if this node has children
-                console.log(`🐛 Debug: Node ${d.id} drag ended. Has sourceLinks: ${d.sourceLinks ? d.sourceLinks.length : 'none'}, initialDragY: ${d.initialDragY}, finalY: ${d.y}`);
-                if (d.sourceLinks && d.sourceLinks.length > 0 && d.initialDragY !== undefined) {
-                    const deltaY = d.y - d.initialDragY;
-                    console.log(`🐛 Debug: deltaY = ${deltaY}, threshold check: ${Math.abs(deltaY) > 5}`);
-                    if (Math.abs(deltaY) > 5) { // Only move if significant movement
-                        console.log(`🚀 Calling moveChildNodesWithParent for ${d.id}`);
-                        self.moveChildNodesWithParent(d, deltaY);
-                    }
-                }
-                
-                // Only update link positions without full re-render
+                // Update link positions to ensure they remain connected to nodes
                 self.calculateLinkPositions();
+                
+                // Update the link paths in the DOM to reflect new positions
+                self.chart.selectAll('.sankey-link path')
+                    .attr('d', d => d.path);
                 
                 // Update labels after movement
                 self.chart.selectAll('.node-text-group').remove();
@@ -1898,23 +1890,37 @@ class PulseSankeyChart {
     }
 
     updateNodeLinks(draggedNode) {
+        // Recalculate positions for the dragged node
         this.recalculateSingleNodeLinkPositions(draggedNode);
         
-        draggedNode.sourceLinks.forEach(link => {
-            link.path = this.createSmoothPath(link);
-            
-            this.chart.selectAll('.sankey-link path')
-                .filter(d => d.source.id === link.source.id && d.target.id === link.target.id)
-                .attr('d', link.path);
-        });
-
+        // Also recalculate positions for connected nodes to maintain link connections
+        const connectedNodes = new Set();
+        
+        // Add source nodes (nodes that connect TO this dragged node)
         draggedNode.targetLinks.forEach(link => {
-            link.path = this.createSmoothPath(link);
-            
-            this.chart.selectAll('.sankey-link path')
-                .filter(d => d.source.id === link.source.id && d.target.id === link.target.id)
-                .attr('d', link.path);
+            connectedNodes.add(link.source);
         });
+        
+        // Add target nodes (nodes that this dragged node connects TO)
+        draggedNode.sourceLinks.forEach(link => {
+            connectedNodes.add(link.target);
+        });
+        
+        // Recalculate link positions for all connected nodes
+        connectedNodes.forEach(node => {
+            this.recalculateSingleNodeLinkPositions(node);
+        });
+        
+        // Force recalculation of ALL link positions to ensure consistency
+        this.calculateLinkPositions();
+        
+        // Update all link paths on the chart
+        const self = this;
+        this.chart.selectAll('.sankey-link path')
+            .each(function(d) {
+                d.path = self.createSmoothPath(d);
+                d3.select(this).attr('d', d.path);
+            });
     }
 
     showDragHint(node) {
@@ -2114,6 +2120,7 @@ class PulseSankeyChart {
         // Create unified text group positioned beside node and centered vertically
         const textGroup = this.chart.append('g')
             .attr('class', 'node-text-group')
+            .attr('data-node-id', node.id)
             .attr('transform', `translate(${node.x - textDistance}, ${node.y + node.height/2})`);
 
         // Smart layout: adjust positioning based on whether period change will be shown
@@ -2175,6 +2182,7 @@ class PulseSankeyChart {
         // Create unified text group positioned beside node and centered vertically
         const textGroup = this.chart.append('g')
             .attr('class', 'node-text-group')
+            .attr('data-node-id', node.id)
             .attr('transform', `translate(${node.x + this.config.nodeWidth + textDistance}, ${node.y + node.height/2})`);
 
         // Smart layout: adjust positioning based on whether period change will be shown
@@ -2264,6 +2272,7 @@ class PulseSankeyChart {
         
         const textGroup = this.chart.append('g')
             .attr('class', 'node-text-group')
+            .attr('data-node-id', node.id)
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y - textDistance})`);
 
         // Smart layout: adjust positioning based on whether period change will be shown
@@ -2323,6 +2332,7 @@ class PulseSankeyChart {
         
         const textGroup = this.chart.append('g')
             .attr('class', 'node-text-group')
+            .attr('data-node-id', node.id)
             .attr('transform', `translate(${node.x + this.config.nodeWidth/2}, ${node.y + node.height + textDistance})`);
 
         // Smart layout: adjust positioning based on whether period change will be shown
@@ -4878,8 +4888,86 @@ class PulseSankeyChart {
         
         d3.select(element).attr('transform', `translate(${draggedNode.x}, ${draggedNode.y})`);
         
+        // Update labels that belong to this node
+        this.updateNodeLabels(draggedNode);
+        
+        // Update comments that belong to this node
+        this.updateNodeComments(draggedNode);
+        
         this.updateNodeLinks(draggedNode);
         this.updateArrangementHint(draggedNode, draggedNode.depth, newY);
+    }
+    
+    updateNodeLabels(node) {
+        // Find and update the label group for this specific node using data-node-id
+        const maxDepth = Math.max(...this.nodes.map(n => n.depth));
+        const isLeftmost = node.depth === 0;
+        const isRightmost = node.depth === maxDepth;
+        
+        let textDistance;
+        let newX, newY;
+        
+        if (isLeftmost) {
+            textDistance = this.config.textDistance?.leftmost || this.config.labelDistance?.leftmost || 15;
+            newX = node.x - textDistance;
+            newY = node.y + node.height / 2;
+        } else if (isRightmost) {
+            textDistance = this.config.textDistance?.rightmost || this.config.labelDistance?.rightmost || 15;
+            newX = node.x + this.config.nodeWidth + textDistance;
+            newY = node.y + node.height / 2;
+        } else {
+            textDistance = this.config.textDistance?.middle || this.config.labelDistance?.middle || 15;
+            newX = node.x + this.config.nodeWidth / 2;
+            
+            // For middle nodes, check if labels are above or below
+            // We need to determine which positioning was used
+            const labelGroup = this.chart.select(`.node-text-group[data-node-id="${node.id}"]`);
+            if (!labelGroup.empty()) {
+                const currentTransform = labelGroup.attr('transform');
+                const match = currentTransform.match(/translate\([^,]+,([^)]+)\)/);
+                if (match) {
+                    const currentY = parseFloat(match[1]);
+                    const nodeCenter = node.y + node.height / 2;
+                    
+                    // Determine if label was above or below the node
+                    if (currentY < nodeCenter) {
+                        // Labels were above
+                        newY = node.y - textDistance;
+                    } else {
+                        // Labels were below
+                        newY = node.y + node.height + textDistance;
+                    }
+                }
+            }
+        }
+        
+        // Update the label group for this specific node
+        this.chart.selectAll(`.node-text-group[data-node-id="${node.id}"]`)
+            .attr('transform', `translate(${newX}, ${newY})`);
+    }
+    
+    updateNodeComments(node) {
+        // Comments might be tooltip-related or growth/decline indicators
+        // For now, we'll handle any floating text elements that might be associated with nodes
+        this.chart.selectAll('.node-annotation, .growth-indicator, .period-change')
+            .filter(function() {
+                const element = d3.select(this);
+                const nodeId = element.attr('data-node-id');
+                return nodeId === node.id;
+            })
+            .each(function() {
+                const element = d3.select(this);
+                // Update position based on node's new position
+                const currentTransform = element.attr('transform');
+                if (currentTransform) {
+                    const match = currentTransform.match(/translate\(([^,]+),([^)]+)\)/);
+                    if (match) {
+                        const offsetX = parseFloat(match[1]) - node.x;
+                        const offsetY = parseFloat(match[2]) - node.y;
+                        element.attr('transform', `translate(${node.x + offsetX}, ${node.y + offsetY})`);
+                    }
+                }
+            });
     }
     
     moveChildNodesWithParent(parentNode, deltaY) {
@@ -4891,6 +4979,8 @@ class PulseSankeyChart {
             console.log(`❌ No source links found for ${parentNode.id}`);
             return;
         }
+        
+        let childrenMoved = false;
         
         parentNode.sourceLinks.forEach(link => {
             const childNode = link.target;
@@ -4916,8 +5006,14 @@ class PulseSankeyChart {
                     .attr('transform', `translate(${childNode.x}, ${childNode.y})`);
                 
                 console.log(`📍 Moved child node: ${childNode.id} to Y: ${constrainedY}`);
+                childrenMoved = true;
             }
         });
+        
+        // Mark that children have been moved for this parent
+        if (childrenMoved) {
+            parentNode.childrenMoved = true;
+        }
     }
     
     calculateLayerFromX(x) {
