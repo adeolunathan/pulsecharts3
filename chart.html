@@ -2281,9 +2281,6 @@
 
                 // Initialize SpreadsheetController for Sankey flow builder
                 window.spreadsheetController = new SpreadsheetController();
-                
-                // Initialize modern export dropdown
-                initializeExportDropdown();
             }
             
             // Helper: Wait for pulseApp to be ready
@@ -2414,47 +2411,6 @@
         })();
 
         // Modern Export Dropdown Functionality
-        function initializeExportDropdown() {
-            const exportTrigger = document.getElementById('export-trigger');
-            const exportMenu = document.getElementById('export-menu');
-            
-            if (!exportTrigger || !exportMenu) return;
-            
-            // Toggle dropdown
-            exportTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                exportMenu.classList.toggle('active');
-                exportTrigger.classList.toggle('active');
-            });
-            
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!exportTrigger.contains(e.target) && !exportMenu.contains(e.target)) {
-                    exportMenu.classList.remove('active');
-                    exportTrigger.classList.remove('active');
-                }
-            });
-            
-            // Handle export option clicks with visual feedback
-            const exportOptions = exportMenu.querySelectorAll('.export-option');
-            exportOptions.forEach(option => {
-                option.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    
-                    // Add loading state
-                    option.classList.add('loading');
-                    
-                    // Close dropdown
-                    exportMenu.classList.remove('active');
-                    exportTrigger.classList.remove('active');
-                    
-                    // Remove loading state after brief delay
-                    setTimeout(() => {
-                        option.classList.remove('loading');
-                    }, 1000);
-                });
-            });
-        }
 
         // ===== TEMPLATE DOWNLOAD FUNCTIONALITY =====
 
@@ -3634,104 +3590,266 @@
             }
         }
 
-        // ===== HORIZONTAL MENU SYSTEM INITIALIZATION =====
+        // ===== UNIFIED DROPDOWN SYSTEM (IIFE PATTERN) =====
         
-        // Initialize horizontal menu interactions
-        function initializeHorizontalMenu() {
-            console.log('🎛️ Initializing horizontal menu system');
+        (function() {
+            'use strict';
             
-            const menuTriggers = document.querySelectorAll('.menu-trigger');
-            const dropdowns = document.querySelectorAll('.menu-dropdown');
+            let initialized = false;
             
-            if (menuTriggers.length === 0) {
-                console.log('⚠️ No menu triggers found, retrying in 100ms');
-                setTimeout(initializeHorizontalMenu, 100);
-                return;
-            }
-            
-            menuTriggers.forEach(trigger => {
-                trigger.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const target = trigger.getAttribute('data-target');
-                    const dropdown = document.getElementById(`${target}-dropdown`);
-                    const section = trigger.closest('.menu-section');
+            // Unified dropdown manager
+            const DropdownManager = {
+                dropdowns: new Map(),
+                
+                init() {
+                    if (initialized) {
+                        console.log('🔄 Dropdown system already initialized, cleaning up...');
+                        this.cleanup();
+                    }
                     
-                    if (!dropdown) {
-                        console.warn(`Dropdown not found for target: ${target}`);
+                    console.log('🎛️ Initializing unified dropdown system');
+                    
+                    // Initialize control menu dropdowns (data, style, layout, etc.)
+                    this.initializeControlMenus();
+                    
+                    // Initialize export dropdown (separate system)
+                    this.initializeExportDropdown();
+                    
+                    // Set up global click handler
+                    this.setupGlobalEvents();
+                    
+                    initialized = true;
+                    console.log('✅ Unified dropdown system initialized');
+                },
+                
+                initializeControlMenus() {
+                    const menuTriggers = document.querySelectorAll('.horizontal-controls-menu .menu-trigger');
+                    const menuDropdowns = document.querySelectorAll('.horizontal-controls-menu .menu-dropdown');
+                    
+                    if (menuTriggers.length === 0) {
+                        console.log('⚠️ No control menu triggers found, retrying in 100ms');
+                        setTimeout(() => this.init(), 100);
                         return;
                     }
                     
-                    // Close all other dropdowns
-                    dropdowns.forEach(dd => {
-                        if (dd !== dropdown) {
-                            dd.classList.remove('active');
-                            const ddSection = dd.closest('.menu-section');
-                            if (ddSection) ddSection.classList.remove('open');
+                    menuTriggers.forEach(trigger => {
+                        const target = trigger.getAttribute('data-target');
+                        const dropdown = document.getElementById(`${target}-dropdown`);
+                        const section = trigger.closest('.menu-section');
+                        
+                        if (!dropdown || !section) {
+                            console.warn(`⚠️ Invalid menu structure for target: ${target}`);
+                            return;
                         }
+                        
+                        // Store dropdown info
+                        this.dropdowns.set(trigger, {
+                            type: 'menu',
+                            target,
+                            dropdown,
+                            section,
+                            isOpen: false
+                        });
+                        
+                        // Add click handler
+                        trigger.addEventListener('click', (e) => this.handleMenuClick(e, trigger));
                     });
+                    
+                    console.log(`📋 Initialized ${menuTriggers.length} control menu dropdowns`);
+                },
+                
+                initializeExportDropdown() {
+                    const exportTrigger = document.getElementById('export-trigger');
+                    const exportMenu = document.getElementById('export-menu');
+                    
+                    if (!exportTrigger || !exportMenu) {
+                        console.log('⚠️ Export dropdown elements not found');
+                        return;
+                    }
+                    
+                    // Store export dropdown info
+                    this.dropdowns.set(exportTrigger, {
+                        type: 'export',
+                        target: 'export',
+                        dropdown: exportMenu,
+                        section: null,
+                        isOpen: false
+                    });
+                    
+                    // Add click handler
+                    exportTrigger.addEventListener('click', (e) => this.handleExportClick(e, exportTrigger));
+                    
+                    // Handle export option clicks
+                    const exportOptions = exportMenu.querySelectorAll('.export-option');
+                    exportOptions.forEach(option => {
+                        option.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            option.classList.add('loading');
+                            setTimeout(() => option.classList.remove('loading'), 2000);
+                        });
+                    });
+                    
+                    console.log('📤 Initialized export dropdown');
+                },
+                
+                handleMenuClick(e, trigger) {
+                    e.stopPropagation();
+                    
+                    const info = this.dropdowns.get(trigger);
+                    if (!info) return;
+                    
+                    const { target, dropdown, section } = info;
+                    
+                    // Close all other dropdowns
+                    this.closeAllExcept(dropdown);
                     
                     // Toggle current dropdown
                     const isOpen = dropdown.classList.contains('active');
+                    
                     if (isOpen) {
-                        dropdown.classList.remove('active');
-                        section.classList.remove('open');
-                        trigger.classList.remove('active');
+                        this.closeDropdown(dropdown, section, trigger);
+                        info.isOpen = false;
+                        console.log(`🎛️ Closed menu: ${target}`);
                     } else {
-                        dropdown.classList.add('active');
-                        section.classList.add('open');
-                        trigger.classList.add('active');
+                        this.openDropdown(dropdown, section, trigger);
+                        info.isOpen = true;
+                        console.log(`🎛️ Opened menu: ${target}`);
                         
-                        // Debug: Check if dropdown has content
+                        // Debug content
                         const content = dropdown.querySelector('.dropdown-content');
                         if (content) {
-                            console.log(`📋 Dropdown content for ${target}:`, content.innerHTML.length > 0 ? 'HAS CONTENT' : 'EMPTY');
-                            console.log(`📐 Dropdown styles:`, {
-                                opacity: getComputedStyle(dropdown).opacity,
-                                visibility: getComputedStyle(dropdown).visibility,
-                                transform: getComputedStyle(dropdown).transform,
-                                display: getComputedStyle(dropdown).display
-                            });
+                            console.log(`📋 Content for ${target}:`, content.innerHTML.length > 0 ? 'HAS CONTENT' : 'EMPTY');
                         }
                     }
-                    
-                    console.log(`🎛️ Menu section ${target} ${isOpen ? 'closed' : 'opened'}`);
-                });
-            });
-            
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', (e) => {
-                const isMenuClick = e.target.closest('.horizontal-controls-menu');
-                if (!isMenuClick) {
-                    dropdowns.forEach(dropdown => {
-                        dropdown.classList.remove('active');
-                        const section = dropdown.closest('.menu-section');
-                        if (section) section.classList.remove('open');
-                    });
-                }
-            });
-            
-            // Prevent dropdown close when clicking inside
-            dropdowns.forEach(dropdown => {
-                dropdown.addEventListener('click', (e) => {
+                },
+                
+                handleExportClick(e, trigger) {
                     e.stopPropagation();
-                });
+                    
+                    const info = this.dropdowns.get(trigger);
+                    if (!info) return;
+                    
+                    const { dropdown } = info;
+                    
+                    // Close all other dropdowns
+                    this.closeAllExcept(dropdown);
+                    
+                    // Toggle export dropdown
+                    const isOpen = dropdown.classList.contains('active');
+                    
+                    if (isOpen) {
+                        dropdown.classList.remove('active');
+                        trigger.classList.remove('active');
+                        info.isOpen = false;
+                        console.log('📤 Closed export dropdown');
+                    } else {
+                        dropdown.classList.add('active');
+                        trigger.classList.add('active');
+                        info.isOpen = true;
+                        console.log('📤 Opened export dropdown');
+                    }
+                },
+                
+                openDropdown(dropdown, section, trigger) {
+                    dropdown.classList.add('active');
+                    if (section) section.classList.add('open');
+                    trigger.classList.add('active');
+                    
+                    // Calculate position for fixed positioning
+                    const triggerRect = trigger.getBoundingClientRect();
+                    const dropdownWidth = 250;
+                    const offset = 4;
+                    
+                    // Force visibility with inline styles for debugging
+                    dropdown.style.opacity = '1';
+                    dropdown.style.visibility = 'visible';
+                    dropdown.style.display = 'block';
+                    dropdown.style.pointerEvents = 'auto';
+                    dropdown.style.background = 'yellow';
+                    dropdown.style.border = '3px solid red';
+                    dropdown.style.zIndex = '2147483647';
+                    dropdown.style.position = 'fixed';
+                    dropdown.style.top = (triggerRect.bottom + offset) + 'px';
+                    dropdown.style.left = triggerRect.left + 'px';
+                    dropdown.style.width = dropdownWidth + 'px';
+                    dropdown.style.minHeight = '100px';
+                },
+                
+                closeDropdown(dropdown, section, trigger) {
+                    dropdown.classList.remove('active');
+                    if (section) section.classList.remove('open');
+                    trigger.classList.remove('active');
+                    
+                    // Force hide with inline styles
+                    dropdown.style.opacity = '0';
+                    dropdown.style.visibility = 'hidden';
+                    dropdown.style.pointerEvents = 'none';
+                },
+                
+                closeAllExcept(exceptDropdown) {
+                    this.dropdowns.forEach((info, trigger) => {
+                        if (info.dropdown !== exceptDropdown && info.isOpen) {
+                            this.closeDropdown(info.dropdown, info.section, trigger);
+                            info.isOpen = false;
+                        }
+                    });
+                },
+                
+                closeAll() {
+                    this.dropdowns.forEach((info, trigger) => {
+                        if (info.isOpen) {
+                            this.closeDropdown(info.dropdown, info.section, trigger);
+                            info.isOpen = false;
+                        }
+                    });
+                },
+                
+                setupGlobalEvents() {
+                    // Close dropdowns when clicking outside
+                    document.addEventListener('click', (e) => {
+                        const isDropdownClick = e.target.closest('.horizontal-controls-menu, .export-dropdown');
+                        if (!isDropdownClick) {
+                            this.closeAll();
+                        }
+                    });
+                    
+                    // Prevent dropdown close when clicking inside
+                    document.addEventListener('click', (e) => {
+                        const dropdown = e.target.closest('.menu-dropdown, .export-menu');
+                        if (dropdown) {
+                            e.stopPropagation();
+                        }
+                    });
+                },
+                
+                cleanup() {
+                    // Remove old event listeners by cloning and replacing nodes
+                    this.dropdowns.forEach((info, trigger) => {
+                        const newTrigger = trigger.cloneNode(true);
+                        trigger.parentNode.replaceChild(newTrigger, trigger);
+                    });
+                    this.dropdowns.clear();
+                    initialized = false;
+                }
+            };
+            
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => DropdownManager.init());
+            } else {
+                DropdownManager.init();
+            }
+            
+            // Re-initialize when controls are regenerated
+            window.addEventListener('controlsGenerated', () => {
+                console.log('🔄 Re-initializing dropdowns after controls regenerated');
+                setTimeout(() => DropdownManager.init(), 50);
             });
             
-            console.log('✅ Horizontal menu system initialized');
-        }
-        
-        // Initialize menu when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeHorizontalMenu);
-        } else {
-            initializeHorizontalMenu();
-        }
-        
-        // Re-initialize menu if controls are regenerated
-        window.addEventListener('controlsGenerated', () => {
-            console.log('🔄 Re-initializing menu after controls regenerated');
-            setTimeout(initializeHorizontalMenu, 50);
-        });
+            // Expose to global scope for debugging
+            window.DropdownManager = DropdownManager;
+            
+        })();
 
 
     </script>
