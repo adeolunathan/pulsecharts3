@@ -4822,6 +4822,7 @@ class PulseSankeyChart {
         
         // Check for magnetic snapping to layers
         const nearestLayer = this.findNearestValidLayer(constrainedX, draggedNode);
+        
         const magneticThreshold = 35; // Balanced magnetic snap distance
         
         let finalX = constrainedX;
@@ -5310,7 +5311,8 @@ class PulseSankeyChart {
                 }
             })
             .on('end', function(event) {
-                const currentY = event.y;
+                // Get the actual mouse position in page coordinates
+                const currentY = event.sourceEvent.clientY;
                 
                 // Find target position - improved logic
                 let targetIndex = -1;
