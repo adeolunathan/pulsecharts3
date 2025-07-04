@@ -251,20 +251,383 @@ body {
     z-index: 2147483647 !important;
 }
 
-/* Ensure dropdowns have proper content display */
-.menu-dropdown .dropdown-content {
-    min-height: 50px;
-    background: #fafafa;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    margin: 4px 0;
+/* Enhanced dropdown styling for professional appearance */
+.menu-dropdown {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(16px);
+    min-height: auto !important;
+    max-height: 70vh;
+    width: 320px !important;
+    height: auto !important;
 }
 
-.dropdown-content {
-    padding: 8px 12px;
-    max-height: 50vh;
+.menu-dropdown .dropdown-content {
+    padding: 16px;
+    height: 100%;
+    overflow-y: auto;
+    background: transparent;
+}
+
+/* Clean, modern section headers */
+.dropdown-content h3,
+.dropdown-content .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 16px 0;
+    padding: 0 0 12px 0;
+    text-transform: none;
+    letter-spacing: -0.025em;
+    border-bottom: 1px solid #f3f4f6;
+    position: relative;
+}
+
+.dropdown-content h3:first-child,
+.dropdown-content .section-title:first-child {
+    margin-top: 0;
+}
+
+/* Tightly arranged form groups */
+.dropdown-content .control-item {
+    margin-bottom: 16px;
+    padding: 0;
+}
+
+.dropdown-content .control-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 6px;
+    display: block;
+    line-height: 1.3;
+}
+
+/* Enhanced form inputs with modern styling */
+.dropdown-content input,
+.dropdown-content select,
+.dropdown-content .control-dropdown {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+    background: #fafbfc;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.dropdown-content input:hover,
+.dropdown-content select:hover,
+.dropdown-content .control-dropdown:hover {
+    border-color: #d1d5db;
+    background: white;
+}
+
+.dropdown-content input:focus,
+.dropdown-content select:focus,
+.dropdown-content .control-dropdown:focus {
+    outline: none;
+    border-color: #059669;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom select arrow */
+.dropdown-content select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+    appearance: none;
+}
+
+/* Compact checkbox styling */
+.dropdown-content .checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 0;
+}
+
+.dropdown-content .control-checkbox {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1.5px solid #d1d5db;
+    border-radius: 3px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-content .control-checkbox:checked {
+    background: #6366f1;
+    border-color: #6366f1;
+}
+
+.dropdown-content .control-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -1px;
+    left: 2px;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Perfect minimalist sliders matching reference design */
+.dropdown-content .control-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2px;
+    background: #d1d5db;
+    outline: none;
+    margin: 16px 0;
+    cursor: pointer;
+    border-radius: 1px;
+}
+
+.dropdown-content .control-slider::-webkit-slider-track {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: #d1d5db;
+    border-radius: 1px;
+    border: none;
+    outline: none;
+}
+
+.dropdown-content .control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #059669;
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4), 0 0 0 1px rgba(5, 150, 105, 0.1);
+    transition: all 0.15s ease;
+}
+
+.dropdown-content .control-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.5), 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.dropdown-content .control-slider::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.6);
+}
+
+/* Firefox slider styling */
+.dropdown-content .control-slider::-moz-range-track {
+    width: 100%;
+    height: 2px;
+    background: #d1d5db;
+    border-radius: 1px;
+    border: none;
+    outline: none;
+}
+
+.dropdown-content .control-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #059669;
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4);
+    border: none;
+}
+
+/* Color picker styling */
+.dropdown-content .color-picker-minimal {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e5e7eb;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.dropdown-content .color-picker-minimal:hover {
+    border-color: #6366f1;
+}
+
+/* Button styling */
+.dropdown-content .control-button,
+.dropdown-content .file-upload-button {
+    padding: 8px 16px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-content .control-button:hover,
+.dropdown-content .file-upload-button:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+/* Professional spacing for groups */
+.dropdown-content .control-group {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.dropdown-content .control-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+/* Clean UI - hide redundant text and improve clarity */
+.dropdown-content .control-item:has(.color-picker-minimal) .control-label {
+    display: none; /* Hide "Background Color" text when color picker is present */
+}
+
+/* Show color labels for node colors but hide redundant ones */
+.dropdown-content .color-item-minimal .color-label-minimal {
+    display: block !important; /* Show color labels for node colors */
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    margin-left: 8px;
+}
+
+/* Hide only truly redundant labels */
+.dropdown-content .control-item .control-label + .color-item-minimal .color-label-minimal {
+    display: none; /* Hide when there's already a control label */
+}
+
+/* Enhanced control spacing for different types */
+.dropdown-content .control-item {
+    margin-bottom: 12px;
+}
+
+.dropdown-content .control-item:last-child {
+    margin-bottom: 8px;
+}
+
+/* Better visual hierarchy */
+.dropdown-content .control-item + .control-item {
+    margin-top: 8px;
+}
+
+/* Dropdown variable height adjustment */
+.menu-dropdown .dropdown-content {
+    padding: 16px;
+    min-height: fit-content;
+    height: auto;
     overflow-y: auto;
 }
+
+/* Content-aware spacing */
+.dropdown-content:has(.control-slider) {
+    min-height: 120px;
+}
+
+.dropdown-content:has(.color-picker-minimal) {
+    min-height: 80px;
+}
+
+.dropdown-content:not(:has(.control-slider)):not(:has(.color-picker-minimal)) {
+    min-height: 60px;
+}
+
+/* Modern form layout */
+.dropdown-content .form-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.dropdown-content .form-row .control-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.dropdown-content .form-row input,
+.dropdown-content .form-row select {
+    flex: 1;
+}
+
+/* Prominent color controls with better visibility */
+.dropdown-content .color-picker-container,
+.dropdown-content .color-item-minimal,
+.dropdown-content .color-picker-item-minimal {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 6px 0;
+}
+
+.dropdown-content .color-picker-container .control-label {
+    margin-bottom: 0;
+    font-size: 13px;
+    min-width: auto;
+}
+
+/* More prominent color boxes */
+.dropdown-content .color-picker-minimal {
+    width: 20px !important;
+    height: 20px !important;
+    border: 2px solid #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.dropdown-content .color-picker-minimal:hover {
+    border-color: #059669;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3), 0 0 0 2px rgba(5, 150, 105, 0.2);
+    z-index: 10;
+}
+
+.dropdown-content .color-picker-minimal:active {
+    transform: scale(1.02);
+}
+
+/* Enhanced color item layout */
+.dropdown-content .color-item-minimal {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-content .color-item-minimal:last-child {
+    border-bottom: none;
+}
+
+/* Color label styling */
+.dropdown-content .color-label-minimal {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #374151 !important;
+    margin-left: 0 !important;
+    flex: 1;
+}
+
 
 /* ===== ACTION BUTTONS ===== */
 .menu-actions {
@@ -440,6 +803,7 @@ body {
     font-size: 10px;
     color: #9ca3af;
     transition: transform 0.15s ease;
+    margin-right: 12px;
 }
 
 .menu-section-content {
@@ -4579,7 +4943,7 @@ body {
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
 }
 
 .collapsible-chevron {

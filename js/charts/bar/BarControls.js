@@ -192,100 +192,6 @@ window.BarControlModule = (function() {
                     ]
                 },
 
-                // Labels and Values
-                labels: {
-                    title: "Labels & Values",
-                    icon: "🏷️",
-                    collapsed: true,
-                    controls: [
-                        {
-                            id: "showBarLabels",
-                            type: "toggle",
-                            label: "Show Bar Labels",
-                            default: false
-                        },
-                        {
-                            id: "showValues",
-                            type: "toggle",
-                            label: "Show Values",
-                            default: true
-                        },
-                        {
-                            id: "labelPosition",
-                            type: "dropdown",
-                            label: "Label Position",
-                            default: "outside_end",
-                            options: [
-                                { value: "outside_end", label: "Outside End" },
-                                { value: "inside_end", label: "Inside End" },
-                                { value: "inside_center", label: "Inside Center" },
-                                { value: "inside_start", label: "Inside Start" },
-                                { value: "outside_start", label: "Outside Start" }
-                            ],
-                            description: "Where to position the category labels relative to bars"
-                        },
-                        {
-                            id: "valuePosition",
-                            type: "dropdown",
-                            label: "Value Position",
-                            default: "outside_end",
-                            options: [
-                                { value: "outside_end", label: "Outside End" },
-                                { value: "inside_end", label: "Inside End" },
-                                { value: "inside_center", label: "Inside Center" },
-                                { value: "inside_start", label: "Inside Start" },
-                                { value: "outside_start", label: "Outside Start" }
-                            ],
-                            description: "Where to position the value numbers relative to bars"
-                        },
-                        {
-                            id: "labelOffset",
-                            type: "slider",
-                            label: "Label Offset",
-                            min: 0,
-                            max: 20,
-                            default: 8,
-                            step: 1,
-                            description: "Distance of labels from bars"
-                        },
-                        {
-                            id: "labelFontSize",
-                            type: "slider",
-                            label: "Label Font Size",
-                            min: 8,
-                            max: 20,
-                            default: 12,
-                            step: 1,
-                            description: "Size of category labels"
-                        },
-                        {
-                            id: "valueFontSize",
-                            type: "slider",
-                            label: "Value Font Size",
-                            min: 8,
-                            max: 20,
-                            default: 12,
-                            step: 1,
-                            description: "Size of value numbers"
-                        },
-                        {
-                            id: "valueOffset",
-                            type: "slider",
-                            label: "Value Offset",
-                            min: 0,
-                            max: 20,
-                            default: 8,
-                            step: 1,
-                            description: "Distance of values from bars"
-                        },
-                        {
-                            id: "labelColor",
-                            type: "color_picker",
-                            label: "Label Color",
-                            default: "#374151"
-                        }
-                    ]
-                },
 
                 // Value Formatting
                 formatting: {
@@ -541,6 +447,93 @@ window.BarControlModule = (function() {
                             step: 10,
                             description: "Bottom margin space for axis labels"
                         },
+                        // Labels & Values controls (moved from display section)
+                        {
+                            id: "showBarLabels",
+                            type: "toggle",
+                            label: "Show Bar Labels",
+                            default: false
+                        },
+                        {
+                            id: "showValues",
+                            type: "toggle",
+                            label: "Show Values",
+                            default: true
+                        },
+                        {
+                            id: "labelPosition",
+                            type: "dropdown",
+                            label: "Label Position",
+                            default: "outside_end",
+                            options: [
+                                { value: "outside_end", label: "Outside End" },
+                                { value: "inside_end", label: "Inside End" },
+                                { value: "inside_center", label: "Inside Center" },
+                                { value: "inside_start", label: "Inside Start" },
+                                { value: "outside_start", label: "Outside Start" }
+                            ],
+                            description: "Where to position the category labels relative to bars"
+                        },
+                        {
+                            id: "valuePosition",
+                            type: "dropdown",
+                            label: "Value Position",
+                            default: "outside_end",
+                            options: [
+                                { value: "outside_end", label: "Outside End" },
+                                { value: "inside_end", label: "Inside End" },
+                                { value: "inside_center", label: "Inside Center" },
+                                { value: "inside_start", label: "Inside Start" },
+                                { value: "outside_start", label: "Outside Start" }
+                            ],
+                            description: "Where to position the value numbers relative to bars"
+                        },
+                        {
+                            id: "labelOffset",
+                            type: "slider",
+                            label: "Label Offset",
+                            min: 0,
+                            max: 20,
+                            default: 8,
+                            step: 1,
+                            description: "Distance of labels from bars"
+                        },
+                        {
+                            id: "labelFontSize",
+                            type: "slider",
+                            label: "Label Font Size",
+                            min: 8,
+                            max: 20,
+                            default: 12,
+                            step: 1,
+                            description: "Size of category labels"
+                        },
+                        {
+                            id: "valueFontSize",
+                            type: "slider",
+                            label: "Value Font Size",
+                            min: 8,
+                            max: 20,
+                            default: 12,
+                            step: 1,
+                            description: "Size of value numbers"
+                        },
+                        {
+                            id: "valueOffset",
+                            type: "slider",
+                            label: "Value Offset",
+                            min: 0,
+                            max: 20,
+                            default: 8,
+                            step: 1,
+                            description: "Distance of values from bars"
+                        },
+                        {
+                            id: "labelColor",
+                            type: "color_picker",
+                            label: "Label Color",
+                            default: "#374151"
+                        }
                     ]
                 }
             };

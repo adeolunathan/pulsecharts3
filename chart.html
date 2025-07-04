@@ -361,21 +361,6 @@
                         </div>
                     </div>
 
-                    <div class="menu-section" data-section="display">
-                        <button class="menu-trigger" data-target="display">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            <span>Display</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"/>
-                            </svg>
-                        </button>
-                        <div class="menu-dropdown" id="display-dropdown">
-                            <div id="display-controls" class="dropdown-content"></div>
-                        </div>
-                    </div>
 
                     <div class="menu-section" data-section="colors">
                         <button class="menu-trigger" data-target="colors">
@@ -3757,7 +3742,7 @@
                     
                     // Calculate position for fixed positioning
                     const triggerRect = trigger.getBoundingClientRect();
-                    const dropdownWidth = 250;
+                    const dropdownWidth = 320;
                     const offset = 4;
                     
                     // Apply positioning styles
@@ -3769,8 +3754,6 @@
                     dropdown.style.position = 'fixed';
                     dropdown.style.top = (triggerRect.bottom + offset) + 'px';
                     dropdown.style.left = triggerRect.left + 'px';
-                    dropdown.style.width = dropdownWidth + 'px';
-                    dropdown.style.minHeight = '100px';
                 },
                 
                 closeDropdown(dropdown, section, trigger) {

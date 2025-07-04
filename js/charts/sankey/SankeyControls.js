@@ -37,6 +37,41 @@ class SankeyControlModule {
                         step: 5, 
                         unit: "px", 
                         description: "Foundational vertical spacing between nodes" 
+                    },
+                    
+                    // Labels & Values controls (moved from display section)
+                    { 
+                        id: "textDistanceLeftmost", 
+                        type: "slider", 
+                        label: "Leftmost Text Distance", 
+                        min: 1, 
+                        max: 40, 
+                        default: 15, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of all text (labels, values, percentages) from leftmost nodes" 
+                    },
+                    { 
+                        id: "textDistanceMiddle", 
+                        type: "slider", 
+                        label: "Middle Text Distance", 
+                        min: 1, 
+                        max: 40, 
+                        default: 1, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of all text (labels, values, percentages) from middle nodes" 
+                    },
+                    { 
+                        id: "textDistanceRightmost", 
+                        type: "slider", 
+                        label: "Rightmost Text Distance", 
+                        min: 1, 
+                        max: 40, 
+                        default: 15, 
+                        step: 1, 
+                        unit: "px", 
+                        description: "Distance of all text (labels, values, percentages) from rightmost nodes" 
                     }
                 ]
             },
@@ -118,46 +153,6 @@ class SankeyControlModule {
                 isDynamic: true
             },
 
-            labels: {
-                title: "Labels & Values",
-                icon: "🏷️",
-                collapsed: true,
-                controls: [
-                    { 
-                        id: "textDistanceLeftmost", 
-                        type: "slider", 
-                        label: "Leftmost Text Distance", 
-                        min: 1, 
-                        max: 40, 
-                        default: 15, 
-                        step: 1, 
-                        unit: "px", 
-                        description: "Distance of all text (labels, values, percentages) from leftmost nodes" 
-                    },
-                    { 
-                        id: "textDistanceMiddle", 
-                        type: "slider", 
-                        label: "Middle Text Distance", 
-                        min: 1, 
-                        max: 40, 
-                        default: 1, 
-                        step: 1, 
-                        unit: "px", 
-                        description: "Distance of all text (labels, values, percentages) from middle nodes" 
-                    },
-                    { 
-                        id: "textDistanceRightmost", 
-                        type: "slider", 
-                        label: "Rightmost Text Distance", 
-                        min: 1, 
-                        max: 40, 
-                        default: 15, 
-                        step: 1, 
-                        unit: "px", 
-                        description: "Distance of all text (labels, values, percentages) from rightmost nodes" 
-                    },
-                ]
-            },
 
             dimensions: {
                 title: "Node & Link Dimensions",
