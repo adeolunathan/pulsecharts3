@@ -305,63 +305,138 @@
             </div>
         </div>
 
-        <!-- Chart View Tab (Redesigned) -->
+        <!-- Chart View Tab (Redesigned with Horizontal Menu) -->
         <div id="chart-view" class="tab-content active">
-            <div class="app-content">
-                <!-- Modern Chart Controls Panel -->
-                <div class="modern-control-panel">
-                    <div class="control-panel-header">
-                        <div class="control-header-content">
-                            <div class="control-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 3v18h18"/>
-                                    <path d="M9 9l1.5-1.5L14 11l5-5"/>
-                                    <circle cx="9" cy="9" r="1"/>
-                                    <circle cx="14" cy="11" r="1"/>
-                                    <circle cx="19" cy="6" r="1"/>
-                                </svg>
-                                <h3>Chart Controls</h3>
-                            </div>
-                            <div class="control-actions">
-                                <button id="reset-defaults" class="reset-all-btn" title="Reset all chart settings to default">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                                        <path d="M21 3v5h-5"/>
-                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                                        <path d="M8 16H3v5"/>
-                                    </svg>
-                                    Reset All
-                                </button>
-                            </div>
+            <!-- Horizontal Chart Controls Menu -->
+            <div class="horizontal-controls-menu">
+                <div class="controls-menu-wrapper">
+                    <!-- Menu Sections (Left to Right) -->
+                    <div class="menu-section" data-section="data">
+                        <button class="menu-trigger" data-target="data">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="9" x2="15" y2="9"/>
+                                <line x1="9" y1="13" x2="15" y2="13"/>
+                                <line x1="9" y1="17" x2="15" y2="17"/>
+                            </svg>
+                            <span>Data</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="data-dropdown">
+                            <div id="data-controls" class="dropdown-content"></div>
                         </div>
                     </div>
-                    
-                    <div id="dynamic-controls" class="control-panel-content">
-                        <div class="controls-loading">
-                            <div class="loading-pulse"></div>
-                            <div class="loading-content">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="6" height="6" rx="1"/>
-                                    <rect x="9" y="3" width="6" height="6" rx="1"/>
-                                    <rect x="15" y="3" width="6" height="6" rx="1"/>
-                                    <rect x="3" y="9" width="6" height="6" rx="1"/>
-                                    <rect x="9" y="9" width="6" height="6" rx="1"/>
-                                    <rect x="15" y="9" width="6" height="6" rx="1"/>
-                                </svg>
-                                <p>Loading chart controls...</p>
-                            </div>
+
+                    <div class="menu-section" data-section="style">
+                        <button class="menu-trigger" data-target="style">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+                            </svg>
+                            <span>Style</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="style-dropdown">
+                            <div id="style-controls" class="dropdown-content"></div>
                         </div>
+                    </div>
+
+                    <div class="menu-section" data-section="layout">
+                        <button class="menu-trigger" data-target="layout">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <path d="M3 9h18M9 21V9"/>
+                            </svg>
+                            <span>Layout</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="layout-dropdown">
+                            <div id="layout-controls" class="dropdown-content"></div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section" data-section="display">
+                        <button class="menu-trigger" data-target="display">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <span>Display</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="display-dropdown">
+                            <div id="display-controls" class="dropdown-content"></div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section" data-section="colors">
+                        <button class="menu-trigger" data-target="colors">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="13.5" cy="6.5" r=".5"/>
+                                <circle cx="17.5" cy="10.5" r=".5"/>
+                                <circle cx="8.5" cy="7.5" r=".5"/>
+                                <circle cx="6.5" cy="12.5" r=".5"/>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                            </svg>
+                            <span>Colors</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="colors-dropdown">
+                            <div id="colors-controls" class="dropdown-content"></div>
+                        </div>
+                    </div>
+
+                    <!-- Action buttons on the right -->
+                    <div class="menu-actions">
+                        <button id="reset-defaults" class="action-btn reset-btn" title="Reset all chart settings to default">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                <path d="M21 3v5h-5"/>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                <path d="M8 16H3v5"/>
+                            </svg>
+                            <span>Reset</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Chart Container -->
+                <!-- Hidden dynamic controls container for backwards compatibility -->
+                <div id="dynamic-controls" style="display: none;">
+                    <div class="controls-loading">
+                        <div class="loading-pulse"></div>
+                        <div class="loading-content">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="6" height="6" rx="1"/>
+                                <rect x="9" y="3" width="6" height="6" rx="1"/>
+                                <rect x="15" y="3" width="6" height="6" rx="1"/>
+                                <rect x="3" y="9" width="6" height="6" rx="1"/>
+                                <rect x="9" y="9" width="6" height="6" rx="1"/>
+                                <rect x="15" y="9" width="6" height="6" rx="1"/>
+                            </svg>
+                            <p>Loading chart controls...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Container (Now full width) -->
+            <div class="chart-area">
                 <div id="main-chart" class="chart-container">
                     <div class="chart-loading">
                         <div class="loading-spinner"></div>
                         <p>Initializing Pulse Analytics Platform...</p>
                     </div>
                 </div>
-                
             </div>
         </div>
     </div>
@@ -3558,6 +3633,105 @@
                 }, 3000);
             }
         }
+
+        // ===== HORIZONTAL MENU SYSTEM INITIALIZATION =====
+        
+        // Initialize horizontal menu interactions
+        function initializeHorizontalMenu() {
+            console.log('🎛️ Initializing horizontal menu system');
+            
+            const menuTriggers = document.querySelectorAll('.menu-trigger');
+            const dropdowns = document.querySelectorAll('.menu-dropdown');
+            
+            if (menuTriggers.length === 0) {
+                console.log('⚠️ No menu triggers found, retrying in 100ms');
+                setTimeout(initializeHorizontalMenu, 100);
+                return;
+            }
+            
+            menuTriggers.forEach(trigger => {
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const target = trigger.getAttribute('data-target');
+                    const dropdown = document.getElementById(`${target}-dropdown`);
+                    const section = trigger.closest('.menu-section');
+                    
+                    if (!dropdown) {
+                        console.warn(`Dropdown not found for target: ${target}`);
+                        return;
+                    }
+                    
+                    // Close all other dropdowns
+                    dropdowns.forEach(dd => {
+                        if (dd !== dropdown) {
+                            dd.classList.remove('active');
+                            const ddSection = dd.closest('.menu-section');
+                            if (ddSection) ddSection.classList.remove('open');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    const isOpen = dropdown.classList.contains('active');
+                    if (isOpen) {
+                        dropdown.classList.remove('active');
+                        section.classList.remove('open');
+                        trigger.classList.remove('active');
+                    } else {
+                        dropdown.classList.add('active');
+                        section.classList.add('open');
+                        trigger.classList.add('active');
+                        
+                        // Debug: Check if dropdown has content
+                        const content = dropdown.querySelector('.dropdown-content');
+                        if (content) {
+                            console.log(`📋 Dropdown content for ${target}:`, content.innerHTML.length > 0 ? 'HAS CONTENT' : 'EMPTY');
+                            console.log(`📐 Dropdown styles:`, {
+                                opacity: getComputedStyle(dropdown).opacity,
+                                visibility: getComputedStyle(dropdown).visibility,
+                                transform: getComputedStyle(dropdown).transform,
+                                display: getComputedStyle(dropdown).display
+                            });
+                        }
+                    }
+                    
+                    console.log(`🎛️ Menu section ${target} ${isOpen ? 'closed' : 'opened'}`);
+                });
+            });
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                const isMenuClick = e.target.closest('.horizontal-controls-menu');
+                if (!isMenuClick) {
+                    dropdowns.forEach(dropdown => {
+                        dropdown.classList.remove('active');
+                        const section = dropdown.closest('.menu-section');
+                        if (section) section.classList.remove('open');
+                    });
+                }
+            });
+            
+            // Prevent dropdown close when clicking inside
+            dropdowns.forEach(dropdown => {
+                dropdown.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            });
+            
+            console.log('✅ Horizontal menu system initialized');
+        }
+        
+        // Initialize menu when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeHorizontalMenu);
+        } else {
+            initializeHorizontalMenu();
+        }
+        
+        // Re-initialize menu if controls are regenerated
+        window.addEventListener('controlsGenerated', () => {
+            console.log('🔄 Re-initializing menu after controls regenerated');
+            setTimeout(initializeHorizontalMenu, 50);
+        });
 
 
     </script>

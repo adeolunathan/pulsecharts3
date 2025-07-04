@@ -216,20 +216,6 @@ class SankeyControlModule {
                 ]
             },
             
-            viewControls: {
-                title: "Chart View",
-                icon: "🎯",
-                collapsed: true,
-                controls: [
-                    { 
-                        id: "centerChart", 
-                        type: "button", 
-                        label: "Center Chart", 
-                        action: "centerChart",
-                        description: "Center the chart including all labels within the canvas" 
-                    }
-                ]
-            },
             
             branding: {
                 title: "Company Branding",
@@ -785,16 +771,6 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle centerChart button action
-        if (controlId === 'centerChart') {
-            console.log('🎯 Center Chart button action triggered');
-            if (chart.centerChart && typeof chart.centerChart === 'function') {
-                chart.centerChart();
-            } else {
-                console.error('❌ centerChart method not available on chart instance');
-            }
-            return;
-        }
 
         // Handle brand logo upload
         if (controlId === 'brandUpload') {

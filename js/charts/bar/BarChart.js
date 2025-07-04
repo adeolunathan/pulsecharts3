@@ -253,6 +253,9 @@ class PulseBarChart {
             .attr('viewBox', `0 0 ${width} ${height}`)
             .style('background-color', this.config.backgroundColor);
 
+        // Add Center Chart button
+        this.addCenterChartButton();
+
         // Create zoom container
         this.zoomContainer = this.svg
             .append('g')
@@ -383,6 +386,37 @@ class PulseBarChart {
             .style('z-index', '1000');
     }
 
+    addCenterChartButton() {
+        // Remove existing button if present
+        this.container.select('.center-chart-container').remove();
+        
+        const centerContainer = this.container
+            .insert('div', ':first-child')
+            .attr('class', 'center-chart-container')
+            .style('position', 'absolute')
+            .style('top', '10px')
+            .style('right', '10px')
+            .style('z-index', '1000');
+            
+        const centerButton = centerContainer
+            .append('button')
+            .attr('class', 'center-chart-btn')
+            .style('padding', '8px 16px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
+            .style('transition', 'all 0.2s ease')
+            .html('🎯 Center')
+            .on('click', () => this.centerChart());
+    }
 
     render(data = null) {
         console.log('🎨 ===== BARCHART.RENDER CALLED =====');

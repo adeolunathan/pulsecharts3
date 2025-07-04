@@ -13,7 +13,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['showBarLabels']
         },
         grouped: {
@@ -23,7 +23,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked: {
@@ -33,7 +33,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
         stacked100: {
@@ -42,7 +42,7 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces', 'showBarLabels'] // Always shows percentages
         },
         range: {
@@ -52,7 +52,7 @@ window.BarControlModule = (function() {
                      'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['showBarLabels']
         },
         waterfall: {
@@ -62,7 +62,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['autoSort', 'colorScheme', 'showBarLabels'] // Waterfall has specific ordering and colors
         },
         polar: {
@@ -71,7 +71,7 @@ window.BarControlModule = (function() {
                      'showBarLabels', 'showValues', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
                      'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
-                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin', 'centerChart'],
+                     'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['orientation', 'barCornerRadius', // No orientation or corners in polar
                       'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor', // No traditional axes
                       'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'showBarLabels'] // Polar has specific label positioning
@@ -551,13 +551,6 @@ window.BarControlModule = (function() {
                             unit: "px",
                             description: "Bottom margin space for axis labels"
                         },
-                        {
-                            id: "centerChart",
-                            type: "button",
-                            label: "Center Chart",
-                            action: "centerChart",
-                            description: "Center the chart on the page without affecting axis scaling"
-                        }
                     ]
                 }
             };
@@ -792,16 +785,6 @@ window.BarControlModule = (function() {
                 return;
             }
 
-            // Handle button actions first
-            if (controlId === 'centerChart') {
-                console.log('🎯 Center Chart button action triggered');
-                if (chart.centerChart && typeof chart.centerChart === 'function') {
-                    chart.centerChart();
-                } else {
-                    console.error('❌ centerChart method not available on chart instance');
-                }
-                return;
-            }
 
             console.log(`🎛️ Applying bar chart control change: ${controlId} = ${value}`);
 

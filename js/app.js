@@ -205,9 +205,13 @@ class PulseApplication {
             this.dataBridge.setChartInstance(this.chart);
         }
         
-        // **CLEAN: Don't process data here - let the chart type setup handle it**
-        this.controlPanel = new PulseControlPanel('dynamic-controls');
+        // **HORIZONTAL MENU: Initialize control panel with horizontal menu containers**
+        this.controlPanel = new PulseControlPanel('dynamic-controls'); // Keep for backwards compatibility
         this.controlPanel.init(this.chart, this.controlModule);
+        
+        // Fire event to notify that controls have been generated
+        window.dispatchEvent(new CustomEvent('controlsGenerated'));
+        console.log('🎛️ Fired controlsGenerated event for horizontal menu');
         
         this.currentChartType = chartType;
         console.log(`✅ ${chartType} chart and controls initialized with proper defaults`);

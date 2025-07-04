@@ -8,6 +8,9 @@ class PulseControlPanel {
         this.controlModule = null;
         this.config = {};
         this.updateTimeout = null;
+        
+        // Initialize horizontal menu system
+        this.initializeHorizontalMenu();
     }
 
     // Initialize with a chart and its control module
@@ -37,6 +40,69 @@ class PulseControlPanel {
         this.generateControls();
     }
 
+    // Initialize horizontal menu interactions
+    initializeHorizontalMenu() {
+        // Set up menu triggers and dropdown behavior
+        document.addEventListener('DOMContentLoaded', () => {
+            this.setupMenuInteractions();
+        });
+        
+        // If DOM is already loaded, set up immediately
+        if (document.readyState === 'loading') {
+            // DOM not ready yet
+        } else {
+            this.setupMenuInteractions();
+        }
+    }
+
+    // Set up menu click handlers and interactions
+    setupMenuInteractions() {
+        const menuTriggers = document.querySelectorAll('.menu-trigger');
+        const dropdowns = document.querySelectorAll('.menu-dropdown');
+        
+        menuTriggers.forEach(trigger => {
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const target = trigger.getAttribute('data-target');
+                const dropdown = document.getElementById(`${target}-dropdown`);
+                const section = trigger.closest('.menu-section');
+                
+                // Close all other dropdowns
+                dropdowns.forEach(dd => {
+                    if (dd !== dropdown) {
+                        dd.classList.remove('active');
+                        dd.closest('.menu-section').classList.remove('open');
+                    }
+                });
+                
+                // Toggle current dropdown
+                const isOpen = dropdown.classList.contains('active');
+                if (isOpen) {
+                    dropdown.classList.remove('active');
+                    section.classList.remove('open');
+                } else {
+                    dropdown.classList.add('active');
+                    section.classList.add('open');
+                }
+            });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            dropdowns.forEach(dropdown => {
+                dropdown.classList.remove('active');
+                dropdown.closest('.menu-section').classList.remove('open');
+            });
+        });
+        
+        // Prevent dropdown close when clicking inside
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        });
+    }
+
     // Generate controls based on the chart's control module capabilities
     generateControls() {
         if (!this.controlModule) {
@@ -44,17 +110,123 @@ class PulseControlPanel {
             return;
         }
 
-        this.container.selectAll('*').remove();
-        const capabilities = this.controlModule.capabilities;
+        // Clear all dropdown contents
+        this.clearAllDropdowns();
         
+        const capabilities = this.controlModule.capabilities;
+        console.log('🎛️ Control capabilities:', Object.keys(capabilities));
+        
+        // Map sections to menu categories based on workflow
+        const sectionMapping = {
+            'data': ['general', 'chart_type', 'data_controls'],
+            'style': ['style', 'typography', 'theme', 'text', 'font', 'appearance'],
+            'layout': ['layout', 'spacing', 'positioning', 'dimensions', 'margin', 'padding'],
+            'display': ['display', 'labels', 'visibility', 'interaction', 'show', 'hide'],
+            'colors': ['colors', 'color_scheme', 'color_customization', 'palette']
+        };
+        
+        // Distribute controls across menu sections
         Object.entries(capabilities).forEach(([sectionKey, section]) => {
-            this.createSection(sectionKey, section);
+            const menuCategory = this.findMenuCategory(sectionKey, sectionMapping);
+            console.log(`🎛️ Mapping section "${sectionKey}" to menu category "${menuCategory}"`);
+            this.createControlsInMenu(menuCategory, sectionKey, section);
         });
         
-        console.log('✅ Generated controls for all sections');
+        console.log('✅ Generated horizontal menu controls');
     }
 
-    // Create a control section
+    // Clear all dropdown contents
+    clearAllDropdowns() {
+        const dropdownContents = [
+            '#data-controls',
+            '#style-controls', 
+            '#layout-controls',
+            '#display-controls',
+            '#colors-controls'
+        ];
+        
+        dropdownContents.forEach(selector => {
+            const container = d3.select(selector);
+            if (!container.empty()) {
+                container.selectAll('*').remove();
+            }
+        });
+    }
+
+    // Find which menu category a section belongs to
+    findMenuCategory(sectionKey, sectionMapping) {
+        const lowerKey = sectionKey.toLowerCase();
+        
+        // First check exact matches
+        for (const [category, sections] of Object.entries(sectionMapping)) {
+            if (sections.includes(lowerKey) || sections.some(s => lowerKey.includes(s))) {
+                return category;
+            }
+        }
+        
+        // Enhanced keyword matching
+        if (lowerKey.includes('color') || lowerKey.includes('palette') || lowerKey === 'colors') return 'colors';
+        if (lowerKey.includes('style') || lowerKey.includes('font') || lowerKey.includes('text') || lowerKey.includes('typography') || lowerKey.includes('appearance')) return 'style';
+        if (lowerKey.includes('layout') || lowerKey.includes('spacing') || lowerKey.includes('margin') || lowerKey.includes('dimension')) return 'layout';
+        if (lowerKey.includes('display') || lowerKey.includes('label') || lowerKey.includes('show') || lowerKey.includes('visibility')) return 'display';
+        if (lowerKey.includes('general') || lowerKey.includes('chart') || lowerKey.includes('data')) return 'data';
+        
+        console.log(`⚠️ Unmatched section "${sectionKey}" defaulting to 'data'`);
+        return 'data'; // Default fallback
+    }
+
+    // Create controls within a specific menu dropdown
+    createControlsInMenu(menuCategory, sectionKey, section) {
+        const container = d3.select(`#${menuCategory}-controls`);
+        if (container.empty()) {
+            console.warn(`Menu container not found for category: ${menuCategory}`);
+            return;
+        }
+
+        // Create section within the menu
+        const sectionDiv = container
+            .append('div')
+            .attr('class', `menu-control-section ${section.collapsed ? 'collapsed' : ''}`)
+            .attr('data-section', sectionKey);
+
+        // Add section header (collapsible within dropdown)
+        const header = sectionDiv
+            .append('div')
+            .attr('class', 'menu-section-header')
+            .on('click', () => this.toggleMenuSection(sectionKey));
+
+        header.append('span').attr('class', 'section-icon').text(section.icon || '⚙️');
+        header.append('h4').attr('class', 'section-title').text(section.title);
+        header.append('span').attr('class', 'toggle-icon').text(section.collapsed ? '▶' : '▼');
+
+        const content = sectionDiv
+            .append('div')
+            .attr('class', 'menu-section-content')
+            .style('display', section.collapsed ? 'none' : 'block');
+
+        // Special handling for color section
+        if (sectionKey === 'colors' || menuCategory === 'colors') {
+            this.createColorSection(content, section);
+        } else {
+            section.controls.forEach(control => {
+                this.createControl(content, control);
+            });
+        }
+    }
+
+    // Toggle menu section within dropdown
+    toggleMenuSection(sectionKey) {
+        const section = d3.select(`[data-section="${sectionKey}"]`);
+        const content = section.select('.menu-section-content');
+        const icon = section.select('.toggle-icon');
+        
+        const isHidden = content.style('display') === 'none';
+        content.style('display', isHidden ? 'block' : 'none');
+        icon.text(isHidden ? '▼' : '▶');
+        section.classed('collapsed', !isHidden);
+    }
+
+    // Create a control section (Legacy method - kept for backwards compatibility)
     createSection(sectionKey, section) {
         const sectionDiv = this.container
             .append('div')
@@ -133,36 +305,33 @@ class PulseControlPanel {
         }
     }
 
-    // Create modern color preset buttons
+    // Create compact color preset buttons
     createColorPresets(container) {
         const presetsDiv = container
             .append('div')
             .attr('class', 'color-presets-modern')
-            .style('margin-bottom', '20px')
-            .style('padding', '20px')
-            .style('background', 'rgba(248, 250, 252, 0.4)')
-            .style('border-radius', '12px')
-            .style('border', '1px solid rgba(226, 232, 240, 0.6)');
+            .style('margin-bottom', '10px')
+            .style('padding', '8px')
+            .style('background', 'rgba(248, 250, 252, 0.3)')
+            .style('border-radius', '6px')
+            .style('border', '1px solid rgba(226, 232, 240, 0.4)');
 
         presetsDiv
             .append('div')
             .attr('class', 'presets-title')
-            .style('font-weight', '700')
-            .style('margin-bottom', '16px')
-            .style('color', '#1e293b')
-            .style('font-size', '15px')
+            .style('font-weight', '600')
+            .style('margin-bottom', '6px')
+            .style('color', '#374151')
+            .style('font-size', '12px')
             .style('letter-spacing', '-0.01em')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('gap', '8px')
-            .html('🎨 <span>Color Themes</span>');
+            .text('Color Themes');
 
         const buttonContainer = presetsDiv
             .append('div')
             .attr('class', 'preset-buttons-modern')
             .style('display', 'grid')
-            .style('grid-template-columns', 'repeat(auto-fit, minmax(120px, 1fr))')
-            .style('gap', '10px');
+            .style('grid-template-columns', 'repeat(2, 1fr)')
+            .style('gap', '4px');
 
         const presets = [
             { key: 'default', label: 'Default', colors: ['#3b82f6', '#10b981', '#f59e0b'], description: 'Clean & balanced' },
@@ -176,11 +345,11 @@ class PulseControlPanel {
                 .append('div')
                 .attr('class', 'preset-card')
                 .style('background', 'white')
-                .style('border', '2px solid rgba(226, 232, 240, 0.6)')
-                .style('border-radius', '10px')
-                .style('padding', '12px')
+                .style('border', '1px solid rgba(226, 232, 240, 0.8)')
+                .style('border-radius', '4px')
+                .style('padding', '6px 8px')
                 .style('cursor', 'pointer')
-                .style('transition', 'all 0.2s ease')
+                .style('transition', 'all 0.15s ease')
                 .style('text-align', 'center')
                 .style('position', 'relative')
                 .style('overflow', 'hidden')
@@ -215,41 +384,32 @@ class PulseControlPanel {
                     this.generateControls();
                 });
 
-            // Preset label and description (no icon)
+            // Compact preset label only
             presetCard
                 .append('div')
-                .style('font-weight', '600')
-                .style('color', '#1e293b')
-                .style('font-size', '13px')
+                .style('font-weight', '500')
+                .style('color', '#374151')
+                .style('font-size', '11px')
                 .style('margin-bottom', '4px')
                 .style('letter-spacing', '-0.01em')
                 .text(preset.label);
 
-            presetCard
-                .append('div')
-                .style('font-size', '11px')
-                .style('color', '#64748b')
-                .style('margin-bottom', '10px')
-                .style('line-height', '1.3')
-                .text(preset.description);
-
-            // Color preview dots
+            // Compact color preview dots
             if (preset.key !== 'random') {
                 const colorPreview = presetCard
                     .append('div')
                     .style('display', 'flex')
                     .style('justify-content', 'center')
-                    .style('gap', '4px');
+                    .style('gap', '2px');
 
                 preset.colors.forEach(color => {
                     colorPreview
                         .append('div')
-                        .style('width', '12px')
-                        .style('height', '12px')
+                        .style('width', '8px')
+                        .style('height', '8px')
                         .style('border-radius', '50%')
                         .style('background', color)
-                        .style('border', '1px solid rgba(255, 255, 255, 0.8)')
-                        .style('box-shadow', '0 1px 3px rgba(0, 0, 0, 0.1)');
+                        .style('border', '1px solid rgba(255, 255, 255, 0.8)');
                 });
             } else {
                 // Random pattern for the random option
@@ -257,19 +417,17 @@ class PulseControlPanel {
                     .append('div')
                     .style('display', 'flex')
                     .style('justify-content', 'center')
-                    .style('gap', '4px');
+                    .style('gap', '2px');
 
-                const randomColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
-                randomColors.slice(0, 3).forEach(color => {
+                const randomColors = ['#ff6b6b', '#4ecdc4', '#45b7d1'];
+                randomColors.forEach(color => {
                     randomPreview
                         .append('div')
-                        .style('width', '12px')
-                        .style('height', '12px')
+                        .style('width', '8px')
+                        .style('height', '8px')
                         .style('border-radius', '50%')
                         .style('background', color)
-                        .style('border', '1px solid rgba(255, 255, 255, 0.8)')
-                        .style('box-shadow', '0 1px 3px rgba(0, 0, 0, 0.1)')
-                        .style('animation', 'pulse 2s infinite');
+                        .style('border', '1px solid rgba(255, 255, 255, 0.8)');
                 });
             }
         });
@@ -451,18 +609,14 @@ class PulseControlPanel {
             .attr('step', config.step)
             .attr('value', currentValue)
             .attr('class', 'control-slider')
+            .attr('title', this.formatValueClean(currentValue, config))
             .style('width', '100%')
             .on('input', (event) => {
                 const value = parseFloat(event.target.value);
-                valueDisplay.text(this.formatValue(value, config));
+                // Update tooltip with current value
+                event.target.setAttribute('title', this.formatValueClean(value, config));
                 this.handleChange(config.id, value);
             });
-
-        const valueDisplay = sliderContainer.append('span')
-            .attr('class', 'slider-value')
-            .style('font-weight', '600')
-            .style('color', '#374151')
-            .text(this.formatValue(currentValue, config));
     }
 
     // Create dropdown control
@@ -882,6 +1036,16 @@ class PulseControlPanel {
             return parseFloat(value).toFixed(2);
         }
         return value;
+    }
+
+    /**
+     * Format value for display without units (for tooltips)
+     */
+    formatValueClean(value, config) {
+        if (config.step && config.step < 1) {
+            return parseFloat(value).toFixed(2);
+        }
+        return value.toString();
     }
 
     // FIXED: Handle control value changes with proper opacity updates

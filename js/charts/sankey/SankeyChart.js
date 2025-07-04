@@ -3485,6 +3485,26 @@ class PulseSankeyChart {
             .html('🔄 Arrange')
             .on('click', () => this.setInteractionMode('arrange'));
             
+        // Center Chart Button
+        const centerButton = toggleContainer
+            .append('button')
+            .attr('class', 'center-chart-btn')
+            .style('padding', '8px 16px')
+            .style('background', '#10b981')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
+            .style('transition', 'all 0.2s ease')
+            .html('🎯 Center')
+            .on('click', () => this.centerChart());
+            
         // Normal Mode Button (to exit special modes)
         const normalButton = toggleContainer
             .append('button')
