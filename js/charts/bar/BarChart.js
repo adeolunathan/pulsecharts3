@@ -2834,6 +2834,94 @@ class PulseBarChart {
         }
     }
 
+    // Center chart on page without affecting axis scaling
+    centerChart() {
+        console.log('🎯 ===== CENTER CHART METHOD CALLED =====');
+        console.log('🎯 SVG exists:', !!this.svg);
+        console.log('🎯 Chart group exists:', !!this.chart);
+        console.log('🎯 Centering chart content without affecting axis scaling');
+        
+        if (!this.svg || !this.chart) {
+            console.warn('⚠️ SVG or chart group not available for centering');
+            console.warn('⚠️ SVG:', this.svg);
+            console.warn('⚠️ Chart:', this.chart);
+            return;
+        }
+
+        try {
+            // Get SVG dimensions
+            const svgNode = this.svg.node();
+            const svgWidth = parseInt(this.svg.attr('width')) || svgNode.clientWidth;
+            const svgHeight = parseInt(this.svg.attr('height')) || svgNode.clientHeight;
+            
+            console.log(`🎯 SVG dimensions: ${svgWidth}x${svgHeight}`);
+            
+            // Get chart content bounds
+            const chartBounds = this.chart.node().getBBox();
+            console.log(`🎯 Chart content bounds:`, chartBounds);
+            
+            // Proper centering: position chart so its content is centered in SVG
+            const svgCenterX = svgWidth / 2;
+            const svgCenterY = svgHeight / 2;
+            
+            console.log(`🎯 SVG center: (${svgCenterX}, ${svgCenterY})`);
+            console.log(`🎯 Chart content bounds:`, chartBounds);
+            
+            // Calculate where to position the chart group so the content center aligns with SVG center
+            // We need to move the chart group to compensate for the content's bounds
+            const chartContentCenterX = chartBounds.x + (chartBounds.width / 2);
+            const chartContentCenterY = chartBounds.y + (chartBounds.height / 2);
+            
+            // Calculate the offset needed to center the content
+            const finalX = svgCenterX - chartContentCenterX;
+            const finalY = svgCenterY - chartContentCenterY;
+            
+            console.log(`🎯 Chart content center: (${chartContentCenterX}, ${chartContentCenterY})`);
+            console.log(`🎯 Final transform position: x=${finalX}, y=${finalY}`);
+            
+            // Add a smooth transition for visual feedback
+            this.chart
+                .transition()
+                .duration(300)
+                .attr('transform', `translate(${finalX}, ${finalY})`);
+            
+            // Verify the transform was applied
+            setTimeout(() => {
+                const newTransform = this.chart.attr('transform');
+                console.log(`🎯 New transform after centering: ${newTransform}`);
+                console.log(`🎯 Chart content centered at translate(${finalX}, ${finalY})`);
+            }, 350);
+            
+            // Add temporary visual indicator to show centering is working
+            const indicator = this.svg.append('circle')
+                .attr('cx', svgWidth / 2)
+                .attr('cy', svgHeight / 2)
+                .attr('r', 5)
+                .attr('fill', 'red')
+                .attr('opacity', 0.8);
+            
+            // Remove indicator after 2 seconds
+            setTimeout(() => {
+                indicator.remove();
+            }, 2000);
+            
+            console.log(`🎯 Added red center indicator at SVG center (${svgWidth/2}, ${svgHeight/2})`);
+            
+        } catch (error) {
+            console.error('❌ Error centering chart:', error);
+            
+            // Fallback: simple center positioning
+            const svgWidth = parseInt(this.svg.attr('width')) || 1200;
+            const svgHeight = parseInt(this.svg.attr('height')) || 700;
+            
+            // Use margins for centering if transform fails
+            const centerX = svgWidth / 2;
+            const centerY = svgHeight / 2;
+            
+            this.chart.attr('transform', `translate(${centerX / 2}, ${centerY / 2})`);
+            console.log(`🎯 Fallback centering applied`);
+        }
+    }
 
     // Color picker wrapper methods
     showColorPicker(element, currentColor) {
@@ -4275,16 +4363,10 @@ class PulseBarChart {
     }
 
     centerChart() {
-        console.log('🎯🎯🎯 ===== CENTER CHART METHOD CALLED ===== 🎯🎯🎯');
-        console.log('🔍 this.svg exists:', !!this.svg);
-        console.log('🔍 this.chart exists:', !!this.chart);
-        console.log('🔍 this.zoomContainer exists:', !!this.zoomContainer);
-        console.log('🔍 this.zoom exists:', !!this.zoom);
+        console.log('🎯 Center Chart button clicked');
         
         if (!this.svg || !this.chart) {
             console.warn('⚠️ Cannot center chart - SVG or chart group not available');
-            console.warn('⚠️ SVG:', this.svg);
-            console.warn('⚠️ Chart:', this.chart);
             return;
         }
 
@@ -4294,77 +4376,38 @@ class PulseBarChart {
         console.log('📐 SVG dimensions:', svgWidth, 'x', svgHeight);
 
         if (this.zoomContainer && this.zoom) {
-            console.log('🎯 ZOOM PATH: Using actual visual bounds centering');
+            console.log('🎯 Simple centering: move zoom container to center of SVG');
             
             // Get current zoom scale to preserve it
             const currentTransform = d3.zoomTransform(this.svg.node());
             const currentScale = currentTransform.k;
-            const currentX = currentTransform.x;
-            const currentY = currentTransform.y;
             
-            console.log('🔍 BEFORE - Current transform:', currentTransform);
-            console.log('🔍 BEFORE - Current scale:', currentScale);
-            console.log('🔍 BEFORE - Current position:', currentX, currentY);
-            
-            // NEW APPROACH: Find where the content actually appears visually
-            // Get the zoom container bounds (this gives us the unscaled bounds)
+            // Get the zoom container bounds (this includes everything: bars, axes, margins)
             const containerBounds = this.zoomContainer.node().getBBox();
-            console.log('📐 Zoom container unscaled bounds:', containerBounds);
             
-            // Calculate where the center of the content currently appears on screen
-            // The current visual center = unscaled center * scale + current translation
-            const unscaledCenterX = containerBounds.x + containerBounds.width / 2;
-            const unscaledCenterY = containerBounds.y + containerBounds.height / 2;
+            // Calculate simple center: put container center at SVG center
+            const containerCenterX = containerBounds.x + containerBounds.width / 2;
+            const containerCenterY = containerBounds.y + containerBounds.height / 2;
             
-            const currentVisualCenterX = unscaledCenterX * currentScale + currentX;
-            const currentVisualCenterY = unscaledCenterY * currentScale + currentY;
+            const targetX = (svgWidth / 2) - containerCenterX;
+            const targetY = (svgHeight / 2) - containerCenterY;
             
-            console.log('🎯 Unscaled content center:', unscaledCenterX, unscaledCenterY);
-            console.log('🎯 Current visual center on screen:', currentVisualCenterX, currentVisualCenterY);
+            console.log('📐 Container bounds:', containerBounds);
+            console.log('🎯 Container center:', containerCenterX, containerCenterY);
+            console.log('🎯 SVG center:', svgWidth/2, svgHeight/2);
+            console.log('🎯 Target position:', targetX, targetY);
+            console.log('🔍 Preserving zoom scale:', currentScale);
             
-            // Calculate how much we need to move to center the visual content in the SVG
-            const svgCenterX = svgWidth / 2;
-            const svgCenterY = svgHeight / 2;
-            
-            // The difference between where the content appears and where we want it
-            const moveX = svgCenterX - currentVisualCenterX;
-            const moveY = svgCenterY - currentVisualCenterY;
-            
-            // New translation = current translation + the move we need to make
-            const newTranslateX = currentX + moveX;
-            const newTranslateY = currentY + moveY;
-            
-            console.log('🎯 SVG center target:', svgCenterX, svgCenterY);
-            console.log('🎯 Move needed:', moveX, moveY);
-            console.log('🎯 New translation will be:', newTranslateX, newTranslateY);
-            console.log('🎯 Scale will remain:', currentScale);
-            
-            // Create the new transform
-            const newTransform = d3.zoomIdentity.translate(newTranslateX, newTranslateY).scale(currentScale);
-            console.log('🔍 New transform will be:', newTransform);
-            
-            // Apply the transform with preserved zoom scale
-            console.log('🎯 Applying zoom transform...');
+            // Move zoom container to center, preserve current zoom scale
             this.svg.transition()
                 .duration(1000)
                 .call(
                     this.zoom.transform,
-                    newTransform
-                )
-                .on('end', () => {
-                    const finalTransform = d3.zoomTransform(this.svg.node());
-                    console.log('✅ AFTER - Final transform:', finalTransform);
-                    console.log('✅ AFTER - Final scale:', finalTransform.k);
-                    console.log('✅ AFTER - Final position:', finalTransform.x, finalTransform.y);
-                    
-                    // Verify the visual center is now correct
-                    const finalVisualCenterX = unscaledCenterX * finalTransform.k + finalTransform.x;
-                    const finalVisualCenterY = unscaledCenterY * finalTransform.k + finalTransform.y;
-                    console.log('✅ AFTER - Final visual center:', finalVisualCenterX, finalVisualCenterY);
-                });
+                    d3.zoomIdentity.translate(targetX, targetY).scale(currentScale)
+                );
                 
         } else {
-            console.log('🎯 NON-ZOOM PATH: Using direct chart positioning');
+            console.log('🎯 No zoom behavior, using direct chart positioning');
             
             // Get bounds of ONLY the visible bars for consistent centering
             const visualBounds = this.getVisualBarBounds();
@@ -4384,13 +4427,10 @@ class PulseBarChart {
             this.chart
                 .transition()
                 .duration(1000)
-                .attr('transform', `translate(${targetX}, ${targetY})`)
-                .on('end', () => {
-                    console.log('✅ NON-ZOOM centering completed');
-                });
+                .attr('transform', `translate(${targetX}, ${targetY})`);
         }
         
-        console.log('🎯🎯🎯 ===== CENTER CHART METHOD FINISHED ===== 🎯🎯🎯');
+        console.log('✅ Applied proper centering with zoom behavior sync');
     }
 
     /**
