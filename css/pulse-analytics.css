@@ -247,8 +247,6 @@ body {
     transform: translateY(0) !important;
     pointer-events: auto !important;
     display: block !important;
-    background: yellow !important;
-    border: 3px solid red !important;
     position: fixed !important;
     z-index: 2147483647 !important;
 }
