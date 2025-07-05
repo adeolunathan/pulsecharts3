@@ -135,10 +135,9 @@ class PulseControlPanel {
         console.log('✅ Generated horizontal menu controls');
     }
 
-    // Clear all dropdown contents
+    // Clear all dropdown contents, preserving data-controls static content
     clearAllDropdowns() {
         const dropdownContents = [
-            '#data-controls',
             '#style-controls', 
             '#layout-controls',
             '#display-controls',
@@ -151,6 +150,12 @@ class PulseControlPanel {
                 container.selectAll('*').remove();
             }
         });
+        
+        // For data-controls, only clear dynamically generated sections, preserve static content
+        const dataContainer = d3.select('#data-controls');
+        if (!dataContainer.empty()) {
+            dataContainer.selectAll('.menu-control-section').remove();
+        }
     }
 
     // Find which menu category a section belongs to
