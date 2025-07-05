@@ -5653,6 +5653,25 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+/* Dropdown icon for category cells */
+.dropdown-icon {
+    font-size: 10px;
+    color: #9aa0a6;
+    margin-left: auto;
+    padding-left: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.spreadsheet-cell[data-type="category"] .cell-content {
+    justify-content: space-between;
+}
+
+.spreadsheet-cell[data-type="category"]:hover .dropdown-icon {
+    opacity: 1;
+    color: #4285f4;
+}
+
 .cell-editor {
     position: absolute;
     top: 0;
@@ -5703,10 +5722,65 @@ body {
 
 .cell-editor select:focus {
     border-color: #1a73e8;
-    box-shadow: 0 2px 8px rgba(26,115,232,0.3);
-    z-index: 2001;
-    /* Keep dropdown stable when focused */
+}
+
+/* Enhanced category cell editor styling */
+.cell-editor-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #4285f4;
+    outline: none;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: 'Roboto', Arial, sans-serif;
+    background: white;
+    color: #202124;
+    box-sizing: border-box;
+    z-index: 15;
+    border-radius: 2px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.cell-editor-text:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 1px #1a73e8;
+}
+
+.cell-editor-select {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #4285f4;
+    background: white;
+    -webkit-appearance: menulist;
+    -moz-appearance: menulist;
+    appearance: menulist;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: 'Roboto', Arial, sans-serif;
+    color: #202124;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 2px;
+    z-index: 2000;
     position: relative;
+    pointer-events: all;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    min-height: 24px;
+}
+
+.cell-editor-select:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 1px #1a73e8, 0 2px 8px rgba(26,115,232,0.3);
+    z-index: 2001;
 }
 
 .cell-editor select:hover {

@@ -546,6 +546,11 @@
                 
                 if (window.currentMainTab === 'data-builder' && window.currentChartType === 'sankey') {
                     this.refreshFlowBuilder();
+                    // Also update the flow builder chart instance if it exists
+                    if (window.flowBuilderChart && source === 'flow-builder') {
+                        console.log('🎨 Updating flow builder chart directly');
+                        window.flowBuilderChart.render(this.currentData);
+                    }
                 }
                 
                 if (window.pulseApp && source !== 'app' && source !== 'app-initial') {
@@ -1121,8 +1126,11 @@
         
         function refreshChart() {
             console.log('🔄 Refreshing chart');
-            renderChartInFlowBuilder();
-            showNotification('Chart refreshed', 'success');
+            
+            // Instead of recreating the chart, update it through the Data Bridge
+            const sankeyData = generateNodesAndLinksFromFlows();
+            console.log('📈 Refreshing with Sankey data:', sankeyData);
+            window.PulseDataBridge.setData(sankeyData, 'chart-refresh');
         }
         
         // Initialize Flow Builder Control Panel (same as Chart View)
@@ -1461,6 +1469,9 @@
                 
                 // Store reference for controls and future operations
                 window.flowBuilderChart = flowBuilderChart;
+                
+                // Register with Data Bridge so it can update this chart
+                window.PulseDataBridge.setChartInstance(flowBuilderChart);
                 
                 console.log(`✅ ${chartType} chart rendered successfully in Flow Builder canvas`);
                 
@@ -2034,9 +2045,7 @@
                 return [
                     { value: 'revenue', label: 'Revenue' },
                     { value: 'expense', label: 'Expense' },
-                    { value: 'cost', label: 'Cost' },
-                    { value: 'profit', label: 'Profit' },
-                    { value: 'income', label: 'Income' }
+                    { value: 'profit', label: 'Profit' }
                 ];
             }
         }
@@ -2099,7 +2108,7 @@
             ).join('');
             rowHTML += `
                 <td class="spreadsheet-cell" data-col="sourceCategory" data-row="${index}" data-type="category">
-                    <div class="cell-content">${isEmpty ? '' : (flow.sourceCategory || '')}</div>
+                    <div class="cell-content">${isEmpty ? '' : (flow.sourceCategory || '')}<span class="dropdown-icon">▼</span></div>
                     <input type="text" class="cell-editor-text" style="display: none;" placeholder="Type category...">
                     <select class="cell-editor-select" style="display: none;">
                         ${sourceCategoryOptions}
@@ -2112,7 +2121,7 @@
             ).join('');
             rowHTML += `
                 <td class="spreadsheet-cell" data-col="targetCategory" data-row="${index}" data-type="category">
-                    <div class="cell-content">${isEmpty ? '' : (flow.targetCategory || '')}</div>
+                    <div class="cell-content">${isEmpty ? '' : (flow.targetCategory || '')}<span class="dropdown-icon">▼</span></div>
                     <input type="text" class="cell-editor-text" style="display: none;" placeholder="Type category...">
                     <select class="cell-editor-select" style="display: none;">
                         ${targetCategoryOptions}
@@ -2422,6 +2431,7 @@
 
         function applyFlowChanges() {
             console.log('🚀 Applying Flow Builder changes...');
+            console.log('📊 Current flow data:', flowData);
             
             // Form fields removed - use existing metadata or defaults
             flowData.metadata.company = flowData.metadata.company || 'TechFlow SaaS Corp';
@@ -2431,6 +2441,7 @@
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             const sankeyData = generateNodesAndLinksFromFlows();
+            console.log('📈 Generated Sankey data:', sankeyData);
             window.PulseDataBridge.applyFlowBuilderChanges(sankeyData);
             
             // Chart view removed - staying on data-builder
@@ -3428,22 +3439,42 @@
 
                 // Check if this is a SELECT type cell for immediate editing
                 const isSelectCell = cell.dataset.type === 'select';
+                const isCategoryCell = cell.dataset.type === 'category';
                 
-                this.selectCell(cell);
-                
-                // For SELECT elements, start editing immediately on single click
-                if (isSelectCell) {
-                    // Prevent the double-click requirement for dropdowns
-                    setTimeout(() => {
-                        this.startEditing(cell);
-                    }, 10);
-                }
-                
-                // For category cells, start text editing on single click
-                if (cell.dataset.type === 'category') {
-                    setTimeout(() => {
-                        this.startEditingCategory(cell, 'text');
-                    }, 10);
+                // For category cells, implement hybrid interaction
+                if (isCategoryCell) {
+                    if (this.selectedCell === cell && !this.editingCell) {
+                        // Second click on already selected cell - show dropdown
+                        this.startEditingCategory(cell, 'select');
+                    } else if (this.editingCell === cell) {
+                        // Cell is already being edited - check if we should toggle to dropdown
+                        const textEditor = cell.querySelector('.cell-editor-text');
+                        const selectEditor = cell.querySelector('.cell-editor-select');
+                        
+                        // If currently in text mode, switch to dropdown
+                        if (textEditor.style.display === 'block') {
+                            this.stopEditingCategory();
+                            setTimeout(() => {
+                                this.startEditingCategory(cell, 'select');
+                            }, 10);
+                        }
+                    } else {
+                        // First click - select cell and activate text input
+                        this.selectCell(cell);
+                        setTimeout(() => {
+                            this.startEditingCategory(cell, 'text');
+                        }, 10);
+                    }
+                } else {
+                    this.selectCell(cell);
+                    
+                    // For SELECT elements, start editing immediately on single click
+                    if (isSelectCell) {
+                        // Prevent the double-click requirement for dropdowns
+                        setTimeout(() => {
+                            this.startEditing(cell);
+                        }, 10);
+                    }
                 }
             }
 
@@ -3451,12 +3482,8 @@
                 const cell = event.target.closest('.spreadsheet-cell');
                 if (cell) {
                     if (cell.dataset.type === 'category') {
-                        // Second click should show dropdown if already selected
-                        if (this.selectedCell === cell && !this.editingCell) {
-                            this.startEditingCategory(cell, 'select');
-                        } else {
-                            this.startEditingCategory(cell, 'select');
-                        }
+                        // Double click should show dropdown
+                        this.startEditingCategory(cell, 'select');
                     } else {
                         this.startEditing(cell);
                     }
@@ -3513,7 +3540,7 @@
                     this.setupCategoryAutocomplete(textEditor, selectEditor);
                     
                     // Add event listeners for text editor
-                    textEditor.addEventListener('blur', () => this.stopEditingCategory(), { once: true });
+                    textEditor.addEventListener('blur', () => this.stopEditingCategory());
                     textEditor.addEventListener('keydown', this.handleEditorKeys.bind(this));
                 } else {
                     // Use select dropdown
@@ -3523,32 +3550,61 @@
                     selectEditor.focus();
                     
                     // Add event listeners for select editor
-                    selectEditor.addEventListener('blur', () => this.stopEditingCategory(), { once: true });
+                    selectEditor.addEventListener('blur', () => this.stopEditingCategory());
                     selectEditor.addEventListener('keydown', this.handleEditorKeys.bind(this));
                 }
             }
 
             setupCategoryAutocomplete(textEditor, selectEditor) {
                 // Get available options from the select element
-                const options = Array.from(selectEditor.options).map(option => option.value);
+                const options = Array.from(selectEditor.options).map(option => option.value).filter(v => v);
                 
                 textEditor.addEventListener('input', (e) => {
                     const value = e.target.value.toLowerCase();
                     if (value.length > 0) {
                         const matches = options.filter(option => option.toLowerCase().includes(value));
                         if (matches.length > 0) {
-                            // Simple autocomplete - could be enhanced with a dropdown
                             const exactMatch = matches.find(match => match.toLowerCase() === value);
                             if (exactMatch) {
                                 textEditor.style.backgroundColor = '#e8f5e8'; // Light green for exact match
+                                textEditor.style.borderColor = '#28a745';
                             } else {
                                 textEditor.style.backgroundColor = '#fff3cd'; // Light yellow for partial match
+                                textEditor.style.borderColor = '#ffc107';
                             }
                         } else {
                             textEditor.style.backgroundColor = '#f8d7da'; // Light red for no match
+                            textEditor.style.borderColor = '#dc3545';
                         }
                     } else {
                         textEditor.style.backgroundColor = 'white';
+                        textEditor.style.borderColor = '#ddd';
+                    }
+                });
+                
+                // Add Tab key support for autocomplete
+                textEditor.addEventListener('keydown', (e) => {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const value = textEditor.value.toLowerCase();
+                        if (value.length > 0) {
+                            const matches = options.filter(option => option.toLowerCase().includes(value));
+                            if (matches.length > 0) {
+                                // Auto-complete with first match
+                                textEditor.value = matches[0];
+                                textEditor.style.backgroundColor = '#e8f5e8';
+                                textEditor.style.borderColor = '#28a745';
+                                textEditor.select();
+                            }
+                        }
+                    } else if (e.key === 'ArrowDown') {
+                        // Switch to dropdown mode on arrow down
+                        e.preventDefault();
+                        const cell = textEditor.closest('.spreadsheet-cell');
+                        this.stopEditingCategory();
+                        setTimeout(() => {
+                            this.startEditingCategory(cell, 'select');
+                        }, 10);
                     }
                 });
             }
@@ -3908,7 +3964,7 @@
                 switch (event.key) {
                     case 'Enter':
                         event.preventDefault();
-                        this.stopEditing();
+                        this.stopEditingCell();
                         // Add small delay to prevent auto-editing next cell
                         setTimeout(() => {
                             this.moveSelection('down');
@@ -3920,9 +3976,25 @@
                         break;
                     case 'Tab':
                         event.preventDefault();
-                        this.stopEditing();
+                        this.stopEditingCell();
                         this.moveSelection(event.shiftKey ? 'left' : 'right');
                         break;
+                }
+            }
+
+            stopEditingCell() {
+                if (!this.editingCell) return;
+                
+                const cell = this.editingCell;
+                const cellType = cell.dataset.type;
+                
+                // Call the appropriate stop editing method based on cell type
+                if (cellType === 'category') {
+                    this.stopEditingCategory();
+                } else if (cellType === 'hybrid') {
+                    this.stopEditingHybrid();
+                } else {
+                    this.stopEditing();
                 }
             }
 
@@ -3969,12 +4041,20 @@
                         // Only start editing if user explicitly presses Enter on a selected cell
                         // Don't auto-edit when navigating with Enter from editing mode
                         if (this.selectedCell && !this.editingCell) {
-                            this.startEditing(this.selectedCell);
+                            if (this.selectedCell.dataset.type === 'category') {
+                                this.startEditingCategory(this.selectedCell, 'text');
+                            } else {
+                                this.startEditing(this.selectedCell);
+                            }
                         }
                         break;
                     case 'F2':
                         event.preventDefault();
-                        this.startEditing(this.selectedCell);
+                        if (this.selectedCell.dataset.type === 'category') {
+                            this.startEditingCategory(this.selectedCell, 'text');
+                        } else {
+                            this.startEditing(this.selectedCell);
+                        }
                         break;
                     case 'Delete':
                     case 'Backspace':
@@ -3988,7 +4068,11 @@
                     default:
                         // Start editing on alphanumeric key press
                         if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
-                            this.startEditing(this.selectedCell);
+                            if (this.selectedCell.dataset.type === 'category') {
+                                this.startEditingCategory(this.selectedCell, 'text');
+                            } else {
+                                this.startEditing(this.selectedCell);
+                            }
                         }
                         break;
                 }
