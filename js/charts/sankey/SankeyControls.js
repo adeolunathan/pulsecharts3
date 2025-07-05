@@ -134,12 +134,12 @@ class SankeyControlModule {
                     {
                         id: "globalFontSize",
                         type: "slider",
-                        label: "Global Font Size",
+                        label: "Label/Value Font Size",
                         min: 8,
                         max: 18,
                         default: 12,
                         step: 1,
-                        description: "Adjust the size of all text elements on the chart"
+                        description: "Adjust the size of chart labels and values (excludes title)"
                     }
                 ]
             },

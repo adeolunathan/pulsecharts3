@@ -166,7 +166,7 @@ class PulseControlPanel {
         
         // Enhanced keyword matching
         if (lowerKey.includes('color') || lowerKey.includes('palette') || lowerKey === 'colors') return 'colors';
-        if (lowerKey.includes('style') || lowerKey.includes('font') || lowerKey.includes('text') || lowerKey.includes('typography') || lowerKey.includes('appearance')) return 'style';
+        if (lowerKey.includes('style') || lowerKey.includes('styling') || lowerKey.includes('font') || lowerKey.includes('text') || lowerKey.includes('typography') || lowerKey.includes('appearance') || lowerKey.includes('branding')) return 'style';
         if (lowerKey.includes('layout') || lowerKey.includes('spacing') || lowerKey.includes('margin') || lowerKey.includes('dimension')) return 'layout';
         if (lowerKey.includes('display') || lowerKey.includes('label') || lowerKey.includes('show') || lowerKey.includes('visibility')) return 'display';
         if (lowerKey.includes('general') || lowerKey.includes('chart') || lowerKey.includes('data')) return 'data';

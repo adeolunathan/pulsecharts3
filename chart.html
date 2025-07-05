@@ -65,6 +65,20 @@
         .chart-panel {
             flex: 1 !important;
         }
+        
+        /* Enhanced title styling for better color control */
+        text[data-editable="true"] {
+            transition: fill 0.2s ease !important;
+        }
+        
+        text[data-editable="true"]:hover {
+            fill: #3b82f6 !important;
+        }
+        
+        /* Prevent color flickering */
+        text[data-custom-color] {
+            fill: var(--custom-color) !important;
+        }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" 
           crossorigin="anonymous" />
@@ -456,7 +470,7 @@
                 </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px;">Units</label>
                     <select id="modal-units" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white;">
@@ -472,6 +486,20 @@
                         <option value="Q/Q">Quarter-over-Quarter (Q/Q)</option>
                         <option value="Y/Y">Year-over-Year (Y/Y)</option>
                     </select>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px;">Title Font Size</label>
+                    <input type="range" id="modal-title-font-size" min="20" max="60" value="40" style="width: 100%;">
+                    <div style="text-align: center; font-size: 10px; color: #9ca3af; margin-top: 2px;">
+                        <span id="modal-title-font-size-value">40px</span>
+                    </div>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px;">Title Color</label>
+                    <input type="color" id="modal-title-color" value="#1f2937" style="width: 100%; height: 32px; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer;">
                 </div>
             </div>
             
@@ -4453,16 +4481,109 @@
                     console.log('📝 Restored custom title:', window.customChartTitle);
                 }
                 
+                // Restore custom title styling if it exists
+                if (window.customTitleFontSize) {
+                    chartTitle.style.fontSize = window.customTitleFontSize + 'px';
+                    chartTitle.setAttribute('font-size', window.customTitleFontSize + 'px');
+                }
+                if (window.customTitleColor) {
+                    chartTitle.style.setProperty('--custom-color', window.customTitleColor);
+                    chartTitle.style.fill = window.customTitleColor;
+                    chartTitle.setAttribute('fill', window.customTitleColor);
+                    chartTitle.setAttribute('data-custom-color', window.customTitleColor);
+                }
+                
                 // Always apply/reapply styling to ensure title remains editable
                 chartTitle.setAttribute('data-editable', 'true');
                 chartTitle.style.cursor = 'pointer';
                 chartTitle.style.transition = 'fill 0.2s ease';
-                chartTitle.style.fill = '#1f2937';  // Default color
                 
                 console.log('✅ Chart title made editable:', chartTitle.textContent);
                 return true;
             }
             return false;
+        }
+
+        function updateCurrencyDisplayLive(newCurrency) {
+            // Map currency values to symbols
+            const currencySymbols = {
+                'USD ($)': '$',
+                'EUR (€)': '€',
+                'GBP (£)': '£',
+                'JPY (¥)': '¥'
+            };
+            
+            const newSymbol = currencySymbols[newCurrency] || '$';
+            
+            // Update all currency displays on the chart immediately
+            const chartContainer = document.querySelector('#main-chart');
+            if (chartContainer) {
+                // Find all text elements that contain currency symbols
+                const textElements = chartContainer.querySelectorAll('text');
+                textElements.forEach(element => {
+                    const text = element.textContent;
+                    // Check if text contains currency symbols
+                    if (text && (text.includes('$') || text.includes('€') || text.includes('£') || text.includes('¥'))) {
+                        // Replace the currency symbol
+                        const newText = text.replace(/[$€£¥]/, newSymbol);
+                        element.textContent = newText;
+                    }
+                });
+            }
+            
+            // Store for persistence
+            window.livePreviewCurrency = newCurrency;
+            console.log('💱 Live currency preview:', newCurrency, '→', newSymbol);
+        }
+
+        function updateUnitsDisplayLive(newUnits) {
+            // Map units to suffixes
+            const unitSuffixes = {
+                'Millions': 'M',
+                'Thousands': 'K', 
+                'Billions': 'B',
+                'Actual': ''
+            };
+            
+            const newSuffix = unitSuffixes[newUnits] || 'M';
+            
+            // Update all unit displays on the chart immediately
+            const chartContainer = document.querySelector('#main-chart');
+            if (chartContainer) {
+                const textElements = chartContainer.querySelectorAll('text');
+                textElements.forEach(element => {
+                    const text = element.textContent;
+                    // Check if text contains unit suffixes and currency symbols
+                    if (text && (text.includes('K') || text.includes('M') || text.includes('B')) && 
+                        (text.includes('$') || text.includes('€') || text.includes('£') || text.includes('¥'))) {
+                        // Replace the unit suffix while preserving currency symbol
+                        let newText = text.replace(/[KMB](?=\s*$|[^a-zA-Z])/g, newSuffix);
+                        if (newSuffix === '' && newText !== text) {
+                            // Remove trailing space if no suffix
+                            newText = newText.replace(/\s+([€$£¥])/, '$1');
+                        }
+                        element.textContent = newText;
+                    }
+                });
+            }
+            
+            // Store for persistence
+            window.livePreviewUnits = newUnits;
+            console.log('📊 Live units preview:', newUnits, '→', newSuffix);
+        }
+
+        function rgbToHex(rgb) {
+            if (!rgb || rgb === 'none') return '#1f2937';
+            if (rgb.startsWith('#')) return rgb;
+            
+            const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (match) {
+                const r = parseInt(match[1]);
+                const g = parseInt(match[2]);
+                const b = parseInt(match[3]);
+                return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            }
+            return '#1f2937';
         }
 
         function createDefaultTitle() {
@@ -4526,6 +4647,15 @@
                 currency = flowData.metadata.currency || currency;
                 units = flowData.metadata.unit || units;
                 periodType = flowData.metadata.periodType || periodType;
+                console.log('📋 Reading existing metadata:', {
+                    company: flowData.metadata.company,
+                    period: flowData.metadata.period,
+                    currency: flowData.metadata.currency,
+                    unit: flowData.metadata.unit,
+                    periodType: flowData.metadata.periodType
+                });
+            } else {
+                console.log('⚠️ No flowData.metadata found, using defaults');
             }
             
             if (chartTitle && chartTitle.textContent) {
@@ -4548,6 +4678,16 @@
                 }
             }
             
+            // Get current title styling
+            let titleFontSize = 40;
+            let titleColor = '#1f2937';
+            const currentTitle = findChartTitle();
+            if (currentTitle) {
+                const computedStyle = window.getComputedStyle(currentTitle);
+                titleFontSize = parseInt(computedStyle.fontSize) || 40;
+                titleColor = rgbToHex(computedStyle.fill) || '#1f2937';
+            }
+            
             // Populate modal fields
             const modalCompanyName = document.getElementById('modal-company-name');
             const modalPeriod = document.getElementById('modal-period');
@@ -4555,6 +4695,9 @@
             const modalStatementType = document.getElementById('modal-statement-type');
             const modalUnits = document.getElementById('modal-units');
             const modalPeriodType = document.getElementById('modal-period-type');
+            const modalTitleFontSize = document.getElementById('modal-title-font-size');
+            const modalTitleFontSizeValue = document.getElementById('modal-title-font-size-value');
+            const modalTitleColor = document.getElementById('modal-title-color');
             
             if (modalCompanyName) modalCompanyName.value = companyName;
             if (modalPeriod) modalPeriod.value = period;
@@ -4562,6 +4705,64 @@
             if (modalStatementType) modalStatementType.value = statementType;
             if (modalUnits) modalUnits.value = units;
             if (modalPeriodType) modalPeriodType.value = periodType;
+            if (modalTitleFontSize) {
+                modalTitleFontSize.value = titleFontSize;
+                if (modalTitleFontSizeValue) modalTitleFontSizeValue.textContent = titleFontSize + 'px';
+            }
+            if (modalTitleColor) modalTitleColor.value = titleColor;
+            
+            // Add event listeners for live preview
+            if (modalTitleFontSize && modalTitleFontSizeValue) {
+                modalTitleFontSize.addEventListener('input', function() {
+                    const newSize = this.value + 'px';
+                    modalTitleFontSizeValue.textContent = newSize;
+                    
+                    // Live preview on chart title
+                    const liveTitle = findChartTitle();
+                    if (liveTitle) {
+                        liveTitle.style.fontSize = newSize;
+                        liveTitle.setAttribute('font-size', newSize);
+                    }
+                });
+            }
+            
+            // Add event listener for live color preview
+            if (modalTitleColor) {
+                modalTitleColor.addEventListener('input', function() {
+                    const newColor = this.value;
+                    
+                    // Live preview on chart title
+                    const liveTitle = findChartTitle();
+                    if (liveTitle) {
+                        liveTitle.style.fill = newColor;
+                        liveTitle.setAttribute('fill', newColor);
+                        liveTitle.setAttribute('data-custom-color', newColor);
+                    }
+                });
+            }
+            
+            // Add event listener for live currency preview
+            if (modalCurrency) {
+                modalCurrency.addEventListener('change', function() {
+                    const newCurrency = this.value;
+                    updateCurrencyDisplayLive(newCurrency);
+                });
+            }
+            
+            // Add event listener for live units preview
+            if (modalUnits) {
+                modalUnits.addEventListener('change', function() {
+                    const newUnits = this.value;
+                    updateUnitsDisplayLive(newUnits);
+                });
+            }
+            
+            // Store original values for cancel functionality
+            window.originalTitleValues = {
+                text: chartTitle ? chartTitle.textContent : '',
+                fontSize: titleFontSize,
+                color: titleColor
+            };
             
             // Show modal
             const modal = document.getElementById('chart-title-modal');
@@ -4585,6 +4786,8 @@
             const statementType = document.getElementById('modal-statement-type')?.value || 'Income Statement';
             const units = document.getElementById('modal-units')?.value || 'Millions';
             const periodType = document.getElementById('modal-period-type')?.value || 'Q/Q';
+            const titleFontSize = document.getElementById('modal-title-font-size')?.value || '40';
+            const titleColor = document.getElementById('modal-title-color')?.value || '#1f2937';
             
             // Update global metadata with all values
             if (typeof flowData !== 'undefined' && flowData.metadata) {
@@ -4598,53 +4801,59 @@
             // Create new title
             const newTitle = `${companyName} ${period} ${statementType}`;
             
-            // Update chart title
+            // Update chart title (styling already applied via live preview)
             const chartTitle = findChartTitle();
             if (chartTitle) {
-                // Update the text
-                chartTitle.textContent = newTitle;
-                console.log('Chart title updated to:', newTitle);
-                console.log('Metadata updated:', { companyName, period, currency, units, periodType });
-                
-                // Store the title for persistence across re-renders
+                // Store the title and styling for persistence
                 window.customChartTitle = newTitle;
+                window.customTitleFontSize = titleFontSize;
+                window.customTitleColor = titleColor;
                 
-                // Ensure title remains editable after text change
-                setTimeout(() => {
-                    makeChartTitleEditable();
-                }, 100);
+                // Only update the text content (styling already done by live preview)
+                chartTitle.textContent = newTitle;
+                
+                // Ensure title remains editable
+                chartTitle.setAttribute('data-editable', 'true');
+                chartTitle.style.cursor = 'pointer';
+                
+                console.log('Chart title updated to:', newTitle);
+                console.log('Title styling updated:', { fontSize: titleFontSize + 'px', color: titleColor });
+                console.log('Metadata updated:', { companyName, period, currency, units, periodType });
             }
             
-            // Trigger chart re-render to apply metadata changes
+            // No chart re-render needed - all changes are applied live!
+            // Just ensure title remains editable
             setTimeout(() => {
-                if (typeof debouncedRealTimeUpdate === 'function') {
-                    debouncedRealTimeUpdate();
-                } else if (typeof updateAllStats === 'function') {
-                    updateAllStats();
-                }
-                
-                // Also trigger chart refresh via data bridge if available
-                if (window.PulseDataBridge && typeof window.PulseDataBridge.refreshChart === 'function') {
-                    window.PulseDataBridge.refreshChart();
-                }
-                
-                // Re-enable title editability after chart refresh with multiple attempts
-                let attempts = 0;
-                const maxAttempts = 10;
-                const retryInterval = setInterval(() => {
-                    attempts++;
-                    if (makeChartTitleEditable() || attempts >= maxAttempts) {
-                        clearInterval(retryInterval);
-                        console.log(`✅ Re-enabled title editability after chart refresh (attempt ${attempts})`);
-                    }
-                }, 300);
-            }, 200);
+                makeChartTitleEditable();
+            }, 50);
+            
+            // Clear original values since we're saving
+            delete window.originalTitleValues;
             
             // Close modal
-            cancelTitleEdit();
+            document.getElementById('chart-title-modal').style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
 
         function cancelTitleEdit() {
+            // Restore original title values if they exist
+            if (window.originalTitleValues) {
+                const chartTitle = findChartTitle();
+                if (chartTitle) {
+                    chartTitle.textContent = window.originalTitleValues.text;
+                    chartTitle.style.fontSize = window.originalTitleValues.fontSize + 'px';
+                    chartTitle.style.fill = window.originalTitleValues.color;
+                    chartTitle.setAttribute('font-size', window.originalTitleValues.fontSize + 'px');
+                    chartTitle.setAttribute('fill', window.originalTitleValues.color);
+                    chartTitle.setAttribute('data-custom-color', window.originalTitleValues.color);
+                    
+                    // Restore global values
+                    window.customTitleFontSize = window.originalTitleValues.fontSize;
+                    window.customTitleColor = window.originalTitleValues.color;
+                }
+                delete window.originalTitleValues;
+            }
+            
             document.getElementById('chart-title-modal').style.display = 'none';
             document.body.style.overflow = 'auto';
         }
@@ -4661,11 +4870,17 @@
             }
         });
 
-        // Universal hover effects
+        // Universal hover effects with custom color preservation
         document.addEventListener('mouseover', function(e) {
             if (e.target.closest('#main-chart') && 
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
                 e.target.hasAttribute('data-editable')) {
+                
+                // Store the current color before hovering
+                const currentColor = e.target.style.fill || e.target.getAttribute('fill') || e.target.getAttribute('data-custom-color') || window.customTitleColor || '#1f2937';
+                e.target.setAttribute('data-original-color', currentColor);
+                
+                // Apply hover color
                 e.target.style.fill = '#3b82f6';
             }
         });
@@ -4674,7 +4889,10 @@
             if (e.target.closest('#main-chart') && 
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
                 e.target.hasAttribute('data-editable')) {
-                e.target.style.fill = '#1f2937';
+                
+                // Restore the original color
+                const originalColor = e.target.getAttribute('data-original-color') || e.target.getAttribute('data-custom-color') || window.customTitleColor || '#1f2937';
+                e.target.style.fill = originalColor;
             }
         });
 
