@@ -132,6 +132,185 @@
 
         <!-- Flow Builder Tab -->
         <div id="data-builder" class="tab-content">
+            <!-- Horizontal Chart Controls Menu for Flow Builder -->
+            <div class="horizontal-controls-menu">
+                <div class="controls-menu-wrapper">
+                    <!-- Menu Sections (Left to Right) -->
+                    <div class="menu-section" data-section="data">
+                        <button class="menu-trigger" data-target="data">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="9" x2="15" y2="9"/>
+                                <line x1="9" y1="13" x2="15" y2="13"/>
+                                <line x1="9" y1="17" x2="15" y2="17"/>
+                            </svg>
+                            <span>Data</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="data-dropdown">
+                            <div id="data-controls" class="dropdown-content">
+                                <!-- Flow Builder Actions -->
+                                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
+                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">🚀 Flow Actions</h4>
+                                    <p style="margin: 0 0 12px 0; color: #64748b; font-size: 12px;">Apply and validate your flow changes</p>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🚀 Apply
+                                        </button>
+                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            ✅ Validate
+                                        </button>
+                                        <button class="btn-small" onclick="resetToChartData()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🔄 Reset
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Export Options -->
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📤 Export Options</h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            💾 Export CSV
+                                        </button>
+                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📋 Template
+                                        </button>
+                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📤 Upload
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Chart Export -->
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📊 Chart Export</h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToPNG()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🖼️ PNG
+                                        </button>
+                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToSVG()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            ⚡ SVG
+                                        </button>
+                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportDataToCSV()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📄 Data CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section" data-section="style">
+                        <button class="menu-trigger" data-target="style">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+                            </svg>
+                            <span>Style</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="style-dropdown">
+                            <div id="style-controls" class="dropdown-content"></div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section" data-section="layout">
+                        <button class="menu-trigger" data-target="layout">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <path d="M3 9h18M9 21V9"/>
+                            </svg>
+                            <span>Layout</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="layout-dropdown">
+                            <div id="layout-controls" class="dropdown-content"></div>
+                        </div>
+                    </div>
+
+
+                    <div class="menu-section" data-section="colors">
+                        <button class="menu-trigger" data-target="colors">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="13.5" cy="6.5" r=".5"/>
+                                <circle cx="17.5" cy="10.5" r=".5"/>
+                                <circle cx="8.5" cy="7.5" r=".5"/>
+                                <circle cx="6.5" cy="12.5" r=".5"/>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                            </svg>
+                            <span>Colors</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="colors-dropdown">
+                            <div id="colors-controls" class="dropdown-content"></div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section" data-section="flowbuilder">
+                        <button class="menu-trigger" data-target="flowbuilder">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            <span>Flow Builder</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"/>
+                            </svg>
+                        </button>
+                        <div class="menu-dropdown" id="flowbuilder-dropdown">
+                            <div id="flowbuilder-controls" class="dropdown-content">
+                                <!-- Flow Builder Description -->
+                                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
+                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Flow Builder</h4>
+                                    <p style="margin: 0; color: #64748b; font-size: 12px;">Design your financial flow visualizations</p>
+                                </div>
+
+                                <!-- Flow Actions -->
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">🚀 Flow Actions</h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🚀 Apply
+                                        </button>
+                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            ✅ Validate
+                                        </button>
+                                        <button class="btn-small" onclick="resetToChartData()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🔄 Reset
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Export Options -->
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📤 Export Options</h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            💾 Export CSV
+                                        </button>
+                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📋 Template
+                                        </button>
+                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📤 Upload
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="flow-builder-container">
                 <!-- Flow Builder actions moved to Chart View menu -->
 
@@ -292,12 +471,6 @@
                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                                         <button class="btn-small" onclick="switchMainTab('data-builder', true)" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
                                             🔗 Open Flow Builder
-                                        </button>
-                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            🚀 Apply Changes
-                                        </button>
-                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            ✅ Validate
                                         </button>
                                     </div>
                                 </div>
@@ -1670,11 +1843,8 @@
                     mainChart.style.display = 'none';
                 }
                 
-                // Hide horizontal controls menu since Flow Builder has its own controls
-                const horizontalMenu = document.querySelector('.horizontal-controls-menu');
-                if (horizontalMenu) {
-                    horizontalMenu.style.display = 'none';
-                }
+                // Flow Builder now uses the same horizontal menu structure as Chart View
+                // No need to hide the menu since it's the same interface
                 
                 // Only initialize if not already done
                 if (!isInitialized) {
@@ -1704,11 +1874,8 @@
                     mainChart.style.display = 'block';
                 }
                 
-                // Show horizontal controls menu when in Chart View
-                const horizontalMenu = document.querySelector('.horizontal-controls-menu');
-                if (horizontalMenu) {
-                    horizontalMenu.style.display = 'block';
-                }
+                // Both Chart View and Flow Builder use the same horizontal menu structure
+                // No need to show/hide menu when switching between tabs
             }
         }
 
