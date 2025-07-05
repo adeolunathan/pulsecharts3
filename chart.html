@@ -122,18 +122,15 @@
 
         <!-- Main Tabs Navigation -->
         <div class="main-tabs">
-            <button class="main-tab" onclick="switchMainTab('data-builder', true)">
-                💰 Flow Builder
-            </button>
-            <button class="main-tab active" onclick="switchMainTab('chart-view', true)">
-                📊 Chart View
+            <button class="main-tab active" onclick="switchMainTab('data-builder', true)">
+                💰 PulseCharts
             </button>
         </div>
 
-        <!-- Flow Builder Tab -->
-        <div id="data-builder" class="tab-content">
-            <!-- Horizontal Chart Controls Menu for Flow Builder -->
-            <div class="horizontal-controls-menu">
+        <!-- Main Chart Interface -->
+        <div id="data-builder" class="tab-content active" style="display: block !important;">
+            <!-- Horizontal Chart Controls Menu -->
+            <div class="horizontal-controls-menu" style="display: block !important; visibility: visible !important;">
                 <div class="controls-menu-wrapper">
                     <!-- Menu Sections (Left to Right) -->
                     <div class="menu-section" data-section="data">
@@ -151,7 +148,7 @@
                         </button>
                         <div class="menu-dropdown" id="data-dropdown">
                             <div id="data-controls" class="dropdown-content">
-                                <!-- Flow Builder Actions -->
+                                <!-- Chart Actions -->
                                 <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
                                     <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">🚀 Flow Actions</h4>
                                     <p style="margin: 0 0 12px 0; color: #64748b; font-size: 12px;">Apply and validate your flow changes</p>
@@ -188,13 +185,13 @@
                                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
                                     <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📊 Chart Export</h4>
                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToPNG()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        <button class="btn-small" onclick="exportCurrentChart('png')" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
                                             🖼️ PNG
                                         </button>
-                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToSVG()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        <button class="btn-small" onclick="exportCurrentChart('svg')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
                                             ⚡ SVG
                                         </button>
-                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportDataToCSV()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                        <button class="btn-small" onclick="exportCurrentChart('csv')" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
                                             📄 Data CSV
                                         </button>
                                     </div>
@@ -226,7 +223,7 @@
                                 <path d="M3 9h18M9 21V9"/>
                             </svg>
                             <span>Layout</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="name" stroke="currentColor" stroke-width="2">
                                 <polyline points="6,9 12,15 18,9"/>
                             </svg>
                         </button>
@@ -261,20 +258,20 @@
                                 <circle cx="12" cy="12" r="3"/>
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                             </svg>
-                            <span>Flow Builder</span>
+                            <span>Chart Builder</span>
                             <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="6,9 12,15 18,9"/>
                             </svg>
                         </button>
                         <div class="menu-dropdown" id="flowbuilder-dropdown">
                             <div id="flowbuilder-controls" class="dropdown-content">
-                                <!-- Flow Builder Description -->
+                                <!-- Chart Builder Description -->
                                 <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
-                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Flow Builder</h4>
+                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Chart Builder</h4>
                                     <p style="margin: 0; color: #64748b; font-size: 12px;">Design your financial flow visualizations</p>
                                 </div>
 
-                                <!-- Flow Actions -->
+                                <!-- Chart Actions -->
                                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                                     <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">🚀 Flow Actions</h4>
                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
@@ -412,13 +409,9 @@
                     <!-- Right Panel: Expanded Chart Canvas -->
                     <div class="chart-panel" style="flex: 1; position: relative; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); min-height: 700px;">
                         
-                        <!-- Expanded Chart Container -->
-                        <div style="padding: 20px; height: 100%;">
-                            <div id="flow-builder-chart" style="width: 100%; height: 100%; border: 1px solid #e5e7eb; border-radius: 8px; background: white; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
-                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">
-                                    Chart will render here when data is available
-                                </div>
-                            </div>
+                        <!-- Main Chart Container for PulseApplication -->
+                        <div id="main-chart" style="width: 100%; height: 650px; padding: 10px;">
+                            <!-- Chart will render here -->
                         </div>
                         
                         <!-- Floating Expanded Columns Panel -->
@@ -441,227 +434,9 @@
 
                 <!-- Action buttons moved to header -->
             </div>
+
         </div>
 
-        <!-- Chart View Tab (Redesigned with Horizontal Menu) -->
-        <div id="chart-view" class="tab-content active">
-            <!-- Horizontal Chart Controls Menu -->
-            <div class="horizontal-controls-menu">
-                <div class="controls-menu-wrapper">
-                    <!-- Menu Sections (Left to Right) -->
-                    <div class="menu-section" data-section="data">
-                        <button class="menu-trigger" data-target="data">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="9" y1="9" x2="15" y2="9"/>
-                                <line x1="9" y1="13" x2="15" y2="13"/>
-                                <line x1="9" y1="17" x2="15" y2="17"/>
-                            </svg>
-                            <span>Data</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"/>
-                            </svg>
-                        </button>
-                        <div class="menu-dropdown" id="data-dropdown">
-                            <div id="data-controls" class="dropdown-content">
-                                <!-- Quick Access to Flow Builder -->
-                                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
-                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Flow Builder Access</h4>
-                                    <p style="margin: 0 0 12px 0; color: #64748b; font-size: 12px;">Quick access to data editing without tab switching</p>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="switchMainTab('data-builder', true)" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            🔗 Open Flow Builder
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Export Options -->
-                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📤 Export Options</h4>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            💾 Export CSV
-                                        </button>
-                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            📋 Template
-                                        </button>
-                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            📤 Upload
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Chart Export -->
-                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📊 Chart Export</h4>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToPNG()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            🖼️ PNG
-                                        </button>
-                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToSVG()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            ⚡ SVG
-                                        </button>
-                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportDataToCSV()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            📄 Data CSV
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="menu-section" data-section="style">
-                        <button class="menu-trigger" data-target="style">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-                            </svg>
-                            <span>Style</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"/>
-                            </svg>
-                        </button>
-                        <div class="menu-dropdown" id="style-dropdown">
-                            <div id="style-controls" class="dropdown-content"></div>
-                        </div>
-                    </div>
-
-                    <div class="menu-section" data-section="layout">
-                        <button class="menu-trigger" data-target="layout">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <path d="M3 9h18M9 21V9"/>
-                            </svg>
-                            <span>Layout</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"/>
-                            </svg>
-                        </button>
-                        <div class="menu-dropdown" id="layout-dropdown">
-                            <div id="layout-controls" class="dropdown-content"></div>
-                        </div>
-                    </div>
-
-
-                    <div class="menu-section" data-section="colors">
-                        <button class="menu-trigger" data-target="colors">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="13.5" cy="6.5" r=".5"/>
-                                <circle cx="17.5" cy="10.5" r=".5"/>
-                                <circle cx="8.5" cy="7.5" r=".5"/>
-                                <circle cx="6.5" cy="12.5" r=".5"/>
-                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-                            </svg>
-                            <span>Colors</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"/>
-                            </svg>
-                        </button>
-                        <div class="menu-dropdown" id="colors-dropdown">
-                            <div id="colors-controls" class="dropdown-content"></div>
-                        </div>
-                    </div>
-
-                    <div class="menu-section" data-section="flowbuilder">
-                        <button class="menu-trigger" data-target="flowbuilder">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                            </svg>
-                            <span>Flow Builder</span>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"/>
-                            </svg>
-                        </button>
-                        <div class="menu-dropdown" id="flowbuilder-dropdown">
-                            <div id="flowbuilder-controls" class="dropdown-content">
-                                <!-- Flow Builder Description -->
-                                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
-                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Flow Builder</h4>
-                                    <p style="margin: 0; color: #64748b; font-size: 12px;">Design your financial flow visualizations</p>
-                                </div>
-
-                                <!-- Flow Actions -->
-                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">🚀 Flow Actions</h4>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            🚀 Apply
-                                        </button>
-                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            ✅ Validate
-                                        </button>
-                                        <button class="btn-small" onclick="resetToChartData()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            🔄 Reset
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Data Management -->
-                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📊 Data Management</h4>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            📤 Upload
-                                        </button>
-                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            📋 Download Template
-                                        </button>
-                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            💾 Export
-                                        </button>
-                                        <button class="btn-small" onclick="clearAllFlows()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-                                            🗑️ Clear
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action buttons on the right -->
-                    <div class="menu-actions">
-                        <button id="reset-defaults" class="action-btn reset-btn" title="Reset all chart settings to default">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                                <path d="M21 3v5h-5"/>
-                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                                <path d="M8 16H3v5"/>
-                            </svg>
-                            <span>Reset</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Hidden dynamic controls container for backwards compatibility -->
-                <div id="dynamic-controls" style="display: none;">
-                    <div class="controls-loading">
-                        <div class="loading-pulse"></div>
-                        <div class="loading-content">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="6" height="6" rx="1"/>
-                                <rect x="9" y="3" width="6" height="6" rx="1"/>
-                                <rect x="15" y="3" width="6" height="6" rx="1"/>
-                                <rect x="3" y="9" width="6" height="6" rx="1"/>
-                                <rect x="9" y="9" width="6" height="6" rx="1"/>
-                                <rect x="15" y="9" width="6" height="6" rx="1"/>
-                            </svg>
-                            <p>Loading chart controls...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chart Container (Now full width) -->
-            <div class="chart-area">
-                <div id="main-chart" class="chart-container">
-                    <div class="chart-loading">
-                        <div class="loading-spinner"></div>
-                        <p>Initializing Pulse Analytics Platform...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Hidden file input -->
@@ -923,11 +698,6 @@
                             this.refreshFlowBuilder();
                         }, 50);
                     }
-                } else if (tabName === 'chart-view') {
-                    const data = this.getData();
-                    if (data && this.chartInstance) {
-                        this.chartInstance.render(data);
-                    }
                 }
             }
         };
@@ -944,7 +714,7 @@
     
     <!-- Flow Builder Implementation -->
     <script>
-        let currentMainTab = 'chart-view';
+        let currentMainTab = 'data-builder';
         let selectedChartType = null; // 'income' or 'balance'
         let isInitialized = false; // Prevent multiple initializations
         let lockChartView = false; // Lock chart view when coming from type selector
@@ -968,7 +738,7 @@
             return {
                 type: urlParams.get('type'), // 'income' or 'balance' (for Sankey)
                 chartType: urlParams.get('chartType'), // 'sankey' or 'bar' (main chart type)
-                tab: urlParams.get('tab'), // 'data-builder' or 'chart-view'
+                tab: urlParams.get('tab'), // 'data-builder' only
                 data: urlParams.get('data') // Encoded JSON data
             };
         }
@@ -1410,7 +1180,7 @@
 
         // Initialize Flow Builder Chart Canvas
         function initializeFlowBuilderChart() {
-            const chartContainer = document.getElementById('flow-builder-chart');
+            const chartContainer = document.getElementById('main-chart');
             if (!chartContainer) return;
             
             console.log('📊 Initializing Flow Builder chart canvas');
@@ -1435,58 +1205,6 @@
                         <div style="font-size: 12px; color: #9ca3af;">Add flows and click Apply to see the chart</div>
                     </div>
                 `;
-            }
-        }
-        
-        // Initialize chart controls for Flow Builder
-        function initializeFlowBuilderControls() {
-            console.log('⚙️ Initializing Flow Builder chart controls');
-            
-            try {
-                // Use simplified controls approach to avoid ControlPanel.js errors
-                const controlsContainer = document.getElementById('flow-builder-controls');
-                if (!controlsContainer) {
-                    console.warn('⚠️ Flow Builder controls container not found');
-                    return;
-                }
-                
-                // Show simple, working controls immediately
-                controlsContainer.innerHTML = `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding: 20px;">
-                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e1e5e9;">
-                            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px; font-weight: 600;">🎨 Colors & Style</h4>
-                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px;">Chart colors and visual styling are automatically optimized based on your data.</p>
-                            <button onclick="randomizeColors()" style="background: #6366f1; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; width: 100%;">
-                                🎨 Randomize Colors
-                            </button>
-                        </div>
-                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e1e5e9;">
-                            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px; font-weight: 600;">📐 Layout & Structure</h4>
-                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px;">Chart layout adjusts automatically based on your flow data structure.</p>
-                            <button onclick="refreshChart()" style="background: #22c55e; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; width: 100%;">
-                                🔄 Refresh Chart
-                            </button>
-                        </div>
-                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e1e5e9;">
-                            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px; font-weight: 600;">💾 Data Integration</h4>
-                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px;">Changes in the spreadsheet automatically update the chart in real-time.</p>
-                            <div style="color: #22c55e; font-size: 12px; font-weight: 500;">✅ Live Sync Active</div>
-                        </div>
-                    </div>
-                `;
-                
-                console.log('✅ Simple controls loaded for Flow Builder');
-                
-            } catch (error) {
-                console.error('❌ Error initializing Flow Builder controls:', error);
-                const controlsContainer = document.getElementById('flow-builder-controls');
-                if (controlsContainer) {
-                    controlsContainer.innerHTML = `
-                        <div style="text-align: center; color: #ef4444; font-size: 12px; padding: 20px;">
-                            Error loading controls: ${error.message}
-                        </div>
-                    `;
-                }
             }
         }
         
@@ -1517,21 +1235,34 @@
                 try {
                     // Check if PulseControlPanel is available
                     if (typeof PulseControlPanel !== 'undefined') {
-                        window.flowBuilderControlPanel = new PulseControlPanel('style-controls');
+                        // Create a single control panel instance that will distribute controls across all dropdowns
+                        window.flowBuilderControlPanel = new PulseControlPanel('data-controls');
                         
                         // Initialize with current chart if available
                         if (window.flowBuilderChart) {
+                            console.log('🎯 Flow Builder chart found, initializing controls');
+                            
                             // Determine control module based on chart type
                             let controlModule = null;
                             if (window.flowBuilderChart.type === 'sankey' && typeof SankeyControlModule !== 'undefined') {
                                 controlModule = new SankeyControlModule();
+                                console.log('📋 Created SankeyControlModule for Flow Builder');
+                                
+                                // Initialize dynamic controls for Sankey charts
+                                if (controlModule.initializeDynamicControls && window.flowBuilderChart.data) {
+                                    controlModule.initializeDynamicControls(window.flowBuilderChart);
+                                    console.log('🎨 Initialized dynamic controls with chart data');
+                                }
                             } else if (window.flowBuilderChart.type === 'bar' && typeof BarControlModule !== 'undefined') {
                                 controlModule = new BarControlModule();
+                                console.log('📊 Created BarControlModule for Flow Builder');
                             }
                             
                             if (controlModule) {
                                 window.flowBuilderControlPanel.init(window.flowBuilderChart, controlModule);
-                                console.log('✅ Flow Builder Control Panel initialized with chart');
+                                console.log('✅ Flow Builder Control Panel initialized with chart and controls populated');
+                            } else {
+                                console.warn('⚠️ No suitable control module found for chart type:', window.flowBuilderChart.type);
                             }
                         } else {
                             console.log('⚠️ Chart not available yet for control panel initialization');
@@ -1638,6 +1369,59 @@
             }
         }
         
+        // Universal export function that works for both Chart View and Flow Builder
+        function exportCurrentChart(format) {
+            console.log(`📷 Exporting current chart as ${format}`);
+            
+            let chartInstance = null;
+            
+            // Determine which chart instance to use
+            if (window.pulseApp && window.pulseApp.flowBuilderMode && window.pulseApp.flowBuilderChart) {
+                chartInstance = window.pulseApp.flowBuilderChart;
+                console.log('📊 Using Flow Builder chart for export');
+            } else if (window.pulseApp && window.pulseApp.chart) {
+                chartInstance = window.pulseApp.chart;
+                console.log('📊 Using main chart for export');
+            }
+            
+            if (!chartInstance) {
+                showNotification('No chart available for export', 'error');
+                return;
+            }
+            
+            try {
+                if (format === 'png' && chartInstance.exportToPNG) {
+                    chartInstance.exportToPNG();
+                } else if (format === 'svg' && chartInstance.exportToSVG) {
+                    chartInstance.exportToSVG();
+                } else if (format === 'csv' && chartInstance.exportDataToCSV) {
+                    chartInstance.exportDataToCSV();
+                } else {
+                    throw new Error(`${format.toUpperCase()} export not available for this chart`);
+                }
+                showNotification(`Chart exported as ${format.toUpperCase()}`, 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Export failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Override the main app's chart getter to use Flow Builder chart when appropriate
+        function getCurrentChart() {
+            // Only return the main chart - Flow Builder chart should be handled separately
+            if (window.pulseApp && window.pulseApp.chart) {
+                return window.pulseApp.chart;
+            }
+            return null;
+        }
+        
+        // Ensure Flow Builder controls work independently
+        function ensureFlowBuilderControlsWork() {
+            // Flow Builder controls should be self-contained and only affect the Flow Builder chart
+            // No need to intercept main app control panel updates
+            console.log('🔗 Flow Builder controls configured to work independently');
+        }
+        
         // Export flow data to CSV
         function exportFlowDataToCSV() {
             const flows = flowData.flows;
@@ -1715,7 +1499,7 @@
         
         // Render chart in Flow Builder canvas (copying from app.js approach)
         function renderChartInFlowBuilder() {
-            const chartContainer = document.getElementById('flow-builder-chart');
+            const chartContainer = document.getElementById('main-chart');
             if (!chartContainer) return;
             
             console.log('🎨 Rendering chart in Flow Builder canvas');
@@ -1765,7 +1549,7 @@
                 console.log(`🎯 Creating ${chartType} chart instance for Flow Builder`);
                 
                 // Create chart instance using the same pattern as app.js (line 200)
-                const flowBuilderChart = new chartDefinition.chartClass('flow-builder-chart');
+                const flowBuilderChart = new chartDefinition.chartClass('main-chart');
                 
                 // Apply control defaults if control module is available
                 if (chartDefinition.controlModuleClass) {
@@ -1837,11 +1621,7 @@
             }));
             
             if (tabName === 'data-builder') {
-                // Hide main chart area when in Flow Builder
-                const mainChart = document.getElementById('main-chart');
-                if (mainChart) {
-                    mainChart.style.display = 'none';
-                }
+                // Main chart is always visible in single-page interface
                 
                 // Flow Builder now uses the same horizontal menu structure as Chart View
                 // No need to hide the menu since it's the same interface
@@ -1862,20 +1642,27 @@
                     console.log('📊 Data-builder tab activated, data already loaded');
                 }
                 
-                // Initialize Flow Builder chart canvas
+                // Initialize Flow Builder chart canvas independently
                 setTimeout(() => {
                     initializeFlowBuilderChart();
+                    
+                    // Initialize Flow Builder chart controls independently
+                    setTimeout(() => {
+                        if (window.flowBuilderChart) {
+                            console.log('🔗 Initializing Flow Builder chart controls independently');
+                            
+                            // Initialize Flow Builder controls independently
+                            initializeFlowBuilderControlPanel();
+                            
+                            // Ensure controls work with Flow Builder independently
+                            ensureFlowBuilderControlsWork();
+                        }
+                    }, 500);
                 }, 200);
                 
             } else {
-                // Show main chart area when not in Flow Builder
-                const mainChart = document.getElementById('main-chart');
-                if (mainChart) {
-                    mainChart.style.display = 'block';
-                }
-                
-                // Both Chart View and Flow Builder use the same horizontal menu structure
-                // No need to show/hide menu when switching between tabs
+                // Single-page interface - main chart always visible
+                console.log('📊 Single-page interface active');
             }
         }
 
@@ -1931,8 +1718,8 @@
                     currentMainTab = 'data-builder';
                     setTimeout(() => switchMainTab('data-builder'), 100);
                 } else {
-                    currentMainTab = 'chart-view';
-                    console.log('📊 Staying on chart-view with existing data');
+                    currentMainTab = 'data-builder';
+                    console.log('📊 Staying on data-builder with existing data');
                 }
                 
                 console.log('✅ Flow Builder initialized with existing custom data');
@@ -1972,31 +1759,31 @@
                         currentMainTab = 'data-builder';
                         setTimeout(() => switchMainTab('data-builder'), 100);
                     } else {
-                        // Explicitly stay on chart-view and prevent any tab switching
-                        currentMainTab = 'chart-view';
-                        console.log('📊 Staying on chart-view with loaded data');
+                        // Explicitly stay on data-builder
+                        currentMainTab = 'data-builder';
+                        console.log('📊 Staying on data-builder with loaded data');
                         
-                        // Ensure chart-view tab stays active
+                        // Ensure data-builder tab stays active
                         document.querySelectorAll('.main-tab').forEach(tab => {
                             tab.classList.remove('active');
                         });
-                        const chartViewTab = document.querySelector(`[onclick="switchMainTab('chart-view')"]`);
-                        if (chartViewTab) {
-                            chartViewTab.classList.add('active');
+                        const dataBuilderTab = document.querySelector(`[onclick="switchMainTab('data-builder')"]`);
+                        if (dataBuilderTab) {
+                            dataBuilderTab.classList.add('active');
                         }
                         
                         document.querySelectorAll('.tab-content').forEach(content => {
                             content.classList.remove('active');
                         });
-                        const chartViewContent = document.getElementById('chart-view');
-                        if (chartViewContent) {
-                            chartViewContent.classList.add('active');
+                        const dataBuilderContent = document.getElementById('data-builder');
+                        if (dataBuilderContent) {
+                            dataBuilderContent.classList.add('active');
                         }
                         
-                        // Lock chart view to prevent automatic switching
+                        // Lock data builder to prevent automatic switching
                         lockChartView = true;
                         
-                        console.log('📊 Chart view explicitly activated and locked');
+                        console.log('📊 Data builder explicitly activated and locked');
                     }
                     
                     console.log(`✅ Flow Builder initialized with ${urlParams.type} sample data`);
@@ -2613,7 +2400,7 @@
             const sankeyData = generateNodesAndLinksFromFlows();
             window.PulseDataBridge.applyFlowBuilderChanges(sankeyData);
             
-            switchMainTab('chart-view');
+            // Chart view removed - staying on data-builder
             
             console.log('✅ Changes applied and switched to Chart View');
         }
@@ -2948,12 +2735,8 @@
                     if (chartType === 'bar') {
                         await handleBarChartInitialization();
                         
-                        // Handle tab switching AFTER chart is ready
-                        if (targetTab === 'chart-view' && !initState.tabSwitchProcessed) {
-                            initState.tabSwitchProcessed = true;
-                            console.log('📊 Switching to chart-view (SINGLE)');
-                            switchMainTab('chart-view', false);
-                        }
+                        // Chart view removed - staying on data-builder
+                        console.log('📊 Staying on data-builder (chart-view removed)');
                     } else {
                         await handleOtherChartTypes(chartType);
                     }
