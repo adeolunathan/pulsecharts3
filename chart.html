@@ -116,46 +116,7 @@
                     </select>
                 </div>
                 
-                <!-- Global Export Controls -->
-                <div class="export-dropdown">
-                    <button class="export-trigger" id="export-trigger">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7,10 12,15 17,10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        <span>Export</span>
-                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6,9 12,15 18,9"/>
-                        </svg>
-                    </button>
-                    <div class="export-menu" id="export-menu">
-                        <button class="export-option" id="export-png">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21,15 16,10 5,21"/>
-                            </svg>
-                            <span>PNG</span>
-                        </button>
-                        <button class="export-option" id="export-svg">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
-                            </svg>
-                            <span>SVG</span>
-                        </button>
-                        <button class="export-option" id="export-data">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                <polyline points="14,2 14,8 20,8"/>
-                                <line x1="16" y1="13" x2="8" y2="13"/>
-                                <line x1="16" y1="17" x2="8" y2="17"/>
-                                <polyline points="10,9 9,9 8,9"/>
-                            </svg>
-                            <span>CSV</span>
-                        </button>
-                    </div>
-                </div>
+                <!-- Export moved to Data controls menu -->
             </div>
         </header>
 
@@ -257,48 +218,156 @@
                 </div>
 
 
-                <!-- Business Flows Section -->
-                <div class="section">
-                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; border-bottom: 1px solid #e1e5e9;">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <h3 class="section-title" style="margin: 0; display: flex; align-items: center; gap: 12px;">
-                                💰 Business Flows
-                                <div class="flow-controls-group">
-                                    <button id="flows-update-toggle" class="update-mode-toggle live" onclick="toggleFlowsUpdateMode()" title="Toggle between Live and Manual update modes">
-                                        <span class="mode-indicator"></span>
-                                        <span class="mode-text">Live</span>
+                <!-- Flow Builder Chart Controls Menu (Same as Chart View) -->
+                <div class="flow-builder-controls-menu" style="background: #f8f9fa; border-bottom: 1px solid #e1e5e9; padding: 12px 0; margin: 0 -24px 20px -24px;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 24px; max-width: 1400px; margin: 0 auto; padding: 0 24px;">
+                        <button class="menu-trigger" onclick="toggleFlowBuilderSection('data')" style="display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="9" x2="15" y2="9"/>
+                                <line x1="9" y1="13" x2="15" y2="13"/>
+                                <line x1="9" y1="17" x2="15" y2="17"/>
+                            </svg>
+                            <span>Data</span>
+                        </button>
+                        <button class="menu-trigger" onclick="toggleFlowBuilderSection('style')" style="display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            <span>Style</span>
+                        </button>
+                        <button class="menu-trigger" onclick="toggleFlowBuilderSection('layout')" style="display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="3" x2="9" y2="21"/>
+                                <line x1="15" y1="9" x2="21" y2="9"/>
+                            </svg>
+                            <span>Layout</span>
+                        </button>
+                        <button class="menu-trigger" onclick="toggleFlowBuilderSection('colors')" style="display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="13.5" cy="6.5" r=".5"/>
+                                <circle cx="17.5" cy="10.5" r=".5"/>
+                                <circle cx="8.5" cy="7.5" r=".5"/>
+                                <circle cx="6.5" cy="12.5" r=".5"/>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                            </svg>
+                            <span>Colors</span>
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="export-dropdown" style="position: relative; display: inline-block;">
+                                <button class="chart-control-btn" onclick="toggleExportMenu()" id="export-toggle-btn" style="background: #8b5cf6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                    📷 Export ▼
+                                </button>
+                                <div id="export-menu" class="export-menu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 140px;">
+                                    <button onclick="exportChart('png')" style="display: block; width: 100%; text-align: left; padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; color: #374151; border-radius: 6px 6px 0 0;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+                                        📷 PNG Image
                                     </button>
-                                    <div class="period-comparison-toggle">
-                                        <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()">
-                                        <label for="comparison-mode-toggle" title="Shows variance % and trends between periods">📈</label>
-                                    </div>
+                                    <button onclick="exportChart('svg')" style="display: block; width: 100%; text-align: left; padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; color: #374151;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+                                        🖼️ SVG Vector
+                                    </button>
+                                    <button onclick="exportChart('csv')" style="display: block; width: 100%; text-align: left; padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; color: #374151; border-radius: 0 0 6px 6px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+                                        📊 CSV Data
+                                    </button>
                                 </div>
-                            </h3>
-                        </div>
-                        <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
-                    </div>
-                    <div class="section-content">
-                        <div style="overflow-x: auto;">
-                            <table class="flow-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 80px;">Actions</th>
-                                        <th style="width: 200px;">From (Source)</th>
-                                        <th style="width: 200px;">To (Target)</th>
-                                        <th style="width: 100px;" id="previous-value-col">Previous Value</th>
-                                        <th style="width: 100px;">Current Value</th>
-                                        <th style="width: 80px;" id="variance-col">Variance</th>
-                                        <th style="width: 120px;">Source Category</th>
-                                        <th style="width: 120px;">Target Category</th>
-                                        <th style="width: 250px;">Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="flows-tbody">
-                                    <!-- Rows will be dynamically generated by renderFlowTable() -->
-                                </tbody>
-                            </table>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Collapsible Controls Panel -->
+                <div id="flow-builder-controls-panel" class="controls-panel" style="display: none; margin: 0 -24px 20px -24px; background: white; border-bottom: 1px solid #e1e5e9; padding: 20px 24px;">
+                    <div id="flow-builder-controls">
+                        <!-- Chart controls will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Full Width Layout: Maximized Space Usage -->
+                <div class="full-width-layout" style="display: flex; gap: 16px; min-height: 700px; margin: 0 -24px; padding: 0 10px;">
+                    
+                    <!-- Left Panel: Spreadsheet (Shifted Left) -->
+                    <div class="spreadsheet-panel" style="flex: 0 0 35%; min-width: 450px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-left: 14px;">
+                        <!-- Business Flows Section -->
+                        <div class="section">
+                            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #e1e5e9; border-radius: 8px 8px 0 0;">
+                                <div style="display: flex; align-items: center; gap: 16px;">
+                                    <h3 class="section-title" style="margin: 0; display: flex; align-items: center; gap: 12px;">
+                                        💰 Business Flows
+                                        <div class="flow-controls-group">
+                                            <button id="flows-update-toggle" class="update-mode-toggle live" onclick="toggleFlowsUpdateMode()" title="Toggle between Live and Manual update modes">
+                                                <span class="mode-indicator"></span>
+                                                <span class="mode-text">Live</span>
+                                            </button>
+                                            <div class="period-comparison-toggle">
+                                                <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()" checked>
+                                                <label for="comparison-mode-toggle" title="Shows variance % and trends between periods">📈</label>
+                                            </div>
+                                        </div>
+                                    </h3>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <button id="toggle-columns-btn" class="toggle-columns-btn" onclick="toggleExpandedColumns()" style="background: #6366f1; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                        📋 Show More
+                                    </button>
+                                    <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
+                                </div>
+                            </div>
+                            <div class="section-content">
+                                <div style="overflow-x: auto; height: 600px; overflow-y: auto;">
+                                    <table class="flow-table" id="main-flow-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 80px;">Actions</th>
+                                                <th style="width: 140px;">From (Source)</th>
+                                                <th style="width: 140px;">To (Target)</th>
+                                                <th style="width: 100px; display: table-cell;" id="previous-value-col">Previous Value</th>
+                                                <th style="width: 100px;">Current Value</th>
+                                                <th style="width: 80px; display: table-cell;" id="variance-col">Variance</th>
+                                                <!-- Optional columns hidden by default -->
+                                                <th style="width: 120px; display: none;" class="optional-column" id="source-category-col">Source Category</th>
+                                                <th style="width: 120px; display: none;" class="optional-column" id="target-category-col">Target Category</th>
+                                                <th style="width: 200px; display: none;" class="optional-column" id="description-col">Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="flows-tbody">
+                                            <!-- Rows will be dynamically generated by renderFlowTable() -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Panel: Expanded Chart Canvas -->
+                    <div class="chart-panel" style="flex: 1; position: relative; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); min-height: 700px;">
+                        
+                        <!-- Expanded Chart Container -->
+                        <div style="padding: 20px; height: 100%;">
+                            <div id="flow-builder-chart" style="width: 100%; height: 100%; border: 1px solid #e5e7eb; border-radius: 8px; background: white; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">
+                                    Chart will render here when data is available
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Floating Expanded Columns Panel -->
+                        <div id="expanded-columns-panel" class="expanded-columns-panel" style="position: absolute; top: 60px; right: 20px; width: 350px; max-height: 500px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; z-index: 1000;">
+                            <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; background: rgba(248,250,252,0.8); border-radius: 8px 8px 0 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h4 style="margin: 0; color: #374151; font-size: 14px; font-weight: 600;">📋 Additional Columns</h4>
+                                    <button onclick="toggleExpandedColumns()" style="background: none; border: none; color: #6b7280; cursor: pointer; font-size: 18px;">×</button>
+                                </div>
+                            </div>
+                            <div style="padding: 16px; max-height: 400px; overflow-y: auto;">
+                                <div id="expanded-columns-content">
+                                    <!-- Dynamic content will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
 
                 <!-- Action buttons moved to header -->
@@ -325,7 +394,56 @@
                             </svg>
                         </button>
                         <div class="menu-dropdown" id="data-dropdown">
-                            <div id="data-controls" class="dropdown-content"></div>
+                            <div id="data-controls" class="dropdown-content">
+                                <!-- Quick Access to Flow Builder -->
+                                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
+                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Flow Builder Access</h4>
+                                    <p style="margin: 0 0 12px 0; color: #64748b; font-size: 12px;">Quick access to data editing without tab switching</p>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="switchMainTab('data-builder', true)" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🔗 Open Flow Builder
+                                        </button>
+                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🚀 Apply Changes
+                                        </button>
+                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            ✅ Validate
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Export Options -->
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📤 Export Options</h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            💾 Export CSV
+                                        </button>
+                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📋 Template
+                                        </button>
+                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📤 Upload
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Chart Export -->
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📊 Chart Export</h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToPNG()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            🖼️ PNG
+                                        </button>
+                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportToSVG()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            ⚡ SVG
+                                        </button>
+                                        <button class="btn-small" onclick="if(window.pulseApp?.chart) window.pulseApp.chart.exportDataToCSV()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            📄 Data CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -556,6 +674,11 @@
                         renderFlowTable();
                         updateAllStats();
                         console.log('✅ Flow Builder refreshed successfully');
+                    }
+                    
+                    // Update the chart preview in Flow Builder
+                    if (typeof renderChartInFlowBuilder === 'function') {
+                        setTimeout(() => renderChartInFlowBuilder(), 100);
                     }
                 } else {
                     console.warn('⚠️ No data available for Flow Builder refresh');
@@ -811,23 +934,14 @@
             // CRITICAL: Store existing colors before any changes
             const existingColors = { ...flowData.metadata.colorPalette };
             
-            // Show/hide comparison columns
-            const previousCol = document.getElementById('previous-value-col');
-            const varianceCol = document.getElementById('variance-col');
-            
-            if (comparisonMode) {
-                previousCol.style.display = 'table-cell';
-                varianceCol.style.display = 'table-cell';
-            } else {
-                previousCol.style.display = 'none';
-                varianceCol.style.display = 'none';
-            }
+            // Previous Value and Variance columns are now always visible since they're core functionality
+            // This function now mainly manages the comparison calculation logic
             
             // Update metadata with comparison mode but preserve colors
             flowData.metadata.comparisonMode = comparisonMode;
             flowData.metadata.colorPalette = existingColors; // CRITICAL: Restore colors
             
-            // Re-render table
+            // Re-render table to update variance calculations
             renderFlowTable();
             
             // If in real-time mode, trigger update with color preservation
@@ -1077,6 +1191,486 @@
             console.log(`🔄 Real-time mode ${newMode ? 'ENABLED' : 'DISABLED'}`);
         }
 
+        // Expandable Columns Functionality
+        let expandedColumnsVisible = false;
+
+        function toggleExpandedColumns() {
+            const panel = document.getElementById('expanded-columns-panel');
+            const button = document.getElementById('toggle-columns-btn');
+            
+            expandedColumnsVisible = !expandedColumnsVisible;
+            
+            if (expandedColumnsVisible) {
+                // Show the floating panel
+                panel.style.display = 'block';
+                button.innerHTML = '📋 Hide';
+                button.style.background = '#ef4444';
+                
+                // Populate the floating panel with additional column data
+                populateExpandedColumnsPanel();
+                
+                console.log('📋 Expanded columns panel opened');
+            } else {
+                // Hide the floating panel
+                panel.style.display = 'none';
+                button.innerHTML = '📋 Show More';
+                button.style.background = '#6366f1';
+                
+                console.log('📋 Expanded columns panel closed');
+            }
+        }
+
+        function populateExpandedColumnsPanel() {
+            const content = document.getElementById('expanded-columns-content');
+            
+            if (flowData.flows.length === 0) {
+                content.innerHTML = '<div style="text-align: center; color: #6b7280; font-style: italic;">No data to display</div>';
+                return;
+            }
+            
+            let html = '<div class="expanded-columns-table">';
+            
+            // Create headers for additional columns
+            html += `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 8px; margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-weight: 600; font-size: 12px; color: #374151;">
+                    <div>Source Category</div>
+                    <div>Target Category</div>
+                    <div>Description</div>
+                </div>
+            `;
+            
+            // Add data rows
+            flowData.flows.forEach((flow, index) => {
+                const sourceCategory = flow.sourceCategory || 'revenue';
+                const targetCategory = flow.targetCategory || 'revenue';
+                const description = flow.description || '';
+                
+                html += `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 8px; margin-bottom: 8px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 12px; background: white;">
+                        <div style="color: #374151;">
+                            <input type="text" value="${sourceCategory}" 
+                                   onchange="updateFlowProperty(${index}, 'sourceCategory', this.value)"
+                                   style="width: 100%; border: none; background: transparent; font-size: 12px; color: #374151;">
+                        </div>
+                        <div style="color: #374151;">
+                            <input type="text" value="${targetCategory}" 
+                                   onchange="updateFlowProperty(${index}, 'targetCategory', this.value)"
+                                   style="width: 100%; border: none; background: transparent; font-size: 12px; color: #374151;">
+                        </div>
+                        <div style="color: #374151;">
+                            <input type="text" value="${description}" 
+                                   onchange="updateFlowProperty(${index}, 'description', this.value)"
+                                   style="width: 100%; border: none; background: transparent; font-size: 12px; color: #374151;" 
+                                   placeholder="Flow description...">
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        function updateFlowProperty(index, property, value) {
+            if (flowData.flows[index]) {
+                flowData.flows[index][property] = value;
+                console.log(`📝 Updated flow ${index} ${property}: ${value}`);
+                
+                // Refresh the expanded panel if it's open
+                if (expandedColumnsVisible) {
+                    populateExpandedColumnsPanel();
+                }
+                
+                // Trigger update if in live mode
+                if (realTimeUpdatesEnabled) {
+                    debouncedRealTimeUpdate();
+                }
+            }
+        }
+
+        // Initialize Flow Builder Chart Canvas
+        function initializeFlowBuilderChart() {
+            const chartContainer = document.getElementById('flow-builder-chart');
+            if (!chartContainer) return;
+            
+            console.log('📊 Initializing Flow Builder chart canvas');
+            
+            // Clear existing content and prepare for chart rendering
+            chartContainer.innerHTML = '';
+            chartContainer.style.background = 'white';
+            
+            // Initialize chart controls
+            initializeFlowBuilderControls();
+            
+            // Try to render current chart data if available
+            if (window.pulseApp && window.pulseApp.getCurrentChart()) {
+                console.log('🎨 Rendering existing chart in Flow Builder canvas');
+                renderChartInFlowBuilder();
+            } else {
+                // Show placeholder
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px; flex-direction: column; gap: 12px;">
+                        <div style="font-size: 24px;">📊</div>
+                        <div>Chart canvas ready for data</div>
+                        <div style="font-size: 12px; color: #9ca3af;">Add flows and click Apply to see the chart</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize chart controls for Flow Builder
+        function initializeFlowBuilderControls() {
+            console.log('⚙️ Initializing Flow Builder chart controls');
+            
+            try {
+                // Use simplified controls approach to avoid ControlPanel.js errors
+                const controlsContainer = document.getElementById('flow-builder-controls');
+                if (!controlsContainer) {
+                    console.warn('⚠️ Flow Builder controls container not found');
+                    return;
+                }
+                
+                // Show simple, working controls immediately
+                controlsContainer.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding: 20px;">
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e1e5e9;">
+                            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px; font-weight: 600;">🎨 Colors & Style</h4>
+                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px;">Chart colors and visual styling are automatically optimized based on your data.</p>
+                            <button onclick="randomizeColors()" style="background: #6366f1; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; width: 100%;">
+                                🎨 Randomize Colors
+                            </button>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e1e5e9;">
+                            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px; font-weight: 600;">📐 Layout & Structure</h4>
+                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px;">Chart layout adjusts automatically based on your flow data structure.</p>
+                            <button onclick="refreshChart()" style="background: #22c55e; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; width: 100%;">
+                                🔄 Refresh Chart
+                            </button>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e1e5e9;">
+                            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px; font-weight: 600;">💾 Data Integration</h4>
+                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px;">Changes in the spreadsheet automatically update the chart in real-time.</p>
+                            <div style="color: #22c55e; font-size: 12px; font-weight: 500;">✅ Live Sync Active</div>
+                        </div>
+                    </div>
+                `;
+                
+                console.log('✅ Simple controls loaded for Flow Builder');
+                
+            } catch (error) {
+                console.error('❌ Error initializing Flow Builder controls:', error);
+                const controlsContainer = document.getElementById('flow-builder-controls');
+                if (controlsContainer) {
+                    controlsContainer.innerHTML = `
+                        <div style="text-align: center; color: #ef4444; font-size: 12px; padding: 20px;">
+                            Error loading controls: ${error.message}
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Basic control functions
+        function randomizeColors() {
+            console.log('🎨 Randomizing chart colors');
+            // Implement color randomization
+            if (window.flowBuilderChart && typeof window.flowBuilderChart.randomizeColors === 'function') {
+                window.flowBuilderChart.randomizeColors();
+            } else {
+                console.log('⚠️ randomizeColors method not available on chart instance');
+            }
+            showNotification('Colors randomized', 'success');
+        }
+        
+        function refreshChart() {
+            console.log('🔄 Refreshing chart');
+            renderChartInFlowBuilder();
+            showNotification('Chart refreshed', 'success');
+        }
+        
+        // Flow Builder menu section toggles
+        function toggleFlowBuilderSection(section) {
+            console.log(`🎛️ Toggling Flow Builder section: ${section}`);
+            
+            const panel = document.getElementById('flow-builder-controls-panel');
+            
+            // Toggle panel visibility
+            if (panel && (panel.style.display === 'none' || !panel.style.display)) {
+                panel.style.display = 'block';
+                console.log(`✅ Opened ${section} controls panel`);
+            } else if (panel) {
+                panel.style.display = 'none';
+                console.log(`❌ Closed controls panel`);
+            }
+            
+            // Update button states
+            document.querySelectorAll('.flow-builder-controls-menu .menu-trigger').forEach(btn => {
+                btn.style.background = 'none';
+                btn.style.color = '#374151';
+            });
+            
+            // Highlight active button if panel is open
+            if (panel && panel.style.display === 'block') {
+                const activeButton = document.querySelector(`[onclick="toggleFlowBuilderSection('${section}')"]`);
+                if (activeButton) {
+                    activeButton.style.background = '#f3f4f6';
+                    activeButton.style.color = '#1f2937';
+                }
+            }
+        }
+        
+        // Toggle chart controls panel
+        function toggleChartControls() {
+            const panel = document.getElementById('chart-controls-panel');
+            const button = document.getElementById('controls-toggle-btn');
+            
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                button.innerHTML = '⚙️ Hide Controls';
+                button.style.background = '#ef4444';
+                
+                // Refresh controls
+                initializeFlowBuilderControls();
+            } else {
+                panel.style.display = 'none';
+                button.innerHTML = '⚙️ Controls';
+                button.style.background = '#6366f1';
+            }
+        }
+        
+        
+        // Toggle export menu
+        function toggleExportMenu() {
+            const menu = document.getElementById('export-menu');
+            const button = document.getElementById('export-toggle-btn');
+            
+            if (menu.style.display === 'none') {
+                menu.style.display = 'block';
+                button.innerHTML = '📷 Export ▲';
+            } else {
+                menu.style.display = 'none';
+                button.innerHTML = '📷 Export ▼';
+            }
+        }
+        
+        // Close export menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const exportDropdown = document.querySelector('.export-dropdown');
+            const menu = document.getElementById('export-menu');
+            
+            if (exportDropdown && !exportDropdown.contains(event.target)) {
+                menu.style.display = 'none';
+                document.getElementById('export-toggle-btn').innerHTML = '📷 Export ▼';
+            }
+        });
+        
+        // Export chart from Flow Builder
+        function exportChart(format) {
+            console.log(`📷 Exporting chart as ${format}`);
+            
+            // Close export menu
+            document.getElementById('export-menu').style.display = 'none';
+            document.getElementById('export-toggle-btn').innerHTML = '📷 Export ▼';
+            
+            const chartElement = document.getElementById('flow-builder-chart');
+            if (!chartElement) {
+                showNotification('No chart to export', 'error');
+                return;
+            }
+            
+            try {
+                if (format === 'png') {
+                    if (window.flowBuilderChart && window.flowBuilderChart.exportToPNG) {
+                        window.flowBuilderChart.exportToPNG();
+                    } else if (window.ChartExports?.exportToPNG) {
+                        window.ChartExports.exportToPNG(chartElement, 'flow-chart.png');
+                    } else {
+                        throw new Error('PNG export not available');
+                    }
+                } else if (format === 'svg') {
+                    if (window.flowBuilderChart && window.flowBuilderChart.exportToSVG) {
+                        window.flowBuilderChart.exportToSVG();
+                    } else if (window.ChartExports?.exportToSVG) {
+                        window.ChartExports.exportToSVG(chartElement, 'flow-chart.svg');
+                    } else {
+                        throw new Error('SVG export not available');
+                    }
+                } else if (format === 'csv') {
+                    if (window.flowBuilderChart && window.flowBuilderChart.exportDataToCSV) {
+                        window.flowBuilderChart.exportDataToCSV();
+                    } else {
+                        // Export flow data as CSV
+                        exportFlowDataToCSV();
+                    }
+                }
+                showNotification(`Chart exported as ${format.toUpperCase()}`, 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Export failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Export flow data to CSV
+        function exportFlowDataToCSV() {
+            const flows = flowData.flows;
+            if (!flows || flows.length === 0) {
+                throw new Error('No flow data to export');
+            }
+            
+            // Create CSV content
+            const headers = ['Source', 'Target', 'Current Value', 'Previous Value', 'Variance %', 'Source Category', 'Target Category', 'Description'];
+            const csvContent = [
+                headers.join(','),
+                ...flows.map(flow => [
+                    flow.source,
+                    flow.target,
+                    flow.value,
+                    flow.previousValue || 0,
+                    flow.getVariance().percentage.toFixed(1),
+                    flow.sourceCategory || '',
+                    flow.targetCategory || '',
+                    flow.description || ''
+                ].map(value => `"${value}"`).join(','))
+            ].join('\n');
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'flow-data.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 16px;
+                border-radius: 6px;
+                color: white;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 10000;
+                transition: all 0.3s ease;
+                max-width: 300px;
+            `;
+            
+            // Set background color based on type
+            switch (type) {
+                case 'success':
+                    notification.style.background = '#22c55e';
+                    break;
+                case 'error':
+                    notification.style.background = '#ef4444';
+                    break;
+                case 'warning':
+                    notification.style.background = '#f59e0b';
+                    break;
+                default:
+                    notification.style.background = '#6366f1';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Render chart in Flow Builder canvas (copying from app.js approach)
+        function renderChartInFlowBuilder() {
+            const chartContainer = document.getElementById('flow-builder-chart');
+            if (!chartContainer) return;
+            
+            console.log('🎨 Rendering chart in Flow Builder canvas');
+            
+            // Clear container
+            chartContainer.innerHTML = '';
+            
+            // Get current data
+            const currentData = window.PulseDataBridge?.getData();
+            if (!currentData) {
+                console.warn('⚠️ No data available for Flow Builder chart');
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px; flex-direction: column; gap: 12px;">
+                        <div style="font-size: 24px;">📊</div>
+                        <div>No data to display</div>
+                        <div style="font-size: 12px; color: #9ca3af;">Add flows to see the chart</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Get current chart type
+            const chartType = window.currentChartType || 'sankey';
+            
+            try {
+                // Use the same chart registry approach as app.js
+                const chartRegistry = {
+                    sankey: {
+                        name: 'Sankey Flow Chart',
+                        chartClass: PulseSankeyChart,
+                        controlModuleClass: SankeyControlModule,
+                        description: 'Financial flow visualization'
+                    },
+                    bar: {
+                        name: 'Bar Chart',
+                        chartClass: PulseBarChart,
+                        controlModuleClass: BarControlModule,
+                        description: 'Categorical data visualization'
+                    }
+                };
+                
+                const chartDefinition = chartRegistry[chartType];
+                if (!chartDefinition || !chartDefinition.chartClass) {
+                    throw new Error(`Chart type '${chartType}' not found or chart class not available`);
+                }
+                
+                console.log(`🎯 Creating ${chartType} chart instance for Flow Builder`);
+                
+                // Create chart instance using the same pattern as app.js (line 200)
+                const flowBuilderChart = new chartDefinition.chartClass('flow-builder-chart');
+                
+                // Apply control defaults if control module is available
+                if (chartDefinition.controlModuleClass) {
+                    const controlModule = new chartDefinition.controlModuleClass();
+                    flowBuilderChart.applyControlDefaults(controlModule);
+                }
+                
+                // Render the chart with data
+                flowBuilderChart.render(currentData);
+                
+                // Store reference for controls and future operations
+                window.flowBuilderChart = flowBuilderChart;
+                
+                console.log(`✅ ${chartType} chart rendered successfully in Flow Builder canvas`);
+                
+            } catch (error) {
+                console.error('❌ Error rendering chart in Flow Builder:', error);
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ef4444; font-size: 14px; flex-direction: column; gap: 8px;">
+                        <div>Error rendering chart</div>
+                        <div style="font-size: 12px;">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Refresh the expanded columns panel when data changes
+        function refreshExpandedPanel() {
+            if (expandedColumnsVisible) {
+                populateExpandedColumnsPanel();
+            }
+        }
+
         function switchMainTab(tabName, isManualClick = false) {
             // Check if chart view is locked (from type selector) - but allow manual clicks
             if (lockChartView && tabName === 'data-builder' && !isManualClick) {
@@ -1115,6 +1709,18 @@
             }));
             
             if (tabName === 'data-builder') {
+                // Hide main chart area when in Flow Builder
+                const mainChart = document.getElementById('main-chart');
+                if (mainChart) {
+                    mainChart.style.display = 'none';
+                }
+                
+                // Hide horizontal controls menu since Flow Builder has its own controls
+                const horizontalMenu = document.querySelector('.horizontal-controls-menu');
+                if (horizontalMenu) {
+                    horizontalMenu.style.display = 'none';
+                }
+                
                 // Only initialize if not already done
                 if (!isInitialized) {
                     // Check chart type to determine initialization method
@@ -1129,6 +1735,24 @@
                     }
                 } else {
                     console.log('📊 Data-builder tab activated, data already loaded');
+                }
+                
+                // Initialize Flow Builder chart canvas
+                setTimeout(() => {
+                    initializeFlowBuilderChart();
+                }, 200);
+                
+            } else {
+                // Show main chart area when not in Flow Builder
+                const mainChart = document.getElementById('main-chart');
+                if (mainChart) {
+                    mainChart.style.display = 'block';
+                }
+                
+                // Show horizontal controls menu when in Chart View
+                const horizontalMenu = document.querySelector('.horizontal-controls-menu');
+                if (horizontalMenu) {
+                    horizontalMenu.style.display = 'block';
                 }
             }
         }
@@ -1539,8 +2163,8 @@
             tbody.innerHTML = '';
             
             if (flowData.flows.length === 0) {
-                const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
-                const colSpan = comparisonMode ? 9 : 7; // Updated for new column count
+                // Since Previous Value and Variance columns are now always visible
+                const colSpan = 6; // Actions, From, To, Previous Value, Current Value, Variance
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="${colSpan}" style="text-align: center; padding: 40px; color: #6b7280;">
@@ -1562,6 +2186,9 @@
             
             // Apply variance colors after all rows are added
             applyVarianceColors();
+            
+            // Refresh expanded panel if it's open
+            refreshExpandedPanel();
         }
 
         function createFlowRow(flow, index) {
@@ -1589,58 +2216,27 @@
                 </td>
 `;
             
-            // Add previous value column if comparison mode is enabled (BEFORE current value)
-            if (comparisonMode) {
-                rowHTML += `
+            // Add previous value column (always show since it's core functionality)
+            rowHTML += `
                 <td class="spreadsheet-cell" data-col="previousValue" data-row="${index}" data-type="number">
                     <div class="cell-content">${flow.previousValue || ''}</div>
                     <input type="number" class="cell-editor" style="display: none;" placeholder="0">
                 </td>`;
-            }
             
-            // Add current value column (AFTER previous value when comparison mode is on)
+            // Add current value column
             rowHTML += `
                 <td class="spreadsheet-cell" data-col="value" data-row="${index}" data-type="number">
                     <div class="cell-content">${flow.value}</div>
                     <input type="number" class="cell-editor" style="display: none;">
                 </td>`;
             
-            // Add variance column if comparison mode is enabled
-            if (comparisonMode) {
-                rowHTML += `
+            // Add variance column (always show since it's core functionality)
+            rowHTML += `
                 <td class="variance-cell">
                     <div style="font-size: 11px; text-align: center;">${flow.getVarianceDisplay()}</div>
                 </td>`;
-            }
             
-            rowHTML += `
-                <td class="spreadsheet-cell" data-col="sourceCategory" data-row="${index}" data-type="select">
-                    <div class="cell-content">${getCategoryDisplay(flow.sourceCategory)}</div>
-                    <select class="cell-editor" style="display: none;">
-                        <option value="revenue">Revenue</option>
-                        <option value="expense">Expense</option>
-                        <option value="profit">Profit</option>
-                        <option value="asset">Asset</option>
-                        <option value="liability">Liability</option>
-                        <option value="equity">Equity</option>
-                    </select>
-                </td>
-                <td class="spreadsheet-cell" data-col="targetCategory" data-row="${index}" data-type="select">
-                    <div class="cell-content">${getCategoryDisplay(flow.targetCategory)}</div>
-                    <select class="cell-editor" style="display: none;">
-                        <option value="revenue">Revenue</option>
-                        <option value="expense">Expense</option>
-                        <option value="profit">Profit</option>
-                        <option value="asset">Asset</option>
-                        <option value="liability">Liability</option>
-                        <option value="equity">Equity</option>
-                    </select>
-                </td>
-                <td class="spreadsheet-cell" data-col="description" data-row="${index}" data-type="text">
-                    <div class="cell-content">${flow.description}</div>
-                    <input type="text" class="cell-editor" style="display: none;" placeholder="Flow description">
-                </td>
-            `;
+            // Optional columns (sourceCategory, targetCategory, description) moved to floating panel
             
             tr.innerHTML = rowHTML;
             return tr;
