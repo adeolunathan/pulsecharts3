@@ -57,13 +57,6 @@ class PulseControlPanel {
 
     // Set up menu click handlers and interactions
     setupMenuInteractions() {
-        // Check if we're in Flow Builder mode - if so, skip ControlPanel.js setup
-        const flowBuilderMenu = document.querySelector('.flow-builder-controls-menu');
-        if (flowBuilderMenu) {
-            console.log('🔧 Flow Builder detected - skipping ControlPanel.js menu setup');
-            return;
-        }
-        
         const menuTriggers = document.querySelectorAll('.menu-trigger');
         const dropdowns = document.querySelectorAll('.menu-dropdown');
         
@@ -74,19 +67,11 @@ class PulseControlPanel {
                 const dropdown = document.getElementById(`${target}-dropdown`);
                 const section = trigger.closest('.menu-section');
                 
-                // Safety check - if dropdown doesn't exist, skip
-                if (!dropdown) {
-                    console.warn('⚠️ Dropdown not found for target:', target);
-                    return;
-                }
-                
                 // Close all other dropdowns
                 dropdowns.forEach(dd => {
                     if (dd !== dropdown) {
                         dd.classList.remove('active');
-                        if (dd.closest('.menu-section')) {
-                            dd.closest('.menu-section').classList.remove('open');
-                        }
+                        dd.closest('.menu-section').classList.remove('open');
                     }
                 });
                 
@@ -94,14 +79,10 @@ class PulseControlPanel {
                 const isOpen = dropdown.classList.contains('active');
                 if (isOpen) {
                     dropdown.classList.remove('active');
-                    if (section) {
-                        section.classList.remove('open');
-                    }
+                    section.classList.remove('open');
                 } else {
                     dropdown.classList.add('active');
-                    if (section) {
-                        section.classList.add('open');
-                    }
+                    section.classList.add('open');
                 }
             });
         });
