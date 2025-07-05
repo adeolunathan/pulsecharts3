@@ -300,12 +300,7 @@
                             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 1px solid #dee2e6; border-radius: 12px 12px 0 0;">
                                 <div style="display: flex; align-items: center; gap: 16px;">
                                     <h3 class="section-title" style="margin: 0; display: flex; align-items: center; gap: 12px;">
-                                        💰 Business Flows
                                         <div class="flow-controls-group">
-                                            <button id="flows-update-toggle" class="update-mode-toggle live" onclick="toggleFlowsUpdateMode()" title="Toggle between Live and Manual update modes">
-                                                <span class="mode-indicator"></span>
-                                                <span class="mode-text">Live</span>
-                                            </button>
                                             <div class="period-comparison-toggle">
                                                 <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()" checked>
                                                 <label for="comparison-mode-toggle" title="Shows variance % and trends between periods">📈</label>
@@ -314,7 +309,8 @@
                                     </h3>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    <button class="add-flow-btn" onclick="addFlow()">+ Add Flow</button>
+                                    <button class="add-flow-btn" onclick="addFlows()">+ Add Rows</button>
+                                    <input type="number" id="rows-to-add" min="1" max="50" value="1" style="width: 40px; padding: 2px 4px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px;">
                                 </div>
                             </div>
                             <div class="section-content">
@@ -322,16 +318,15 @@
                                     <table class="flow-table" id="main-flow-table">
                                         <thead>
                                             <tr>
+                                                <th style="width: 100px; display: table-cell; font-size: 11px;" id="actions-col">Actions</th>
                                                 <th style="width: 120px; font-size: 11px;">From (Source)</th>
                                                 <th style="width: 120px; font-size: 11px;">To (Target)</th>
+                                                <th style="width: 70px; display: table-cell; font-size: 11px;" id="previous-value-col">Previous</th>
                                                 <th style="width: 70px; display: table-cell; font-size: 11px;" id="current-value-col">Current</th>
-                                                <th style="width: 70px; font-size: 11px;" id="previous-value-col">Previous</th>
                                                 <th style="width: 60px; display: table-cell; font-size: 11px;" id="variance-col">Variance</th>
-                                                <!-- Optional columns shown by default, can be hidden -->
-                                                <th style="width: 100px; display: table-cell; font-size: 11px;" class="optional-column" id="actions-col">Actions</th>
-                                                <th style="width: 120px; display: table-cell; font-size: 11px;" class="optional-column" id="source-category-col">Source Category</th>
-                                                <th style="width: 120px; display: table-cell; font-size: 11px;" class="optional-column" id="target-category-col">Target Category</th>
-                                                <th style="width: 200px; display: table-cell; font-size: 11px;" class="optional-column" id="description-col">Description</th>
+                                                <th style="width: 120px; display: table-cell; font-size: 11px;" id="source-category-col">Source Category</th>
+                                                <th style="width: 120px; display: table-cell; font-size: 11px;" id="target-category-col">Target Category</th>
+                                                <th style="width: 200px; display: table-cell; font-size: 11px;" id="description-col">Description</th>
                                             </tr>
                                         </thead>
                                         <tbody id="flows-tbody">
@@ -1058,25 +1053,6 @@
         }
 
         // Toggle function for the compact Business Flows update mode button
-        function toggleFlowsUpdateMode() {
-            const toggle = document.getElementById('flows-update-toggle');
-            const isLive = toggle.classList.contains('live');
-            
-            if (isLive) {
-                toggle.classList.remove('live');
-                toggle.classList.add('manual');
-                toggle.querySelector('.mode-text').textContent = 'Manual';
-                toggle.title = 'Click to enable Live updates';
-            } else {
-                toggle.classList.remove('manual');
-                toggle.classList.add('live');
-                toggle.querySelector('.mode-text').textContent = 'Live';
-                toggle.title = 'Click to enable Manual updates';
-            }
-            
-            // Also toggle the main realtime mode
-            toggleRealTimeMode();
-        }
 
         function toggleRealTimeMode() {
             const currentMode = window.PulseDataBridge.realTimeMode;
@@ -1988,22 +1964,37 @@
             const tbody = document.getElementById('flows-tbody');
             tbody.innerHTML = '';
             
-            if (flowData.flows.length === 0) {
-                // All columns are now visible by default (including optional columns)
-                const colSpan = 9; // From, To, Current, Previous, Variance, Actions, Source Category, Target Category, Description
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="${colSpan}" style="text-align: center; padding: 40px; color: #6b7280;">
-                            <div style="font-size: 16px; margin-bottom: 8px;">💡</div>
-                            <div>No flows defined. Click "Add Flow" to start building your financial structure.</div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
             // Auto-calculate layers and flow types before rendering
             autoCalculateFlowProperties();
+            
+            // Always ensure we have at least one empty row
+            if (flowData.flows.length === 0) {
+                addFlow(); // This will add one empty row
+                return; // renderFlowTable will be called again
+            }
+            
+            // Check if the last row is empty, if not add an empty row
+            const lastFlow = flowData.flows[flowData.flows.length - 1];
+            const isLastRowEmpty = !lastFlow.source && !lastFlow.target && lastFlow.value === 0;
+            
+            if (!isLastRowEmpty) {
+                // Add an empty row at the end
+                const statementType = detectFinancialStatementType();
+                const categories = getCategoriesForStatementType(statementType);
+                const defaultCategory = categories[0].value;
+                
+                const emptyFlow = new BusinessFlow({
+                    source: "",
+                    target: "", 
+                    value: 0,
+                    previousValue: 0,
+                    sourceCategory: defaultCategory,
+                    targetCategory: defaultCategory,
+                    description: ""
+                });
+                
+                flowData.flows.push(emptyFlow);
+            }
             
             flowData.flows.forEach((flow, index) => {
                 const row = createFlowRow(flow, index);
@@ -2015,13 +2006,59 @@
             
         }
 
+        // Helper function to detect financial statement type
+        function detectFinancialStatementType() {
+            if (!flowData || !flowData.flows || flowData.flows.length === 0) {
+                return 'income_statement'; // Default to income statement
+            }
+            
+            // Check if we have balance sheet categories
+            const hasBalanceSheetCategories = flowData.flows.some(flow => 
+                flow.sourceCategory === 'asset' || flow.targetCategory === 'asset' ||
+                flow.sourceCategory === 'liability' || flow.targetCategory === 'liability' ||
+                flow.sourceCategory === 'equity' || flow.targetCategory === 'equity'
+            );
+            
+            return hasBalanceSheetCategories ? 'balance_sheet' : 'income_statement';
+        }
+        
+        // Helper function to get appropriate categories for statement type
+        function getCategoriesForStatementType(statementType) {
+            if (statementType === 'balance_sheet') {
+                return [
+                    { value: 'asset', label: 'Asset' },
+                    { value: 'liability', label: 'Liability' },
+                    { value: 'equity', label: 'Equity' }
+                ];
+            } else {
+                return [
+                    { value: 'revenue', label: 'Revenue' },
+                    { value: 'expense', label: 'Expense' },
+                    { value: 'cost', label: 'Cost' },
+                    { value: 'profit', label: 'Profit' },
+                    { value: 'income', label: 'Income' }
+                ];
+            }
+        }
+
         function createFlowRow(flow, index) {
             const tr = document.createElement('tr');
             tr.setAttribute('data-row', index);
             
             const comparisonMode = document.getElementById('comparison-mode-toggle').checked;
             
+            // Check if this is an empty row (declare early to use throughout)
+            const isEmpty = !flow.source && !flow.target && flow.value === 0;
+            
             let rowHTML = `
+                <td class="control-cell">
+                    <div class="flow-controls">
+                        <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
+                        <button class="flow-control-btn down" onclick="moveFlowDown(${index})" title="Move Down">↓</button>
+                        <button class="flow-control-btn duplicate" onclick="duplicateFlow(${index})" title="Duplicate">⧉</button>
+                        <button class="flow-control-btn remove" onclick="removeFlow(${index})" title="Remove">×</button>
+                    </div>
+                </td>
                 <td class="spreadsheet-cell" data-col="source" data-row="${index}" data-type="text">
                     <div class="cell-content">${flow.source}</div>
                     <input type="text" class="cell-editor" style="display: none;">
@@ -2035,52 +2072,56 @@
             // Add previous value column (always show since it's core functionality)
             rowHTML += `
                 <td class="spreadsheet-cell" data-col="previousValue" data-row="${index}" data-type="number">
-                    <div class="cell-content">${flow.previousValue || ''}</div>
+                    <div class="cell-content">${flow.previousValue ? flow.previousValue.toLocaleString() : ''}</div>
                     <input type="number" class="cell-editor" style="display: none;" placeholder="0">
                 </td>`;
             
             // Add current value column
             rowHTML += `
                 <td class="spreadsheet-cell" data-col="value" data-row="${index}" data-type="number">
-                    <div class="cell-content">${flow.value}</div>
+                    <div class="cell-content">${isEmpty ? '' : (flow.value ? flow.value.toLocaleString() : '0')}</div>
                     <input type="number" class="cell-editor" style="display: none;">
                 </td>`;
             
             // Add variance column (always show since it's core functionality)
             rowHTML += `
                 <td class="variance-cell">
-                    <div style="font-size: 11px; text-align: center;">${flow.getVarianceDisplay()}</div>
+                    <div style="font-size: 11px; text-align: center;">${isEmpty ? '' : flow.getVarianceDisplay()}</div>
                 </td>`;
             
-            // Add optional columns (now part of main table)
-            // Actions column
-            rowHTML += `
-                <td class="optional-column control-cell">
-                    <div class="flow-controls">
-                        <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
-                        <button class="flow-control-btn down" onclick="moveFlowDown(${index})" title="Move Down">↓</button>
-                        <button class="flow-control-btn duplicate" onclick="duplicateFlow(${index})" title="Duplicate">⧉</button>
-                        <button class="flow-control-btn remove" onclick="removeFlow(${index})" title="Remove">×</button>
-                    </div>
-                </td>`;
+            // Get context-aware categories
+            const statementType = detectFinancialStatementType();
+            const categories = getCategoriesForStatementType(statementType);
             
             // Source Category column
+            const sourceCategoryOptions = categories.map(cat => 
+                `<option value="${cat.value}">${cat.label}</option>`
+            ).join('');
             rowHTML += `
-                <td class="optional-column spreadsheet-cell" data-col="sourceCategory" data-row="${index}" data-type="text">
-                    <div class="cell-content">${flow.sourceCategory || 'revenue'}</div>
-                    <input type="text" class="cell-editor" style="display: none;" placeholder="revenue">
+                <td class="spreadsheet-cell" data-col="sourceCategory" data-row="${index}" data-type="category">
+                    <div class="cell-content">${isEmpty ? '' : (flow.sourceCategory || '')}</div>
+                    <input type="text" class="cell-editor-text" style="display: none;" placeholder="Type category...">
+                    <select class="cell-editor-select" style="display: none;">
+                        ${sourceCategoryOptions}
+                    </select>
                 </td>`;
             
             // Target Category column
+            const targetCategoryOptions = categories.map(cat => 
+                `<option value="${cat.value}">${cat.label}</option>`
+            ).join('');
             rowHTML += `
-                <td class="optional-column spreadsheet-cell" data-col="targetCategory" data-row="${index}" data-type="text">
-                    <div class="cell-content">${flow.targetCategory || 'revenue'}</div>
-                    <input type="text" class="cell-editor" style="display: none;" placeholder="revenue">
+                <td class="spreadsheet-cell" data-col="targetCategory" data-row="${index}" data-type="category">
+                    <div class="cell-content">${isEmpty ? '' : (flow.targetCategory || '')}</div>
+                    <input type="text" class="cell-editor-text" style="display: none;" placeholder="Type category...">
+                    <select class="cell-editor-select" style="display: none;">
+                        ${targetCategoryOptions}
+                    </select>
                 </td>`;
             
             // Description column
             rowHTML += `
-                <td class="optional-column spreadsheet-cell" data-col="description" data-row="${index}" data-type="text">
+                <td class="spreadsheet-cell" data-col="description" data-row="${index}" data-type="text">
                     <div class="cell-content">${flow.description || ''}</div>
                     <input type="text" class="cell-editor" style="display: none;" placeholder="Flow description...">
                 </td>`;
@@ -2229,16 +2270,49 @@
         }
 
         function addFlow() {
+            // Get appropriate default category for the statement type
+            const statementType = detectFinancialStatementType();
+            const categories = getCategoriesForStatementType(statementType);
+            const defaultCategory = categories[0].value;
+            
             const newFlow = new BusinessFlow({
-                source: "New Source",
-                target: "New Target", 
-                value: 100,
+                source: "",
+                target: "", 
+                value: 0,
                 previousValue: 0,
-                sourceCategory: "revenue",
-                targetCategory: "revenue"
+                sourceCategory: defaultCategory,
+                targetCategory: defaultCategory,
+                description: ""
             });
             
             flowData.flows.push(newFlow);
+            renderFlowTable(); // This will call autoCalculateFlowProperties()
+            updateAllStats();
+            debouncedRealTimeUpdate();
+        }
+        
+        function addFlows() {
+            const rowsToAdd = parseInt(document.getElementById('rows-to-add').value) || 1;
+            
+            // Get appropriate default category for the statement type
+            const statementType = detectFinancialStatementType();
+            const categories = getCategoriesForStatementType(statementType);
+            const defaultCategory = categories[0].value;
+            
+            for (let i = 0; i < rowsToAdd; i++) {
+                const newFlow = new BusinessFlow({
+                    source: "",
+                    target: "", 
+                    value: 0,
+                    previousValue: 0,
+                    sourceCategory: defaultCategory,
+                    targetCategory: defaultCategory,
+                    description: ""
+                });
+                
+                flowData.flows.push(newFlow);
+            }
+            
             renderFlowTable(); // This will call autoCalculateFlowProperties()
             updateAllStats();
             debouncedRealTimeUpdate();
@@ -2718,11 +2792,6 @@
                     csvFileInput.addEventListener('change', handleFileImport);
                 }
                 
-                // Initialize comparison columns as hidden
-                const previousCol = document.getElementById('previous-value-col');
-                const varianceCol = document.getElementById('variance-col');
-                if (previousCol) previousCol.style.display = 'none';
-                if (varianceCol) varianceCol.style.display = 'none';
 
                 // Initialize SpreadsheetController for Sankey flow builder
                 window.spreadsheetController = new SpreadsheetController();
@@ -3369,12 +3438,28 @@
                         this.startEditing(cell);
                     }, 10);
                 }
+                
+                // For category cells, start text editing on single click
+                if (cell.dataset.type === 'category') {
+                    setTimeout(() => {
+                        this.startEditingCategory(cell, 'text');
+                    }, 10);
+                }
             }
 
             handleCellDoubleClick(event) {
                 const cell = event.target.closest('.spreadsheet-cell');
                 if (cell) {
-                    this.startEditing(cell);
+                    if (cell.dataset.type === 'category') {
+                        // Second click should show dropdown if already selected
+                        if (this.selectedCell === cell && !this.editingCell) {
+                            this.startEditingCategory(cell, 'select');
+                        } else {
+                            this.startEditingCategory(cell, 'select');
+                        }
+                    } else {
+                        this.startEditing(cell);
+                    }
                 }
             }
 
@@ -3395,6 +3480,120 @@
                     this.selectedCell.removeAttribute('tabindex');
                 }
                 this.selectedCell = null;
+            }
+
+            startEditingCategory(cell, mode) {
+                if (this.editingCell) {
+                    this.stopEditing();
+                }
+
+                this.editingCell = cell;
+                cell.classList.add('editing');
+                
+                const content = cell.querySelector('.cell-content');
+                const textEditor = cell.querySelector('.cell-editor-text');
+                const selectEditor = cell.querySelector('.cell-editor-select');
+                
+                // Get current flow data for this cell
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                const currentFlow = flowData.flows[row];
+                
+                content.style.display = 'none';
+                
+                if (mode === 'text') {
+                    // Use text input with autocomplete
+                    textEditor.style.display = 'block';
+                    selectEditor.style.display = 'none';
+                    textEditor.value = currentFlow[col] || '';
+                    textEditor.focus();
+                    textEditor.select();
+                    
+                    // Set up autocomplete
+                    this.setupCategoryAutocomplete(textEditor, selectEditor);
+                    
+                    // Add event listeners for text editor
+                    textEditor.addEventListener('blur', () => this.stopEditingCategory(), { once: true });
+                    textEditor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                } else {
+                    // Use select dropdown
+                    selectEditor.style.display = 'block';
+                    textEditor.style.display = 'none';
+                    selectEditor.value = currentFlow[col] || '';
+                    selectEditor.focus();
+                    
+                    // Add event listeners for select editor
+                    selectEditor.addEventListener('blur', () => this.stopEditingCategory(), { once: true });
+                    selectEditor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                }
+            }
+
+            setupCategoryAutocomplete(textEditor, selectEditor) {
+                // Get available options from the select element
+                const options = Array.from(selectEditor.options).map(option => option.value);
+                
+                textEditor.addEventListener('input', (e) => {
+                    const value = e.target.value.toLowerCase();
+                    if (value.length > 0) {
+                        const matches = options.filter(option => option.toLowerCase().includes(value));
+                        if (matches.length > 0) {
+                            // Simple autocomplete - could be enhanced with a dropdown
+                            const exactMatch = matches.find(match => match.toLowerCase() === value);
+                            if (exactMatch) {
+                                textEditor.style.backgroundColor = '#e8f5e8'; // Light green for exact match
+                            } else {
+                                textEditor.style.backgroundColor = '#fff3cd'; // Light yellow for partial match
+                            }
+                        } else {
+                            textEditor.style.backgroundColor = '#f8d7da'; // Light red for no match
+                        }
+                    } else {
+                        textEditor.style.backgroundColor = 'white';
+                    }
+                });
+            }
+
+            startEditingHybrid(cell, mode) {
+                if (this.editingCell) {
+                    this.stopEditing();
+                }
+
+                this.editingCell = cell;
+                cell.classList.add('editing');
+                
+                const content = cell.querySelector('.cell-content');
+                const textEditor = cell.querySelector('.cell-editor-text');
+                const selectEditor = cell.querySelector('.cell-editor-select');
+                
+                // Get current flow data for this cell
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                const currentFlow = flowData.flows[row];
+                
+                content.style.display = 'none';
+                
+                if (mode === 'text') {
+                    // Use text input
+                    textEditor.style.display = 'block';
+                    selectEditor.style.display = 'none';
+                    textEditor.value = currentFlow[col] || '';
+                    textEditor.focus();
+                    textEditor.select();
+                    
+                    // Add event listeners for text editor
+                    textEditor.addEventListener('blur', () => this.stopEditingHybrid(), { once: true });
+                    textEditor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                } else {
+                    // Use select dropdown
+                    selectEditor.style.display = 'block';
+                    textEditor.style.display = 'none';
+                    selectEditor.value = currentFlow[col] || '';
+                    selectEditor.focus();
+                    
+                    // Add event listeners for select editor
+                    selectEditor.addEventListener('blur', () => this.stopEditingHybrid(), { once: true });
+                    selectEditor.addEventListener('keydown', this.handleEditorKeys.bind(this));
+                }
             }
 
             startEditing(cell) {
@@ -3532,6 +3731,102 @@
                 }
             }
 
+            stopEditingCategory() {
+                if (!this.editingCell) return;
+
+                const cell = this.editingCell;
+                const content = cell.querySelector('.cell-content');
+                const textEditor = cell.querySelector('.cell-editor-text');
+                const selectEditor = cell.querySelector('.cell-editor-select');
+                
+                // Get cell data attributes
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                
+                let newValue = '';
+                
+                // Determine which editor is active
+                if (textEditor.style.display !== 'none') {
+                    newValue = textEditor.value;
+                    textEditor.style.backgroundColor = 'white'; // Reset background color
+                } else if (selectEditor.style.display !== 'none') {
+                    newValue = selectEditor.value;
+                }
+                
+                // Update content display
+                content.textContent = newValue;
+                content.style.display = 'flex';
+                
+                // Hide editors
+                textEditor.style.display = 'none';
+                selectEditor.style.display = 'none';
+                
+                // Update the flow data
+                if (flowData.flows[row] && col) {
+                    flowData.flows[row][col] = newValue;
+                    
+                    // Auto-recalculate layers and flow types
+                    autoCalculateFlowProperties();
+                    
+                    // Live update - trigger chart update immediately
+                    updateAllStats();
+                    refreshChart();
+                }
+                
+                cell.classList.remove('editing');
+                this.editingCell = null;
+                cell.focus();
+            }
+
+            stopEditingHybrid() {
+                if (!this.editingCell) return;
+
+                const cell = this.editingCell;
+                const content = cell.querySelector('.cell-content');
+                const textEditor = cell.querySelector('.cell-editor-text');
+                const selectEditor = cell.querySelector('.cell-editor-select');
+                
+                // Get cell data attributes
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                
+                let newValue = '';
+                let activeEditor = null;
+                
+                // Determine which editor is active
+                if (textEditor.style.display !== 'none') {
+                    activeEditor = textEditor;
+                    newValue = textEditor.value;
+                } else if (selectEditor.style.display !== 'none') {
+                    activeEditor = selectEditor;
+                    newValue = selectEditor.value;
+                }
+                
+                // Update content display
+                content.textContent = newValue;
+                content.style.display = 'flex';
+                
+                // Hide editors
+                textEditor.style.display = 'none';
+                selectEditor.style.display = 'none';
+                
+                // Update the flow data
+                if (flowData.flows[row] && col) {
+                    flowData.flows[row][col] = newValue;
+                    
+                    // Auto-recalculate layers and flow types
+                    autoCalculateFlowProperties();
+                    
+                    // Live update - trigger chart update immediately
+                    updateAllStats();
+                    refreshChart();
+                }
+                
+                cell.classList.remove('editing');
+                this.editingCell = null;
+                cell.focus();
+            }
+
             stopEditing() {
                 if (!this.editingCell) return;
 
@@ -3552,9 +3847,12 @@
                     content.textContent = selectedOption.text;
                     newValue = selectedOption.value;
                 } else {
-                    content.textContent = editor.value || '';
                     if (type === 'number') {
                         newValue = parseFloat(editor.value) || 0;
+                        // Format numbers with commas for display
+                        content.textContent = newValue > 0 ? newValue.toLocaleString() : (newValue === 0 ? '0' : '');
+                    } else {
+                        content.textContent = editor.value || '';
                     }
                 }
                 
@@ -3564,8 +3862,10 @@
                     
                     // Auto-recalculate layers and flow types
                     autoCalculateFlowProperties();
+                    
+                    // Live update - trigger chart update immediately
                     updateAllStats();
-                    debouncedRealTimeUpdate();
+                    refreshChart();
                     
                     // Update variance display if this was a value change
                     if (col === 'value' || col === 'previousValue') {
@@ -3609,7 +3909,10 @@
                     case 'Enter':
                         event.preventDefault();
                         this.stopEditing();
-                        this.moveSelection('down');
+                        // Add small delay to prevent auto-editing next cell
+                        setTimeout(() => {
+                            this.moveSelection('down');
+                        }, 10);
                         break;
                     case 'Escape':
                         event.preventDefault();
@@ -3663,7 +3966,11 @@
                         break;
                     case 'Enter':
                         event.preventDefault();
-                        this.startEditing(this.selectedCell);
+                        // Only start editing if user explicitly presses Enter on a selected cell
+                        // Don't auto-edit when navigating with Enter from editing mode
+                        if (this.selectedCell && !this.editingCell) {
+                            this.startEditing(this.selectedCell);
+                        }
                         break;
                     case 'F2':
                         event.preventDefault();
