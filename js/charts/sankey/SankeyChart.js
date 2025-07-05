@@ -5863,6 +5863,250 @@ class PulseSankeyChart {
                 .on('end', () => successMsg.remove());
         }, 2500);
     }
+
+    /**
+     * Highlight nodes by category
+     * @param {string} category - Category to highlight ('off', 'profit', 'revenue', 'expense')
+     */
+    highlightNodesByCategory(category) {
+        if (!this.chart) {
+            console.warn('⚠️ Chart not initialized for highlighting');
+            return;
+        }
+
+        console.log(`🎯 Highlighting nodes by category: ${category}`);
+        
+        if (category === 'off') {
+            // Reset all nodes to normal opacity
+            this.chart.selectAll('.sankey-node rect')
+                .transition()
+                .duration(300)
+                .attr('fill-opacity', this.config.nodeOpacity)
+                .style('stroke-width', '2px')
+                .style('stroke', 'white');
+            
+            // Reset all links to normal opacity
+            this.chart.selectAll('.sankey-link path')
+                .transition()
+                .duration(300)
+                .attr('fill-opacity', this.config.linkOpacity);
+                
+            // Reset all labels to normal opacity
+            this.chart.selectAll('.node-text-group')
+                .transition()
+                .duration(300)
+                .style('opacity', 1);
+        } else {
+            // Dim all nodes first
+            this.chart.selectAll('.sankey-node rect')
+                .transition()
+                .duration(300)
+                .attr('fill-opacity', 0.2)
+                .style('stroke-width', '1px')
+                .style('stroke', '#e5e7eb');
+            
+            // Dim all links
+            this.chart.selectAll('.sankey-link path')
+                .transition()
+                .duration(300)
+                .attr('fill-opacity', 0.1);
+                
+            // Dim all labels
+            this.chart.selectAll('.node-text-group')
+                .transition()
+                .duration(300)
+                .style('opacity', 0.3);
+            
+            // Highlight matching nodes
+            this.chart.selectAll('.sankey-node rect')
+                .filter(function(d) {
+                    return d.category === category;
+                })
+                .transition()
+                .duration(300)
+                .attr('fill-opacity', 1)
+                .style('stroke-width', '3px')
+                .style('stroke', function() {
+                    if (category === 'profit') return '#059669';
+                    if (category === 'revenue') return '#1e40af';
+                    if (category === 'expense') return '#dc2626';
+                    return 'white';
+                });
+            
+            // Highlight matching labels
+            this.chart.selectAll('.node-text-group')
+                .filter(function(d) {
+                    return d.category === category;
+                })
+                .transition()
+                .duration(300)
+                .style('opacity', 1);
+            
+            // Highlight related links
+            this.chart.selectAll('.sankey-link path')
+                .filter(function(d) {
+                    return d.source.category === category || d.target.category === category;
+                })
+                .transition()
+                .duration(300)
+                .attr('fill-opacity', this.config.linkOpacity);
+        }
+    }
+
+    // Node highlighting by target category for cycling toggle button
+    highlightNodesByCategory(targetCategory) {
+        if (!this.chart) return;
+
+        if (targetCategory === null || targetCategory === undefined) {
+            // Reset all to normal appearance
+            this.chart.selectAll('.sankey-node rect')
+                .transition()
+                .duration(300)
+                .style('opacity', 1)
+                .style('stroke', null)
+                .style('stroke-width', null);
+
+            this.chart.selectAll('.sankey-link path')
+                .transition()
+                .duration(300)
+                .style('opacity', this.config.linkOpacity);
+
+            this.chart.selectAll('.node-label')
+                .transition()
+                .duration(300)
+                .style('opacity', 1);
+
+            return;
+        }
+
+        // Get nodes that match the target category from data
+        const matchingNodes = new Set();
+        const matchingLinks = new Set();
+        
+        if (this.data && this.data.links) {
+            this.data.links.forEach(link => {
+                // Check if this link connects to a node with the target category
+                if (link.targetCategory === targetCategory) {
+                    matchingNodes.add(link.target.id || link.target);
+                    matchingLinks.add(link);
+                    // Also include source nodes that connect to these targets
+                    matchingNodes.add(link.source.id || link.source);
+                }
+            });
+        }
+
+        // Highlight matching nodes
+        this.chart.selectAll('.sankey-node rect')
+            .transition()
+            .duration(300)
+            .style('opacity', d => {
+                const nodeId = d.id || d.name;
+                return matchingNodes.has(nodeId) ? 1 : 0.2;
+            })
+            .style('stroke', d => {
+                const nodeId = d.id || d.name;
+                if (matchingNodes.has(nodeId)) {
+                    switch (targetCategory) {
+                        case 'profit': return '#059669'; // Green
+                        case 'revenue': return '#1e40af'; // Blue
+                        case 'expense': return '#dc2626'; // Red
+                        default: return '#6366f1'; // Default blue
+                    }
+                }
+                return null;
+            })
+            .style('stroke-width', d => {
+                const nodeId = d.id || d.name;
+                return matchingNodes.has(nodeId) ? '3px' : null;
+            });
+
+        // Dim non-matching links and highlight matching ones
+        this.chart.selectAll('.sankey-link path')
+            .transition()
+            .duration(300)
+            .style('opacity', d => {
+                return matchingLinks.has(d) ? this.config.linkOpacity : 0.1;
+            });
+
+        // Dim non-matching labels
+        this.chart.selectAll('.node-label')
+            .transition()
+            .duration(300)
+            .style('opacity', d => {
+                const nodeId = d.id || d.name;
+                return matchingNodes.has(nodeId) ? 1 : 0.3;
+            });
+
+        console.log(`🎨 Highlighted nodes with target category: ${targetCategory}`);
+    }
+
+    // Highlight specific nodes and links (for individual row highlighting)
+    highlightSpecificElements(nodeIds, linkIds) {
+        if (!this.chart) return;
+
+        if (nodeIds.size === 0) {
+            // Reset all to normal appearance
+            this.chart.selectAll('.sankey-node rect')
+                .transition()
+                .duration(300)
+                .style('opacity', 1)
+                .style('stroke', null)
+                .style('stroke-width', null);
+
+            this.chart.selectAll('.sankey-link path')
+                .transition()
+                .duration(300)
+                .style('opacity', this.config.linkOpacity);
+
+            this.chart.selectAll('.node-label')
+                .transition()
+                .duration(300)
+                .style('opacity', 1);
+
+            return;
+        }
+
+        // Highlight specific nodes
+        this.chart.selectAll('.sankey-node rect')
+            .transition()
+            .duration(300)
+            .style('opacity', d => {
+                const nodeId = d.id || d.name;
+                return nodeIds.has(nodeId) ? 1 : 0.3;
+            })
+            .style('stroke', d => {
+                const nodeId = d.id || d.name;
+                return nodeIds.has(nodeId) ? '#fbbf24' : null; // Yellow
+            })
+            .style('stroke-width', d => {
+                const nodeId = d.id || d.name;
+                return nodeIds.has(nodeId) ? '3px' : null;
+            });
+
+        // Highlight specific links
+        this.chart.selectAll('.sankey-link path')
+            .transition()
+            .duration(300)
+            .style('opacity', d => {
+                const linkId = `${d.source.name || d.source.id}-${d.target.name || d.target.id}`;
+                return linkIds.has(linkId) ? this.config.linkOpacity : 0.1;
+            })
+            .style('stroke', d => {
+                const linkId = `${d.source.name || d.source.id}-${d.target.name || d.target.id}`;
+                return linkIds.has(linkId) ? '#fbbf24' : null; // Yellow
+            });
+
+        // Highlight specific labels
+        this.chart.selectAll('.node-label')
+            .transition()
+            .duration(300)
+            .style('opacity', d => {
+                const nodeId = d.id || d.name;
+                return nodeIds.has(nodeId) ? 1 : 0.3;
+            });
+
+        console.log(`🎨 Highlighted ${nodeIds.size} nodes and ${linkIds.size} links`);
+    }
 }
 
 // Export for module systems

@@ -1068,6 +1068,110 @@
         }
 
 
+        function resetNodeHighlighting() {
+            // Reset any chart highlighting effects
+            const chart = window.flowBuilderChart || window.pulseApp?.chart;
+            if (chart && typeof chart.highlightNodesByCategory === 'function') {
+                chart.highlightNodesByCategory(null);
+            }
+            
+            // Re-initialize category buttons to match current data
+            setTimeout(() => initializeCategoryButtons(), 100);
+        }
+
+        // Target category cycling functionality
+        const targetCategories = ['revenue', 'expense', 'profit']; // Cycle: Revenue → Expense → Profit → Revenue...
+
+        function cycleTargetCategory(rowIndex) {
+            const button = document.querySelector(`button[data-row="${rowIndex}"].category-toggle`);
+            if (!button || !flowData.flows[rowIndex]) return;
+
+            const flow = flowData.flows[rowIndex];
+            
+            // Get current category index
+            let currentIndex = targetCategories.indexOf(flow.targetCategory);
+            if (currentIndex === -1) currentIndex = -1; // Start before first category
+            
+            // Cycle to next category
+            const nextIndex = (currentIndex + 1) % targetCategories.length;
+            const newCategory = targetCategories[nextIndex];
+            
+            // Update the flow's target category
+            flow.targetCategory = newCategory;
+            
+            // Update the Target Category cell in the spreadsheet
+            updateTargetCategoryCell(rowIndex, newCategory);
+            
+            // Update button appearance to show current category
+            updateCategoryButton(button, newCategory);
+            
+            // Trigger live update
+            autoCalculateFlowProperties();
+            updateAllStats();
+            refreshChart();
+            
+            console.log(`🔄 Row ${rowIndex}: Target category changed to ${newCategory}`);
+        }
+
+        function updateTargetCategoryCell(rowIndex, category) {
+            const cell = document.querySelector(`td[data-col="targetCategory"][data-row="${rowIndex}"] .cell-content`);
+            if (cell) {
+                const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+                cell.textContent = categoryName;
+            }
+        }
+
+        function updateCategoryButton(button, category) {
+            // Reset all category classes
+            button.classList.remove('revenue', 'expense', 'profit');
+            
+            // Add current category class
+            button.classList.add(category);
+            
+            // Update button text and title
+            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+            switch (category) {
+                case 'revenue':
+                    button.textContent = '💰'; // Money bag for revenue
+                    button.title = `Target: ${categoryName} (click to change to Expense)`;
+                    break;
+                case 'expense':
+                    button.textContent = '💸'; // Money with wings for expense
+                    button.title = `Target: ${categoryName} (click to change to Profit)`;
+                    break;
+                case 'profit':
+                    button.textContent = '📈'; // Chart increasing for profit
+                    button.title = `Target: ${categoryName} (click to change to Revenue)`;
+                    break;
+            }
+        }
+
+        function initializeCategoryButtons() {
+            // Initialize all category buttons based on current target categories
+            document.querySelectorAll('button.category-toggle').forEach(button => {
+                const rowIndex = parseInt(button.dataset.row);
+                if (flowData.flows[rowIndex]) {
+                    const flow = flowData.flows[rowIndex];
+                    if (flow.targetCategory && targetCategories.includes(flow.targetCategory)) {
+                        updateCategoryButton(button, flow.targetCategory);
+                    } else {
+                        // No category set or invalid category - show cycle icon
+                        button.classList.remove('revenue', 'expense', 'profit');
+                        button.textContent = '🔄';
+                        button.title = 'Click to set Target Category';
+                    }
+                }
+            });
+        }
+
+        function resetAllCategoryButtons() {
+            // Reset all category buttons to default state
+            document.querySelectorAll('button.flow-control-btn.category-toggle').forEach(button => {
+                button.classList.remove('revenue', 'expense', 'profit');
+                button.textContent = '🔄';
+                button.title = 'Cycle Target Category';
+            });
+        }
 
         function updateFlowProperty(index, property, value) {
             if (flowData.flows[index]) {
@@ -1131,6 +1235,9 @@
             const sankeyData = generateNodesAndLinksFromFlows();
             console.log('📈 Refreshing with Sankey data:', sankeyData);
             window.PulseDataBridge.setData(sankeyData, 'chart-refresh');
+            
+            // Reset highlighting when chart refreshes
+            resetNodeHighlighting();
         }
         
         // Initialize Flow Builder Control Panel (same as Chart View)
@@ -1954,6 +2061,141 @@
             }
         }
 
+        // Node highlighting functionality
+        let highlightState = 'off'; // 'off', 'profit', 'revenue', 'expense'
+        const highlightStates = ['off', 'profit', 'revenue', 'expense'];
+
+        function toggleNodeHighlighting() {
+            console.log('💡 Toggling node highlighting...');
+            
+            // Cycle through highlight states
+            const currentIndex = highlightStates.indexOf(highlightState);
+            const nextIndex = (currentIndex + 1) % highlightStates.length;
+            highlightState = highlightStates[nextIndex];
+            
+            // Update button text and color
+            const button = document.getElementById('highlight-toggle-btn');
+            if (button) {
+                if (highlightState === 'off') {
+                    button.innerHTML = '💡 Highlight: Off';
+                    button.style.background = '#6366f1';
+                } else {
+                    button.innerHTML = `💡 Highlight: ${highlightState.charAt(0).toUpperCase() + highlightState.slice(1)}`;
+                    // Set color based on category
+                    if (highlightState === 'profit') {
+                        button.style.background = '#059669'; // Green
+                    } else if (highlightState === 'revenue') {
+                        button.style.background = '#1e40af'; // Blue
+                    } else if (highlightState === 'expense') {
+                        button.style.background = '#dc2626'; // Red
+                    }
+                }
+            }
+            
+            // Apply highlighting to chart
+            applyNodeHighlighting();
+        }
+
+        function applyNodeHighlighting() {
+            console.log(`🎯 Applying node highlighting: ${highlightState}`);
+            
+            // Get current chart instance
+            let chart = null;
+            if (window.flowBuilderChart) {
+                chart = window.flowBuilderChart;
+            } else if (window.pulseApp && window.pulseApp.chart) {
+                chart = window.pulseApp.chart;
+            }
+            
+            if (!chart) {
+                console.warn('⚠️ No chart instance found for highlighting');
+                return;
+            }
+            
+            // Use the chart's built-in highlighting method if available
+            if (typeof chart.highlightNodesByCategory === 'function') {
+                chart.highlightNodesByCategory(highlightState);
+                return;
+            }
+            
+            // Fallback to direct DOM manipulation
+            if (highlightState === 'off') {
+                // Reset all nodes to normal opacity
+                chart.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(300)
+                    .attr('fill-opacity', chart.config.nodeOpacity)
+                    .style('stroke-width', '2px')
+                    .style('stroke', 'white');
+                
+                // Reset all links to normal opacity
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(300)
+                    .attr('fill-opacity', chart.config.linkOpacity);
+                    
+                // Reset all labels to normal opacity
+                chart.chart.selectAll('.node-text-group')
+                    .transition()
+                    .duration(300)
+                    .style('opacity', 1);
+            } else {
+                // Dim all nodes first
+                chart.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(300)
+                    .attr('fill-opacity', 0.2)
+                    .style('stroke-width', '1px')
+                    .style('stroke', '#e5e7eb');
+                
+                // Dim all links
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(300)
+                    .attr('fill-opacity', 0.1);
+                    
+                // Dim all labels
+                chart.chart.selectAll('.node-text-group')
+                    .transition()
+                    .duration(300)
+                    .style('opacity', 0.3);
+                
+                // Highlight matching nodes
+                chart.chart.selectAll('.sankey-node rect')
+                    .filter(function(d) {
+                        return d.category === highlightState;
+                    })
+                    .transition()
+                    .duration(300)
+                    .attr('fill-opacity', 1)
+                    .style('stroke-width', '3px')
+                    .style('stroke', function() {
+                        if (highlightState === 'profit') return '#059669';
+                        if (highlightState === 'revenue') return '#1e40af';
+                        if (highlightState === 'expense') return '#dc2626';
+                        return 'white';
+                    });
+                
+                // Highlight matching labels
+                chart.chart.selectAll('.node-text-group')
+                    .filter(function(d) {
+                        return d.category === highlightState;
+                    })
+                    .transition()
+                    .duration(300)
+                    .style('opacity', 1);
+                
+                // Highlight related links
+                chart.chart.selectAll('.sankey-link path')
+                    .filter(function(d) {
+                        return d.source.category === highlightState || d.target.category === highlightState;
+                    })
+                    .transition()
+                    .duration(300)
+                    .attr('fill-opacity', chart.config.linkOpacity);
+            }
+        }
+
         function updateMetadataInputs() {
             const fields = [
                 { id: 'company-name', value: flowData.metadata.company },
@@ -2015,6 +2257,9 @@
             // Apply variance colors after all rows are added
             applyVarianceColors();
             
+            // Initialize category buttons to show current categories
+            setTimeout(() => initializeCategoryButtons(), 50);
+            
         }
 
         // Helper function to detect financial statement type
@@ -2065,6 +2310,7 @@
                         <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
                         <button class="flow-control-btn down" onclick="moveFlowDown(${index})" title="Move Down">↓</button>
                         <button class="flow-control-btn duplicate" onclick="duplicateFlow(${index})" title="Duplicate">⧉</button>
+                        <button class="flow-control-btn category-toggle" onclick="cycleTargetCategory(${index})" title="Cycle Target Category" data-row="${index}">🔄</button>
                         <button class="flow-control-btn remove" onclick="removeFlow(${index})" title="Remove">×</button>
                     </div>
                 </td>
@@ -2443,6 +2689,12 @@
             const sankeyData = generateNodesAndLinksFromFlows();
             console.log('📈 Generated Sankey data:', sankeyData);
             window.PulseDataBridge.applyFlowBuilderChanges(sankeyData);
+            
+            // Reset highlighting when chart data changes
+            resetNodeHighlighting();
+            
+            // Re-initialize category buttons after data changes
+            setTimeout(() => initializeCategoryButtons(), 100);
             
             // Chart view removed - staying on data-builder
             

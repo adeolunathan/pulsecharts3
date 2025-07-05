@@ -4786,6 +4786,34 @@ body {
     border-color: #0969da;
 }
 
+.flow-control-btn.category-toggle {
+    color: #6b7280;
+    font-size: 10px;
+}
+
+.flow-control-btn.category-toggle:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #6b7280;
+}
+
+.flow-control-btn.category-toggle.revenue {
+    color: #059669;
+    background: #ecfdf5;
+    border-color: #059669;
+}
+
+.flow-control-btn.category-toggle.expense {
+    color: #dc2626;
+    background: #fef2f2;
+    border-color: #dc2626;
+}
+
+.flow-control-btn.category-toggle.profit {
+    color: #1e40af;
+    background: #eff6ff;
+    border-color: #1e40af;
+}
+
 /* Balance Indicator */
 .balance-indicator {
     display: flex;
