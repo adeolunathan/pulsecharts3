@@ -76,23 +76,6 @@ class SankeyControlModule {
                 ]
             },
             
-            curves: {
-                title: "Flow Curves",
-                icon: "〰️",
-                collapsed: true,
-                controls: [
-                    { 
-                        id: "curveIntensity", 
-                        type: "slider", 
-                        label: "Global Curve Intensity", 
-                        min: 0.1, 
-                        max: 0.8, 
-                        default: 0.3, 
-                        step: 0.05, 
-                        description: "How curved the flow connections are" 
-                    }
-                ]
-            },
 
             // Visual appearance controls
             appearance: {
@@ -124,12 +107,6 @@ class SankeyControlModule {
                             { value: "system-ui", label: "System Default" }
                         ],
                         description: "Font family for all chart text"
-                    },
-                    {
-                        id: "titleColor",
-                        type: "color_picker",
-                        label: "Text Color",
-                        default: "#1f2937"
                     },
                     {
                         id: "globalFontSize",
@@ -188,6 +165,16 @@ class SankeyControlModule {
                 collapsed: true,
                 controls: [
                     { 
+                        id: "curveIntensity", 
+                        type: "slider", 
+                        label: "Curve Intensity", 
+                        min: 0.1, 
+                        max: 0.8, 
+                        default: 0.3, 
+                        step: 0.05, 
+                        description: "How curved the flow connections are" 
+                    },
+                    { 
                         id: "nodeOpacity", 
                         type: "slider", 
                         label: "Node Opacity", 
@@ -206,7 +193,7 @@ class SankeyControlModule {
                         default: 0.65, 
                         step: 0.05, 
                         description: "Transparency of flow connections" 
-                    },
+                    }
                 ]
             },
             
@@ -602,11 +589,6 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle titleColor specially
-        if (controlId === 'titleColor') {
-            chart.updateConfig({ titleColor: value });
-            return;
-        }
 
         // Handle globalFontSize specially
         if (controlId === 'globalFontSize') {
@@ -810,28 +792,39 @@ class SankeyControlModule {
             }
         }
         
-        // For balance sheets, need to reassign color groups and re-render
-        if (this.statementType === 'balance') {
-            // Force reassignment of color groups with new custom colors
-            if (chart.assignColorGroups) {
-                chart.assignColorGroups();
-            }
-            
-            // Re-render nodes and links with new colors
-            if (chart.chart) {
+        // Immediate color updates - directly update DOM elements with transitions
+        if (chart.chart) {
+            // For balance sheets, need to reassign color groups first
+            if (this.statementType === 'balance') {
+                // Force reassignment of color groups with new custom colors
+                if (chart.assignColorGroups) {
+                    chart.assignColorGroups();
+                }
+                
+                // Update nodes with new colors
                 chart.chart.selectAll('.sankey-node rect')
                     .transition()
-                    .duration(200)
+                    .duration(150)
                     .attr('fill', d => chart.getHierarchicalColor(d.id));
                     
                 chart.chart.selectAll('.sankey-link path')
                     .transition()
-                    .duration(200)
+                    .duration(150)
+                    .attr('fill', d => chart.getLinkColor(d));
+            } else {
+                // For income statements, update nodes and links directly
+                chart.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(150)
+                    .attr('fill', d => chart.getNodeColor(d));
+                    
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(150)
                     .attr('fill', d => chart.getLinkColor(d));
             }
-        } else if (chart.data) {
-            // For income statements, just re-render
-            chart.render(chart.data);
+            
+            console.log(`✅ Applied immediate color changes for ${category}`);
         }
     }
 
@@ -855,21 +848,23 @@ class SankeyControlModule {
             chart.data.metadata.colorPalette[nodeId] = color;
         }
         
-        // Re-render with new colors
+        // Immediate color updates - directly update DOM elements with transitions
         if (chart.chart) {
             // Update specific node
             chart.chart.selectAll('.sankey-node rect')
                 .filter(d => d.id === nodeId)
                 .transition()
-                .duration(200)
+                .duration(150)
                 .attr('fill', color);
                 
             // Update links from this node (for source-based coloring)
             chart.chart.selectAll('.sankey-link path')
                 .filter(d => d.source.id === nodeId && chart.isPreRevenueNode(d.source))
                 .transition()
-                .duration(200)
+                .duration(150)
                 .attr('fill', chart.lightenColor(color, 15));
+                
+            console.log(`✅ Applied immediate color changes for node ${nodeId}`);
         }
     }
 
@@ -964,10 +959,6 @@ class SankeyControlModule {
             return chart && chart.config ? chart.config.titleFont : 'Inter';
         }
         
-        // Handle titleColor specially
-        if (controlId === 'titleColor') {
-            return chart && chart.config ? chart.config.titleColor : '#1f2937';
-        }
         
         if (controlId.endsWith('Color')) {
             // Extract category name from control ID

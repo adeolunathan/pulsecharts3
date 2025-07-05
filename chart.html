@@ -341,10 +341,10 @@
                 <!-- Form fields removed - using click-to-edit chart title instead -->
 
                 <!-- Full Width Layout: Maximized Space Usage -->
-                <div class="full-width-layout" style="display: flex; gap: 12px; min-height: 750px; margin: 0; padding: 4px;">
+                <div class="full-width-layout" style="display: flex; gap: 8px; min-height: 750px; margin: 0; padding: 4px;">
                     
                     <!-- Left Panel: Spreadsheet -->
-                    <div class="spreadsheet-panel" style="flex: 0 0 35%; min-width: 450px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05);">
+                    <div class="spreadsheet-panel" style="flex: 0 0 28%; min-width: 420px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05);">
                         <!-- Business Flows Section -->
                         <div class="section">
                             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 1px solid #dee2e6; border-radius: 12px 12px 0 0;">
@@ -434,7 +434,7 @@
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; padding: 20px; width: 380px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2);">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
                 <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #1f2937; display: flex; align-items: center; gap: 8px;">
-                    ✏️ Edit Chart Title
+                    Edit Chart Info
                 </h3>
                 <button onclick="cancelTitleEdit()" style="background: none; border: none; font-size: 18px; color: #9ca3af; cursor: pointer; padding: 4px; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">×</button>
             </div>
@@ -4640,7 +4640,7 @@
             let units = 'Millions';
             let periodType = 'Q/Q';
             
-            // Try to get values from existing metadata first
+            // Try to get values from multiple sources
             if (typeof flowData !== 'undefined' && flowData.metadata) {
                 companyName = flowData.metadata.company || companyName;
                 period = flowData.metadata.period || period;
@@ -4655,7 +4655,31 @@
                     periodType: flowData.metadata.periodType
                 });
             } else {
-                console.log('⚠️ No flowData.metadata found, using defaults');
+                console.log('⚠️ No flowData.metadata found, initializing with defaults');
+                // Initialize flowData.metadata if it doesn't exist
+                if (typeof flowData !== 'undefined') {
+                    if (!flowData.metadata) {
+                        flowData.metadata = {};
+                    }
+                    // Set defaults if not already set
+                    flowData.metadata.company = flowData.metadata.company || companyName;
+                    flowData.metadata.period = flowData.metadata.period || period;
+                    flowData.metadata.currency = flowData.metadata.currency || currency;
+                    flowData.metadata.unit = flowData.metadata.unit || units;
+                    flowData.metadata.periodType = flowData.metadata.periodType || periodType;
+                }
+            }
+            
+            // Also check for chart-specific metadata as additional fallback
+            const app = window.pulseApp;
+            if (app && app.chart && app.chart.data && app.chart.data.metadata) {
+                const chartMeta = app.chart.data.metadata;
+                currency = chartMeta.currency || currency;
+                units = chartMeta.unit || chartMeta.units || units;
+                companyName = chartMeta.company || companyName;
+                period = chartMeta.period || period;
+                periodType = chartMeta.periodType || periodType;
+                console.log('📊 Using chart metadata as fallback:', chartMeta);
             }
             
             if (chartTitle && chartTitle.textContent) {
@@ -4685,7 +4709,37 @@
             if (currentTitle) {
                 const computedStyle = window.getComputedStyle(currentTitle);
                 titleFontSize = parseInt(computedStyle.fontSize) || 40;
-                titleColor = rgbToHex(computedStyle.fill) || '#1f2937';
+                
+                // Get color from multiple sources (SVG text elements use fill attribute)
+                let detectedColor = null;
+                
+                // Check style.fill first (inline styles)
+                if (currentTitle.style.fill) {
+                    detectedColor = currentTitle.style.fill;
+                }
+                // Check fill attribute (SVG attribute)
+                else if (currentTitle.getAttribute('fill')) {
+                    detectedColor = currentTitle.getAttribute('fill');
+                }
+                // Check data-custom-color attribute
+                else if (currentTitle.getAttribute('data-custom-color')) {
+                    detectedColor = currentTitle.getAttribute('data-custom-color');
+                }
+                // Check global custom title color
+                else if (window.customTitleColor) {
+                    detectedColor = window.customTitleColor;
+                }
+                // Check computed style color as fallback
+                else if (computedStyle.color) {
+                    detectedColor = computedStyle.color;
+                }
+                
+                // Convert to hex if we found a color
+                if (detectedColor) {
+                    titleColor = rgbToHex(detectedColor) || detectedColor;
+                }
+                
+                console.log('🎨 Detected title color:', detectedColor, '→', titleColor);
             }
             
             // Populate modal fields
@@ -4870,18 +4924,40 @@
             }
         });
 
-        // Universal hover effects with custom color preservation
+        // Universal hover effects with better clickability indication
         document.addEventListener('mouseover', function(e) {
             if (e.target.closest('#main-chart') && 
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
                 e.target.hasAttribute('data-editable')) {
                 
-                // Store the current color before hovering
-                const currentColor = e.target.style.fill || e.target.getAttribute('fill') || e.target.getAttribute('data-custom-color') || window.customTitleColor || '#1f2937';
-                e.target.setAttribute('data-original-color', currentColor);
+                // Store original styles
+                e.target.setAttribute('data-original-opacity', e.target.style.opacity || '1');
+                e.target.setAttribute('data-original-filter', e.target.style.filter || 'none');
                 
-                // Apply hover color
-                e.target.style.fill = '#3b82f6';
+                // Get current title color for glow effect
+                const currentColor = e.target.style.fill || e.target.getAttribute('fill') || e.target.getAttribute('data-custom-color') || window.customTitleColor || '#1f2937';
+                
+                // Convert color to rgba format for glow effect
+                let glowColor = currentColor;
+                if (currentColor.startsWith('#')) {
+                    // Convert hex to rgba
+                    const hex = currentColor.replace('#', '');
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    glowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+                } else if (currentColor.startsWith('rgb')) {
+                    // Convert rgb to rgba with alpha
+                    glowColor = currentColor.replace('rgb(', 'rgba(').replace(')', ', 0.6)');
+                }
+                
+                // Apply hover effects: slightly reduce opacity and add glow using current color
+                e.target.style.opacity = '0.8';
+                e.target.style.filter = `drop-shadow(0 0 4px ${glowColor})`;
+                e.target.style.transition = 'opacity 0.2s ease, filter 0.2s ease';
+                
+                // Add visual cue that it's clickable
+                e.target.style.cursor = 'pointer';
             }
         });
 
@@ -4890,9 +4966,12 @@
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
                 e.target.hasAttribute('data-editable')) {
                 
-                // Restore the original color
-                const originalColor = e.target.getAttribute('data-original-color') || e.target.getAttribute('data-custom-color') || window.customTitleColor || '#1f2937';
-                e.target.style.fill = originalColor;
+                // Restore original styles
+                const originalOpacity = e.target.getAttribute('data-original-opacity') || '1';
+                const originalFilter = e.target.getAttribute('data-original-filter') || 'none';
+                
+                e.target.style.opacity = originalOpacity;
+                e.target.style.filter = originalFilter;
             }
         });
 
