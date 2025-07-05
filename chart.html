@@ -47,6 +47,25 @@
     
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
+    <style>
+        /* Reduce table content font sizes for compact layout */
+        .flow-table td, 
+        .spreadsheet-cell,
+        .cell-content {
+            font-size: 11px !important;
+        }
+        
+        .flow-table td input,
+        .flow-table td select,
+        .flow-table td button {
+            font-size: 10px !important;
+        }
+        
+        /* Make chart more prominent */
+        .chart-panel {
+            flex: 1 !important;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" 
           crossorigin="anonymous" />
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"
@@ -305,50 +324,13 @@
             <div class="flow-builder-container">
                 <!-- Flow Builder actions moved to Chart View menu -->
 
-                <!-- Company Info & Financial Statement Metadata -->
-                <div style="background: white; border-radius: 8px; padding: 12px; margin-top: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Company Name</label>
-                            <input type="text" class="flow-input" id="company-name" value="TechFlow SaaS Corp" onchange="updateMetadata()" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; background: white; color: #374151;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period</label>
-                            <input type="text" class="flow-input" id="period" value="Q3 2025" onchange="updateMetadata()" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; background: white; color: #374151;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Currency</label>
-                            <select class="flow-select" id="currency" onchange="updateMetadata()" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; background: white; color: #374151;">
-                                <option value="USD ($)">USD ($)</option>
-                                <option value="EUR (€)">EUR (€)</option>
-                                <option value="GBP (£)">GBP (£)</option>
-                                <option value="JPY (¥)">JPY (¥)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Units</label>
-                            <select class="flow-select" id="units" onchange="updateMetadata()" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; background: white; color: #374151;">
-                                <option value="Millions">Millions</option>
-                                <option value="Thousands">Thousands</option>
-                                <option value="Billions">Billions</option>
-                                <option value="Actual">Actual</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 4px;">Period Type</label>
-                            <select class="flow-select" id="period-type" onchange="updateMetadata()" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; background: white; color: #374151;">
-                                <option value="Q/Q">Quarter-over-Quarter (Q/Q)</option>
-                                <option value="Y/Y">Year-over-Year (Y/Y)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                <!-- Form fields removed - using click-to-edit chart title instead -->
 
                 <!-- Full Width Layout: Maximized Space Usage -->
                 <div class="full-width-layout" style="display: flex; gap: 12px; min-height: 750px; margin: 0; padding: 4px;">
                     
                     <!-- Left Panel: Spreadsheet -->
-                    <div class="spreadsheet-panel" style="flex: 0 0 55%; min-width: 700px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05);">
+                    <div class="spreadsheet-panel" style="flex: 0 0 35%; min-width: 450px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05);">
                         <!-- Business Flows Section -->
                         <div class="section">
                             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 1px solid #dee2e6; border-radius: 12px 12px 0 0;">
@@ -379,12 +361,12 @@
                                     <table class="flow-table" id="main-flow-table">
                                         <thead>
                                             <tr>
-                                                <th style="width: 80px;">Actions</th>
-                                                <th style="width: 140px;">From (Source)</th>
-                                                <th style="width: 140px;">To (Target)</th>
-                                                <th style="width: 100px; display: table-cell;" id="previous-value-col">Previous Value</th>
-                                                <th style="width: 100px;">Current Value</th>
-                                                <th style="width: 80px; display: table-cell;" id="variance-col">Variance</th>
+                                                <th style="width: 60px; font-size: 11px;">Actions</th>
+                                                <th style="width: 120px; font-size: 11px;">From (Source)</th>
+                                                <th style="width: 120px; font-size: 11px;">To (Target)</th>
+                                                <th style="width: 70px; display: table-cell; font-size: 11px;" id="previous-value-col">Previous</th>
+                                                <th style="width: 70px; font-size: 11px;">Current</th>
+                                                <th style="width: 60px; display: table-cell; font-size: 11px;" id="variance-col">Variance</th>
                                                 <!-- Optional columns hidden by default -->
                                                 <th style="width: 120px; display: none;" class="optional-column" id="source-category-col">Source Category</th>
                                                 <th style="width: 120px; display: none;" class="optional-column" id="target-category-col">Target Category</th>
@@ -454,7 +436,7 @@
                 </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px;">Currency</label>
                     <select id="modal-currency" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white;">
@@ -470,6 +452,25 @@
                         <option value="Income Statement">Income Statement</option>
                         <option value="Balance Sheet">Balance Sheet</option>
                         <option value="Cash Flow">Cash Flow</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px;">Units</label>
+                    <select id="modal-units" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white;">
+                        <option value="Millions">Millions</option>
+                        <option value="Thousands">Thousands</option>
+                        <option value="Billions">Billions</option>
+                        <option value="Actual">Actual</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 4px;">Period Type</label>
+                    <select id="modal-period-type" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: white;">
+                        <option value="Q/Q">Quarter-over-Quarter (Q/Q)</option>
+                        <option value="Y/Y">Year-over-Year (Y/Y)</option>
                     </select>
                 </div>
             </div>
@@ -2055,7 +2056,7 @@
                 })
             ];
             
-            document.getElementById('company-name').value = flowData.metadata.company;
+            // Form field removed - metadata now handled via click-to-edit title
             renderFlowTable();
             updateAllStats();
             debouncedRealTimeUpdate();
@@ -2392,11 +2393,31 @@
         }
 
         function updateMetadata() {
-            flowData.metadata.company = document.getElementById('company-name').value;
-            flowData.metadata.period = document.getElementById('period').value;
-            flowData.metadata.currency = document.getElementById('currency').value;
-            flowData.metadata.unit = document.getElementById('units').value;
-            flowData.metadata.periodType = document.getElementById('period-type').value;
+            // Form fields removed - metadata now extracted from chart title
+            const chartTitle = findChartTitle();
+            if (chartTitle && chartTitle.textContent) {
+                const titleText = chartTitle.textContent.trim();
+                if (titleText.includes('Income Statement')) {
+                    const parts = titleText.replace(' Income Statement', '').trim().split(' ');
+                    if (parts.length >= 2) {
+                        flowData.metadata.period = parts.pop();
+                        flowData.metadata.company = parts.join(' ');
+                    }
+                } else if (titleText.includes('Balance Sheet')) {
+                    const parts = titleText.replace(' Balance Sheet', '').trim().split(' ');
+                    if (parts.length >= 2) {
+                        flowData.metadata.period = parts.pop();
+                        flowData.metadata.company = parts.join(' ');
+                    }
+                }
+            }
+            
+            // Set defaults if not found
+            flowData.metadata.company = flowData.metadata.company || 'TechFlow SaaS Corp';
+            flowData.metadata.period = flowData.metadata.period || 'Q3 2025';
+            flowData.metadata.currency = flowData.metadata.currency || 'USD ($)';
+            flowData.metadata.unit = flowData.metadata.unit || 'Millions';
+            flowData.metadata.periodType = flowData.metadata.periodType || 'Q/Q';
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             debouncedRealTimeUpdate();
@@ -2433,10 +2454,11 @@
         function applyFlowChanges() {
             console.log('🚀 Applying Flow Builder changes...');
             
-            flowData.metadata.company = document.getElementById('company-name').value;
-            flowData.metadata.period = document.getElementById('period').value;
-            flowData.metadata.currency = document.getElementById('currency').value;
-            flowData.metadata.unit = document.getElementById('units').value;
+            // Form fields removed - use existing metadata or defaults
+            flowData.metadata.company = flowData.metadata.company || 'TechFlow SaaS Corp';
+            flowData.metadata.period = flowData.metadata.period || 'Q3 2025';
+            flowData.metadata.currency = flowData.metadata.currency || 'USD ($)';
+            flowData.metadata.unit = flowData.metadata.unit || 'Millions';
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             const sankeyData = generateNodesAndLinksFromFlows();
@@ -3347,11 +3369,7 @@
                     }
                 };
                 
-                // Update form fields with correct IDs
-                document.getElementById('company-name').value = flowData.metadata.company;
-                document.getElementById('period').value = flowData.metadata.period;
-                document.getElementById('currency').value = flowData.metadata.currency;
-                document.getElementById('units').value = flowData.metadata.unit;
+                // Form fields removed - metadata now handled via click-to-edit title
                 
                 // Re-render the table (which will show empty state)
                 renderFlowTable();
@@ -4421,12 +4439,25 @@
         }
 
         function makeChartTitleEditable() {
-            const chartTitle = findChartTitle();
-            if (chartTitle && !chartTitle.hasAttribute('data-editable')) {
-                // Apply styling
+            let chartTitle = findChartTitle();
+            
+            // If no title exists, create a default clickable title
+            if (!chartTitle) {
+                chartTitle = createDefaultTitle();
+            }
+            
+            if (chartTitle) {
+                // Restore custom title text if it exists
+                if (window.customChartTitle && chartTitle.textContent !== window.customChartTitle) {
+                    chartTitle.textContent = window.customChartTitle;
+                    console.log('📝 Restored custom title:', window.customChartTitle);
+                }
+                
+                // Always apply/reapply styling to ensure title remains editable
                 chartTitle.setAttribute('data-editable', 'true');
                 chartTitle.style.cursor = 'pointer';
                 chartTitle.style.transition = 'fill 0.2s ease';
+                chartTitle.style.fill = '#1f2937';  // Default color
                 
                 console.log('✅ Chart title made editable:', chartTitle.textContent);
                 return true;
@@ -4434,22 +4465,103 @@
             return false;
         }
 
+        function createDefaultTitle() {
+            const chartContainer = document.querySelector('#main-chart svg');
+            if (!chartContainer) {
+                console.log('❌ No SVG container found for title creation');
+                return null;
+            }
+
+            // Check if title already exists to avoid duplicates
+            const existingTitle = chartContainer.querySelector('.chart-header text');
+            if (existingTitle) {
+                console.log('📊 Using existing title element');
+                return existingTitle;
+            }
+
+            // Use default values since form fields are removed
+            const companyName = 'TechFlow SaaS Corp';
+            const period = 'Q3 2025';
+            const defaultTitle = `${companyName} ${period} Income Statement`;
+
+            // Get SVG dimensions
+            const svgRect = chartContainer.getBoundingClientRect();
+            const centerX = svgRect.width / 2 || 600;
+
+            // Create title group
+            const headerGroup = d3.select(chartContainer)
+                .append('g')
+                .attr('class', 'chart-header');
+
+            // Create title text element
+            const titleElement = headerGroup.append('text')
+                .attr('x', centerX)
+                .attr('y', 40)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '28px')
+                .attr('font-weight', '600')
+                .attr('font-family', 'Inter, sans-serif')
+                .attr('fill', '#1f2937')
+                .attr('class', 'chart-title')
+                .text(defaultTitle);
+
+            console.log('📊 Created default clickable title:', defaultTitle);
+            return titleElement.node();
+        }
+
         function openTitleEditModal() {
-            // Get current values from form
-            const companyName = document.getElementById('company-name')?.value || 'TechFlow SaaS Corp';
-            const period = document.getElementById('period')?.value || 'Q3 2025';
-            const currency = document.getElementById('currency')?.value || 'USD ($)';
+            // Parse current chart title to get existing values
+            const chartTitle = findChartTitle();
+            let companyName = 'TechFlow SaaS Corp';
+            let period = 'Q3 2025';
+            let currency = 'USD ($)';
+            let statementType = 'Income Statement';
+            let units = 'Millions';
+            let periodType = 'Q/Q';
             
-            // Populate modal (only the fields that exist in the new modal)
+            // Try to get values from existing metadata first
+            if (typeof flowData !== 'undefined' && flowData.metadata) {
+                companyName = flowData.metadata.company || companyName;
+                period = flowData.metadata.period || period;
+                currency = flowData.metadata.currency || currency;
+                units = flowData.metadata.unit || units;
+                periodType = flowData.metadata.periodType || periodType;
+            }
+            
+            if (chartTitle && chartTitle.textContent) {
+                const titleText = chartTitle.textContent.trim();
+                // Try to parse existing title: "Company Period Statement Type"
+                if (titleText.includes('Income Statement')) {
+                    statementType = 'Income Statement';
+                    const parts = titleText.replace(' Income Statement', '').trim().split(' ');
+                    if (parts.length >= 2) {
+                        period = parts.pop(); // Last part is period
+                        companyName = parts.join(' '); // Rest is company name
+                    }
+                } else if (titleText.includes('Balance Sheet')) {
+                    statementType = 'Balance Sheet';
+                    const parts = titleText.replace(' Balance Sheet', '').trim().split(' ');
+                    if (parts.length >= 2) {
+                        period = parts.pop();
+                        companyName = parts.join(' ');
+                    }
+                }
+            }
+            
+            // Populate modal fields
             const modalCompanyName = document.getElementById('modal-company-name');
             const modalPeriod = document.getElementById('modal-period');
             const modalCurrency = document.getElementById('modal-currency');
             const modalStatementType = document.getElementById('modal-statement-type');
+            const modalUnits = document.getElementById('modal-units');
+            const modalPeriodType = document.getElementById('modal-period-type');
             
             if (modalCompanyName) modalCompanyName.value = companyName;
             if (modalPeriod) modalPeriod.value = period;
             if (modalCurrency) modalCurrency.value = currency;
-            if (modalStatementType) modalStatementType.value = 'Income Statement';
+            if (modalStatementType) modalStatementType.value = statementType;
+            if (modalUnits) modalUnits.value = units;
+            if (modalPeriodType) modalPeriodType.value = periodType;
             
             // Show modal
             const modal = document.getElementById('chart-title-modal');
@@ -4471,15 +4583,17 @@
             const period = document.getElementById('modal-period')?.value || 'Q3 2025';
             const currency = document.getElementById('modal-currency')?.value || 'USD ($)';
             const statementType = document.getElementById('modal-statement-type')?.value || 'Income Statement';
+            const units = document.getElementById('modal-units')?.value || 'Millions';
+            const periodType = document.getElementById('modal-period-type')?.value || 'Q/Q';
             
-            // Update form fields (with null checks)
-            const companyField = document.getElementById('company-name');
-            const periodField = document.getElementById('period');
-            const currencyField = document.getElementById('currency');
-            
-            if (companyField) companyField.value = companyName;
-            if (periodField) periodField.value = period;
-            if (currencyField) currencyField.value = currency;
+            // Update global metadata with all values
+            if (typeof flowData !== 'undefined' && flowData.metadata) {
+                flowData.metadata.company = companyName;
+                flowData.metadata.period = period;
+                flowData.metadata.currency = currency;
+                flowData.metadata.unit = units;
+                flowData.metadata.periodType = periodType;
+            }
             
             // Create new title
             const newTitle = `${companyName} ${period} ${statementType}`;
@@ -4487,15 +4601,44 @@
             // Update chart title
             const chartTitle = findChartTitle();
             if (chartTitle) {
-                // Update the text - event delegation will handle the rest
+                // Update the text
                 chartTitle.textContent = newTitle;
                 console.log('Chart title updated to:', newTitle);
+                console.log('Metadata updated:', { companyName, period, currency, units, periodType });
+                
+                // Store the title for persistence across re-renders
+                window.customChartTitle = newTitle;
+                
+                // Ensure title remains editable after text change
+                setTimeout(() => {
+                    makeChartTitleEditable();
+                }, 100);
             }
             
-            // Update metadata if function exists
-            if (typeof updateMetadata === 'function') {
-                updateMetadata();
-            }
+            // Trigger chart re-render to apply metadata changes
+            setTimeout(() => {
+                if (typeof debouncedRealTimeUpdate === 'function') {
+                    debouncedRealTimeUpdate();
+                } else if (typeof updateAllStats === 'function') {
+                    updateAllStats();
+                }
+                
+                // Also trigger chart refresh via data bridge if available
+                if (window.PulseDataBridge && typeof window.PulseDataBridge.refreshChart === 'function') {
+                    window.PulseDataBridge.refreshChart();
+                }
+                
+                // Re-enable title editability after chart refresh with multiple attempts
+                let attempts = 0;
+                const maxAttempts = 10;
+                const retryInterval = setInterval(() => {
+                    attempts++;
+                    if (makeChartTitleEditable() || attempts >= maxAttempts) {
+                        clearInterval(retryInterval);
+                        console.log(`✅ Re-enabled title editability after chart refresh (attempt ${attempts})`);
+                    }
+                }, 300);
+            }, 200);
             
             // Close modal
             cancelTitleEdit();
@@ -4538,7 +4681,7 @@
         // Initialize chart title editing
         document.addEventListener('DOMContentLoaded', function() {
             let attempts = 0;
-            const maxAttempts = 30;
+            const maxAttempts = 50;
             
             const titleCheckInterval = setInterval(() => {
                 attempts++;
@@ -4546,15 +4689,38 @@
                 if (makeChartTitleEditable() || attempts >= maxAttempts) {
                     clearInterval(titleCheckInterval);
                     if (attempts >= maxAttempts) {
-                        console.log('⚠️ Could not find chart title after', maxAttempts, 'attempts');
+                        console.log('⚠️ Could not find or create chart title after', maxAttempts, 'attempts');
                     }
                 }
-            }, 1000);
+            }, 500);
             
-            // Also try when window loads
+            // Also try when window loads and when charts are rendered
             window.addEventListener('load', () => {
-                setTimeout(makeChartTitleEditable, 2000);
+                setTimeout(makeChartTitleEditable, 1000);
+                setTimeout(makeChartTitleEditable, 3000);
             });
+            
+            // Listen for chart rendering events
+            document.addEventListener('chartRendered', () => {
+                setTimeout(makeChartTitleEditable, 200);
+            });
+            
+            // Also listen for DOM mutations to catch chart re-renders
+            const chartContainer = document.getElementById('main-chart');
+            if (chartContainer) {
+                const observer = new MutationObserver(() => {
+                    // Debounce the re-enable function
+                    clearTimeout(window.titleEditableTimeout);
+                    window.titleEditableTimeout = setTimeout(() => {
+                        makeChartTitleEditable();
+                    }, 500);
+                });
+                
+                observer.observe(chartContainer, {
+                    childList: true,
+                    subtree: true
+                });
+            }
         });
 
         // Close modal when clicking outside
