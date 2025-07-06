@@ -324,8 +324,6 @@
                                                 <th style="width: 70px; display: table-cell; font-size: 11px;" id="previous-value-col">Previous</th>
                                                 <th style="width: 70px; display: table-cell; font-size: 11px;" id="current-value-col">Current</th>
                                                 <th style="width: 60px; display: table-cell; font-size: 11px;" id="variance-col">Variance</th>
-                                                <th style="width: 120px; display: table-cell; font-size: 11px;" id="source-category-col">Source Category</th>
-                                                <th style="width: 120px; display: table-cell; font-size: 11px;" id="target-category-col">Target Category</th>
                                                 <th style="width: 200px; display: table-cell; font-size: 11px;" id="description-col">Description</th>
                                             </tr>
                                         </thead>
@@ -1380,7 +1378,7 @@
             }
             
             // Create CSV content
-            const headers = ['Source', 'Target', 'Current Value', 'Previous Value', 'Variance %', 'Source Category', 'Target Category', 'Description'];
+            const headers = ['Source', 'Target', 'Current Value', 'Previous Value', 'Variance %', 'Description'];
             const csvContent = [
                 headers.join(','),
                 ...flows.map(flow => [
@@ -1389,8 +1387,6 @@
                     flow.value,
                     flow.previousValue || 0,
                     flow.getVariance().percentage.toFixed(1),
-                    flow.sourceCategory || '',
-                    flow.targetCategory || '',
                     flow.description || ''
                 ].map(value => `"${value}"`).join(','))
             ].join('\n');
@@ -2243,9 +2239,6 @@
             let rowHTML = `
                 <td class="control-cell">
                     <div class="flow-controls">
-                        <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
-                        <button class="flow-control-btn down" onclick="moveFlowDown(${index})" title="Move Down">↓</button>
-                        <button class="flow-control-btn duplicate" onclick="duplicateFlow(${index})" title="Duplicate">⧉</button>
                         <button class="flow-control-btn remove" onclick="removeFlow(${index})" title="Remove">×</button>
                     </div>
                 </td>
@@ -2283,31 +2276,6 @@
             const statementType = detectFinancialStatementType();
             const categories = getCategoriesForStatementType(statementType);
             
-            // Source Category column
-            const sourceCategoryOptions = categories.map(cat => 
-                `<option value="${cat.value}">${cat.label}</option>`
-            ).join('');
-            rowHTML += `
-                <td class="spreadsheet-cell" data-col="sourceCategory" data-row="${index}" data-type="category">
-                    <div class="cell-content">${isEmpty ? '' : (flow.sourceCategory || '')}<span class="dropdown-icon">▼</span></div>
-                    <input type="text" class="cell-editor-text" style="display: none;" placeholder="Type category...">
-                    <select class="cell-editor-select" style="display: none;">
-                        ${sourceCategoryOptions}
-                    </select>
-                </td>`;
-            
-            // Target Category column
-            const targetCategoryOptions = categories.map(cat => 
-                `<option value="${cat.value}">${cat.label}</option>`
-            ).join('');
-            rowHTML += `
-                <td class="spreadsheet-cell" data-col="targetCategory" data-row="${index}" data-type="category">
-                    <div class="cell-content">${isEmpty ? '' : (flow.targetCategory || '')}<span class="dropdown-icon">▼</span></div>
-                    <input type="text" class="cell-editor-text" style="display: none;" placeholder="Type category...">
-                    <select class="cell-editor-select" style="display: none;">
-                        ${targetCategoryOptions}
-                    </select>
-                </td>`;
             
             // Description column
             rowHTML += `
@@ -2515,41 +2483,8 @@
             debouncedRealTimeUpdate();
         }
 
-        function moveFlowUp(index) {
-            if (index > 0) {
-                [flowData.flows[index], flowData.flows[index - 1]] = [flowData.flows[index - 1], flowData.flows[index]];
-                renderFlowTable(); // This will call autoCalculateFlowProperties()
-                updateAllStats();
-                debouncedRealTimeUpdate();
-            }
-        }
-
-        function moveFlowDown(index) {
-            if (index < flowData.flows.length - 1) {
-                [flowData.flows[index], flowData.flows[index + 1]] = [flowData.flows[index + 1], flowData.flows[index]];
-                renderFlowTable(); // This will call autoCalculateFlowProperties()
-                updateAllStats();
-                debouncedRealTimeUpdate();
-            }
-        }
-
-        function duplicateFlow(index) {
-            const originalFlow = flowData.flows[index];
-            const duplicatedFlow = new BusinessFlow({
-                source: originalFlow.source + " Copy",
-                target: originalFlow.target,
-                value: originalFlow.value,
-                previousValue: originalFlow.previousValue,
-                sourceCategory: originalFlow.sourceCategory,
-                targetCategory: originalFlow.targetCategory,
-                description: originalFlow.description + " (Copy)"
-            });
-            
-            flowData.flows.splice(index + 1, 0, duplicatedFlow);
-            renderFlowTable(); // This will call autoCalculateFlowProperties()
-            updateAllStats();
-            debouncedRealTimeUpdate();
-        }
+        // moveFlowUp, moveFlowDown, and duplicateFlow functions removed
+        // Users can now use copy/paste functionality for these operations
 
         function updateMetadata() {
             // Form fields removed - metadata now extracted from chart title
@@ -2689,10 +2624,10 @@
         }
 
         function exportFlowsToCSV() {
-            let csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
+            let csv = 'Source,Target,Current Value,Previous Value,Description\n';
             
             flowData.flows.forEach(flow => {
-                csv += `"${flow.source}","${flow.target}",${flow.value},${flow.previousValue || 0},"${flow.sourceCategory}","${flow.targetCategory}","${flow.description}"\n`;
+                csv += `"${flow.source}","${flow.target}",${flow.value},${flow.previousValue || 0},"${flow.description}"\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -2763,8 +2698,6 @@
                 target: Math.max(headers.indexOf('target'), headers.indexOf('to')),
                 amount: Math.max(headers.indexOf('amount'), headers.indexOf('current value'), headers.indexOf('value')),
                 previousAmount: Math.max(headers.indexOf('previous amount'), headers.indexOf('previous value')),
-                sourceCategory: Math.max(headers.indexOf('source category'), headers.indexOf('source cat')),
-                targetCategory: Math.max(headers.indexOf('target category'), headers.indexOf('target cat')),
                 description: headers.indexOf('description')
             };
             
@@ -2792,8 +2725,8 @@
                         target: targetValue || `Flow ${i} Target`,
                         value: amountValue || 100,
                         previousValue: previousValue,
-                        sourceCategory: (columnMap.sourceCategory >= 0 ? values[columnMap.sourceCategory] : null) || 'revenue',
-                        targetCategory: (columnMap.targetCategory >= 0 ? values[columnMap.targetCategory] : null) || 'revenue',
+                        sourceCategory: 'revenue', // Default to revenue
+                        targetCategory: 'revenue', // Default to revenue
                         description: (columnMap.description >= 0 ? values[columnMap.description] : null) || `Flow from ${sourceValue || 'Source'} to ${targetValue || 'Target'}`
                         // Note: flowType, sourceLayer, targetLayer will be auto-calculated
                     }));
@@ -2829,9 +2762,7 @@
                     message += 'You can edit these in the table below.\n\n';
                 }
                 
-                if (columnMap.sourceCategory < 0 || columnMap.targetCategory < 0) {
-                    message += 'ℹ️ Categories have been set to default values. You can adjust them using the dropdown menus.\n\n';
-                }
+                message += 'ℹ️ Categories have been set to default values. You can adjust them using the color picker modal.\n\n';
                 
                 message += 'The chart will update automatically as you edit the data.';
                 
@@ -3136,23 +3067,23 @@
             let filename = '';
             
             if (selectedChartType === 'income') {
-                csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
-                csv += '"Subscription Revenue","Total Revenue",300,250,"revenue","revenue","Recurring subscription income"\n';
-                csv += '"Professional Services","Total Revenue",60,55,"revenue","revenue","Implementation and consulting"\n';
-                csv += '"Total Revenue","Gross Profit",290,245,"revenue","profit","Revenue after cost of revenue"\n';
-                csv += '"Total Revenue","Cost of Revenue",70,60,"revenue","cost","Direct costs to deliver services"\n';
-                csv += '"Gross Profit","Operating Profit",120,100,"profit","profit","Profit from core operations"\n';
-                csv += '"Gross Profit","Operating Expenses",170,145,"profit","expense","Total operating expenses"\n';
-                csv += '"Operating Profit","Net Income",95,80,"profit","income","Final net income"\n';
-                csv += '"Operating Profit","Tax Expense",25,20,"profit","tax","Income tax expense"\n';
+                csv = 'Source,Target,Current Value,Previous Value,Description\n';
+                csv += '"Subscription Revenue","Total Revenue",300,250,"Recurring subscription income"\n';
+                csv += '"Professional Services","Total Revenue",60,55,"Implementation and consulting"\n';
+                csv += '"Total Revenue","Gross Profit",290,245,"Revenue after cost of revenue"\n';
+                csv += '"Total Revenue","Cost of Revenue",70,60,"Direct costs to deliver services"\n';
+                csv += '"Gross Profit","Operating Profit",120,100,"Profit from core operations"\n';
+                csv += '"Gross Profit","Operating Expenses",170,145,"Total operating expenses"\n';
+                csv += '"Operating Profit","Net Income",95,80,"Final net income"\n';
+                csv += '"Operating Profit","Tax Expense",25,20,"Income tax expense"\n';
                 filename = 'income-statement-template.csv';
             } else if (selectedChartType === 'balance') {
-                csv = 'Source,Target,Current Value,Previous Value,Source Category,Target Category,Description\n';
-                csv += '"Current Assets","Total Assets",500,450,"revenue","revenue","Cash, receivables, inventory"\n';
-                csv += '"Non-Current Assets","Total Assets",800,750,"revenue","revenue","Property, equipment, intangibles"\n';
-                csv += '"Total Assets","Current Liabilities",300,280,"revenue","expense","Short-term obligations"\n';
-                csv += '"Total Assets","Non-Current Liabilities",400,370,"revenue","expense","Long-term debt and obligations"\n';
-                csv += '"Total Assets","Shareholders Equity",600,550,"revenue","profit","Owner\'s equity in the business"\n';
+                csv = 'Source,Target,Current Value,Previous Value,Description\n';
+                csv += '"Current Assets","Total Assets",500,450,"Cash, receivables, inventory"\n';
+                csv += '"Non-Current Assets","Total Assets",800,750,"Property, equipment, intangibles"\n';
+                csv += '"Total Assets","Current Liabilities",300,280,"Short-term obligations"\n';
+                csv += '"Total Assets","Non-Current Liabilities",400,370,"Long-term debt and obligations"\n';
+                csv += '"Total Assets","Shareholders Equity",600,550,"Owner\'s equity in the business"\n';
                 filename = 'balance-sheet-template.csv';
             }
             
@@ -3605,8 +3536,10 @@
         class SpreadsheetController {
             constructor() {
                 this.selectedCell = null;
+                this.selectedCells = new Set(); // For multi-cell selection
+                this.selectionStart = null; // Starting cell for range selection
                 this.editingCell = null;
-                this.copiedCell = null;
+                this.copiedCells = new Set(); // For multi-cell copy
                 this.isDragging = false;
                 this.dragStartCell = null;
                 this.dragCurrentCell = null;
@@ -3693,6 +3626,10 @@
                 
                 // Set new selection
                 this.selectedCell = cell;
+                this.selectedCells.clear();
+                this.selectedCells.add(cell);
+                this.selectionStart = null; // Reset range selection
+                
                 cell.classList.add('selected');
                 cell.setAttribute('tabindex', '0');
                 cell.focus();
@@ -3703,7 +3640,15 @@
                     this.selectedCell.classList.remove('selected');
                     this.selectedCell.removeAttribute('tabindex');
                 }
+                
+                // Clear multi-selection
+                this.selectedCells.forEach(cell => {
+                    cell.classList.remove('selected', 'multi-selected');
+                });
+                
                 this.selectedCell = null;
+                this.selectedCells.clear();
+                this.selectionStart = null;
             }
 
             startEditingCategory(cell, mode) {
@@ -4219,19 +4164,35 @@
                 switch (event.key) {
                     case 'ArrowUp':
                         event.preventDefault();
-                        this.moveSelection('up');
+                        if (event.shiftKey) {
+                            this.extendSelection('up');
+                        } else {
+                            this.moveSelection('up');
+                        }
                         break;
                     case 'ArrowDown':
                         event.preventDefault();
-                        this.moveSelection('down');
+                        if (event.shiftKey) {
+                            this.extendSelection('down');
+                        } else {
+                            this.moveSelection('down');
+                        }
                         break;
                     case 'ArrowLeft':
                         event.preventDefault();
-                        this.moveSelection('left');
+                        if (event.shiftKey) {
+                            this.extendSelection('left');
+                        } else {
+                            this.moveSelection('left');
+                        }
                         break;
                     case 'ArrowRight':
                         event.preventDefault();
-                        this.moveSelection('right');
+                        if (event.shiftKey) {
+                            this.extendSelection('right');
+                        } else {
+                            this.moveSelection('right');
+                        }
                         break;
                     case 'Enter':
                         event.preventDefault();
@@ -4312,6 +4273,105 @@
                 if (targetCell && targetCell.classList.contains('spreadsheet-cell')) {
                     this.selectCell(targetCell);
                 }
+            }
+
+            extendSelection(direction) {
+                if (!this.selectedCell) return;
+
+                // Initialize selection range if this is the first extend
+                if (!this.selectionStart) {
+                    this.selectionStart = this.selectedCell;
+                    this.selectedCells.add(this.selectedCell);
+                }
+
+                const currentRow = this.selectedCell.closest('tr');
+                const currentCellIndex = Array.from(currentRow.children).indexOf(this.selectedCell);
+                let targetCell = null;
+
+                switch (direction) {
+                    case 'up':
+                        const prevRow = currentRow.previousElementSibling;
+                        if (prevRow) {
+                            targetCell = prevRow.children[currentCellIndex];
+                        }
+                        break;
+                    case 'down':
+                        const nextRow = currentRow.nextElementSibling;
+                        if (nextRow) {
+                            targetCell = nextRow.children[currentCellIndex];
+                        }
+                        break;
+                    case 'left':
+                        const prevCell = this.selectedCell.previousElementSibling;
+                        if (prevCell && prevCell.classList.contains('spreadsheet-cell')) {
+                            targetCell = prevCell;
+                        }
+                        break;
+                    case 'right':
+                        const nextCell = this.selectedCell.nextElementSibling;
+                        if (nextCell && nextCell.classList.contains('spreadsheet-cell')) {
+                            targetCell = nextCell;
+                        }
+                        break;
+                }
+
+                if (targetCell && targetCell.classList.contains('spreadsheet-cell')) {
+                    this.selectedCell = targetCell;
+                    this.updateSelectionRange();
+                }
+            }
+
+            updateSelectionRange() {
+                if (!this.selectionStart || !this.selectedCell) return;
+
+                // Clear current selection display
+                this.selectedCells.forEach(cell => {
+                    cell.classList.remove('selected', 'multi-selected');
+                });
+                this.selectedCells.clear();
+
+                // Get start and end coordinates
+                const startRow = parseInt(this.selectionStart.dataset.row);
+                const startCol = this.getCellColumnIndex(this.selectionStart);
+                const endRow = parseInt(this.selectedCell.dataset.row);
+                const endCol = this.getCellColumnIndex(this.selectedCell);
+
+                // Calculate selection bounds
+                const minRow = Math.min(startRow, endRow);
+                const maxRow = Math.max(startRow, endRow);
+                const minCol = Math.min(startCol, endCol);
+                const maxCol = Math.max(startCol, endCol);
+
+                // Select all cells in range
+                const table = this.selectedCell.closest('table');
+                const rows = table.querySelectorAll('tbody tr');
+                
+                for (let r = minRow; r <= maxRow; r++) {
+                    if (rows[r]) {
+                        const cells = rows[r].querySelectorAll('.spreadsheet-cell');
+                        for (let c = minCol; c <= maxCol; c++) {
+                            if (cells[c]) {
+                                this.selectedCells.add(cells[c]);
+                                cells[c].classList.add('multi-selected');
+                            }
+                        }
+                    }
+                }
+
+                // Highlight current active cell
+                this.selectedCell.classList.add('selected');
+            }
+
+            getCellColumnIndex(cell) {
+                if (!cell) return -1;
+                
+                const row = cell.closest('tr');
+                if (!row) return -1;
+                
+                const cells = row.querySelectorAll('.spreadsheet-cell');
+                if (!cells) return -1;
+                
+                return Array.from(cells).indexOf(cell);
             }
 
             clearCellContent() {
@@ -4405,12 +4465,10 @@
                     'target': 1, 
                     'value': 2,
                     'previousValue': 3,
-                    'sourceCategory': 4,
-                    'targetCategory': 5,
-                    'description': 6
+                    'description': 4
                 };
                 
-                const columnOrder = ['source', 'target', 'value', 'previousValue', 'sourceCategory', 'targetCategory', 'description'];
+                const columnOrder = ['source', 'target', 'value', 'previousValue', 'description'];
                 const startColIndex = columnOrder.indexOf(startCol);
                 
                 if (startColIndex === -1) {
@@ -4523,17 +4581,6 @@
                     case 'previousValue':
                         processedValue = parseFloat(value) || 0;
                         break;
-                    case 'sourceCategory':
-                    case 'targetCategory':
-                        // Validate against allowed categories
-                        const allowedCategories = ['revenue', 'expense', 'profit', 'asset', 'liability', 'equity'];
-                        const normalizedValue = value.toString().toLowerCase();
-                        if (allowedCategories.includes(normalizedValue)) {
-                            processedValue = normalizedValue;
-                        } else {
-                            processedValue = 'revenue'; // Default fallback
-                        }
-                        break;
                     default:
                         processedValue = value.toString();
                 }
@@ -4626,51 +4673,151 @@
                 
                 if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
                     event.preventDefault();
-                    this.copyCell();
+                    this.copyCells();
                 } else if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
                     event.preventDefault();
-                    this.pasteCell();
+                    this.pasteCells();
                 }
             }
             
-            copyCell() {
-                if (!this.selectedCell) return;
+            copyCells() {
+                if (this.selectedCells.size === 0) return;
                 
                 // Clear previous copied cell styling
-                if (this.copiedCell) {
-                    this.copiedCell.classList.remove('copied');
-                }
+                this.copiedCells.forEach(cell => {
+                    cell.classList.remove('copied');
+                });
+                this.copiedCells.clear();
                 
-                this.copiedCell = this.selectedCell;
-                this.selectedCell.classList.add('copied');
-                
-                // Store the cell value in clipboard (fallback)
-                const cellContent = this.getCellValue(this.selectedCell);
-                navigator.clipboard.writeText(cellContent).catch(() => {
-                    // Fallback for older browsers
-                    console.log('📋 Cell copied:', cellContent);
+                // Copy current selection
+                this.selectedCells.forEach(cell => {
+                    this.copiedCells.add(cell);
+                    cell.classList.add('copied');
                 });
                 
-                this.showNotification('Cell copied!', 'success');
+                // Create clipboard content
+                const clipboardData = this.createClipboardData();
+                navigator.clipboard.writeText(clipboardData).catch(() => {
+                    console.log('📋 Cells copied:', this.copiedCells.size);
+                });
+                
+                const count = this.copiedCells.size;
+                const message = count === 1 ? 'Cell copied!' : `${count} cells copied!`;
                 
                 // Remove copied styling after 3 seconds
                 setTimeout(() => {
-                    if (this.copiedCell) {
-                        this.copiedCell.classList.remove('copied');
-                    }
+                    this.copiedCells.forEach(cell => {
+                        cell.classList.remove('copied');
+                    });
                 }, 3000);
             }
             
-            pasteCell() {
-                if (!this.selectedCell || !this.copiedCell) return;
+            pasteCells() {
+                if (!this.selectedCell || this.copiedCells.size === 0) return;
                 
-                const sourceValue = this.getCellValue(this.copiedCell);
-                this.setCellValue(this.selectedCell, sourceValue);
+                // Get paste target area
+                const pasteStartRow = parseInt(this.selectedCell.dataset.row);
+                const pasteStartCol = this.getCellColumnIndex(this.selectedCell);
                 
-                this.showNotification('Cell pasted!', 'success');
+                // Validate starting position
+                if (isNaN(pasteStartRow) || pasteStartCol < 0) return;
                 
-                // Trigger data update
-                this.updateFlowData(this.selectedCell);
+                // Get copied data dimensions
+                const copiedArray = Array.from(this.copiedCells);
+                const copiedRows = new Set();
+                const copiedCols = new Set();
+                
+                // Filter out invalid cells
+                const validCopiedCells = copiedArray.filter(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = this.getCellColumnIndex(cell);
+                    if (!isNaN(row) && col >= 0) {
+                        copiedRows.add(row);
+                        copiedCols.add(col);
+                        return true;
+                    }
+                    return false;
+                });
+                
+                if (validCopiedCells.length === 0) return;
+                
+                const minCopiedRow = Math.min(...copiedRows);
+                const minCopiedCol = Math.min(...copiedCols);
+                
+                let pastedCount = 0;
+                
+                // Paste each copied cell with relative offset
+                validCopiedCells.forEach(sourceCell => {
+                    const sourceRow = parseInt(sourceCell.dataset.row);
+                    const sourceCol = this.getCellColumnIndex(sourceCell);
+                    
+                    // Skip if invalid (extra safety check)
+                    if (isNaN(sourceRow) || sourceCol < 0) return;
+                    
+                    // Calculate relative position
+                    const rowOffset = sourceRow - minCopiedRow;
+                    const colOffset = sourceCol - minCopiedCol;
+                    
+                    // Find target cell
+                    const targetRow = pasteStartRow + rowOffset;
+                    const targetCol = pasteStartCol + colOffset;
+                    
+                    const targetCell = this.getCellAt(targetRow, targetCol);
+                    if (targetCell) {
+                        const sourceValue = this.getCellValue(sourceCell);
+                        this.setCellValue(targetCell, sourceValue);
+                        this.updateFlowData(targetCell);
+                        pastedCount++;
+                    }
+                });
+                
+                const message = pastedCount === 1 ? 'Cell pasted!' : `${pastedCount} cells pasted!`;
+            }
+
+            createClipboardData() {
+                if (this.copiedCells.size === 0) return '';
+                
+                // Group cells by row
+                const cellsByRow = new Map();
+                this.copiedCells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    if (!cellsByRow.has(row)) {
+                        cellsByRow.set(row, []);
+                    }
+                    cellsByRow.get(row).push(cell);
+                });
+                
+                // Sort rows and create tab-separated data
+                const sortedRows = Array.from(cellsByRow.keys()).sort((a, b) => a - b);
+                const clipboardRows = [];
+                
+                sortedRows.forEach(rowNum => {
+                    const rowCells = cellsByRow.get(rowNum);
+                    rowCells.sort((a, b) => this.getCellColumnIndex(a) - this.getCellColumnIndex(b));
+                    
+                    const rowData = rowCells.map(cell => this.getCellValue(cell));
+                    clipboardRows.push(rowData.join('\t'));
+                });
+                
+                return clipboardRows.join('\n');
+            }
+
+            getCellAt(row, col) {
+                if (!this.selectedCell) return null;
+                
+                const table = this.selectedCell.closest('table');
+                if (!table) return null;
+                
+                const rows = table.querySelectorAll('tbody tr');
+                if (!rows || row < 0 || row >= rows.length) return null;
+                
+                const targetRow = rows[row];
+                if (!targetRow) return null;
+                
+                const cells = targetRow.querySelectorAll('.spreadsheet-cell');
+                if (!cells || col < 0 || col >= cells.length) return null;
+                
+                return cells[col] || null;
             }
             
             getCellValue(cell) {
@@ -4824,7 +4971,6 @@
                 
                 // Only support vertical fill for now
                 if (startCol !== endCol) {
-                    this.showNotification('Only vertical fill is supported', 'info');
                     return;
                 }
                 
@@ -4852,7 +4998,6 @@
                 }
                 
                 if (fillCount > 0) {
-                    this.showNotification(`Filled ${fillCount} cells`, 'success');
                     // Update data after filling
                     autoCalculateFlowProperties();
                     updateAllStats();
@@ -4865,29 +5010,6 @@
                 }
             }
             
-            showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = 'copy-notification';
-                notification.textContent = message;
-                
-                // Customize colors based on type
-                if (type === 'success') {
-                    notification.style.background = '#34a853';
-                } else if (type === 'error') {
-                    notification.style.background = '#ea4335';
-                } else {
-                    notification.style.background = '#4285f4';
-                }
-                
-                document.body.appendChild(notification);
-                
-                // Remove after animation
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 2000);
-            }
         }
 
         // ===== UNIFIED DROPDOWN SYSTEM (IIFE PATTERN) =====
