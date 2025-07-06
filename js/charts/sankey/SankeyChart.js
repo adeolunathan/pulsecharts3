@@ -3294,7 +3294,14 @@ class PulseSankeyChart {
         const nodeMap = new Map();
         const links = [];
         
-        flowData.flows.forEach(flow => {
+        // Filter out empty flows (empty rows from spreadsheet)
+        const validFlows = flowData.flows.filter(flow => 
+            flow.source && flow.source.trim() !== '' && 
+            flow.target && flow.target.trim() !== '' && 
+            flow.value !== 0 && !isNaN(flow.value)
+        );
+        
+        validFlows.forEach(flow => {
             if (!nodeMap.has(flow.source)) {
                 nodeMap.set(flow.source, {
                     id: flow.source,
@@ -3334,10 +3341,10 @@ class PulseSankeyChart {
             });
         });
         
-        flowData.flows.forEach(flow => {
+        validFlows.forEach(flow => {
             const sourceNode = nodeMap.get(flow.source);
             if (sourceNode.value === 0) {
-                const outflows = flowData.flows.filter(f => f.source === flow.source);
+                const outflows = validFlows.filter(f => f.source === flow.source);
                 sourceNode.value = outflows.reduce((sum, f) => sum + Math.abs(f.value), 0);
                 sourceNode.previousValue = outflows.reduce((sum, f) => sum + Math.abs(f.previousValue), 0);
             }
