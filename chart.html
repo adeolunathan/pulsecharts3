@@ -871,28 +871,55 @@
                 marginSelector.style.display = 'none';
             }
             
-            // Update chart configuration through existing config system
+            // Get the current chart instance - try multiple sources
+            let chart = null;
             if (window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
-                window.flowBuilderChart.updateConfig({
+                chart = window.flowBuilderChart;
+            } else if (window.pulseApp && window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
+                chart = window.pulseApp.chart;
+            }
+            
+            // Debug logging
+            console.log('💰 Margin toggle debug:', {
+                showMargin: showMargin,
+                flowBuilderChart: !!window.flowBuilderChart,
+                pulseAppChart: !!(window.pulseApp && window.pulseApp.chart),
+                chartSelected: !!chart,
+                marginTypeValue: document.getElementById('margin-type-select').value
+            });
+            
+            // Update chart configuration through existing config system
+            if (chart && chart.updateConfig) {
+                chart.updateConfig({
                     showMargin: showMargin,
                     showMarginFor: document.getElementById('margin-type-select').value
                 });
+                console.log('💰 Margin display toggled:', showMargin);
+            } else {
+                console.warn('⚠️ No chart with updateConfig method found');
             }
-            
-            console.log('💰 Margin display toggled:', showMargin);
         }
 
         function updateMarginType() {
             const marginType = document.getElementById('margin-type-select').value;
             const showMargin = document.getElementById('margin-display-toggle').checked;
             
-            if (showMargin && window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
-                window.flowBuilderChart.updateConfig({
-                    showMarginFor: marginType
-                });
+            // Get the current chart instance - try multiple sources
+            let chart = null;
+            if (window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
+                chart = window.flowBuilderChart;
+            } else if (window.pulseApp && window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
+                chart = window.pulseApp.chart;
             }
             
-            console.log('💰 Margin type updated:', marginType);
+            if (showMargin && chart && chart.updateConfig) {
+                chart.updateConfig({
+                    showMarginFor: marginType
+                });
+                console.log('💰 Margin type updated:', marginType);
+            } else {
+                console.warn('⚠️ Cannot update margin type - no chart available or margin disabled');
+            }
         }
 
         // Flow structure definition

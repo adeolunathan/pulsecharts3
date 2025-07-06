@@ -193,24 +193,6 @@ class SankeyControlModule {
                         default: 0.65, 
                         step: 0.05, 
                         description: "Transparency of flow connections" 
-                    },
-                    {
-                        id: "showMargin",
-                        type: "toggle",
-                        label: "Show Margin %",
-                        default: false,
-                        description: "Display margin percentages on node values"
-                    },
-                    {
-                        id: "showMarginFor",
-                        type: "dropdown",
-                        label: "Show Margins For",
-                        default: "profit",
-                        options: [
-                            { value: "profit", label: "Profit Only" },
-                            { value: "all", label: "All Nodes" }
-                        ],
-                        description: "Choose which nodes display margin percentages"
                     }
                 ]
             },
