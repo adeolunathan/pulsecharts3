@@ -948,6 +948,19 @@ class PulseSankeyChart {
             height: this.config.height - this.config.margin.top - this.config.margin.bottom
         };
 
+        // PRESERVE POSITIONS: Save current positions before layout recalculation
+        const preservedPositions = new Map();
+        if (this.nodes) {
+            this.nodes.forEach(node => {
+                preservedPositions.set(node.id, {
+                    x: node.x,
+                    y: node.y,
+                    manuallyPositioned: node.manuallyPositioned || false,
+                    manualY: node.manualY
+                });
+            });
+        }
+
         const nodesByDepth = d3.group(this.nodes, d => d.depth);
         const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
         const maxDepth = Math.max(...depths);
@@ -975,6 +988,20 @@ class PulseSankeyChart {
         depths.forEach(depth => {
             const nodesAtDepth = nodesByDepth.get(depth);
             this.positionNodesAtDepth(nodesAtDepth, dimensions.height, maxDepth);
+        });
+
+        // PRESERVE POSITIONS: Restore previous positions and mark as manually positioned
+        this.nodes.forEach(node => {
+            const preserved = preservedPositions.get(node.id);
+            if (preserved && (preserved.manuallyPositioned || preserved.y !== undefined)) {
+                // Restore Y position (preserve user's positioning)
+                node.y = preserved.y;
+                node.manualY = preserved.y;
+                node.manuallyPositioned = true;
+                // Save to metadata for persistence
+                this.saveManualPositionToMetadata(node);
+                console.log(`🔒 Preserved position for ${node.id}: Y=${preserved.y}`);
+            }
         });
 
         this.applyManualPositions();
@@ -3120,6 +3147,7 @@ class PulseSankeyChart {
             this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
             this.renderLabels();
         } else {
+            // Handle visual-only changes that don't require position recalculation
             if (newConfig.nodeOpacity !== undefined) {
                 this.chart.selectAll('.sankey-node rect')
                     .transition()
@@ -3132,20 +3160,78 @@ class PulseSankeyChart {
                     .duration(200)
                     .attr('fill-opacity', newConfig.linkOpacity);
             }
+            
+            // Handle config changes that were moved out of layout recalc
+            if (newConfig.linkWidthScale !== undefined && oldConfig.linkWidthScale !== newConfig.linkWidthScale) {
+                // Only recalculate link positions, not node positions
+                this.calculateLinkPositions();
+                this.renderLinks();
+            }
+            
+            // Handle padding and spacing changes without moving manually positioned nodes
+            if (newConfig.nodePadding !== undefined && oldConfig.nodePadding !== newConfig.nodePadding) {
+                // Only reposition non-manually positioned nodes
+                this.repositionAutoNodes();
+            }
+            
+            if ((newConfig.layerSpacing !== undefined && JSON.stringify(oldConfig.layerSpacing) !== JSON.stringify(newConfig.layerSpacing)) ||
+                (newConfig.leftmostGroupGap !== undefined && oldConfig.leftmostGroupGap !== newConfig.leftmostGroupGap) ||
+                (newConfig.rightmostGroupGap !== undefined && oldConfig.rightmostGroupGap !== newConfig.rightmostGroupGap)) {
+                // Only reposition non-manually positioned nodes
+                this.repositionAutoNodes();
+            }
         }
         
         return this;
     }
 
+    /**
+     * Reposition only automatically positioned nodes, preserving manually positioned ones
+     */
+    repositionAutoNodes() {
+        console.log('🔄 Repositioning only auto-positioned nodes, preserving manual positions');
+        
+        const dimensions = {
+            width: this.config.width - this.config.margin.left - this.config.margin.right,
+            height: this.config.height - this.config.margin.top - this.config.margin.bottom
+        };
+
+        const nodesByDepth = d3.group(this.nodes, d => d.depth);
+        const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
+        const maxDepth = Math.max(...depths);
+
+        depths.forEach(depth => {
+            const nodesAtDepth = nodesByDepth.get(depth);
+            // Only reposition nodes that are NOT manually positioned
+            const autoNodes = nodesAtDepth.filter(node => !node.manuallyPositioned);
+            
+            if (autoNodes.length > 0) {
+                console.log(`📍 Repositioning ${autoNodes.length} auto nodes at depth ${depth}`);
+                this.positionNodesAtDepth(autoNodes, dimensions.height, maxDepth);
+            }
+        });
+
+        // Update link positions to connect to new node positions
+        this.calculateLinkPositions();
+        
+        // Re-render affected components
+        this.renderNodes();
+        this.renderLabels();
+        this.renderLinks();
+    }
+
     configRequiresFullRender(oldConfig, newConfig) {
-        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale', 'nodePadding', 'layerSpacing', 'leftmostGroupGap', 'rightmostGroupGap'];
+        // Only trigger full render for changes that truly require complete rebuild
+        const fullRenderKeys = ['nodeWidth', 'nodeHeightScale'];
         return fullRenderKeys.some(key => 
             JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
         );
     }
 
     configRequiresLayoutRecalc(oldConfig, newConfig) {
-        const layoutKeys = ['leftmostSpacing', 'middleSpacing', 'rightmostSpacing', 'linkWidthScale'];
+        // Only trigger layout recalc for spacing changes that affect node positioning
+        // Most visual changes should NOT trigger layout recalculation to preserve positions
+        const layoutKeys = ['leftmostSpacing', 'middleSpacing', 'rightmostSpacing'];
         return layoutKeys.some(key => oldConfig[key] !== newConfig[key]);
     }
 
