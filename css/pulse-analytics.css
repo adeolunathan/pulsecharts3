@@ -4436,7 +4436,7 @@ body {
 }
 
 /* Table column widths */
-.col-actions { width: 50px; }
+.col-actions { width: 60px; }
 .col-actions-wide { width: 80px; }
 .col-source { width: 180px; }
 .col-source-wide { width: 200px; }
