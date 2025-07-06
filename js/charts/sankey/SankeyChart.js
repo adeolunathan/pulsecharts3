@@ -1384,6 +1384,16 @@ class PulseSankeyChart {
         this.nodes.forEach(node => {
             if (node.sourceLinks.length === 0) return;
             
+            // Validate node position and dimensions
+            if (isNaN(node.y) || isNaN(node.height)) {
+                console.warn('Invalid node properties detected:', {
+                    nodeId: node.id,
+                    y: node.y,
+                    height: node.height
+                });
+                return;
+            }
+            
             // Sorting removed - maintain original link order
             
             const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
@@ -1407,6 +1417,16 @@ class PulseSankeyChart {
         
         this.nodes.forEach(node => {
             if (node.targetLinks.length === 0) return;
+            
+            // Validate node position and dimensions
+            if (isNaN(node.y) || isNaN(node.height)) {
+                console.warn('Invalid node properties detected:', {
+                    nodeId: node.id,
+                    y: node.y,
+                    height: node.height
+                });
+                return;
+            }
             
             // Sorting removed - maintain original link order
             
@@ -1444,6 +1464,16 @@ class PulseSankeyChart {
         const sourceY1 = link.sourceY + link.sourceHeight;
         const targetY0 = link.targetY;
         const targetY1 = link.targetY + link.targetHeight;
+        
+        // Validate all coordinates to prevent NaN values
+        const coords = [sourceX, targetX, sourceY0, sourceY1, targetY0, targetY1];
+        if (coords.some(coord => isNaN(coord) || coord === undefined)) {
+            console.warn('Invalid coordinates detected in createSmoothPath:', {
+                sourceX, targetX, sourceY0, sourceY1, targetY0, targetY1,
+                link: link
+            });
+            return 'M0,0 L0,0'; // Return a valid but invisible path
+        }
         
         const controlX1 = sourceX + (targetX - sourceX) * curvature;
         const controlX2 = targetX - (targetX - sourceX) * curvature;
