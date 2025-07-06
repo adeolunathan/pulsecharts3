@@ -1082,36 +1082,8 @@
         // Target category cycling functionality
         const targetCategories = ['revenue', 'expense', 'profit']; // Cycle: Revenue → Expense → Profit → Revenue...
 
-        function cycleTargetCategory(rowIndex) {
-            const button = document.querySelector(`button[data-row="${rowIndex}"].category-toggle`);
-            if (!button || !flowData.flows[rowIndex]) return;
-
-            const flow = flowData.flows[rowIndex];
-            
-            // Get current category index
-            let currentIndex = targetCategories.indexOf(flow.targetCategory);
-            if (currentIndex === -1) currentIndex = -1; // Start before first category
-            
-            // Cycle to next category
-            const nextIndex = (currentIndex + 1) % targetCategories.length;
-            const newCategory = targetCategories[nextIndex];
-            
-            // Update the flow's target category
-            flow.targetCategory = newCategory;
-            
-            // Update the Target Category cell in the spreadsheet
-            updateTargetCategoryCell(rowIndex, newCategory);
-            
-            // Update button appearance to show current category
-            updateCategoryButton(button, newCategory);
-            
-            // Trigger live update
-            autoCalculateFlowProperties();
-            updateAllStats();
-            refreshChart();
-            
-            console.log(`🔄 Row ${rowIndex}: Target category changed to ${newCategory}`);
-        }
+        // cycleTargetCategory function moved to SankeyChart.js color picker modal
+        // Functionality preserved but relocated to modal interface
 
         function updateTargetCategoryCell(rowIndex, category) {
             const cell = document.querySelector(`td[data-col="targetCategory"][data-row="${rowIndex}"] .cell-content`);
@@ -1122,55 +1094,21 @@
         }
 
         function updateCategoryButton(button, category) {
-            // Reset all category classes
-            button.classList.remove('revenue', 'expense', 'profit');
-            
-            // Add current category class
-            button.classList.add(category);
-            
-            // Update button text and title
-            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
-            switch (category) {
-                case 'revenue':
-                    button.textContent = '💰'; // Money bag for revenue
-                    button.title = `Target: ${categoryName} (click to change to Expense)`;
-                    break;
-                case 'expense':
-                    button.textContent = '💸'; // Money with wings for expense
-                    button.title = `Target: ${categoryName} (click to change to Profit)`;
-                    break;
-                case 'profit':
-                    button.textContent = '📈'; // Chart increasing for profit
-                    button.title = `Target: ${categoryName} (click to change to Revenue)`;
-                    break;
-            }
+            // Category button functionality moved to color picker modal
+            // This function is kept for compatibility but no longer needed
+            console.log('Category button functionality moved to color picker modal');
         }
 
         function initializeCategoryButtons() {
-            // Initialize all category buttons based on current target categories
-            document.querySelectorAll('button.category-toggle').forEach(button => {
-                const rowIndex = parseInt(button.dataset.row);
-                if (flowData.flows[rowIndex]) {
-                    const flow = flowData.flows[rowIndex];
-                    if (flow.targetCategory && targetCategories.includes(flow.targetCategory)) {
-                        updateCategoryButton(button, flow.targetCategory);
-                    } else {
-                        // No category set or invalid category - show cycle icon
-                        button.classList.remove('revenue', 'expense', 'profit');
-                        button.textContent = '🔄';
-                        button.title = 'Click to set Target Category';
-                    }
-                }
-            });
+            // Category buttons have been moved to the color picker modal
+            // This function is kept for compatibility but no longer needed
+            console.log('Category buttons are now in the color picker modal');
         }
 
         function resetAllCategoryButtons() {
-            // Reset all category buttons to default state
-            document.querySelectorAll('button.flow-control-btn.category-toggle').forEach(button => {
-                button.classList.remove('revenue', 'expense', 'profit');
-                button.textContent = '🔄';
-                button.title = 'Cycle Target Category';
-            });
+            // Category buttons have been moved to the color picker modal
+            // This function is kept for compatibility but no longer needed
+            console.log('Category buttons are now in the color picker modal');
         }
 
         function updateFlowProperty(index, property, value) {
@@ -2310,7 +2248,6 @@
                         <button class="flow-control-btn up" onclick="moveFlowUp(${index})" title="Move Up" ${index === 0 ? 'disabled' : ''}>↑</button>
                         <button class="flow-control-btn down" onclick="moveFlowDown(${index})" title="Move Down">↓</button>
                         <button class="flow-control-btn duplicate" onclick="duplicateFlow(${index})" title="Duplicate">⧉</button>
-                        <button class="flow-control-btn category-toggle" onclick="cycleTargetCategory(${index})" title="Cycle Target Category" data-row="${index}">🔄</button>
                         <button class="flow-control-btn remove" onclick="removeFlow(${index})" title="Remove">×</button>
                     </div>
                 </td>

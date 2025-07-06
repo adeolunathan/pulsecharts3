@@ -4283,6 +4283,9 @@ class PulseSankeyChart {
                 this.container.select('.enhanced-color-picker').remove();
             });
         
+        // Add cycling toggle for target category
+        this.addCyclingToggle(container, nodeData);
+        
         // Add Node button for edit mode
         container
             .append('div')
@@ -4310,6 +4313,188 @@ class PulseSankeyChart {
                 this.container.select('.enhanced-color-picker').remove();
                 this.showCompleteNodeCreationModal(nodeData);
             });
+    }
+    
+    addCyclingToggle(container, nodeData) {
+        // Find matching flow data for this node
+        let matchingFlow = null;
+        let rowIndex = -1;
+        
+        // Try to find the corresponding flow data
+        if (typeof flowData !== 'undefined' && flowData && flowData.flows) {
+            // Try multiple matching strategies
+            matchingFlow = flowData.flows.find(flow => 
+                flow.target === nodeData.id || 
+                flow.source === nodeData.id ||
+                flow.target === nodeData.name || 
+                flow.source === nodeData.name
+            );
+            
+            if (matchingFlow) {
+                rowIndex = flowData.flows.indexOf(matchingFlow);
+            }
+        }
+        
+        // Target categories array (copied from chart.html)
+        const targetCategories = ['revenue', 'expense', 'profit'];
+        
+        // Add toggle section
+        const toggleSection = container
+            .append('div')
+            .style('margin-top', '12px')
+            .style('margin-bottom', '12px')
+            .style('padding', '12px')
+            .style('background', '#f8f9fa')
+            .style('border-radius', '8px')
+            .style('border', '1px solid #e9ecef');
+            
+        // Section title
+        toggleSection
+            .append('div')
+            .style('font-size', '12px')
+            .style('font-weight', '600')
+            .style('color', '#374151')
+            .style('margin-bottom', '8px')
+            .text('Target Category');
+        
+        // Get current category and determine button appearance
+        const currentCategory = matchingFlow ? matchingFlow.targetCategory : null;
+        let buttonText = '🔄';
+        let buttonTitle = 'Click to set Target Category';
+        
+        if (currentCategory && targetCategories.includes(currentCategory)) {
+            switch (currentCategory) {
+                case 'revenue':
+                    buttonText = '💰';
+                    buttonTitle = 'Target: Revenue (click to change to Expense)';
+                    break;
+                case 'expense':
+                    buttonText = '💸';
+                    buttonTitle = 'Target: Expense (click to change to Profit)';
+                    break;
+                case 'profit':
+                    buttonText = '📈';
+                    buttonTitle = 'Target: Profit (click to change to Revenue)';
+                    break;
+            }
+        }
+        
+        // Create cycling button
+        const cyclingButton = toggleSection
+            .append('button')
+            .attr('class', 'cycling-category-btn')
+            .style('width', '100%')
+            .style('padding', '8px')
+            .style('background', '#6366f1')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '6px')
+            .style('cursor', 'pointer')
+            .style('font-size', '16px')
+            .style('font-weight', '600')
+            .style('transition', 'all 0.2s ease')
+            .text(buttonText)
+            .attr('title', buttonTitle)
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#4f46e5');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#6366f1');
+            })
+            .on('click', () => {
+                if (matchingFlow && rowIndex !== -1) {
+                    this.cycleTargetCategoryForNode(rowIndex, matchingFlow);
+                }
+            });
+        
+        // Add current category class for styling
+        if (currentCategory && targetCategories.includes(currentCategory)) {
+            cyclingButton.classed(currentCategory, true);
+        }
+    }
+    
+    cycleTargetCategoryForNode(rowIndex, flow) {
+        // Target categories array (copied from chart.html)
+        const targetCategories = ['revenue', 'expense', 'profit'];
+        
+        // Get current category index
+        let currentIndex = targetCategories.indexOf(flow.targetCategory);
+        if (currentIndex === -1) currentIndex = -1; // Start before first category
+        
+        // Cycle to next category
+        const nextIndex = (currentIndex + 1) % targetCategories.length;
+        const newCategory = targetCategories[nextIndex];
+        
+        // Update the flow's target category
+        flow.targetCategory = newCategory;
+        
+        // Update the Target Category cell in the spreadsheet (if it exists)
+        this.updateTargetCategoryCell(rowIndex, newCategory);
+        
+        // Trigger the same updates as the original function
+        if (typeof autoCalculateFlowProperties !== 'undefined') {
+            autoCalculateFlowProperties();
+        }
+        if (typeof updateAllStats !== 'undefined') {
+            updateAllStats();
+        }
+        if (typeof refreshChart !== 'undefined') {
+            refreshChart();
+        }
+        
+        // Update the button appearance without closing the modal
+        this.updateCyclingButtonAppearance(newCategory);
+        
+        console.log(`🔄 Row ${rowIndex}: Target category changed to ${newCategory}`);
+    }
+    
+    updateCyclingButtonAppearance(newCategory) {
+        // Find the cycling button in the current modal and update its appearance
+        const cyclingButton = this.container.select('.enhanced-color-picker .cycling-category-btn');
+        if (!cyclingButton.empty()) {
+            const targetCategories = ['revenue', 'expense', 'profit'];
+            
+            // Update button text and title
+            let buttonText = '🔄';
+            let buttonTitle = 'Click to set Target Category';
+            
+            if (newCategory && targetCategories.includes(newCategory)) {
+                switch (newCategory) {
+                    case 'revenue':
+                        buttonText = '💰';
+                        buttonTitle = 'Target: Revenue (click to change to Expense)';
+                        break;
+                    case 'expense':
+                        buttonText = '💸';
+                        buttonTitle = 'Target: Expense (click to change to Profit)';
+                        break;
+                    case 'profit':
+                        buttonText = '📈';
+                        buttonTitle = 'Target: Profit (click to change to Revenue)';
+                        break;
+                }
+            }
+            
+            // Update button appearance
+            cyclingButton
+                .text(buttonText)
+                .attr('title', buttonTitle);
+                
+            // Update category classes
+            cyclingButton
+                .classed('revenue', newCategory === 'revenue')
+                .classed('expense', newCategory === 'expense')
+                .classed('profit', newCategory === 'profit');
+        }
+    }
+    
+    updateTargetCategoryCell(rowIndex, category) {
+        // Update the Target Category cell in the spreadsheet (copied from chart.html)
+        const cell = document.querySelector(`td[data-col="targetCategory"][data-row="${rowIndex}"] .cell-content`);
+        if (cell) {
+            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+            cell.textContent = categoryName;
+        }
     }
     
     addCreateStep1Section(container, nodeData) {
