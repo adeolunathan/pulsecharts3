@@ -305,6 +305,16 @@
                                                 <input type="checkbox" id="comparison-mode-toggle" onchange="toggleComparisonMode()" checked>
                                                 <label for="comparison-mode-toggle" title="Shows variance % and trends between periods">📈</label>
                                             </div>
+                                            <div class="margin-display-toggle">
+                                                <input type="checkbox" id="margin-display-toggle" onchange="toggleMarginDisplay()">
+                                                <label for="margin-display-toggle" title="Show margin percentages on chart nodes">💰</label>
+                                            </div>
+                                            <div class="margin-type-selector" style="display: none;">
+                                                <select id="margin-type-select" onchange="updateMarginType()" title="Choose which nodes show margins">
+                                                    <option value="profit">Profit Only</option>
+                                                    <option value="all">All Nodes</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </h3>
                                 </div>
@@ -846,6 +856,43 @@
             }
             
             console.log(`📈 Comparison mode ${comparisonMode ? 'ENABLED' : 'DISABLED'} with colors preserved`);
+        }
+
+        // Margin Display Toggle - Uses existing logic from SankeyChart
+        function toggleMarginDisplay() {
+            const marginToggle = document.getElementById('margin-display-toggle');
+            const marginSelector = document.querySelector('.margin-type-selector');
+            const showMargin = marginToggle.checked;
+            
+            // Show/hide margin type selector
+            if (showMargin) {
+                marginSelector.style.display = 'block';
+            } else {
+                marginSelector.style.display = 'none';
+            }
+            
+            // Update chart configuration through existing config system
+            if (window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
+                window.flowBuilderChart.updateConfig({
+                    showMargin: showMargin,
+                    showMarginFor: document.getElementById('margin-type-select').value
+                });
+            }
+            
+            console.log('💰 Margin display toggled:', showMargin);
+        }
+
+        function updateMarginType() {
+            const marginType = document.getElementById('margin-type-select').value;
+            const showMargin = document.getElementById('margin-display-toggle').checked;
+            
+            if (showMargin && window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
+                window.flowBuilderChart.updateConfig({
+                    showMarginFor: marginType
+                });
+            }
+            
+            console.log('💰 Margin type updated:', marginType);
         }
 
         // Flow structure definition
