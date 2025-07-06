@@ -4702,8 +4702,6 @@
             pasteCells() {
                 if (!this.selectedCell || this.copiedCells.size === 0) return;
                 
-                console.log('📋 Pasting', this.copiedCells.size, 'copied cells');
-                
                 // Get paste target area
                 const pasteStartRow = parseInt(this.selectedCell.dataset.row);
                 const pasteStartCol = this.getCellColumnIndex(this.selectedCell);
@@ -4735,22 +4733,13 @@
                 
                 let pastedCount = 0;
                 
-                console.log('📋 Valid copied cells:', validCopiedCells.length);
-                console.log('📋 Min copied row/col:', minCopiedRow, minCopiedCol);
-                console.log('📋 Paste start row/col:', pasteStartRow, pasteStartCol);
-                
                 // Paste each copied cell with relative offset
                 validCopiedCells.forEach((sourceCell, index) => {
                     const sourceRow = parseInt(sourceCell.dataset.row);
                     const sourceCol = this.getCellColumnIndex(sourceCell);
                     
-                    console.log(`📋 Processing cell ${index + 1}:`, {sourceRow, sourceCol});
-                    
                     // Skip if invalid (extra safety check)
-                    if (isNaN(sourceRow) || sourceCol < 0) {
-                        console.log(`📋 Skipping invalid cell ${index + 1}`);
-                        return;
-                    }
+                    if (isNaN(sourceRow) || sourceCol < 0) return;
                     
                     // Calculate relative position
                     const rowOffset = sourceRow - minCopiedRow;
@@ -4760,24 +4749,16 @@
                     const targetRow = pasteStartRow + rowOffset;
                     const targetCol = pasteStartCol + colOffset;
                     
-                    console.log(`📋 Target position for cell ${index + 1}:`, {targetRow, targetCol});
-                    
                     const targetCell = this.getCellAt(targetRow, targetCol);
                     if (targetCell) {
                         const sourceValue = this.getCellValue(sourceCell);
-                        console.log(`📋 Pasting "${sourceValue}" to cell ${index + 1}`);
                         this.setCellValue(targetCell, sourceValue);
                         pastedCount++;
-                    } else {
-                        console.log(`📋 No target cell found for position ${targetRow}, ${targetCol}`);
                     }
                 });
                 
-                // Batch update all flow data after all cells are pasted
+                // Simple chart update after all cells are pasted (no table rebuild needed)
                 if (pastedCount > 0) {
-                    autoCalculateFlowProperties();
-                    updateAllStats();
-                    renderFlowTable();
                     debouncedRealTimeUpdate();
                 }
                 
@@ -4865,6 +4846,54 @@
                         cellContent.textContent = processedValue.toLocaleString();
                     } else {
                         cellContent.textContent = processedValue;
+                    }
+                }
+                
+                // Auto-recalculate variance if value or previousValue changed
+                if (col === 'value' || col === 'previousValue') {
+                    this.updateVarianceForRow(row);
+                }
+            }
+            
+            updateVarianceForRow(rowIndex) {
+                const flow = flowData.flows[rowIndex];
+                if (!flow) return;
+                
+                // Find the variance cell for this row (more robust selector)
+                const table = document.querySelector('#main-flow-table tbody');
+                if (!table) return;
+                
+                const tableRows = table.querySelectorAll('tr');
+                const tableRow = tableRows[rowIndex];
+                if (!tableRow) return;
+                
+                const varianceCell = tableRow.querySelector('.variance-cell');
+                if (!varianceCell) return;
+                
+                // Update variance display
+                const varianceDiv = varianceCell.querySelector('div');
+                if (varianceDiv) {
+                    const isEmpty = !flow.source && !flow.target && flow.value === 0;
+                    varianceDiv.textContent = isEmpty ? '' : flow.getVarianceDisplay();
+                    
+                    // Apply variance colors
+                    const variance = flow.getVariance();
+                    
+                    // Clear existing classes
+                    varianceDiv.className = '';
+                    varianceDiv.style.color = '';
+                    varianceDiv.style.fontWeight = '';
+                    
+                    // Apply color based on variance trend
+                    if (variance.trend === 'up') {
+                        varianceDiv.style.color = '#16a34a';
+                        varianceDiv.style.fontWeight = '700';
+                    } else if (variance.trend === 'down') {
+                        varianceDiv.style.color = '#dc2626';
+                        varianceDiv.style.fontWeight = '700';
+                    } else {
+                        varianceDiv.style.color = '#6b7280';
+                        varianceDiv.style.fontWeight = '600';
                     }
                 }
             }
