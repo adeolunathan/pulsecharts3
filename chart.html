@@ -1117,10 +1117,8 @@
                 console.log(`📝 Updated flow ${index} ${property}: ${value}`);
                 
                 
-                // Trigger update if in live mode
-                if (realTimeUpdatesEnabled) {
-                    debouncedRealTimeUpdate();
-                }
+                // Trigger update in live mode
+                debouncedRealTimeUpdate();
             }
         }
 
@@ -3608,6 +3606,10 @@
             constructor() {
                 this.selectedCell = null;
                 this.editingCell = null;
+                this.copiedCell = null;
+                this.isDragging = false;
+                this.dragStartCell = null;
+                this.dragCurrentCell = null;
                 this.initializeSpreadsheet();
             }
 
@@ -3617,6 +3619,12 @@
                 document.addEventListener('keydown', this.handleKeyNavigation.bind(this));
                 document.addEventListener('dblclick', this.handleCellDoubleClick.bind(this));
                 document.addEventListener('paste', this.handlePaste.bind(this));
+                
+                // Copy/Paste and Drag-to-fill functionality
+                document.addEventListener('keydown', this.handleCopyPaste.bind(this));
+                document.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                document.addEventListener('mouseup', this.handleMouseUp.bind(this));
             }
 
             handleCellClick(event) {
@@ -4608,6 +4616,277 @@
                         }
                     }, 300);
                 }, 3000);
+            }
+
+            // ===== GOOGLE SHEETS-LIKE COPY/PASTE FUNCTIONALITY =====
+            
+            handleCopyPaste(event) {
+                // Only handle when focused on spreadsheet
+                if (!this.selectedCell) return;
+                
+                if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+                    event.preventDefault();
+                    this.copyCell();
+                } else if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+                    event.preventDefault();
+                    this.pasteCell();
+                }
+            }
+            
+            copyCell() {
+                if (!this.selectedCell) return;
+                
+                // Clear previous copied cell styling
+                if (this.copiedCell) {
+                    this.copiedCell.classList.remove('copied');
+                }
+                
+                this.copiedCell = this.selectedCell;
+                this.selectedCell.classList.add('copied');
+                
+                // Store the cell value in clipboard (fallback)
+                const cellContent = this.getCellValue(this.selectedCell);
+                navigator.clipboard.writeText(cellContent).catch(() => {
+                    // Fallback for older browsers
+                    console.log('📋 Cell copied:', cellContent);
+                });
+                
+                this.showNotification('Cell copied!', 'success');
+                
+                // Remove copied styling after 3 seconds
+                setTimeout(() => {
+                    if (this.copiedCell) {
+                        this.copiedCell.classList.remove('copied');
+                    }
+                }, 3000);
+            }
+            
+            pasteCell() {
+                if (!this.selectedCell || !this.copiedCell) return;
+                
+                const sourceValue = this.getCellValue(this.copiedCell);
+                this.setCellValue(this.selectedCell, sourceValue);
+                
+                this.showNotification('Cell pasted!', 'success');
+                
+                // Trigger data update
+                this.updateFlowData(this.selectedCell);
+            }
+            
+            getCellValue(cell) {
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                const flow = flowData.flows[row];
+                
+                if (!flow) return '';
+                
+                return flow[col] || '';
+            }
+            
+            setCellValue(cell, value) {
+                const row = parseInt(cell.dataset.row);
+                const col = cell.dataset.col;
+                const type = cell.dataset.type;
+                
+                if (!flowData.flows[row]) return;
+                
+                // Type conversion based on cell type
+                let processedValue = value;
+                if (type === 'number') {
+                    processedValue = parseFloat(value) || 0;
+                } else {
+                    processedValue = value.toString();
+                }
+                
+                // Update flow data
+                flowData.flows[row][col] = processedValue;
+                
+                // Update display
+                const cellContent = cell.querySelector('.cell-content');
+                if (cellContent) {
+                    if (type === 'number' && processedValue !== 0) {
+                        cellContent.textContent = processedValue.toLocaleString();
+                    } else {
+                        cellContent.textContent = processedValue;
+                    }
+                }
+            }
+            
+            updateFlowData(cell) {
+                // Trigger the same updates as cell editing
+                autoCalculateFlowProperties();
+                updateAllStats();
+                
+                // Re-render the table to show changes (like normal cell editing does)
+                renderFlowTable();
+                
+                // Trigger chart update
+                debouncedRealTimeUpdate();
+            }
+            
+            // ===== DRAG-TO-FILL FUNCTIONALITY =====
+            
+            handleMouseDown(event) {
+                const cell = event.target.closest('.spreadsheet-cell');
+                if (!cell || !cell.classList.contains('selected')) return;
+                
+                // Check if clicking on the drag handle (bottom-right corner)
+                const rect = cell.getBoundingClientRect();
+                const mouseX = event.clientX;
+                const mouseY = event.clientY;
+                const handleSize = 6;
+                
+                const isOnHandle = (
+                    mouseX >= rect.right - handleSize - 2 &&
+                    mouseX <= rect.right + 2 &&
+                    mouseY >= rect.bottom - handleSize - 2 &&
+                    mouseY <= rect.bottom + 2
+                );
+                
+                if (isOnHandle) {
+                    event.preventDefault();
+                    this.startDragFill(cell, event);
+                }
+            }
+            
+            startDragFill(cell, event) {
+                this.isDragging = true;
+                this.dragStartCell = cell;
+                this.dragCurrentCell = cell;
+                
+                document.body.style.cursor = 'crosshair';
+                event.preventDefault();
+            }
+            
+            handleMouseMove(event) {
+                if (!this.isDragging) return;
+                
+                const cell = event.target.closest('.spreadsheet-cell');
+                if (!cell) return;
+                
+                // Clear previous fill range
+                this.clearFillRange();
+                
+                this.dragCurrentCell = cell;
+                this.highlightFillRange();
+            }
+            
+            handleMouseUp(event) {
+                if (!this.isDragging) return;
+                
+                this.isDragging = false;
+                document.body.style.cursor = '';
+                
+                if (this.dragCurrentCell && this.dragCurrentCell !== this.dragStartCell) {
+                    this.performDragFill();
+                }
+                
+                this.clearFillRange();
+                this.dragStartCell = null;
+                this.dragCurrentCell = null;
+            }
+            
+            highlightFillRange() {
+                if (!this.dragStartCell || !this.dragCurrentCell) return;
+                
+                const startRow = parseInt(this.dragStartCell.dataset.row);
+                const startCol = this.dragStartCell.dataset.col;
+                const endRow = parseInt(this.dragCurrentCell.dataset.row);
+                const endCol = this.dragCurrentCell.dataset.col;
+                
+                // For now, only support vertical fill (same column)
+                if (startCol !== endCol) return;
+                
+                const minRow = Math.min(startRow, endRow);
+                const maxRow = Math.max(startRow, endRow);
+                
+                for (let row = minRow; row <= maxRow; row++) {
+                    const targetCell = document.querySelector(`[data-row="${row}"][data-col="${startCol}"]`);
+                    if (targetCell) {
+                        targetCell.classList.add('fill-range');
+                    }
+                }
+            }
+            
+            clearFillRange() {
+                document.querySelectorAll('.fill-range').forEach(cell => {
+                    cell.classList.remove('fill-range');
+                });
+            }
+            
+            performDragFill() {
+                if (!this.dragStartCell || !this.dragCurrentCell) return;
+                
+                const startRow = parseInt(this.dragStartCell.dataset.row);
+                const startCol = this.dragStartCell.dataset.col;
+                const endRow = parseInt(this.dragCurrentCell.dataset.row);
+                const endCol = this.dragCurrentCell.dataset.col;
+                
+                // Only support vertical fill for now
+                if (startCol !== endCol) {
+                    this.showNotification('Only vertical fill is supported', 'info');
+                    return;
+                }
+                
+                const sourceValue = this.getCellValue(this.dragStartCell);
+                const minRow = Math.min(startRow, endRow);
+                const maxRow = Math.max(startRow, endRow);
+                
+                let fillCount = 0;
+                for (let row = minRow; row <= maxRow; row++) {
+                    if (row === startRow) continue; // Skip source cell
+                    
+                    const targetCell = document.querySelector(`[data-row="${row}"][data-col="${startCol}"]`);
+                    if (targetCell) {
+                        // Smart fill: try to detect patterns for numbers
+                        let fillValue = sourceValue;
+                        if (this.dragStartCell.dataset.type === 'number' && !isNaN(parseFloat(sourceValue))) {
+                            // For numbers, we could implement pattern detection
+                            // For now, just copy the same value
+                            fillValue = sourceValue;
+                        }
+                        
+                        this.setCellValue(targetCell, fillValue);
+                        fillCount++;
+                    }
+                }
+                
+                if (fillCount > 0) {
+                    this.showNotification(`Filled ${fillCount} cells`, 'success');
+                    // Update data after filling
+                    autoCalculateFlowProperties();
+                    updateAllStats();
+                    
+                    // Re-render the table to show changes
+                    renderFlowTable();
+                    
+                    // Trigger chart update
+                    debouncedRealTimeUpdate();
+                }
+            }
+            
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = 'copy-notification';
+                notification.textContent = message;
+                
+                // Customize colors based on type
+                if (type === 'success') {
+                    notification.style.background = '#34a853';
+                } else if (type === 'error') {
+                    notification.style.background = '#ea4335';
+                } else {
+                    notification.style.background = '#4285f4';
+                }
+                
+                document.body.appendChild(notification);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 2000);
             }
         }
 
