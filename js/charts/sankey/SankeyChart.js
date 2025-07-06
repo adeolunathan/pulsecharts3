@@ -253,6 +253,12 @@ class PulseSankeyChart {
                 
                 console.log('✅ Link updated successfully:', this.data.links[linkIndex]);
                 
+                // Recalculate node values based on updated links
+                this.recalculateNodeValues();
+                
+                // Update spreadsheet if available
+                this.updateSpreadsheetData();
+                
                 // Re-render the chart with updated data
                 this.render(this.data);
             } else {
@@ -284,6 +290,46 @@ class PulseSankeyChart {
                 
                 console.log('✅ Link deleted successfully');
                 
+                // Check which node should be deleted based on link type
+                // For revenue segments (sources that flow to revenue hubs), delete the source
+                // For other links, delete the target if it becomes orphaned
+                
+                let nodeToDelete = null;
+                
+                // Check if this is a revenue segment link (source flows to revenue hub)
+                const isRevenueSegmentLink = window.FinancialDataProcessor && 
+                    FinancialDataProcessor.isPreRevenueLink && 
+                    FinancialDataProcessor.isPreRevenueLink(linkData, this.revenueHubLayer);
+                
+                if (isRevenueSegmentLink) {
+                    // For revenue segments, check if source node should be deleted
+                    nodeToDelete = linkSourceId;
+                    console.log('🔍 Checking revenue segment source node for deletion:', nodeToDelete);
+                } else {
+                    // For other links, check if target node should be deleted
+                    nodeToDelete = linkTargetId;
+                    console.log('🔍 Checking target node for deletion:', nodeToDelete);
+                }
+                
+                // Check if the node has any remaining connections
+                const hasOtherLinks = this.data.links.some(link => {
+                    const sourceId = link.source && link.source.id ? link.source.id : link.source;
+                    const targetId = link.target && link.target.id ? link.target.id : link.target;
+                    return sourceId === nodeToDelete || targetId === nodeToDelete;
+                });
+                
+                if (!hasOtherLinks && this.data.nodes && nodeToDelete) {
+                    // Find and remove the node
+                    const nodeIndex = this.data.nodes.findIndex(node => node.id === nodeToDelete);
+                    if (nodeIndex !== -1) {
+                        this.data.nodes.splice(nodeIndex, 1);
+                        console.log('✅ Node deleted successfully:', nodeToDelete);
+                    }
+                }
+                
+                // Update spreadsheet if available
+                this.updateSpreadsheetData();
+                
                 // Re-render the chart with updated data
                 this.render(this.data);
             } else {
@@ -291,6 +337,148 @@ class PulseSankeyChart {
                 console.log('🔍 Searched for:', { linkSourceId, linkTargetId });
             }
         }
+    }
+
+    // Recalculate node values based on current links
+    recalculateNodeValues() {
+        if (!this.data || !this.data.nodes || !this.data.links) return;
+        
+        console.log('🔄 Recalculating node values based on current links');
+        
+        // Store original node values for source nodes (revenue segments)
+        const originalNodeValues = new Map();
+        this.data.nodes.forEach(node => {
+            originalNodeValues.set(node.id, node.value);
+        });
+        
+        // Reset only intermediate and target node values
+        this.data.nodes.forEach(node => {
+            // Check if this is a source node (has outgoing links but no incoming links)
+            const hasIncomingLinks = this.data.links.some(link => {
+                const targetId = link.target && link.target.id ? link.target.id : link.target;
+                return targetId === node.id;
+            });
+            
+            const hasOutgoingLinks = this.data.links.some(link => {
+                const sourceId = link.source && link.source.id ? link.source.id : link.source;
+                return sourceId === node.id;
+            });
+            
+            // If it's a pure source node (revenue segment), keep original value
+            if (hasOutgoingLinks && !hasIncomingLinks) {
+                console.log('🔹 Preserving source node value:', node.id, node.value);
+                // Keep the original value for source nodes
+            } else {
+                // Reset intermediate and target nodes
+                node.value = 0;
+            }
+        });
+        
+        // Calculate intermediate and target node values from links
+        this.data.links.forEach(link => {
+            const sourceId = link.source && link.source.id ? link.source.id : link.source;
+            const targetId = link.target && link.target.id ? link.target.id : link.target;
+            const linkValue = parseFloat(link.value) || 0;
+            
+            // Add value to target node (incoming flow)
+            const targetNode = this.data.nodes.find(node => node.id === targetId);
+            if (targetNode) {
+                targetNode.value += linkValue;
+            }
+        });
+        
+        console.log('✅ Node values recalculated with source preservation');
+    }
+
+    // Update spreadsheet data if available
+    updateSpreadsheetData() {
+        try {
+            console.log('📊 Attempting to update spreadsheet data...');
+            
+            // Method 1: Use PulseApplication updateData (correct approach)
+            if (window.pulseApp && typeof window.pulseApp.updateData === 'function') {
+                console.log('✅ Found PulseApplication instance, updating via updateData()');
+                window.pulseApp.updateData(this.data, 'chart-edit');
+                console.log('✅ PulseApplication updated with current data');
+                return;
+            }
+            
+            // Method 2: Try window.PulseApplication.instance (fallback)
+            if (window.PulseApplication && window.PulseApplication.instance) {
+                const app = window.PulseApplication.instance;
+                if (app && typeof app.updateData === 'function') {
+                    console.log('✅ Found PulseApplication.instance, updating via updateData()');
+                    app.updateData(this.data, 'chart-edit');
+                    console.log('✅ PulseApplication.instance updated');
+                    return;
+                }
+            }
+            
+            // Method 3: Data Bridge notification
+            if (window.PulseDataBridge) {
+                console.log('✅ Found PulseDataBridge, notifying update');
+                window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
+                console.log('✅ DataBridge notified of update');
+                return;
+            }
+            
+            // Method 4: Custom event for any listening components
+            const updateEvent = new CustomEvent('pulseDataChanged', {
+                detail: { 
+                    data: this.data, 
+                    source: 'chart-edit',
+                    timestamp: Date.now()
+                }
+            });
+            window.dispatchEvent(updateEvent);
+            console.log('✅ Dispatched pulseDataChanged event');
+            
+            // Method 5: Try to find specific data editor components
+            if (window.barDataEditor && typeof window.barDataEditor.updateFromChart === 'function') {
+                console.log('✅ Found barDataEditor, updating');
+                window.barDataEditor.updateFromChart(this.data);
+                return;
+            }
+            
+            console.log('ℹ️ Used event dispatch method for data synchronization');
+            
+        } catch (error) {
+            console.warn('⚠️ Could not update spreadsheet:', error.message);
+        }
+    }
+
+    // Convert chart data back to spreadsheet format
+    convertToSpreadsheetFormat(data) {
+        if (!data || !data.links) return [];
+        
+        console.log('🔄 Converting chart data to spreadsheet format...');
+        
+        // Create header row
+        const headers = ['From', 'To', 'Current', 'Previous', 'Type', 'Description'];
+        
+        // Create rows from links data
+        const rows = data.links.map((link, index) => {
+            const sourceId = link.source && link.source.id ? link.source.id : link.source;
+            const targetId = link.target && link.target.id ? link.target.id : link.target;
+            
+            const row = [
+                sourceId,                    // From
+                targetId,                    // To  
+                link.value || 0,            // Current Value
+                link.previousValue || 0,    // Previous Value
+                link.type || '',            // Type
+                link.description || ''      // Description
+            ];
+            
+            console.log(`📝 Row ${index + 1}:`, row);
+            return row;
+        });
+        
+        // Add headers as first row
+        const result = [headers, ...rows];
+        console.log('✅ Converted to spreadsheet format:', result.length, 'rows (including header)');
+        
+        return result;
     }
 
     // Retry utility initialization with timeout
@@ -3274,6 +3462,8 @@ class PulseSankeyChart {
             this.renderLabels();
         } else {
             // Handle visual-only changes that don't require position recalculation
+            console.log('🎨 Applying visual-only updates:', Object.keys(newConfig));
+            
             if (newConfig.nodeOpacity !== undefined) {
                 this.chart.selectAll('.sankey-node rect')
                     .transition()
@@ -3285,6 +3475,46 @@ class PulseSankeyChart {
                     .transition()
                     .duration(200)
                     .attr('fill-opacity', newConfig.linkOpacity);
+            }
+            
+            // Handle font size changes
+            if (newConfig.globalFontSize !== undefined) {
+                console.log('📝 Updating font sizes to:', newConfig.globalFontSize);
+                this.chart.selectAll('.node-label')
+                    .transition()
+                    .duration(200)
+                    .style('font-size', newConfig.globalFontSize + 'px');
+                this.chart.selectAll('.node-value')
+                    .transition()
+                    .duration(200)
+                    .style('font-size', newConfig.globalFontSize + 'px');
+            }
+            
+            // Handle text distance changes (requires label repositioning)
+            if (newConfig.textDistanceLeftmost !== undefined || 
+                newConfig.textDistanceMiddle !== undefined || 
+                newConfig.textDistanceRightmost !== undefined) {
+                console.log('📏 Updating text distances');
+                this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
+                this.renderLabels();
+            }
+            
+            // Handle color changes by re-applying colors
+            const colorChanges = Object.keys(newConfig).filter(key => 
+                key.includes('Color') || key.includes('color') || key === 'customColors'
+            );
+            if (colorChanges.length > 0) {
+                console.log('🎨 Updating colors for:', colorChanges);
+                // Re-apply node colors
+                this.chart.selectAll('.sankey-node rect').each((d) => {
+                    const color = this.getNodeColor(d);
+                    d3.select(this).attr('fill', color);
+                });
+                // Re-apply link colors  
+                this.chart.selectAll('.sankey-link path').each((d) => {
+                    const color = this.getLinkColor(d);
+                    d3.select(this).attr('fill', color);
+                });
             }
             
             // Handle config changes that were moved out of layout recalc

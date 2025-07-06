@@ -86,15 +86,36 @@
             .style('color', '#374151')
             .style('margin-bottom', '4px');
 
-        const fromSelect = form.append('select')
-            .attr('class', 'from-select')
+        const fromContainer = form.append('div')
+            .attr('class', 'from-container')
+            .style('position', 'relative')
+            .style('margin-bottom', '12px');
+
+        const fromInput = fromContainer.append('input')
+            .attr('type', 'text')
+            .attr('class', 'from-input')
+            .attr('placeholder', 'Type to search or create new...')
             .style('width', '100%')
             .style('padding', '8px')
             .style('border', '1px solid #d1d5db')
             .style('border-radius', '4px')
             .style('font-size', '12px')
-            .style('margin-bottom', '12px')
             .style('background', 'white');
+
+        const fromDropdown = fromContainer.append('div')
+            .attr('class', 'from-dropdown')
+            .style('position', 'absolute')
+            .style('top', '100%')
+            .style('left', '0')
+            .style('right', '0')
+            .style('background', 'white')
+            .style('border', '1px solid #d1d5db')
+            .style('border-top', 'none')
+            .style('border-radius', '0 0 4px 4px')
+            .style('max-height', '150px')
+            .style('overflow-y', 'auto')
+            .style('z-index', '1001')
+            .style('display', 'none');
 
         // To field
         form.append('label')
@@ -105,15 +126,36 @@
             .style('color', '#374151')
             .style('margin-bottom', '4px');
 
-        const toSelect = form.append('select')
-            .attr('class', 'to-select')
+        const toContainer = form.append('div')
+            .attr('class', 'to-container')
+            .style('position', 'relative')
+            .style('margin-bottom', '12px');
+
+        const toInput = toContainer.append('input')
+            .attr('type', 'text')
+            .attr('class', 'to-input')
+            .attr('placeholder', 'Type to search or create new...')
             .style('width', '100%')
             .style('padding', '8px')
             .style('border', '1px solid #d1d5db')
             .style('border-radius', '4px')
             .style('font-size', '12px')
-            .style('margin-bottom', '12px')
             .style('background', 'white');
+
+        const toDropdown = toContainer.append('div')
+            .attr('class', 'to-dropdown')
+            .style('position', 'absolute')
+            .style('top', '100%')
+            .style('left', '0')
+            .style('right', '0')
+            .style('background', 'white')
+            .style('border', '1px solid #d1d5db')
+            .style('border-top', 'none')
+            .style('border-radius', '0 0 4px 4px')
+            .style('max-height', '150px')
+            .style('overflow-y', 'auto')
+            .style('z-index', '1001')
+            .style('display', 'none');
 
         // Amount fields row
         const amountRow = form.append('div')
@@ -212,11 +254,129 @@
 
         // Store references for easy access
         this.flowEditorElements = {
-            fromSelect,
-            toSelect,
+            fromInput,
+            fromDropdown,
+            toInput,
+            toDropdown,
             currentInput,
             comparisonInput
         };
+
+        // Set up autocomplete functionality for both inputs
+        setupAutocomplete.call(this, fromInput, fromDropdown, 'from');
+        setupAutocomplete.call(this, toInput, toDropdown, 'to');
+    }
+
+    /**
+     * Set up autocomplete functionality for input fields
+     * @param {Object} input - D3 input element
+     * @param {Object} dropdown - D3 dropdown element  
+     * @param {string} type - 'from' or 'to'
+     */
+    function setupAutocomplete(input, dropdown, type) {
+        // Store available options
+        this.availableOptions = this.availableOptions || [];
+        
+        // Input event handler for filtering
+        input.on('input', () => {
+            const value = input.property('value').toLowerCase();
+            const filteredOptions = this.availableOptions.filter(option => 
+                option.toLowerCase().includes(value)
+            );
+            
+            // Show dropdown if there are matches or if input is not empty
+            if (value.length > 0) {
+                showDropdownOptions.call(this, dropdown, filteredOptions, value, input);
+            } else {
+                dropdown.style('display', 'none');
+            }
+        });
+        
+        // Focus event handler
+        input.on('focus', () => {
+            const value = input.property('value').toLowerCase();
+            if (value.length > 0) {
+                const filteredOptions = this.availableOptions.filter(option => 
+                    option.toLowerCase().includes(value)
+                );
+                showDropdownOptions.call(this, dropdown, filteredOptions, value, input);
+            }
+        });
+        
+        // Blur event handler (with delay to allow dropdown clicks)
+        input.on('blur', () => {
+            setTimeout(() => {
+                dropdown.style('display', 'none');
+            }, 150);
+        });
+    }
+
+    /**
+     * Show dropdown options
+     * @param {Object} dropdown - D3 dropdown element
+     * @param {Array} options - Filtered options array
+     * @param {string} inputValue - Current input value
+     * @param {Object} input - D3 input element
+     */
+    function showDropdownOptions(dropdown, options, inputValue, input) {
+        dropdown.selectAll('.dropdown-option').remove();
+        
+        // Add filtered options
+        options.forEach(option => {
+            const optionDiv = dropdown.append('div')
+                .attr('class', 'dropdown-option')
+                .style('padding', '8px')
+                .style('cursor', 'pointer')
+                .style('font-size', '12px')
+                .style('border-bottom', '1px solid #f3f4f6')
+                .style('transition', 'background 0.15s ease')
+                .text(option)
+                .on('mouseover', function() {
+                    d3.select(this).style('background', '#f3f4f6');
+                })
+                .on('mouseout', function() {
+                    d3.select(this).style('background', 'white');
+                })
+                .on('click', () => {
+                    input.property('value', option);
+                    dropdown.style('display', 'none');
+                });
+        });
+        
+        // Add "Create new" option if input doesn't match exactly
+        const exactMatch = options.some(option => 
+            option.toLowerCase() === inputValue.toLowerCase()
+        );
+        
+        if (!exactMatch && inputValue.trim().length > 0) {
+            const createOption = dropdown.append('div')
+                .attr('class', 'dropdown-option create-new')
+                .style('padding', '8px')
+                .style('cursor', 'pointer')
+                .style('font-size', '12px')
+                .style('border-bottom', '1px solid #f3f4f6')
+                .style('background', '#f8f9fa')
+                .style('font-style', 'italic')
+                .style('color', '#6b7280')
+                .style('transition', 'background 0.15s ease')
+                .text(`Create new: "${inputValue}"`)
+                .on('mouseover', function() {
+                    d3.select(this).style('background', '#e5e7eb');
+                })
+                .on('mouseout', function() {
+                    d3.select(this).style('background', '#f8f9fa');
+                })
+                .on('click', () => {
+                    input.property('value', inputValue);
+                    dropdown.style('display', 'none');
+                    // Add to available options for future use
+                    if (!this.availableOptions.includes(inputValue)) {
+                        this.availableOptions.push(inputValue);
+                    }
+                });
+        }
+        
+        dropdown.style('display', options.length > 0 || inputValue.trim().length > 0 ? 'block' : 'none');
     }
 
     /**
@@ -230,12 +390,12 @@
         this.currentLinkData = linkData;
         this.isFlowEditorActive = true;
         
-        // Populate dropdowns with available nodes
-        populateNodeDropdowns.call(this, availableNodes);
+        // Populate available options for autocomplete
+        populateAvailableOptions.call(this, availableNodes);
         
         // Set current values
-        this.flowEditorElements.fromSelect.property('value', linkData.source.id || linkData.source);
-        this.flowEditorElements.toSelect.property('value', linkData.target.id || linkData.target);
+        this.flowEditorElements.fromInput.property('value', linkData.source.id || linkData.source);
+        this.flowEditorElements.toInput.property('value', linkData.target.id || linkData.target);
         this.flowEditorElements.currentInput.property('value', linkData.value || '');
         this.flowEditorElements.comparisonInput.property('value', linkData.previousValue || '');
         
@@ -243,32 +403,21 @@
     }
 
     /**
-     * Populate node dropdowns with available nodes
+     * Populate available options for autocomplete
      * @param {Array} availableNodes - Array of available nodes
      */
-    function populateNodeDropdowns(availableNodes) {
+    function populateAvailableOptions(availableNodes) {
         if (!availableNodes || !Array.isArray(availableNodes)) {
-            console.warn('⚠️ No available nodes provided for dropdowns');
+            console.warn('⚠️ No available nodes provided for autocomplete');
             return;
         }
 
-        // Clear existing options
-        this.flowEditorElements.fromSelect.selectAll('option').remove();
-        this.flowEditorElements.toSelect.selectAll('option').remove();
-
-        // Add options to both dropdowns
-        availableNodes.forEach(node => {
-            const nodeId = node.id || node.name || node;
-            const nodeLabel = nodeId;
-
-            this.flowEditorElements.fromSelect.append('option')
-                .attr('value', nodeId)
-                .text(nodeLabel);
-
-            this.flowEditorElements.toSelect.append('option')
-                .attr('value', nodeId)
-                .text(nodeLabel);
+        // Extract node IDs/names for autocomplete
+        this.availableOptions = availableNodes.map(node => {
+            return node.id || node.name || node;
         });
+        
+        console.log('📋 Available autocomplete options:', this.availableOptions);
     }
 
     /**
@@ -289,8 +438,8 @@
         
         const updatedFlow = {
             originalLink: this.currentLinkData,
-            source: this.flowEditorElements.fromSelect.property('value'),
-            target: this.flowEditorElements.toSelect.property('value'),
+            source: this.flowEditorElements.fromInput.property('value'),
+            target: this.flowEditorElements.toInput.property('value'),
             value: parseFloat(this.flowEditorElements.currentInput.property('value')) || 0,
             previousValue: parseFloat(this.flowEditorElements.comparisonInput.property('value')) || 0
         };
