@@ -126,6 +126,7 @@ class PulseSankeyChart {
 
         this.createTooltip();
         this.initializeColorPickerWithRetry();
+        this.initializeFlowEditorWithRetry();
     }
 
     // Handle color changes from color picker
@@ -193,6 +194,105 @@ class PulseSankeyChart {
         }
     }
 
+    // Flow editor wrapper methods
+    showFlowEditor(element, linkData) {
+        if (window.ChartFlowEditor && window.ChartFlowEditor.showFlowEditor) {
+            // Get available nodes for dropdowns
+            const availableNodes = this.nodes || [];
+            ChartFlowEditor.showFlowEditor.call(this, element, linkData, availableNodes);
+        } else {
+            console.warn('⚠️ ChartFlowEditor utility not available');
+        }
+    }
+
+    hideFlowEditor() {
+        if (window.ChartFlowEditor && window.ChartFlowEditor.hideFlowEditor) {
+            ChartFlowEditor.hideFlowEditor.call(this);
+        }
+    }
+
+    // Handle flow save from flow editor
+    handleFlowSave(updatedFlow, element) {
+        console.log('💾 Saving flow:', updatedFlow);
+        
+        // Find the original link in the data
+        const originalLink = updatedFlow.originalLink;
+        if (!originalLink) {
+            console.warn('⚠️ No original link data found');
+            return;
+        }
+
+        // Update the link in the current data
+        if (this.data && this.data.links) {
+            // Get the source and target IDs from the original link
+            const originalSourceId = originalLink.source && originalLink.source.id ? originalLink.source.id : originalLink.source;
+            const originalTargetId = originalLink.target && originalLink.target.id ? originalLink.target.id : originalLink.target;
+            
+            console.log('🔍 Looking for link:', { originalSourceId, originalTargetId });
+            console.log('📋 Available links:', this.data.links.map(l => ({ 
+                source: l.source, 
+                target: l.target, 
+                value: l.value 
+            })));
+            
+            const linkIndex = this.data.links.findIndex(link => {
+                const linkSourceId = link.source && link.source.id ? link.source.id : link.source;
+                const linkTargetId = link.target && link.target.id ? link.target.id : link.target;
+                return linkSourceId === originalSourceId && linkTargetId === originalTargetId;
+            });
+            
+            if (linkIndex !== -1) {
+                // Update the existing link
+                this.data.links[linkIndex] = {
+                    ...this.data.links[linkIndex],
+                    source: updatedFlow.source,
+                    target: updatedFlow.target,
+                    value: updatedFlow.value,
+                    previousValue: updatedFlow.previousValue
+                };
+                
+                console.log('✅ Link updated successfully:', this.data.links[linkIndex]);
+                
+                // Re-render the chart with updated data
+                this.render(this.data);
+            } else {
+                console.warn('⚠️ Original link not found in data');
+                console.log('🔍 Searched for:', { originalSourceId, originalTargetId });
+            }
+        }
+    }
+
+    // Handle flow delete from flow editor
+    handleFlowDelete(linkData, element) {
+        console.log('🗑️ Deleting flow:', linkData);
+        
+        // Find and remove the link from the data
+        if (this.data && this.data.links) {
+            // Get the source and target IDs from the link data
+            const linkSourceId = linkData.source && linkData.source.id ? linkData.source.id : linkData.source;
+            const linkTargetId = linkData.target && linkData.target.id ? linkData.target.id : linkData.target;
+            
+            const linkIndex = this.data.links.findIndex(link => {
+                const dataSourceId = link.source && link.source.id ? link.source.id : link.source;
+                const dataTargetId = link.target && link.target.id ? link.target.id : link.target;
+                return dataSourceId === linkSourceId && dataTargetId === linkTargetId;
+            });
+            
+            if (linkIndex !== -1) {
+                // Remove the link
+                this.data.links.splice(linkIndex, 1);
+                
+                console.log('✅ Link deleted successfully');
+                
+                // Re-render the chart with updated data
+                this.render(this.data);
+            } else {
+                console.warn('⚠️ Link not found in data');
+                console.log('🔍 Searched for:', { linkSourceId, linkTargetId });
+            }
+        }
+    }
+
     // Retry utility initialization with timeout
     initializeZoomWithRetry() {
         const attemptZoom = () => {
@@ -235,6 +335,34 @@ class PulseSankeyChart {
                 if (!attemptColorPicker()) {
                     console.warn('⚠️ ChartColorPicker utility not available after retry, using fallback');
                     this.initializeColorPickerFallback();
+                }
+            }, 100);
+        }
+    }
+
+    initializeFlowEditorWithRetry() {
+        const attemptFlowEditor = () => {
+            if (window.ChartFlowEditor && window.ChartFlowEditor.initializeFlowEditor) {
+                ChartFlowEditor.initializeFlowEditor.call(this, 
+                    (updatedFlow, element) => {
+                        this.handleFlowSave(updatedFlow, element);
+                    },
+                    (linkData, element) => {
+                        this.handleFlowDelete(linkData, element);
+                    }
+                );
+                console.log('✅ ChartFlowEditor utility connected successfully');
+                return true;
+            }
+            return false;
+        };
+
+        // Try immediately first
+        if (!attemptFlowEditor()) {
+            // If immediate attempt fails, try once more after a short delay
+            setTimeout(() => {
+                if (!attemptFlowEditor()) {
+                    console.warn('⚠️ ChartFlowEditor utility not available after retry');
                 }
             }, 100);
         }
@@ -1801,15 +1929,13 @@ class PulseSankeyChart {
             })
             .on('click', (event, d) => {
                 event.stopPropagation();
-                if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(d, this.revenueHubLayer)) {
-                    const currentColor = this.getLinkColor(d);
-                    this.showColorPicker(event.currentTarget, currentColor);
-                }
+                // Show flow editor for all link clicks
+                this.showFlowEditor(event.currentTarget, d);
             })
             .on('dblclick', (event, d) => {
                 event.stopPropagation();
-                const currentColor = this.getLinkColor(d);
-                this.showColorPicker(event.currentTarget, currentColor);
+                // Show flow editor for double-clicks too
+                this.showFlowEditor(event.currentTarget, d);
             });
     }
 
