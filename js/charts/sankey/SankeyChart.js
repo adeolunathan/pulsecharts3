@@ -1396,16 +1396,18 @@ class PulseSankeyChart {
             
             // Sorting removed - maintain original link order
             
-            const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
+            const totalOutflow = d3.sum(node.sourceLinks, d => d.value || 0);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
             
             let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
             
             node.sourceLinks.forEach((link, index) => {
                 link.sourceY = currentY;
-                const proportionalHeight = (link.value / totalOutflow) * effectiveNodeHeight;
-                link.sourceHeight = proportionalHeight;
-                currentY += proportionalHeight;
+                const proportionalHeight = (totalOutflow > 0 && link.value > 0) 
+                    ? (link.value / totalOutflow) * effectiveNodeHeight 
+                    : 0;
+                link.sourceHeight = isNaN(proportionalHeight) ? 0 : proportionalHeight;
+                currentY += link.sourceHeight;
             });
             
             const totalUsedHeight = d3.sum(node.sourceLinks, d => d.sourceHeight);
@@ -1430,16 +1432,18 @@ class PulseSankeyChart {
             
             // Sorting removed - maintain original link order
             
-            const totalInflow = d3.sum(node.targetLinks, d => d.value);
+            const totalInflow = d3.sum(node.targetLinks, d => d.value || 0);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
             
             let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
             
             node.targetLinks.forEach((link, index) => {
                 link.targetY = currentY;
-                const proportionalHeight = (link.value / totalInflow) * effectiveNodeHeight;
-                link.targetHeight = proportionalHeight;
-                currentY += proportionalHeight;
+                const proportionalHeight = (totalInflow > 0 && link.value > 0) 
+                    ? (link.value / totalInflow) * effectiveNodeHeight 
+                    : 0;
+                link.targetHeight = isNaN(proportionalHeight) ? 0 : proportionalHeight;
+                currentY += link.targetHeight;
             });
             
             const totalUsedHeight = d3.sum(node.targetLinks, d => d.targetHeight);
@@ -1460,10 +1464,12 @@ class PulseSankeyChart {
         const sourceX = link.source.x + this.config.nodeWidth;
         const targetX = link.target.x;
         
-        const sourceY0 = link.sourceY;
-        const sourceY1 = link.sourceY + link.sourceHeight;
-        const targetY0 = link.targetY;
-        const targetY1 = link.targetY + link.targetHeight;
+        const sourceY0 = link.sourceY || 0;
+        const sourceHeight = isNaN(link.sourceHeight) ? 0 : (link.sourceHeight || 0);
+        const sourceY1 = sourceY0 + sourceHeight;
+        const targetY0 = link.targetY || 0;
+        const targetHeight = isNaN(link.targetHeight) ? 0 : (link.targetHeight || 0);
+        const targetY1 = targetY0 + targetHeight;
         
         // Validate all coordinates to prevent NaN values
         const coords = [sourceX, targetX, sourceY0, sourceY1, targetY0, targetY1];
@@ -1891,7 +1897,7 @@ class PulseSankeyChart {
 
     recalculateSingleNodeLinkPositions(node) {
         if (node.sourceLinks.length > 0) {
-            const totalOutflow = d3.sum(node.sourceLinks, d => d.value);
+            const totalOutflow = d3.sum(node.sourceLinks, d => d.value || 0);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
             
             let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
@@ -1905,7 +1911,7 @@ class PulseSankeyChart {
         }
         
         if (node.targetLinks.length > 0) {
-            const totalInflow = d3.sum(node.targetLinks, d => d.value);
+            const totalInflow = d3.sum(node.targetLinks, d => d.value || 0);
             const effectiveNodeHeight = node.height * this.config.linkWidthScale;
             
             let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
