@@ -292,8 +292,8 @@ class PulseSankeyChart {
                         window.updateAllStats();
                     }
                     
-                    // Success alert like reset button
-                    alert('✅ Flow updated successfully - chart and spreadsheet synchronized!');
+                    // Success message (no alert dialog)
+                    console.log('✅ Flow updated successfully - chart and spreadsheet synchronized!');
                 } else {
                     console.warn('⚠️ Could not execute reset sequence - missing functions');
                 }
