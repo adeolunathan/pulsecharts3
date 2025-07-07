@@ -5936,7 +5936,6 @@ body {
     background: white;
     font-family: 'Roboto', Arial, sans-serif;
     width: 100%;
-    table-layout: fixed;
 }
 
 /* Row hover effect */

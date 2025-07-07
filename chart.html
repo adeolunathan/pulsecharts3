@@ -974,15 +974,64 @@
             console.log(`📝 Description column ${showDescription ? 'SHOWN' : 'HIDDEN'} - Chart container ${showDescription ? 'REDUCED' : 'EXPANDED'}`);
         }
 
-        // Column resizing functionality
+        // Truly independent column resizing functionality
         function initializeColumnResizing() {
             const table = document.getElementById('main-flow-table');
             if (!table) return;
 
+            // Remove table-layout fixed and use a different approach
+            table.style.tableLayout = 'auto';
+            table.style.minWidth = 'max-content';
+
             let isResizing = false;
             let currentColumn = null;
+            let columnIndex = -1;
             let startX = 0;
             let startWidth = 0;
+            let originalTableWidth = 0;
+
+            // Get all columns and their current widths
+            function getAllColumnWidths() {
+                const headers = table.querySelectorAll('thead th');
+                const widths = [];
+                headers.forEach(th => {
+                    widths.push(parseInt(getComputedStyle(th).width));
+                });
+                return widths;
+            }
+
+            // Set specific widths for all columns
+            function setAllColumnWidths(widths) {
+                const headers = table.querySelectorAll('thead th');
+                let totalWidth = 0;
+                
+                headers.forEach((th, index) => {
+                    const width = widths[index];
+                    th.style.width = width + 'px';
+                    th.style.minWidth = width + 'px';
+                    th.style.maxWidth = width + 'px';
+                    totalWidth += width;
+                    
+                    // Set width on all cells in this column
+                    const rows = table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const cell = row.children[index];
+                        if (cell) {
+                            cell.style.width = width + 'px';
+                            cell.style.minWidth = width + 'px';
+                            cell.style.maxWidth = width + 'px';
+                        }
+                    });
+                });
+
+                // Set total table width to prevent auto-adjustment
+                table.style.width = totalWidth + 'px';
+                table.style.minWidth = totalWidth + 'px';
+            }
+
+            // Initialize with current widths
+            const initialWidths = getAllColumnWidths();
+            setAllColumnWidths(initialWidths);
 
             // Add mousedown event to all table headers
             table.addEventListener('mousedown', function(e) {
@@ -993,11 +1042,13 @@
                 const rect = th.getBoundingClientRect();
                 const isOnRightEdge = e.clientX > rect.right - 6;
                 
-                if (isOnRightEdge && th.nextElementSibling) {
+                if (isOnRightEdge) {
                     isResizing = true;
                     currentColumn = th;
+                    columnIndex = Array.from(th.parentNode.children).indexOf(th);
                     startX = e.clientX;
                     startWidth = parseInt(getComputedStyle(th).width);
+                    originalTableWidth = parseInt(getComputedStyle(table).width);
                     
                     // Add resizing class for visual feedback
                     th.classList.add('resizing');
@@ -1012,30 +1063,32 @@
 
             // Handle mouse move for resizing
             document.addEventListener('mousemove', function(e) {
-                if (!isResizing || !currentColumn) return;
+                if (!isResizing || !currentColumn || columnIndex === -1) return;
 
                 const diff = e.clientX - startX;
-                const newWidth = Math.max(30, startWidth + diff); // Minimum 30px width
+                const newWidth = Math.max(30, startWidth + diff);
                 
-                // Update column width
-                currentColumn.style.width = newWidth + 'px';
+                // Get current widths of all columns
+                const currentWidths = getAllColumnWidths();
                 
-                // Update corresponding cells in the same column
-                const columnIndex = Array.from(currentColumn.parentNode.children).indexOf(currentColumn);
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const cell = row.children[columnIndex];
-                    if (cell) {
-                        cell.style.width = newWidth + 'px';
-                    }
-                });
+                // Update only the target column width
+                currentWidths[columnIndex] = newWidth;
+                
+                // Apply the new widths (this keeps other columns unchanged)
+                setAllColumnWidths(currentWidths);
             });
 
             // Handle mouse up to end resizing
             document.addEventListener('mouseup', function() {
                 if (isResizing && currentColumn) {
                     currentColumn.classList.remove('resizing');
+                    
+                    // Finalize the widths
+                    const finalWidths = getAllColumnWidths();
+                    setAllColumnWidths(finalWidths);
+                    
                     currentColumn = null;
+                    columnIndex = -1;
                     isResizing = false;
                     
                     // Reset cursor and selection
@@ -1044,7 +1097,24 @@
                 }
             });
 
-            console.log('📏 Column resizing initialized');
+            // Handle table content changes (new rows)
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.target.tagName === 'TBODY') {
+                        setTimeout(() => {
+                            const currentWidths = getAllColumnWidths();
+                            setAllColumnWidths(currentWidths);
+                        }, 100);
+                    }
+                });
+            });
+
+            const tbody = table.querySelector('tbody');
+            if (tbody) {
+                observer.observe(tbody, { childList: true, subtree: true });
+            }
+
+            console.log('📏 Truly independent column resizing initialized');
         }
 
         // Initialize column resizing when table is ready
