@@ -318,6 +318,11 @@
                                                     <option value="all">All Nodes</option>
                                                 </select>
                                             </div>
+                                            <div class="quick-reset-button" style="margin-left: 12px;">
+                                                <button onclick="resetToChartData()" title="Reset table to match current chart data" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                                    🔄 Reset
+                                                </button>
+                                            </div>
                                         </div>
                                     </h3>
                                 </div>
@@ -2935,6 +2940,73 @@
                 
                 // Basic UI setup
                 setupBasicUI();
+                
+                // Add event listener for flow table updates from chart edits
+                window.addEventListener('flowTableUpdate', (event) => {
+                    console.log('📊 Received flowTableUpdate event:', event.detail);
+                    try {
+                        if (event.detail.source === 'chart-edit' && event.detail.data) {
+                            console.log('🔄 Processing flow table update for unified interface...');
+                            
+                            // Method 1: Try to update flowData and renderFlowTable (if available)
+                            if (typeof convertSankeyDataToFlows === 'function' && 
+                                typeof renderFlowTable === 'function') {
+                                
+                                console.log('✅ Converting chart data to flow format...');
+                                const convertedFlowData = convertSankeyDataToFlows(event.detail.data);
+                                
+                                // Initialize flowData if it doesn't exist
+                                if (!window.flowData) {
+                                    console.log('🔧 Initializing flowData from chart edit...');
+                                    window.flowData = {
+                                        flows: [],
+                                        metadata: {
+                                            company: "Chart Data",
+                                            title: "Financial Flow",
+                                            period: "Current", 
+                                            colorPalette: {},
+                                            comparisonMode: false
+                                        }
+                                    };
+                                }
+                                
+                                // Preserve existing metadata (colors, etc.)
+                                const existingMetadata = window.flowData.metadata || {};
+                                window.flowData.flows = convertedFlowData.flows;
+                                window.flowData.metadata = {
+                                    ...existingMetadata,
+                                    ...convertedFlowData.metadata
+                                };
+                                
+                                console.log('✅ Updated flowData, following reset button sequence...');
+                                
+                                // Follow the exact same sequence as the working reset button
+                                // Update metadata inputs (critical step)
+                                if (typeof updateMetadataInputs === 'function') {
+                                    console.log('📝 Calling updateMetadataInputs()...');
+                                    updateMetadataInputs();
+                                }
+                                
+                                // Re-render the flow table
+                                console.log('🔄 Calling renderFlowTable()...');
+                                renderFlowTable();
+                                
+                                // Update statistics
+                                if (typeof updateAllStats === 'function') {
+                                    console.log('📊 Calling updateAllStats()...');
+                                    updateAllStats();
+                                }
+                                
+                                console.log('✅ Flow table updated via reset button sequence');
+                            } else {
+                                console.log('ℹ️ Flow table functions not available, relying on direct update');
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Error handling flowTableUpdate event:', error.message);
+                        console.error(error);
+                    }
+                });
                 
                 // Parse URL parameters once
                 const urlParams = new URLSearchParams(window.location.search);

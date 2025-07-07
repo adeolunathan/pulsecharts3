@@ -256,11 +256,47 @@ class PulseSankeyChart {
                 // Recalculate node values based on updated links
                 this.recalculateNodeValues();
                 
-                // Update spreadsheet if available
-                this.updateSpreadsheetData();
-                
-                // Re-render the chart with updated data
+                // Re-render the chart with updated data first
                 this.render(this.data);
+                
+                // CRITICAL: Notify PulseDataBridge of the update first (so it has the latest data)
+                if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
+                    console.log('📡 Notifying PulseDataBridge of updated data...');
+                    window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
+                }
+                
+                // Now do EXACTLY what the reset button does
+                console.log('🔄 Executing exact reset button sequence...');
+                
+                // Get data from PulseDataBridge (like reset button does)
+                const data = window.PulseDataBridge ? window.PulseDataBridge.getData() : this.data;
+                
+                if (data && typeof window.convertSankeyDataToFlows === 'function') {
+                    // CRITICAL: Preserve existing colors (like reset button does)
+                    const existingColors = window.flowData ? { ...window.flowData.metadata.colorPalette } : {};
+                    
+                    // Update flowData directly (like reset button does)
+                    window.flowData = window.convertSankeyDataToFlows(data);
+                    
+                    // CRITICAL: Restore colors (like reset button does)
+                    window.flowData.metadata.colorPalette = { ...existingColors, ...window.flowData.metadata.colorPalette };
+                    
+                    // Call exact same sequence as reset button
+                    if (typeof window.updateMetadataInputs === 'function') {
+                        window.updateMetadataInputs();
+                    }
+                    if (typeof window.renderFlowTable === 'function') {
+                        window.renderFlowTable();
+                    }
+                    if (typeof window.updateAllStats === 'function') {
+                        window.updateAllStats();
+                    }
+                    
+                    // Success alert like reset button
+                    alert('✅ Flow updated successfully - chart and spreadsheet synchronized!');
+                } else {
+                    console.warn('⚠️ Could not execute reset sequence - missing functions');
+                }
             } else {
                 console.warn('⚠️ Original link not found in data');
                 console.log('🔍 Searched for:', { originalSourceId, originalTargetId });
@@ -390,39 +426,18 @@ class PulseSankeyChart {
         console.log('✅ Node values recalculated with source preservation');
     }
 
-    // Update spreadsheet data if available
+    // Update spreadsheet data if available - simplified for backup notification
     updateSpreadsheetData() {
         try {
-            console.log('📊 Attempting to update spreadsheet data...');
+            console.log('📊 Notifying other components of data change...');
             
-            // Method 1: Use PulseApplication updateData (correct approach)
-            if (window.pulseApp && typeof window.pulseApp.updateData === 'function') {
-                console.log('✅ Found PulseApplication instance, updating via updateData()');
-                window.pulseApp.updateData(this.data, 'chart-edit');
-                console.log('✅ PulseApplication updated with current data');
-                return;
-            }
-            
-            // Method 2: Try window.PulseApplication.instance (fallback)
-            if (window.PulseApplication && window.PulseApplication.instance) {
-                const app = window.PulseApplication.instance;
-                if (app && typeof app.updateData === 'function') {
-                    console.log('✅ Found PulseApplication.instance, updating via updateData()');
-                    app.updateData(this.data, 'chart-edit');
-                    console.log('✅ PulseApplication.instance updated');
-                    return;
-                }
-            }
-            
-            // Method 3: Data Bridge notification
-            if (window.PulseDataBridge) {
-                console.log('✅ Found PulseDataBridge, notifying update');
+            // Notify PulseDataBridge if available
+            if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
+                console.log('✅ Notifying PulseDataBridge of update');
                 window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
-                console.log('✅ DataBridge notified of update');
-                return;
             }
             
-            // Method 4: Custom event for any listening components
+            // Dispatch custom event as fallback
             const updateEvent = new CustomEvent('pulseDataChanged', {
                 detail: { 
                     data: this.data, 
@@ -433,17 +448,97 @@ class PulseSankeyChart {
             window.dispatchEvent(updateEvent);
             console.log('✅ Dispatched pulseDataChanged event');
             
-            // Method 5: Try to find specific data editor components
-            if (window.barDataEditor && typeof window.barDataEditor.updateFromChart === 'function') {
-                console.log('✅ Found barDataEditor, updating');
-                window.barDataEditor.updateFromChart(this.data);
+        } catch (error) {
+            console.warn('⚠️ Could not notify other components:', error.message);
+        }
+    }
+
+    // Direct table update method for unified interface
+    updateTableDirectly() {
+        try {
+            console.log('🔄 Attempting direct table update...');
+            
+            // Find the main flow table in the unified interface
+            const flowTable = document.querySelector('#main-flow-table tbody') || 
+                             document.querySelector('.flow-table tbody') ||
+                             document.querySelector('table tbody');
+            
+            if (!flowTable) {
+                console.warn('⚠️ Flow table not found for direct update');
                 return;
             }
             
-            console.log('ℹ️ Used event dispatch method for data synchronization');
+            console.log('✅ Found flow table, updating rows...');
+            
+            // Get all existing table rows
+            const tableRows = flowTable.querySelectorAll('tr');
+            console.log(`📊 Found ${tableRows.length} table rows`);
+            
+            // Update each row with current chart data
+            this.data.links.forEach((link, linkIndex) => {
+                const sourceId = link.source?.id || link.source;
+                const targetId = link.target?.id || link.target;
+                const currentValue = link.value || 0;
+                const previousValue = link.previousValue || 0;
+                
+                console.log(`🔍 Looking for table row: ${sourceId} → ${targetId} (${currentValue})`);
+                
+                // Find matching row in table
+                for (let i = 0; i < tableRows.length; i++) {
+                    const row = tableRows[i];
+                    const cells = row.querySelectorAll('td');
+                    
+                    if (cells.length >= 5) { // FROM, TO, DESCRIPTION, CURRENT, PREVIOUS
+                        const fromCell = cells[1]; // FROM column
+                        const toCell = cells[2];   // TO column  
+                        const currentCell = cells[4]; // CURRENT column
+                        const previousCell = cells[5]; // PREVIOUS column (if exists)
+                        
+                        // Check if this row matches the link
+                        const fromText = fromCell.textContent?.trim() || fromCell.querySelector('input')?.value?.trim();
+                        const toText = toCell.textContent?.trim() || toCell.querySelector('input')?.value?.trim();
+                        
+                        if (fromText === sourceId && toText === targetId) {
+                            console.log(`✅ Found matching row ${i}, updating values...`);
+                            
+                            // Update current value
+                            const currentInput = currentCell.querySelector('input');
+                            if (currentInput) {
+                                currentInput.value = currentValue;
+                                console.log(`📝 Updated CURRENT value to: ${currentValue}`);
+                            } else {
+                                currentCell.textContent = currentValue;
+                            }
+                            
+                            // Update previous value if cell exists
+                            if (previousCell) {
+                                const previousInput = previousCell.querySelector('input');
+                                if (previousInput) {
+                                    previousInput.value = previousValue;
+                                    console.log(`📝 Updated PREVIOUS value to: ${previousValue}`);
+                                } else {
+                                    previousCell.textContent = previousValue;
+                                }
+                            }
+                            
+                            // Trigger any cell update events
+                            if (currentInput) {
+                                currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                currentInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                            
+                            console.log(`✅ Row ${i} updated successfully`);
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            console.log('✅ Direct table update completed');
             
         } catch (error) {
-            console.warn('⚠️ Could not update spreadsheet:', error.message);
+            console.warn('⚠️ Error in direct table update:', error.message);
+            console.error(error);
         }
     }
 
