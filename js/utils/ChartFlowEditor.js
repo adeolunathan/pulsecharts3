@@ -252,27 +252,6 @@
             })
             .on('click', () => resetTableFromModal.call(this));
 
-        // Save button
-        buttonRow.append('button')
-            .text('Save')
-            .style('flex', '1')
-            .style('padding', '8px 16px')
-            .style('background', '#3b82f6')
-            .style('color', 'white')
-            .style('border', 'none')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
-            .style('font-weight', '500')
-            .style('cursor', 'pointer')
-            .style('transition', 'all 0.15s ease')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#2563eb');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', '#3b82f6');
-            })
-            .on('click', () => saveFlow.call(this));
-
         // Store references for easy access
         this.flowEditorElements = {
             fromInput,
@@ -511,14 +490,17 @@
             if (typeof window.loadCurrentChartData === 'function') {
                 console.log('🔄 Updating spreadsheet table...');
                 window.loadCurrentChartData();
-                console.log('✅ Save & Reset completed successfully - chart and table synchronized!');
+                console.log('✅ Save & Sync completed successfully - chart and table synchronized!');
             } else {
                 console.warn('⚠️ loadCurrentChartData function not available');
             }
+            
+            // STEP 3: Close the modal automatically after sync is complete
+            setTimeout(() => {
+                console.log('🚪 Closing modal after successful save & sync');
+                hideFlowEditor.call(this);
+            }, 50);
         }, 100);
-        
-        // Keep the modal open so user can see the result or make further changes
-        // Note: We don't call hideFlowEditor() here
     }
 
     /**
