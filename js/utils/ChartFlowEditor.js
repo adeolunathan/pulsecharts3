@@ -231,6 +231,27 @@
             })
             .on('click', () => hideFlowEditor.call(this));
 
+        // Save & Reset button
+        buttonRow.append('button')
+            .text('💾🔄 Save & Sync')
+            .style('flex', '1')
+            .style('padding', '8px 16px')
+            .style('background', '#059669')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '4px')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('cursor', 'pointer')
+            .style('transition', 'all 0.15s ease')
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#047857');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', '#059669');
+            })
+            .on('click', () => resetTableFromModal.call(this));
+
         // Save button
         buttonRow.append('button')
             .text('Save')
@@ -452,6 +473,52 @@
         }
         
         hideFlowEditor.call(this);
+    }
+
+    /**
+     * Save AND reset table from modal - combines save and reset functionality
+     */
+    function resetTableFromModal() {
+        console.log('🔄💾 Save & Reset button clicked from modal - saving changes and updating table...');
+        
+        // STEP 1: Save the flow changes (same as Save button)
+        if (!this.selectedElement || !this.currentLinkData) {
+            console.warn('⚠️ No flow data to save');
+            return;
+        }
+        
+        const updatedFlow = {
+            originalLink: this.currentLinkData,
+            source: this.flowEditorElements.fromInput.property('value'),
+            target: this.flowEditorElements.toInput.property('value'),
+            value: parseFloat(this.flowEditorElements.currentInput.property('value')) || 0,
+            previousValue: parseFloat(this.flowEditorElements.comparisonInput.property('value')) || 0
+        };
+        
+        // Call the chart-specific save callback
+        if (this.onSaveFlowCallback && typeof this.onSaveFlowCallback === 'function') {
+            console.log('💾 Saving flow changes...');
+            this.onSaveFlowCallback(updatedFlow, this.selectedElement);
+            console.log('✅ Flow changes saved successfully');
+        } else {
+            console.warn('⚠️ No save flow callback provided to ChartFlowEditor');
+            return;
+        }
+        
+        // STEP 2: Reset the table (same as external reset button)
+        // Give the save a moment to complete, then reset the table
+        setTimeout(() => {
+            if (typeof window.loadCurrentChartData === 'function') {
+                console.log('🔄 Updating spreadsheet table...');
+                window.loadCurrentChartData();
+                console.log('✅ Save & Reset completed successfully - chart and table synchronized!');
+            } else {
+                console.warn('⚠️ loadCurrentChartData function not available');
+            }
+        }, 100);
+        
+        // Keep the modal open so user can see the result or make further changes
+        // Note: We don't call hideFlowEditor() here
     }
 
     /**
