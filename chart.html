@@ -297,7 +297,7 @@
                 <div class="full-width-layout" style="display: flex; gap: 16px; min-height: 750px; margin: 0; padding: 8px;">
                     
                     <!-- Left Panel: Spreadsheet -->
-                    <div class="spreadsheet-panel" style="flex: 0 0 35%; min-width: 480px; position: relative; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); overflow: visible;">
+                    <div class="spreadsheet-panel" style="flex: 0 0 45%; min-width: 600px; position: relative; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); overflow: visible;">
                         <!-- Business Flows Section -->
                         <div class="section">
                             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 1px solid #dee2e6; border-radius: 12px 12px 0 0;">
@@ -317,6 +317,10 @@
                                                     <option value="profit">Profit Only</option>
                                                     <option value="all">All Nodes</option>
                                                 </select>
+                                            </div>
+                                            <div class="description-toggle">
+                                                <input type="checkbox" id="description-column-toggle" onchange="toggleDescriptionColumn()" checked>
+                                                <label for="description-column-toggle" title="Show/hide Description column">📝</label>
                                             </div>
                                         </div>
                                     </h3>
@@ -924,6 +928,129 @@
                 console.warn('⚠️ Cannot update margin type - no chart available or margin disabled');
             }
         }
+
+        // Toggle Description column visibility with dynamic chart resizing
+        function toggleDescriptionColumn() {
+            const descriptionToggle = document.getElementById('description-column-toggle');
+            const showDescription = descriptionToggle.checked;
+            
+            // Toggle the header column
+            const descriptionHeader = document.getElementById('description-col');
+            if (descriptionHeader) {
+                descriptionHeader.style.display = showDescription ? 'table-cell' : 'none';
+            }
+            
+            // Toggle all description cells in the table body
+            const descriptionCells = document.querySelectorAll('td[data-col="description"]');
+            descriptionCells.forEach(cell => {
+                cell.style.display = showDescription ? 'table-cell' : 'none';
+            });
+            
+            // Dynamic chart container resizing based on description column visibility
+            const spreadsheetPanel = document.querySelector('.spreadsheet-panel');
+            if (spreadsheetPanel) {
+                if (showDescription) {
+                    // Description visible: Use larger spreadsheet space (45%)
+                    spreadsheetPanel.style.flex = '0 0 45%';
+                    spreadsheetPanel.style.minWidth = '600px';
+                } else {
+                    // Description hidden: Use smaller spreadsheet space (35%), chart expands to 65%
+                    spreadsheetPanel.style.flex = '0 0 35%';
+                    spreadsheetPanel.style.minWidth = '480px';
+                }
+            }
+            
+            // Trigger chart resize after panel adjustment
+            setTimeout(() => {
+                if (window.pulseApp && window.pulseApp.chart && typeof window.pulseApp.chart.render === 'function') {
+                    console.log('🔄 Triggering chart re-render for size adjustment...');
+                    window.pulseApp.chart.render(window.pulseApp.chart.data);
+                }
+                
+                // Alternative: trigger window resize event to force chart redraw
+                window.dispatchEvent(new Event('resize'));
+            }, 100);
+            
+            console.log(`📝 Description column ${showDescription ? 'SHOWN' : 'HIDDEN'} - Chart container ${showDescription ? 'REDUCED' : 'EXPANDED'}`);
+        }
+
+        // Column resizing functionality
+        function initializeColumnResizing() {
+            const table = document.getElementById('main-flow-table');
+            if (!table) return;
+
+            let isResizing = false;
+            let currentColumn = null;
+            let startX = 0;
+            let startWidth = 0;
+
+            // Add mousedown event to all table headers
+            table.addEventListener('mousedown', function(e) {
+                const th = e.target.closest('th');
+                if (!th) return;
+
+                // Check if click is on the resize handle (right edge)
+                const rect = th.getBoundingClientRect();
+                const isOnRightEdge = e.clientX > rect.right - 6;
+                
+                if (isOnRightEdge && th.nextElementSibling) {
+                    isResizing = true;
+                    currentColumn = th;
+                    startX = e.clientX;
+                    startWidth = parseInt(getComputedStyle(th).width);
+                    
+                    // Add resizing class for visual feedback
+                    th.classList.add('resizing');
+                    
+                    // Prevent text selection during resize
+                    document.body.style.userSelect = 'none';
+                    document.body.style.cursor = 'col-resize';
+                    
+                    e.preventDefault();
+                }
+            });
+
+            // Handle mouse move for resizing
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizing || !currentColumn) return;
+
+                const diff = e.clientX - startX;
+                const newWidth = Math.max(30, startWidth + diff); // Minimum 30px width
+                
+                // Update column width
+                currentColumn.style.width = newWidth + 'px';
+                
+                // Update corresponding cells in the same column
+                const columnIndex = Array.from(currentColumn.parentNode.children).indexOf(currentColumn);
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const cell = row.children[columnIndex];
+                    if (cell) {
+                        cell.style.width = newWidth + 'px';
+                    }
+                });
+            });
+
+            // Handle mouse up to end resizing
+            document.addEventListener('mouseup', function() {
+                if (isResizing && currentColumn) {
+                    currentColumn.classList.remove('resizing');
+                    currentColumn = null;
+                    isResizing = false;
+                    
+                    // Reset cursor and selection
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+
+            console.log('📏 Column resizing initialized');
+        }
+
+        // Initialize column resizing when table is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializeColumnResizing, 500);
+        });
 
         // Flow structure definition
         class BusinessFlow {
