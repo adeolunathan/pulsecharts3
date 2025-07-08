@@ -46,17 +46,19 @@
     <!-- Consolidated Application Styles -->
     <link rel="stylesheet" href="css/pulse-analytics.css">
     <style>
-        /* Reduce table content font sizes for compact layout */
+        /* Consistent 15px font size across all spreadsheet elements */
         .flow-table td, 
+        .flow-table th,
         .spreadsheet-cell,
-        .cell-content {
-            font-size: 11px !important;
+        .cell-content,
+        .variance-indicator {
+            font-size: 13px !important;
         }
         
         .flow-table td input,
         .flow-table td select,
         .flow-table td button {
-            font-size: 10px !important;
+            font-size: 15px !important;
         }
         
         /* Make chart more prominent */
@@ -330,13 +332,13 @@
                                     <table class="flow-table" id="main-flow-table">
                                         <thead>
                                             <tr>
-                                                <th style="width: 30px; display: table-cell; font-size: 13px;" id="actions-col"></th>
-                                                <th style="width: 120px; font-size: 13px;">From</th>
-                                                <th style="width: 120px; font-size: 13px;">To</th>
-                                                <th style="width: 180px; display: table-cell; font-size: 13px;" id="description-col">Description</th>
-                                                <th style="width: 70px; display: table-cell; font-size: 13px;" id="current-value-col">Current</th>
-                                                <th style="width: 70px; display: table-cell; font-size: 13px;" id="previous-value-col">Previous</th>
-                                                <th style="width: 45px; display: table-cell; font-size: 13px;" id="variance-col">Variance</th>
+                                                <th style="width: 30px; display: table-cell;" id="actions-col"></th>
+                                                <th style="width: 120px;">From</th>
+                                                <th style="width: 120px;">To</th>
+                                                <th style="width: 180px; display: table-cell;" id="description-col">Description</th>
+                                                <th style="width: 70px; display: table-cell;" id="current-value-col">Current</th>
+                                                <th style="width: 70px; display: table-cell;" id="previous-value-col">Previous</th>
+                                                <th style="width: 45px; display: table-cell;" id="variance-col">Variance</th>
                                             </tr>
                                         </thead>
                                         <tbody id="flows-tbody">
@@ -2476,7 +2478,7 @@
                     <input type="number" class="cell-editor" style="display: none;" placeholder="0">
                 </td>
                 <td class="variance-cell">
-                    <div style="font-size: 13px; text-align: center;">${isEmpty ? '' : flow.getVarianceDisplay()}</div>
+                    <div style="text-align: center;">${isEmpty ? '' : flow.getVarianceDisplay()}</div>
                 </td>
 `;
             

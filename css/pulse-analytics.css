@@ -1,6 +1,19 @@
 /* ===== PULSE ANALYTICS - CONSOLIDATED STYLES ===== */
 /* Consolidated from main.css, charts.css, controls.css + chart.html inline styles */
 
+/* ===== CONSISTENT 15PX FONT SIZE ACROSS ALL SPREADSHEET ELEMENTS ===== */
+.flow-table,
+.flow-table th,
+.flow-table td,
+.spreadsheet-cell,
+.cell-content,
+.variance-indicator,
+.flow-table input,
+.flow-table select,
+.flow-table button {
+    font-size: 15px !important;
+}
+
 /* ===== RESET AND BASE STYLES ===== */
 * {
     margin: 0;
@@ -5031,7 +5044,7 @@ body {
 /* Responsive Design */
 @media (max-width: 1200px) {
     .flow-table {
-        font-size: 14px;
+        font-size: 15px;
     }
     
     .flow-table th,
