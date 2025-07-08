@@ -283,7 +283,7 @@
                 </div>
             </div>
 
-            <div class="flow-builder-container">
+            <div>
                 <!-- Flow Builder actions moved to Chart View menu -->
 
                 <!-- Form fields removed - using click-to-edit chart title instead -->
@@ -543,11 +543,11 @@
                     this.chartInstance.render(this.currentData);
                 }
                 
-                if (window.currentMainTab === 'data-builder' && window.currentChartType === 'sankey') {
+                if (window.currentChartType === 'sankey') {
                     this.refreshFlowBuilder();
                     // Also update the flow builder chart instance if it exists
-                    if (window.flowBuilderChart && source === 'flow-builder') {
-                        window.flowBuilderChart.render(this.currentData);
+                    if (window.pulseApp && window.pulseApp.chart && source === 'flow-builder') {
+                        window.pulseApp.chart.render(this.currentData);
                     }
                 }
                 
@@ -710,7 +710,7 @@
         let currentMainTab = 'data-builder';
         let selectedChartType = null; // 'income' or 'balance'
         let isInitialized = false; // Prevent multiple initializations
-        let lockChartView = false; // Lock chart view when coming from type selector
+        // Single page system - no tab switching needed
         let flowData = {
             metadata: {
                 title: "Financial Flow",
@@ -731,7 +731,7 @@
             return {
                 type: urlParams.get('type'), // 'income' or 'balance' (for Sankey)
                 chartType: urlParams.get('chartType'), // 'sankey' or 'bar' (main chart type)
-                tab: urlParams.get('tab'), // 'data-builder' only
+                // Single page system - no tab parameter needed
                 data: urlParams.get('data') // Encoded JSON data
             };
         }
@@ -848,8 +848,8 @@
             
             // Get the current chart instance - try multiple sources
             let chart = null;
-            if (window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
-                chart = window.flowBuilderChart;
+            if (window.pulseApp && window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
+                chart = window.pulseApp.chart;
             } else if (window.pulseApp && window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
                 chart = window.pulseApp.chart;
             }
@@ -872,8 +872,8 @@
             
             // Get the current chart instance - try multiple sources
             let chart = null;
-            if (window.flowBuilderChart && window.flowBuilderChart.updateConfig) {
-                chart = window.flowBuilderChart;
+            if (window.pulseApp && window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
+                chart = window.pulseApp.chart;
             } else if (window.pulseApp && window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
                 chart = window.pulseApp.chart;
             }
@@ -1348,7 +1348,7 @@
 
         function resetNodeHighlighting() {
             // Reset any chart highlighting effects
-            const chart = window.flowBuilderChart || window.pulseApp?.chart;
+            const chart = window.pulseApp?.chart;
             if (chart && typeof chart.highlightNodesByCategory === 'function') {
                 chart.highlightNodesByCategory(null);
             }
@@ -1431,8 +1431,8 @@
         // Basic control functions
         function randomizeColors() {
             // Implement color randomization
-            if (window.flowBuilderChart && typeof window.flowBuilderChart.randomizeColors === 'function') {
-                window.flowBuilderChart.randomizeColors();
+            if (window.pulseApp.chart && typeof window.pulseApp.chart.randomizeColors === 'function') {
+                window.pulseApp.chart.randomizeColors();
             } else {
             }
             showNotification('Colors randomized', 'success');
@@ -1457,28 +1457,28 @@
                     // Check if PulseControlPanel is available
                     if (typeof PulseControlPanel !== 'undefined') {
                         // Create a single control panel instance that will distribute controls across all dropdowns
-                        window.flowBuilderControlPanel = new PulseControlPanel('data-controls');
+                        window.pulseApp.controlPanel = new PulseControlPanel('data-controls');
                         
                         // Initialize with current chart if available
-                        if (window.flowBuilderChart) {
+                        if (window.pulseApp.chart) {
                             
                             // Determine control module based on chart type
                             let controlModule = null;
-                            if (window.flowBuilderChart.type === 'sankey' && typeof SankeyControlModule !== 'undefined') {
+                            if (window.pulseApp.chart.type === 'sankey' && typeof SankeyControlModule !== 'undefined') {
                                 controlModule = new SankeyControlModule();
                                 
                                 // Initialize dynamic controls for Sankey charts
-                                if (controlModule.initializeDynamicControls && window.flowBuilderChart.data) {
-                                    controlModule.initializeDynamicControls(window.flowBuilderChart);
+                                if (controlModule.initializeDynamicControls && window.pulseApp.chart.data) {
+                                    controlModule.initializeDynamicControls(window.pulseApp.chart);
                                 }
-                            } else if (window.flowBuilderChart.type === 'bar' && typeof BarControlModule !== 'undefined') {
+                            } else if (window.pulseApp.chart.type === 'bar' && typeof BarControlModule !== 'undefined') {
                                 controlModule = new BarControlModule();
                             }
                             
                             if (controlModule) {
-                                window.flowBuilderControlPanel.init(window.flowBuilderChart, controlModule);
+                                window.pulseApp.controlPanel.init(window.pulseApp.chart, controlModule);
                             } else {
-                                console.warn('⚠️ No suitable control module found for chart type:', window.flowBuilderChart.type);
+                                console.warn('⚠️ No suitable control module found for chart type:', window.pulseApp.chart.type);
                             }
                         } else {
                         }
@@ -1554,24 +1554,24 @@
             
             try {
                 if (format === 'png') {
-                    if (window.flowBuilderChart && window.flowBuilderChart.exportToPNG) {
-                        window.flowBuilderChart.exportToPNG();
+                    if (window.pulseApp.chart && window.pulseApp.chart.exportToPNG) {
+                        window.pulseApp.chart.exportToPNG();
                     } else if (window.ChartExports?.exportToPNG) {
                         window.ChartExports.exportToPNG(chartElement, 'flow-chart.png');
                     } else {
                         throw new Error('PNG export not available');
                     }
                 } else if (format === 'svg') {
-                    if (window.flowBuilderChart && window.flowBuilderChart.exportToSVG) {
-                        window.flowBuilderChart.exportToSVG();
+                    if (window.pulseApp.chart && window.pulseApp.chart.exportToSVG) {
+                        window.pulseApp.chart.exportToSVG();
                     } else if (window.ChartExports?.exportToSVG) {
                         window.ChartExports.exportToSVG(chartElement, 'flow-chart.svg');
                     } else {
                         throw new Error('SVG export not available');
                     }
                 } else if (format === 'csv') {
-                    if (window.flowBuilderChart && window.flowBuilderChart.exportDataToCSV) {
-                        window.flowBuilderChart.exportDataToCSV();
+                    if (window.pulseApp.chart && window.pulseApp.chart.exportDataToCSV) {
+                        window.pulseApp.chart.exportDataToCSV();
                     } else {
                         // Export flow data as CSV
                         exportFlowDataToCSV();
@@ -1769,7 +1769,7 @@
                 flowBuilderChart.render(currentData);
                 
                 // Store reference for controls and future operations
-                window.flowBuilderChart = flowBuilderChart;
+                window.pulseApp.chart = flowBuilderChart;
                 
                 // Register with Data Bridge so it can update this chart
                 window.PulseDataBridge.setChartInstance(flowBuilderChart);
@@ -1788,18 +1788,7 @@
 
 
         function switchMainTab(tabName, isManualClick = false) {
-            // Check if chart view is locked (from type selector) - but allow manual clicks
-            if (lockChartView && tabName === 'data-builder' && !isManualClick) {
-                console.log('🔒 Chart view is locked, ignoring automatic switch to data-builder');
-                return;
-            }
-            
-            
-            // If user manually clicks any tab, unlock chart view
-            if (isManualClick) {
-                lockChartView = false;
-                console.log('🔓 Chart view unlocked by manual click');
-            }
+            // Single page system - simplified tab switching
             
             document.querySelectorAll('.main-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -1849,7 +1838,7 @@
                     
                     // Initialize Flow Builder chart controls independently
                     setTimeout(() => {
-                        if (window.flowBuilderChart) {
+                        if (window.pulseApp.chart) {
                             
                             // Initialize Flow Builder controls independently
                             initializeFlowBuilderControlPanel();
@@ -1904,13 +1893,8 @@
                 renderFlowTable();
                 updateAllStats();
                 
-                // Handle tab switching based on URL parameter
-                if (urlParams.tab === 'data-builder') {
-                    currentMainTab = 'data-builder';
-                    setTimeout(() => switchMainTab('data-builder'), 100);
-                } else {
-                    currentMainTab = 'data-builder';
-                }
+                // Single page system - always data-builder
+                currentMainTab = 'data-builder';
                 
                 isInitialized = true;
                 return;
@@ -1944,7 +1928,7 @@
                     if (urlParams.tab === 'data-builder') {
                         // Only switch to data-builder if explicitly requested
                         currentMainTab = 'data-builder';
-                        setTimeout(() => switchMainTab('data-builder'), 100);
+                        // Single page system - no tab switching needed
                     } else {
                         // Explicitly stay on data-builder
                         currentMainTab = 'data-builder';
@@ -1967,7 +1951,7 @@
                         }
                         
                         // Lock data builder to prevent automatic switching
-                        lockChartView = true;
+                        // Single page system - no chart view locking needed
                         
                     }
                     
@@ -2262,8 +2246,8 @@
             
             // Get current chart instance
             let chart = null;
-            if (window.flowBuilderChart) {
-                chart = window.flowBuilderChart;
+            if (window.pulseApp.chart) {
+                chart = window.pulseApp.chart;
             } else if (window.pulseApp && window.pulseApp.chart) {
                 chart = window.pulseApp.chart;
             }
