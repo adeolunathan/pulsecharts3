@@ -36,6 +36,11 @@
     
     <!-- Debug: Check if utilities loaded -->
     <script>
+        console.log('🔍 Checking utility availability:');
+        console.log('- ChartZoom:', typeof window.ChartZoom);
+        console.log('- ChartColorPicker:', typeof window.ChartColorPicker);
+        console.log('- ChartBrandingUtils:', typeof window.ChartBrandingUtils);
+        console.log('- ChartFlowEditor:', typeof window.ChartFlowEditor);
     </script>
     
     <!-- Google Fonts for Title Font Control -->
@@ -474,6 +479,12 @@
     
     <!-- Verify utilities before app loads -->
     <script>
+        console.log('🔍 Final utility check before app initialization:');
+        console.log('- ChartZoom:', typeof window.ChartZoom, window.ChartZoom ? 'AVAILABLE' : 'MISSING');
+        console.log('- ChartColorPicker:', typeof window.ChartColorPicker, window.ChartColorPicker ? 'AVAILABLE' : 'MISSING');
+        console.log('- ChartBrandingUtils:', typeof window.ChartBrandingUtils, window.ChartBrandingUtils ? 'AVAILABLE' : 'MISSING');
+        console.log('- FinancialDataProcessor:', typeof window.FinancialDataProcessor, window.FinancialDataProcessor ? 'AVAILABLE' : 'MISSING');
+        console.log('- d3:', typeof d3, d3 ? 'AVAILABLE' : 'MISSING');
     </script>
     
     <!-- Enhanced app.js -->
@@ -490,6 +501,7 @@
             
             init() {
                 this.isInitialized = true;
+                console.log('🌉 Real-time Data Bridge initialized');
                 
                 this.waitForAppReady().then(() => {
                     this.setupEventListeners();
@@ -506,6 +518,7 @@
             
             setData(data, source = 'unknown') {
                 this.currentData = data;
+                console.log(`📊 Data updated from ${source}:`, data);
                 this.notifyDataChanged(source);
             },
             
@@ -529,6 +542,7 @@
             
             setChartInstance(chart) {
                 this.chartInstance = chart;
+                console.log('📈 Chart instance registered');
             },
             
             setRealTimeMode(enabled) {
@@ -538,8 +552,10 @@
             },
             
             notifyDataChanged(source) {
+                console.log(`🔄 Broadcasting data change from ${source}`);
                 
                 if (this.chartInstance && this.currentData && source !== 'chart-update') {
+                    console.log('🎨 Updating chart with new data');
                     this.chartInstance.render(this.currentData);
                 }
                 
@@ -547,6 +563,7 @@
                     this.refreshFlowBuilder();
                     // Also update the flow builder chart instance if it exists
                     if (window.flowBuilderChart && source === 'flow-builder') {
+                        console.log('🎨 Updating flow builder chart directly');
                         window.flowBuilderChart.render(this.currentData);
                     }
                 }
@@ -561,14 +578,17 @@
             },
             
             refreshFlowBuilder() {
+                console.log('🔧 Refreshing Flow Builder...');
                 
                 const data = this.getData();
                 if (data && data.nodes && data.links) {
+                    console.log('✅ Found data for Flow Builder refresh:', data);
                     window.flowData = convertSankeyDataToFlows(data);
                     
                     if (typeof renderFlowTable === 'function') {
                         renderFlowTable();
                         updateAllStats();
+                        console.log('✅ Flow Builder refreshed successfully');
                     }
                     
                     // Update the chart preview in Flow Builder
@@ -599,11 +619,13 @@
             
             applyImmediateChange(newData) {
                 if (this.realTimeMode) {
+                    console.log('⚡ Applying immediate change in real-time mode');
                     this.setData(newData, 'flow-builder-realtime');
                 }
             },
             
             applyFlowBuilderChanges(newData) {
+                console.log('✅ Applying Flow Builder changes:', newData);
                 this.setData(newData, 'flow-builder');
             },
             
@@ -623,6 +645,7 @@
                         attempts++;
                         
                         if (window.pulseApp && window.pulseApp.isInitialized) {
+                            console.log('✅ Main app found and ready, hooking into data flow');
                             this.hookIntoApp();
                             
                             this.appReadyCallbacks.forEach(callback => callback());
@@ -634,6 +657,7 @@
                         
                         // Also check if app exists but is still initializing
                         if (window.pulseApp && !window.pulseApp.isInitialized) {
+                            console.log(`⏳ App found but still initializing (attempt ${attempts}/${maxAttempts})`);
                         }
                         
                         if (attempts >= maxAttempts) {
@@ -673,15 +697,18 @@
                     this.setData(initialData, 'app-initial');
                 }
                 
+                console.log('🔗 Successfully hooked into main app');
             },
             
             handleTabSwitch(tabName) {
+                console.log(`🔄 Tab switched to: ${tabName}`);
                 
                 if (tabName === 'data-builder') {
                     if (!this.currentData && window.pulseApp) {
                         const appData = window.pulseApp.getCurrentData();
                         if (appData) {
                             this.currentData = appData;
+                            console.log('📊 Retrieved data from app for flow builder');
                         }
                     }
                     
@@ -751,6 +778,7 @@
                     return null;
                 }
 
+                console.log(`📁 Loading ${chartType} data from ${dataFile}`);
                 const response = await fetch(dataFile);
                 
                 if (!response.ok) {
@@ -758,6 +786,9 @@
                 }
                 
                 const data = await response.json();
+                console.log(`✅ Successfully loaded ${chartType} data:`, data);
+                console.log(`📊 Data nodes:`, data.nodes?.slice(0, 3));
+                console.log(`🔗 Data links:`, data.links?.slice(0, 3));
                 return data;
                 
             } catch (error) {
@@ -831,6 +862,7 @@
                 debouncedRealTimeUpdate();
             }
             
+            console.log(`📈 Comparison mode ${comparisonMode ? 'ENABLED' : 'DISABLED'} with colors preserved`);
         }
 
         // Margin Display Toggle - Uses existing logic from SankeyChart
@@ -854,6 +886,14 @@
                 chart = window.pulseApp.chart;
             }
             
+            // Debug logging
+            console.log('💰 Margin toggle debug:', {
+                showMargin: showMargin,
+                flowBuilderChart: !!window.flowBuilderChart,
+                pulseAppChart: !!(window.pulseApp && window.pulseApp.chart),
+                chartSelected: !!chart,
+                marginTypeValue: document.getElementById('margin-type-select').value
+            });
             
             // Update chart configuration through existing config system
             if (chart && chart.updateConfig) {
@@ -861,6 +901,7 @@
                     showMargin: showMargin,
                     showMarginFor: document.getElementById('margin-type-select').value
                 });
+                console.log('💰 Margin display toggled:', showMargin);
             } else {
                 console.warn('⚠️ No chart with updateConfig method found');
             }
@@ -882,6 +923,7 @@
                 chart.updateConfig({
                     showMarginFor: marginType
                 });
+                console.log('💰 Margin type updated:', marginType);
             } else {
                 console.warn('⚠️ Cannot update margin type - no chart available or margin disabled');
             }
@@ -921,6 +963,7 @@
             // Trigger chart resize after panel adjustment
             setTimeout(() => {
                 if (window.pulseApp && window.pulseApp.chart && typeof window.pulseApp.chart.render === 'function') {
+                    console.log('🔄 Triggering chart re-render for size adjustment...');
                     window.pulseApp.chart.render(window.pulseApp.chart.data);
                 }
                 
@@ -1255,6 +1298,7 @@
                     const totalIncoming = inflows.reduce((sum, inflow) => sum + inflow.value, 0);
                     revenueBase = totalIncoming;
                     revenueNodeName = nodeName;
+                    console.log(`✅ Found Total Revenue node: ${nodeName} = ${totalIncoming}`);
                     break;
                 } else if (lowerName.includes('revenue') && inflows.length >= 2) {
                     // Revenue node with multiple inputs (likely an aggregation)
@@ -1272,6 +1316,7 @@
                         if (totalIncoming > revenueBase) {
                             revenueBase = totalIncoming;
                             revenueNodeName = nodeName;
+                            console.log(`✅ Found revenue aggregation node: ${nodeName} = ${totalIncoming}`);
                         }
                     }
                 }
@@ -1279,6 +1324,7 @@
             
             // Fallback: if no aggregation found, sum all primary revenue sources
             if (revenueBase === 0) {
+                console.log('🔍 No total revenue node found, summing primary revenue sources...');
                 const primarySources = flowData.flows.filter(flow => {
                     const sourceLower = flow.source.toLowerCase();
                     return (sourceLower.includes('revenue') || 
@@ -1292,6 +1338,7 @@
                 revenueNodeName = `Calculated from ${primarySources.length} primary sources`;
             }
             
+            console.log(`💰 Revenue base: ${revenueNodeName} = ${revenueBase}`);
             return revenueBase;
         }
 
@@ -1323,6 +1370,7 @@
 
         const debouncedRealTimeUpdate = debounce(() => {
             if (window.PulseDataBridge.realTimeMode) {
+                console.log('⚡ Triggering debounced real-time update');
                 const sankeyData = generateNodesAndLinksFromFlows();
                 window.PulseDataBridge.applyImmediateChange(sankeyData);
             }
@@ -1405,6 +1453,7 @@
             const chartContainer = document.getElementById('main-chart');
             if (!chartContainer) return;
             
+            console.log('📊 Initializing Flow Builder chart canvas');
             
             // Clear existing content and prepare for chart rendering
             chartContainer.innerHTML = '';
@@ -1415,6 +1464,7 @@
             
             // Try to render current chart data if available
             if (window.pulseApp && window.pulseApp.getCurrentChart()) {
+                console.log('🎨 Rendering existing chart in Flow Builder canvas');
                 renderChartInFlowBuilder();
             } else {
                 // Show placeholder
@@ -1430,18 +1480,22 @@
         
         // Basic control functions
         function randomizeColors() {
+            console.log('🎨 Randomizing chart colors');
             // Implement color randomization
             if (window.flowBuilderChart && typeof window.flowBuilderChart.randomizeColors === 'function') {
                 window.flowBuilderChart.randomizeColors();
             } else {
+                console.log('⚠️ randomizeColors method not available on chart instance');
             }
             showNotification('Colors randomized', 'success');
         }
         
         function refreshChart() {
+            console.log('🔄 Refreshing chart');
             
             // Instead of recreating the chart, update it through the Data Bridge
             const sankeyData = generateNodesAndLinksFromFlows();
+            console.log('📈 Refreshing with Sankey data:', sankeyData);
             window.PulseDataBridge.setData(sankeyData, 'chart-refresh');
             
             // Reset highlighting when chart refreshes
@@ -1450,6 +1504,7 @@
         
         // Initialize Flow Builder Control Panel (same as Chart View)
         function initializeFlowBuilderControlPanel() {
+            console.log('🎛️ Initializing Flow Builder Control Panel');
             
             // Wait for PulseControlPanel to be available
             setTimeout(() => {
@@ -1461,26 +1516,32 @@
                         
                         // Initialize with current chart if available
                         if (window.flowBuilderChart) {
+                            console.log('🎯 Flow Builder chart found, initializing controls');
                             
                             // Determine control module based on chart type
                             let controlModule = null;
                             if (window.flowBuilderChart.type === 'sankey' && typeof SankeyControlModule !== 'undefined') {
                                 controlModule = new SankeyControlModule();
+                                console.log('📋 Created SankeyControlModule for Flow Builder');
                                 
                                 // Initialize dynamic controls for Sankey charts
                                 if (controlModule.initializeDynamicControls && window.flowBuilderChart.data) {
                                     controlModule.initializeDynamicControls(window.flowBuilderChart);
+                                    console.log('🎨 Initialized dynamic controls with chart data');
                                 }
                             } else if (window.flowBuilderChart.type === 'bar' && typeof BarControlModule !== 'undefined') {
                                 controlModule = new BarControlModule();
+                                console.log('📊 Created BarControlModule for Flow Builder');
                             }
                             
                             if (controlModule) {
                                 window.flowBuilderControlPanel.init(window.flowBuilderChart, controlModule);
+                                console.log('✅ Flow Builder Control Panel initialized with chart and controls populated');
                             } else {
                                 console.warn('⚠️ No suitable control module found for chart type:', window.flowBuilderChart.type);
                             }
                         } else {
+                            console.log('⚠️ Chart not available yet for control panel initialization');
                         }
                     } else {
                         console.warn('⚠️ PulseControlPanel class not loaded yet');
@@ -1593,8 +1654,10 @@
             // Determine which chart instance to use
             if (window.pulseApp && window.pulseApp.flowBuilderMode && window.pulseApp.flowBuilderChart) {
                 chartInstance = window.pulseApp.flowBuilderChart;
+                console.log('📊 Using Flow Builder chart for export');
             } else if (window.pulseApp && window.pulseApp.chart) {
                 chartInstance = window.pulseApp.chart;
+                console.log('📊 Using main chart for export');
             }
             
             if (!chartInstance) {
@@ -1632,6 +1695,7 @@
         function ensureFlowBuilderControlsWork() {
             // Flow Builder controls should be self-contained and only affect the Flow Builder chart
             // No need to intercept main app control panel updates
+            console.log('🔗 Flow Builder controls configured to work independently');
         }
         
         // Export flow data to CSV
@@ -1712,6 +1776,7 @@
             const chartContainer = document.getElementById('main-chart');
             if (!chartContainer) return;
             
+            console.log('🎨 Rendering chart in Flow Builder canvas');
             
             // Clear container
             chartContainer.innerHTML = '';
@@ -1755,6 +1820,7 @@
                     throw new Error(`Chart type '${chartType}' not found or chart class not available`);
                 }
                 
+                console.log(`🎯 Creating ${chartType} chart instance for Flow Builder`);
                 
                 // Create chart instance using the same pattern as app.js (line 200)
                 const flowBuilderChart = new chartDefinition.chartClass('main-chart');
@@ -1774,6 +1840,7 @@
                 // Register with Data Bridge so it can update this chart
                 window.PulseDataBridge.setChartInstance(flowBuilderChart);
                 
+                console.log(`✅ ${chartType} chart rendered successfully in Flow Builder canvas`);
                 
             } catch (error) {
                 console.error('❌ Error rendering chart in Flow Builder:', error);
@@ -1794,6 +1861,7 @@
                 return;
             }
             
+            console.log(`🎯 Switching to tab: ${tabName}`);
             
             // If user manually clicks any tab, unlock chart view
             if (isManualClick) {
@@ -1834,6 +1902,7 @@
                     // Check chart type to determine initialization method
                     const urlParams = getURLParameters();
                     if (urlParams.type === 'bar' || urlParams.chartType === 'bar') {
+                        console.log('📊 Bar chart detected, skipping flow-based initialization for data-builder tab');
                         isInitialized = true; // Mark as initialized to prevent future calls
                     } else {
                         setTimeout(() => {
@@ -1841,6 +1910,7 @@
                         }, 100);
                     }
                 } else {
+                    console.log('📊 Data-builder tab activated, data already loaded');
                 }
                 
                 // Initialize Flow Builder chart canvas independently
@@ -1850,6 +1920,7 @@
                     // Initialize Flow Builder chart controls independently
                     setTimeout(() => {
                         if (window.flowBuilderChart) {
+                            console.log('🔗 Initializing Flow Builder chart controls independently');
                             
                             // Initialize Flow Builder controls independently
                             initializeFlowBuilderControlPanel();
@@ -1862,36 +1933,45 @@
                 
             } else {
                 // Single-page interface - main chart always visible
+                console.log('📊 Single-page interface active');
             }
         }
 
         async function initializeChartInterface() {
             if (isInitialized) {
+                console.log('⚠️ Chart interface already initialized, skipping...');
                 return;
             }
             
+            console.log('🔧 Initializing Chart Interface...');
             
             // Get URL parameters once at the beginning
             const urlParams = getURLParameters();
+            console.log('🔍 URL params check: type=', urlParams.type, 'chartType=', urlParams.chartType);
             
             // Handle bar charts separately - they don't use flow data
             if (urlParams.type === 'bar' || urlParams.chartType === 'bar') {
+                console.log('📊 Bar chart detected, skipping flow-based initialization');
                 isInitialized = true;
                 return;
             }
             
+            console.log('🌊 Initializing Flow Builder for Sankey charts...');
             
             // Check for existing data first (priority for uploaded/custom data)
             let existingData = null;
             
             if (window.PulseDataBridge && window.PulseDataBridge.currentData) {
                 existingData = window.PulseDataBridge.currentData;
+                console.log('📊 Found existing data in Data Bridge:', existingData);
             } else if (window.pulseApp && window.pulseApp.getCurrentData()) {
                 existingData = window.pulseApp.getCurrentData();
+                console.log('📊 Found existing data from pulseApp:', existingData);
             }
             
             // If we have existing custom data, use it instead of loading sample data
             if (existingData && existingData.nodes && existingData.links) {
+                console.log('✅ Using existing custom data, skipping sample data load');
                 // CRITICAL: Preserve existing colors before conversion
                 const existingColors = { ...flowData.metadata.colorPalette };
                 
@@ -1910,8 +1990,10 @@
                     setTimeout(() => switchMainTab('data-builder'), 100);
                 } else {
                     currentMainTab = 'data-builder';
+                    console.log('📊 Staying on data-builder with existing data');
                 }
                 
+                console.log('✅ Flow Builder initialized with existing custom data');
                 isInitialized = true;
                 return;
             }
@@ -1919,6 +2001,7 @@
             // Check for URL parameters (only if no existing data)
             
             if (urlParams.type) {
+                console.log(`🎯 Chart type specified in URL: ${urlParams.type}`);
                 selectedChartType = urlParams.type;
                 
                 // Load the appropriate sample data
@@ -1938,6 +2021,7 @@
                     
                     // CRITICAL: Update the chart data bridge with the new data
                     const sankeyData = generateNodesAndLinksFromFlows();
+                    console.log(`📊 Setting ${urlParams.type} data in bridge:`, sankeyData);
                     window.PulseDataBridge.setData(sankeyData, `chart-type-${urlParams.type}`);
                     
                     // Handle tab switching based on URL parameter
@@ -1948,6 +2032,7 @@
                     } else {
                         // Explicitly stay on data-builder
                         currentMainTab = 'data-builder';
+                        console.log('📊 Staying on data-builder with loaded data');
                         
                         // Ensure data-builder tab stays active
                         document.querySelectorAll('.main-tab').forEach(tab => {
@@ -1969,8 +2054,10 @@
                         // Lock data builder to prevent automatic switching
                         lockChartView = true;
                         
+                        console.log('📊 Data builder explicitly activated and locked');
                     }
                     
+                    console.log(`✅ Flow Builder initialized with ${urlParams.type} sample data`);
                     isInitialized = true;
                     return;
                 }
@@ -1984,18 +2071,24 @@
             
             if (!chartType) {
                 // No chart type specified, redirect to guided selection
+                console.log('🌊 No chart type specified, redirecting to guided selection');
                 window.location.href = 'guided.html';
             } else if (chartType === 'bar') {
                 // Bar chart - initialize bar chart mode with data input interface
+                console.log('📊 Bar chart mode - initializing data input interface');
                 
                 // Ensure DOM is ready before calling handleChartTypeChange
                 setTimeout(() => {
+                    console.log('📊 DOM ready, calling handleChartTypeChange for bar chart');
                     if (typeof handleChartTypeChange === 'function') {
                         // **CRITICAL FIX: Wait for app to be ready before switching**
                         const waitForAppInit = () => {
                             if (window.pulseApp && window.pulseApp.isInitialized) {
+                                console.log('✅ App initialized, switching to bar chart');
                                 handleChartTypeChange('bar');
+                                console.log('📊 handleChartTypeChange called successfully');
                             } else {
+                                console.log('⏳ Waiting for app initialization...');
                                 setTimeout(waitForAppInit, 200);
                             }
                         };
@@ -2008,6 +2101,7 @@
                 isInitialized = true;
             } else {
                 // Sankey chart without data - redirect to type selector
+                console.log('🌊 Sankey chart mode - redirecting to type selector');
                 window.location.href = 'js/charts/sankey/sankey-type-selector.html';
             }
         }
@@ -2259,6 +2353,7 @@
         }
 
         function applyNodeHighlighting() {
+            console.log(`🎯 Applying node highlighting: ${highlightState}`);
             
             // Get current chart instance
             let chart = null;
@@ -2763,6 +2858,7 @@
 
         function applyFlowChanges() {
             console.log('🚀 Applying Flow Builder changes...');
+            console.log('📊 Current flow data:', flowData);
             
             // Form fields removed - use existing metadata or defaults
             flowData.metadata.company = flowData.metadata.company || 'TechFlow SaaS Corp';
@@ -2772,6 +2868,7 @@
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             const sankeyData = generateNodesAndLinksFromFlows();
+            console.log('📈 Generated Sankey data:', sankeyData);
             window.PulseDataBridge.applyFlowBuilderChanges(sankeyData);
             
             // Reset highlighting when chart data changes
@@ -2782,6 +2879,7 @@
             
             // Chart view removed - staying on data-builder
             
+            console.log('✅ Changes applied and switched to Chart View');
         }
 
         function validateFlows() {
@@ -2965,6 +3063,7 @@
                 // Force chart update with the imported data
                 debouncedRealTimeUpdate();
                 
+                console.log('✅ Flow Builder refreshed successfully');
                 
                 // Provide helpful feedback about what was imported
                 let message = `✅ Successfully imported ${flows.length} flows from CSV!\n\n`;
@@ -3054,6 +3153,7 @@
                 result.metadata.revenueBase = revenueBase;
             }
             
+            console.log(`📊 Generated ${result.metadata.statementType} chart data with percentage metrics`);
             return result;
         }
 
@@ -3069,9 +3169,11 @@
                 renderCompleted: false
             };
             
+            console.log('🎯 IIFE: Starting single initialization sequence');
             
             document.addEventListener('DOMContentLoaded', async function() {
                 if (initState.isInitialized) {
+                    console.log('⚠️ Already initialized, skipping');
                     return;
                 }
                 
@@ -3083,17 +3185,21 @@
                 
                 // Add event listener for flow table updates from chart edits
                 window.addEventListener('flowTableUpdate', (event) => {
+                    console.log('📊 Received flowTableUpdate event:', event.detail);
                     try {
                         if (event.detail.source === 'chart-edit' && event.detail.data) {
+                            console.log('🔄 Processing flow table update for unified interface...');
                             
                             // Method 1: Try to update flowData and renderFlowTable (if available)
                             if (typeof convertSankeyDataToFlows === 'function' && 
                                 typeof renderFlowTable === 'function') {
                                 
+                                console.log('✅ Converting chart data to flow format...');
                                 const convertedFlowData = convertSankeyDataToFlows(event.detail.data);
                                 
                                 // Initialize flowData if it doesn't exist
                                 if (!window.flowData) {
+                                    console.log('🔧 Initializing flowData from chart edit...');
                                     window.flowData = {
                                         flows: [],
                                         metadata: {
@@ -3114,6 +3220,7 @@
                                     ...convertedFlowData.metadata
                                 };
                                 
+                                console.log('✅ Updated flowData, following reset button sequence...');
                                 
                                 // Follow the exact same sequence as the working reset button
                                 // Update metadata inputs (critical step)
@@ -3123,14 +3230,18 @@
                                 }
                                 
                                 // Re-render the flow table
+                                console.log('🔄 Calling renderFlowTable()...');
                                 renderFlowTable();
                                 
                                 // Update statistics
                                 if (typeof updateAllStats === 'function') {
+                                    console.log('📊 Calling updateAllStats()...');
                                     updateAllStats();
                                 }
                                 
+                                console.log('✅ Flow table updated via reset button sequence');
                             } else {
+                                console.log('ℹ️ Flow table functions not available, relying on direct update');
                             }
                         }
                     } catch (error) {
@@ -3144,6 +3255,7 @@
                 const chartType = urlParams.get('chartType') || urlParams.get('type');
                 const targetTab = urlParams.get('tab');
                 
+                console.log(`🔍 URL params - chartType: ${chartType}, tab: ${targetTab}`);
                 
                 // Wait for pulseApp to be ready
                 await waitForPulseApp();
@@ -3151,6 +3263,7 @@
                 // Handle chart type in one place only
                 if (chartType && !initState.chartTypeProcessed) {
                     initState.chartTypeProcessed = true;
+                    console.log(`🎯 Processing chart type: ${chartType} (SINGLE)`);
                     
                     // Update selector UI
                     const chartTypeSelect = document.getElementById('chart-type-select');
@@ -3163,17 +3276,20 @@
                         await handleBarChartInitialization();
                         
                         // Chart view removed - staying on data-builder
+                        console.log('📊 Staying on data-builder (chart-view removed)');
                     } else {
                         await handleOtherChartTypes(chartType);
                     }
                 } else if (!chartType) {
                     // No chart type in URL, initialize interface normally
+                    console.log('📊 No chart type in URL, initializing interface');
                     initializeChartInterface();
                 }
                 
                 // Set up event listeners only once
                 setupEventListeners();
                 
+                console.log('✅ Single initialization complete');
             });
             
             // Helper: Basic UI setup
@@ -3192,12 +3308,15 @@
             function waitForPulseApp() {
                 return new Promise((resolve) => {
                     if (window.pulseApp && window.pulseApp.isInitialized) {
+                        console.log('✅ PulseApp ready immediately');
                         resolve();
                         return;
                     }
                     
+                    console.log('⏳ Waiting for PulseApp...');
                     const checkInterval = setInterval(() => {
                         if (window.pulseApp && window.pulseApp.isInitialized) {
+                            console.log('✅ PulseApp ready');
                             clearInterval(checkInterval);
                             resolve();
                         }
@@ -3215,6 +3334,7 @@
             // Helper: Handle bar chart initialization with single render
             async function handleBarChartInitialization() {
                 try {
+                    console.log('📊 SINGLE bar chart initialization - preventing all redundancy');
                     
                     if (!window.pulseApp || !window.pulseApp.switchChartType) {
                         console.error('❌ PulseApp not available');
@@ -3230,6 +3350,7 @@
                     // Mark render as completed to prevent additional renders
                     initState.renderCompleted = true;
                     
+                    console.log('✅ Bar chart initialized with SINGLE render');
                 } catch (error) {
                     console.error('❌ Error in bar chart initialization:', error);
                     // Continue anyway to prevent blocking
@@ -3238,7 +3359,9 @@
             
             // Helper: Handle other chart types
             async function handleOtherChartTypes(chartType) {
+                console.log(`🔄 Initializing ${chartType} chart`);
                 if (chartType === 'bar') {
+                    console.log('📊 Bar chart detected, skipping flow-based initialization');
                     // Bar charts are handled by their own initialization system
                     return;
                 } else {
@@ -3268,11 +3391,13 @@
                 const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
                 if (dataBuilderTabButton) {
                     dataBuilderTabButton.innerHTML = '📊 Bar Data';
+                    console.log('📊 Updated tab label to Bar Data (immediate)');
                 }
                 
                 // Update tab content immediately to prevent flicker
                 const dataBuilderContent = document.getElementById('data-builder');
                 if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
+                    console.log('📊 Switching data-builder to professional spreadsheet editor (immediate)');
                     dataBuilderContent.innerHTML = `
                         <div class="bar-chart-data-builder">
                             <div id="bar-data-editor-container" style="padding: 20px;">
@@ -3287,9 +3412,12 @@
                             // Wait for chart to be fully initialized
                             const waitForChart = () => {
                                 if (window.pulseApp && window.pulseApp.chart && window.pulseApp.currentData) {
+                                    console.log('📊 Chart is ready, initializing BarDataEditor');
                                     const chartInstance = window.pulseApp.chart;
                                     window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                                    console.log('✅ Professional BarDataEditor initialized with chart sync');
                                 } else {
+                                    console.log('⏳ Waiting for chart to be ready...');
                                     setTimeout(waitForChart, 100);
                                 }
                             };
@@ -3356,10 +3484,12 @@
             const chartTypeSelect = document.getElementById('chart-type-select');
             if (!chartTypeSelect) return;
             
+            console.log('🎯 Initializing chart type selector');
             
             // Add event listener for chart type changes
             chartTypeSelect.addEventListener('change', (e) => {
                 const selectedType = e.target.value;
+                console.log(`📊 Chart type changed to: ${selectedType}`);
                 handleChartTypeChange(selectedType);
             });
             
@@ -3368,20 +3498,25 @@
             const urlChartType = urlParams.get('chartType');
             
             if (urlChartType) {
+                console.log(`🔗 Chart type from URL: ${urlChartType}`);
                 chartTypeSelect.value = urlChartType;
                 
                 // **CRITICAL FIX: Ensure app is ready before switching chart type**
                 if (window.pulseApp && window.pulseApp.isInitialized) {
+                    console.log('✅ App is ready, switching chart type immediately');
                     handleChartTypeChange(urlChartType);
                 } else {
+                    console.log('⏳ App not ready, waiting for initialization...');
                     // Wait for app to be ready with more robust checking
                     let attempts = 0;
                     const maxAttempts = 100; // 10 seconds max
                     
                     const waitForApp = setInterval(() => {
                         attempts++;
+                        console.log(`⏳ Waiting for app... attempt ${attempts}/${maxAttempts}`);
                         
                         if (window.pulseApp && window.pulseApp.isInitialized) {
+                            console.log('✅ App is now ready, switching chart type');
                             clearInterval(waitForApp);
                             
                             // **ADDITIONAL FIX: Add small delay to ensure everything is settled**
@@ -3389,6 +3524,7 @@
                                 handleChartTypeChange(urlChartType);
                             }, 200);
                         } else if (attempts >= maxAttempts) {
+                            console.log('⚠️ App initialization timeout, attempting chart type change anyway');
                             clearInterval(waitForApp);
                             handleChartTypeChange(urlChartType);
                         }
@@ -3398,14 +3534,17 @@
         }
         
         function handleChartTypeChange(chartType) {
+            console.log(`🔄 Handling chart type change to: ${chartType}`);
             
             // Update the current chart type
             window.currentChartType = chartType;
             
             if (chartType === 'bar') {
+                console.log('📊 Switching to bar chart mode');
                 
                 // **CRITICAL FIX: Use the app's switchChartType method**
                 if (window.pulseApp && window.pulseApp.switchChartType) {
+                    console.log('🔄 Using app.switchChartType for proper control panel switching');
                     window.pulseApp.switchChartType('bar');
                 }
                 
@@ -3413,15 +3552,18 @@
                 const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
                 if (dataBuilderTabButton) {
                     dataBuilderTabButton.innerHTML = '📊 Bar Data';
+                    console.log('📊 Updated tab label to Bar Data');
                 } else {
                     console.error('❌ Could not find data-builder tab button');
                 }
                 
                 // Update the data builder content for bar charts (prevent duplicate calls)
                 const dataBuilderContent = document.getElementById('data-builder');
+                console.log('📊 Found data-builder element:', !!dataBuilderContent);
                 
                 // PREVENT FLICKERING: Only update if not already bar chart content
                 if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
+                    console.log('📊 Switching data-builder to professional spreadsheet editor');
                     dataBuilderContent.innerHTML = `
                         <div class="bar-chart-data-builder">
                             <div id="bar-data-editor-container" style="padding: 20px;">
@@ -3430,18 +3572,23 @@
                         </div>
                     `;
                 } else {
+                    console.log('📊 Bar chart content already loaded, skipping innerHTML update');
                 }
                 
                 // Initialize professional spreadsheet editor with proper timing
                 setTimeout(() => {
+                    console.log('📊 Initializing professional BarDataEditor');
                     if (typeof BarDataEditor !== 'undefined') {
                         if (!window.barDataEditor) {
                             // Wait for chart to be fully initialized
                             const waitForChart = () => {
                                 if (window.pulseApp && window.pulseApp.chart && window.pulseApp.currentData) {
+                                    console.log('📊 Chart is ready, initializing BarDataEditor');
                                     const chartInstance = window.pulseApp.chart;
                                     window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                                    console.log('✅ Professional BarDataEditor initialized with chart sync');
                                 } else {
+                                    console.log('⏳ Waiting for chart to be ready...');
                                     setTimeout(waitForChart, 100);
                                 }
                             };
@@ -3453,9 +3600,11 @@
                 }, 300);
                 
             } else if (chartType === 'sankey') {
+                console.log('🌊 Switching to sankey chart mode');
                 
                 // **CRITICAL FIX: Use the app's switchChartType method for consistency**
                 if (window.pulseApp && window.pulseApp.switchChartType) {
+                    console.log('🔄 Using app.switchChartType for proper control panel switching');
                     window.pulseApp.switchChartType('sankey');
                 }
                 
@@ -3479,13 +3628,16 @@
         }
         
         function initializeBarChartMode() {
+            console.log('📊 Initializing bar chart mode');
             
             // Check if app is ready and has bar chart support
             if (window.pulseApp && window.pulseApp.chartRegistry && window.pulseApp.chartRegistry.bar) {
+                console.log('✅ Bar chart support detected');
                 
                 // Initialize bar chart type
                 window.pulseApp.initializeChartType('bar')
                     .then(() => {
+                        console.log('✅ Bar chart initialized successfully');
                     })
                     .catch(error => {
                         console.error('❌ Bar chart initialization failed:', error);
@@ -3496,11 +3648,13 @@
         }
         
         function loadBarChartSample() {
+            console.log('📊 Loading bar chart sample data');
             
             // Load the sample data
             fetch('data/samples/bar-chart-sample.json')
                 .then(response => response.json())
                 .then(data => {
+                    console.log('✅ Sample bar chart data loaded:', data);
                     
                     // Render the bar chart
                     renderBarChart(data);
@@ -3509,6 +3663,7 @@
                     showBarDataPreview(data);
                     
                     // DISABLED: Auto tab switch - handled by IIFE
+                    console.log('⚠️ Auto tab switch DISABLED in renderBarChart');
                     // setTimeout(() => {
                     //     switchMainTab('chart-view');
                     // }, 500);
@@ -3523,6 +3678,7 @@
             const file = input.files[0];
             if (!file) return;
             
+            console.log('📁 Processing uploaded file:', file.name);
             
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -3537,6 +3693,7 @@
                         barData = parseCSVToBarData(content);
                     }
                     
+                    console.log('✅ File processed successfully:', barData);
                     
                     // Render the chart
                     renderBarChart(barData);
@@ -3545,6 +3702,7 @@
                     showBarDataPreview(barData);
                     
                     // DISABLED: Auto tab switch - handled by IIFE
+                    console.log('⚠️ Auto tab switch DISABLED in renderBarChart');
                     // setTimeout(() => {
                     //     switchMainTab('chart-view');
                     // }, 500);
@@ -3628,11 +3786,13 @@
         }
         
         function renderBarChart(data) {
+            console.log('📊 Chart.html renderBarChart - delegating to app');
             
             // **CLEAN: Only use app's updateData method, no fallbacks or conflicts**
             if (window.pulseApp && window.pulseApp.updateData) {
                 window.pulseApp.updateData(data, 'chart-html');
                 window.currentBarChartData = data;
+                console.log('✅ Bar chart data updated via app');
             } else {
                 console.error('❌ PulseApp not available');
             }
@@ -3702,6 +3862,7 @@
                 // Show success notification
                 showNotification('✅ All flow data cleared successfully', 'success');
                 
+                console.log('🗑️ All flow data cleared');
             }
         }
 
@@ -4636,9 +4797,11 @@
                 const pastedText = clipboardData.getData('text');
                 
                 if (!pastedText) {
+                    console.log('📋 No text data in clipboard');
                     return;
                 }
 
+                console.log('📋 Processing paste data:', pastedText);
                 
                 // Determine starting cell
                 let startCell = cell || this.selectedCell;
@@ -4668,6 +4831,7 @@
                     throw new Error('No valid data found in clipboard');
                 }
 
+                console.log('📊 Parsed clipboard data:', parsedData);
 
                 // Get starting position
                 const startRow = parseInt(startCell.dataset.row);
@@ -4734,10 +4898,12 @@
                 debouncedRealTimeUpdate();
                 
                 // Additional debug: log table state
+                console.log(`🔍 Table state after paste: ${document.getElementById('flows-tbody').children.length} rows visible`);
                 
                 // Show success message
                 this.showPasteSuccess(rowsProcessed, cellsUpdated);
                 
+                console.log(`✅ Paste complete: ${rowsProcessed} rows, ${cellsUpdated} cells updated`);
             }
 
             parseClipboardData(text) {
@@ -4760,6 +4926,7 @@
                     delimiter = ';';
                 }
 
+                console.log(`📋 Detected delimiter: "${delimiter === '\t' ? 'TAB' : delimiter}"`);
 
                 // Parse each line
                 return lines.map(line => {
@@ -4909,6 +5076,7 @@
                 // Create clipboard content
                 const clipboardData = this.createClipboardData();
                 navigator.clipboard.writeText(clipboardData).catch(() => {
+                    console.log('📋 Cells copied:', this.copiedCells.size);
                 });
                 
                 const count = this.copiedCells.size;
@@ -5287,9 +5455,11 @@
                 
                 init() {
                     if (initialized) {
+                        console.log('🔄 Dropdown system already initialized, cleaning up...');
                         this.cleanup();
                     }
                     
+                    console.log('🎛️ Initializing unified dropdown system');
                     
                     // Initialize control menu dropdowns (data, style, layout, etc.)
                     this.initializeControlMenus();
@@ -5301,6 +5471,7 @@
                     this.setupGlobalEvents();
                     
                     initialized = true;
+                    console.log('✅ Unified dropdown system initialized');
                 },
                 
                 initializeControlMenus() {
@@ -5308,6 +5479,7 @@
                     const menuDropdowns = document.querySelectorAll('.horizontal-controls-menu .menu-dropdown');
                     
                     if (menuTriggers.length === 0) {
+                        console.log('⚠️ No control menu triggers found, retrying in 100ms');
                         setTimeout(() => this.init(), 100);
                         return;
                     }
@@ -5335,6 +5507,7 @@
                         trigger.addEventListener('click', (e) => this.handleMenuClick(e, trigger));
                     });
                     
+                    console.log(`📋 Initialized ${menuTriggers.length} control menu dropdowns`);
                 },
                 
                 initializeExportDropdown() {
@@ -5342,6 +5515,7 @@
                     const exportMenu = document.getElementById('export-menu');
                     
                     if (!exportTrigger || !exportMenu) {
+                        console.log('⚠️ Export dropdown elements not found');
                         return;
                     }
                     
@@ -5367,6 +5541,7 @@
                         });
                     });
                     
+                    console.log('📤 Initialized export dropdown');
                 },
                 
                 handleMenuClick(e, trigger) {
@@ -5386,13 +5561,16 @@
                     if (isOpen) {
                         this.closeDropdown(dropdown, section, trigger);
                         info.isOpen = false;
+                        console.log(`🎛️ Closed menu: ${target}`);
                     } else {
                         this.openDropdown(dropdown, section, trigger);
                         info.isOpen = true;
+                        console.log(`🎛️ Opened menu: ${target}`);
                         
                         // Debug content
                         const content = dropdown.querySelector('.dropdown-content');
                         if (content) {
+                            console.log(`📋 Content for ${target}:`, content.innerHTML.length > 0 ? 'HAS CONTENT' : 'EMPTY');
                         }
                     }
                 },
@@ -5415,10 +5593,12 @@
                         dropdown.classList.remove('active');
                         trigger.classList.remove('active');
                         info.isOpen = false;
+                        console.log('📤 Closed export dropdown');
                     } else {
                         dropdown.classList.add('active');
                         trigger.classList.add('active');
                         info.isOpen = true;
+                        console.log('📤 Opened export dropdown');
                     }
                 },
                 
@@ -5510,6 +5690,7 @@
             
             // Re-initialize when controls are regenerated
             window.addEventListener('controlsGenerated', () => {
+                console.log('🔄 Re-initializing dropdowns after controls regenerated');
                 setTimeout(() => DropdownManager.init(), 50);
             });
             
@@ -5592,6 +5773,7 @@
                 chartTitle.style.cursor = 'pointer';
                 chartTitle.style.transition = 'fill 0.2s ease';
                 
+                console.log('✅ Chart title made editable:', chartTitle.textContent);
                 return true;
             }
             return false;
@@ -5662,6 +5844,7 @@
             
             // Store for persistence
             window.livePreviewUnits = newUnits;
+            console.log('📊 Live units preview:', newUnits, '→', newSuffix);
         }
 
         function rgbToHex(rgb) {
@@ -5688,6 +5871,7 @@
             // Check if title already exists to avoid duplicates
             const existingTitle = chartContainer.querySelector('.chart-header text');
             if (existingTitle) {
+                console.log('📊 Using existing title element');
                 return existingTitle;
             }
 
@@ -5717,6 +5901,7 @@
                 .attr('class', 'chart-title')
                 .text(defaultTitle);
 
+            console.log('📊 Created default clickable title:', defaultTitle);
             return titleElement.node();
         }
 
@@ -5737,7 +5922,15 @@
                 currency = flowData.metadata.currency || currency;
                 units = flowData.metadata.unit || units;
                 periodType = flowData.metadata.periodType || periodType;
+                console.log('📋 Reading existing metadata:', {
+                    company: flowData.metadata.company,
+                    period: flowData.metadata.period,
+                    currency: flowData.metadata.currency,
+                    unit: flowData.metadata.unit,
+                    periodType: flowData.metadata.periodType
+                });
             } else {
+                console.log('⚠️ No flowData.metadata found, initializing with defaults');
                 // Initialize flowData.metadata if it doesn't exist
                 if (typeof flowData !== 'undefined') {
                     if (!flowData.metadata) {
@@ -5761,6 +5954,7 @@
                 companyName = chartMeta.company || companyName;
                 period = chartMeta.period || period;
                 periodType = chartMeta.periodType || periodType;
+                console.log('📊 Using chart metadata as fallback:', chartMeta);
             }
             
             if (chartTitle && chartTitle.textContent) {
@@ -5820,6 +6014,7 @@
                     titleColor = rgbToHex(detectedColor) || detectedColor;
                 }
                 
+                console.log('🎨 Detected title color:', detectedColor, '→', titleColor);
             }
             
             // Populate modal fields
@@ -5839,6 +6034,7 @@
             
             // Use setTimeout to ensure modal is rendered before setting values
             setTimeout(() => {
+                console.log('🎛️ Setting modal values:', { companyName, period, currency, statementType, units, periodType, titleFontSize, titleColor });
                 
                 if (modalCompanyName) modalCompanyName.value = companyName;
                 if (modalPeriod) modalPeriod.value = period;
@@ -5852,6 +6048,7 @@
                     };
                     const normalizedCurrency = currencyMap[currency] || currency;
                     modalCurrency.value = normalizedCurrency;
+                    console.log('💰 Set currency to:', normalizedCurrency, 'actual value:', modalCurrency.value);
                 }
                 if (modalStatementType) modalStatementType.value = statementType;
                 if (modalUnits) {
@@ -5864,6 +6061,7 @@
                     };
                     const normalizedUnits = unitsMap[units.toLowerCase()] || units;
                     modalUnits.value = normalizedUnits;
+                    console.log('📊 Set units to:', normalizedUnits, 'actual value:', modalUnits.value);
                 }
                 if (modalPeriodType) modalPeriodType.value = periodType;
                 if (modalTitleFontSize) {
@@ -6089,6 +6287,7 @@
                 if (makeChartTitleEditable() || attempts >= maxAttempts) {
                     clearInterval(titleCheckInterval);
                     if (attempts >= maxAttempts) {
+                        console.log('⚠️ Could not find or create chart title after', maxAttempts, 'attempts');
                     }
                 }
             }, 500);

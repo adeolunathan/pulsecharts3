@@ -38,7 +38,6 @@ class PulseSankeyChart {
         if (controlModule && controlModule.getDefaultConfig) {
             const controlDefaults = controlModule.getDefaultConfig();
             this.config = { ...this.config, ...controlDefaults };
-            console.log('✅ Applied control module defaults to chart config');
             
             // Apply auto-scaling AFTER control defaults to prevent override
             if (this.data) {
@@ -213,7 +212,6 @@ class PulseSankeyChart {
 
     // Handle flow save from flow editor
     handleFlowSave(updatedFlow, element) {
-        console.log('💾 Saving flow:', updatedFlow);
         
         // Find the original link in the data
         const originalLink = updatedFlow.originalLink;
@@ -228,12 +226,6 @@ class PulseSankeyChart {
             const originalSourceId = originalLink.source && originalLink.source.id ? originalLink.source.id : originalLink.source;
             const originalTargetId = originalLink.target && originalLink.target.id ? originalLink.target.id : originalLink.target;
             
-            console.log('🔍 Looking for link:', { originalSourceId, originalTargetId });
-            console.log('📋 Available links:', this.data.links.map(l => ({ 
-                source: l.source, 
-                target: l.target, 
-                value: l.value 
-            })));
             
             const linkIndex = this.data.links.findIndex(link => {
                 const linkSourceId = link.source && link.source.id ? link.source.id : link.source;
@@ -251,7 +243,6 @@ class PulseSankeyChart {
                     previousValue: updatedFlow.previousValue
                 };
                 
-                console.log('✅ Link updated successfully:', this.data.links[linkIndex]);
                 
                 // Recalculate node values based on updated links
                 this.recalculateNodeValues();
@@ -261,12 +252,10 @@ class PulseSankeyChart {
                 
                 // CRITICAL: Notify PulseDataBridge of the update first (so it has the latest data)
                 if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
-                    console.log('📡 Notifying PulseDataBridge of updated data...');
                     window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
                 }
                 
                 // Now do EXACTLY what the reset button does
-                console.log('🔄 Executing exact reset button sequence...');
                 
                 // Get data from PulseDataBridge (like reset button does)
                 const data = window.PulseDataBridge ? window.PulseDataBridge.getData() : this.data;
@@ -293,20 +282,17 @@ class PulseSankeyChart {
                     }
                     
                     // Success message (no alert dialog)
-                    console.log('✅ Flow updated successfully - chart and spreadsheet synchronized!');
                 } else {
                     console.warn('⚠️ Could not execute reset sequence - missing functions');
                 }
             } else {
                 console.warn('⚠️ Original link not found in data');
-                console.log('🔍 Searched for:', { originalSourceId, originalTargetId });
             }
         }
     }
 
     // Handle flow delete from flow editor
     handleFlowDelete(linkData, element) {
-        console.log('🗑️ Deleting flow:', linkData);
         
         // Find and remove the link from the data
         if (this.data && this.data.links) {
@@ -324,7 +310,6 @@ class PulseSankeyChart {
                 // Remove the link
                 this.data.links.splice(linkIndex, 1);
                 
-                console.log('✅ Link deleted successfully');
                 
                 // Check which node should be deleted based on link type
                 // For revenue segments (sources that flow to revenue hubs), delete the source
@@ -340,11 +325,9 @@ class PulseSankeyChart {
                 if (isRevenueSegmentLink) {
                     // For revenue segments, check if source node should be deleted
                     nodeToDelete = linkSourceId;
-                    console.log('🔍 Checking revenue segment source node for deletion:', nodeToDelete);
                 } else {
                     // For other links, check if target node should be deleted
                     nodeToDelete = linkTargetId;
-                    console.log('🔍 Checking target node for deletion:', nodeToDelete);
                 }
                 
                 // Check if the node has any remaining connections
@@ -359,7 +342,6 @@ class PulseSankeyChart {
                     const nodeIndex = this.data.nodes.findIndex(node => node.id === nodeToDelete);
                     if (nodeIndex !== -1) {
                         this.data.nodes.splice(nodeIndex, 1);
-                        console.log('✅ Node deleted successfully:', nodeToDelete);
                     }
                 }
                 
@@ -370,7 +352,6 @@ class PulseSankeyChart {
                 this.render(this.data);
             } else {
                 console.warn('⚠️ Link not found in data');
-                console.log('🔍 Searched for:', { linkSourceId, linkTargetId });
             }
         }
     }
@@ -379,7 +360,6 @@ class PulseSankeyChart {
     recalculateNodeValues() {
         if (!this.data || !this.data.nodes || !this.data.links) return;
         
-        console.log('🔄 Recalculating node values based on current links');
         
         // Calculate node values based on link connections
         this.data.nodes.forEach(node => {
@@ -402,7 +382,6 @@ class PulseSankeyChart {
                     return sourceId === node.id;
                 });
                 node.value = outgoingFlows.reduce((sum, link) => sum + (parseFloat(link.value) || 0), 0);
-                console.log('🔹 Calculating source node value from outgoing flows:', node.id, node.value);
             } else {
                 // Reset intermediate and target nodes
                 node.value = 0;
@@ -422,17 +401,14 @@ class PulseSankeyChart {
             }
         });
         
-        console.log('✅ Node values recalculated with source preservation');
     }
 
     // Update spreadsheet data if available - simplified for backup notification
     updateSpreadsheetData() {
         try {
-            console.log('📊 Notifying other components of data change...');
             
             // Notify PulseDataBridge if available
             if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
-                console.log('✅ Notifying PulseDataBridge of update');
                 window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
             }
             
@@ -445,7 +421,6 @@ class PulseSankeyChart {
                 }
             });
             window.dispatchEvent(updateEvent);
-            console.log('✅ Dispatched pulseDataChanged event');
             
         } catch (error) {
             console.warn('⚠️ Could not notify other components:', error.message);
@@ -455,7 +430,6 @@ class PulseSankeyChart {
     // Direct table update method for unified interface
     updateTableDirectly() {
         try {
-            console.log('🔄 Attempting direct table update...');
             
             // Find the main flow table in the unified interface
             const flowTable = document.querySelector('#main-flow-table tbody') || 
@@ -467,11 +441,9 @@ class PulseSankeyChart {
                 return;
             }
             
-            console.log('✅ Found flow table, updating rows...');
             
             // Get all existing table rows
             const tableRows = flowTable.querySelectorAll('tr');
-            console.log(`📊 Found ${tableRows.length} table rows`);
             
             // Update each row with current chart data
             this.data.links.forEach((link, linkIndex) => {
@@ -480,7 +452,6 @@ class PulseSankeyChart {
                 const currentValue = link.value || 0;
                 const previousValue = link.previousValue || 0;
                 
-                console.log(`🔍 Looking for table row: ${sourceId} → ${targetId} (${currentValue})`);
                 
                 // Find matching row in table
                 for (let i = 0; i < tableRows.length; i++) {
@@ -498,13 +469,11 @@ class PulseSankeyChart {
                         const toText = toCell.textContent?.trim() || toCell.querySelector('input')?.value?.trim();
                         
                         if (fromText === sourceId && toText === targetId) {
-                            console.log(`✅ Found matching row ${i}, updating values...`);
                             
                             // Update current value
                             const currentInput = currentCell.querySelector('input');
                             if (currentInput) {
                                 currentInput.value = currentValue;
-                                console.log(`📝 Updated CURRENT value to: ${currentValue}`);
                             } else {
                                 currentCell.textContent = currentValue;
                             }
@@ -514,7 +483,6 @@ class PulseSankeyChart {
                                 const previousInput = previousCell.querySelector('input');
                                 if (previousInput) {
                                     previousInput.value = previousValue;
-                                    console.log(`📝 Updated PREVIOUS value to: ${previousValue}`);
                                 } else {
                                     previousCell.textContent = previousValue;
                                 }
@@ -526,14 +494,12 @@ class PulseSankeyChart {
                                 currentInput.dispatchEvent(new Event('change', { bubbles: true }));
                             }
                             
-                            console.log(`✅ Row ${i} updated successfully`);
                             break;
                         }
                     }
                 }
             });
             
-            console.log('✅ Direct table update completed');
             
         } catch (error) {
             console.warn('⚠️ Error in direct table update:', error.message);
@@ -545,7 +511,6 @@ class PulseSankeyChart {
     convertToSpreadsheetFormat(data) {
         if (!data || !data.links) return [];
         
-        console.log('🔄 Converting chart data to spreadsheet format...');
         
         // Create header row
         const headers = ['From', 'To', 'Current', 'Previous', 'Type', 'Description'];
@@ -564,13 +529,11 @@ class PulseSankeyChart {
                 link.description || ''      // Description
             ];
             
-            console.log(`📝 Row ${index + 1}:`, row);
             return row;
         });
         
         // Add headers as first row
         const result = [headers, ...rows];
-        console.log('✅ Converted to spreadsheet format:', result.length, 'rows (including header)');
         
         return result;
     }
@@ -580,7 +543,6 @@ class PulseSankeyChart {
         const attemptZoom = () => {
             if (window.ChartZoom && window.ChartZoom.initializeZoomPan) {
                 ChartZoom.initializeZoomPan.call(this);
-                console.log('✅ ChartZoom utility connected successfully');
                 return true;
             }
             return false;
@@ -604,7 +566,6 @@ class PulseSankeyChart {
                 ChartColorPicker.initializeColorPicker.call(this, (elementData, newColor, element) => {
                     this.handleColorChange(elementData, newColor, element);
                 });
-                console.log('✅ ChartColorPicker utility connected successfully');
                 return true;
             }
             return false;
@@ -633,7 +594,6 @@ class PulseSankeyChart {
                         this.handleFlowDelete(linkData, element);
                     }
                 );
-                console.log('✅ ChartFlowEditor utility connected successfully');
                 return true;
             }
             return false;
@@ -855,14 +815,12 @@ class PulseSankeyChart {
             .attr('opacity', 1.0)  // Full opacity
             .style('cursor', 'pointer')
             .on('error', function() {
-                console.log('⚠️ Primary logo failed to load, trying fallback');
                 // Try fallback logo
                 d3.select(this)
                     .attr('href', fallbackLogoUrl)
                     .attr('width', userLogoUrl ? 32 : 24)
                     .attr('height', userLogoUrl ? 32 : 24)
                     .on('error', function() {
-                        console.log('⚠️ Fallback logo failed, using default');
                         // Final fallback to default
                         d3.select(this)
                             .attr('href', defaultLogoUrl)
@@ -959,14 +917,12 @@ class PulseSankeyChart {
     }
 
     updateNodeColor(node, color) {
-        console.log(`🎨 Updating node ${node.id} color to ${color} (${this.statementType} statement)`);
         
         if (this.statementType === 'balance') {
             // For balance sheets, update the appropriate group color
             const colorGroup = this.colorGroups.get(node.id);
             if (colorGroup && colorGroup.groupName) {
                 this.customColors[colorGroup.groupName] = color;
-                console.log(`🎯 Set balance sheet group color: ${colorGroup.groupName} → ${color}`);
                 
                 // Update metadata
                 if (this.data && this.data.metadata) {
@@ -987,7 +943,6 @@ class PulseSankeyChart {
         if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer)) {
             // Individual revenue segment color
             this.revenueSegmentColors.set(node.id, color);
-            console.log(`🎯 Set revenue segment color: ${node.id} → ${color}`);
             
             // Update metadata for revenue segments
             if (this.data && this.data.metadata) {
@@ -1004,7 +959,6 @@ class PulseSankeyChart {
             }
             
             this.customColors[effectiveCategory] = color;
-            console.log(`🎯 Set category color: ${effectiveCategory} → ${color}`);
             
             // Handle tax as expense alias
             if (effectiveCategory === 'expense') {
@@ -1033,7 +987,6 @@ class PulseSankeyChart {
     }
 
     updateLinkColor(link, color) {
-        console.log(`🔗 Updating link color: ${link.source.id} → ${link.target.id} = ${color} (${this.statementType} statement)`);
         
         if (this.statementType === 'balance') {
             // For balance sheets, determine which group to update based on link direction
@@ -1045,7 +998,6 @@ class PulseSankeyChart {
             
             if (colorGroup && colorGroup.groupName) {
                 this.customColors[colorGroup.groupName] = color;
-                console.log(`🎯 Set balance sheet group color via link: ${colorGroup.groupName} → ${color}`);
                 
                 // Update metadata
                 if (this.data && this.data.metadata) {
@@ -1066,7 +1018,6 @@ class PulseSankeyChart {
         if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
             // For pre-revenue links, update the source node's individual color
             this.revenueSegmentColors.set(link.source.id, color);
-            console.log(`🎯 Set revenue segment color via link: ${link.source.id} → ${color}`);
             
             // Update metadata
             if (this.data && this.data.metadata) {
@@ -1083,7 +1034,6 @@ class PulseSankeyChart {
             }
             
             this.customColors[effectiveCategory] = color;
-            console.log(`🎯 Set category color via link: ${effectiveCategory} → ${color}`);
             
             // Handle tax as expense alias
             if (effectiveCategory === 'expense') {
@@ -1206,7 +1156,6 @@ class PulseSankeyChart {
             
             // Only resize if the content height is significantly different from current height
             if (actualContentHeight > 0 && Math.abs(actualContentHeight - this.config.height) > 20) {
-                console.log(`🔧 Adjusting SVG height from ${this.config.height}px to ${actualContentHeight}px`);
                 
                 // Update SVG dimensions
                 this.svg
@@ -1260,7 +1209,6 @@ class PulseSankeyChart {
         
         // Apply revenue segment colors from metadata
         if (data.metadata && data.metadata.revenueSegmentColors) {
-            console.log('🎨 Applying revenue segment colors from metadata:', data.metadata.revenueSegmentColors);
             Object.entries(data.metadata.revenueSegmentColors).forEach(([nodeId, color]) => {
                 this.revenueSegmentColors.set(nodeId, color);
             });
@@ -1270,19 +1218,16 @@ class PulseSankeyChart {
         existingSegmentColors.forEach((color, nodeId) => {
             if (!this.revenueSegmentColors.has(nodeId)) {
                 this.revenueSegmentColors.set(nodeId, color);
-                console.log(`🔒 Preserved existing segment color: ${nodeId} → ${color}`);
             }
         });
 
         if (data.metadata && data.metadata.colorPalette) {
-            console.log('🎨 Detected color palette from metadata:', data.metadata.colorPalette);
             this.customColors = { ...data.metadata.colorPalette };
             
             if (this.customColors.expense && !this.customColors.tax) {
                 this.customColors.tax = this.customColors.expense;
             }
             
-            console.log('✅ Applied colors from metadata:', this.customColors);
         } else if (Object.keys(this.customColors).length === 0) {
             if (this.statementType === 'balance') {
                 // Enhanced vibrant default balance sheet colors
@@ -1294,9 +1239,7 @@ class PulseSankeyChart {
                     'Non-Current Liabilities': '#b91c1c', // Deep red
                     'Shareholders Equity': '#059669'  // Vibrant emerald
                 };
-                console.log('🎨 Applied enhanced vibrant balance sheet colors:', this.customColors);
             } else {
-                console.log('🎨 Using enhanced vibrant income statement color scheme');
             }
         }
     }
@@ -1324,22 +1267,18 @@ class PulseSankeyChart {
         if (maxValue >= BILLION_THRESHOLD) {
             // User input like 3000+ → treat as billions → use smaller scale
             optimalScale = BILLION_SCALE;
-            console.log('📏 Billions scale applied (user input ≥' + BILLION_THRESHOLD + '): ' + optimalScale);
         } else {
             // User input like 300 → treat as millions → use bigger scale  
             optimalScale = MILLION_SCALE;
-            console.log('📏 Millions scale applied (user input <' + BILLION_THRESHOLD + '): ' + optimalScale);
         }
 
         // Only auto-scale if user hasn't manually adjusted nodeHeightScale
         const defaultScales = [0.65, 0.05, 0.01, 0.00008, 0.00000008, 0.0002, 0.15];
         const isDefaultScale = defaultScales.some(scale => Math.abs(this.config.nodeHeightScale - scale) < 0.0001);
         
-        console.log('📏 Current nodeHeightScale:', this.config.nodeHeightScale, 'isDefault:', isDefaultScale);
         
         if (isDefaultScale) {
             this.config.nodeHeightScale = optimalScale;
-            console.log('📏 Applied auto-scale:', optimalScale);
         }
     }
 
@@ -1369,7 +1308,6 @@ class PulseSankeyChart {
         if (data.metadata && data.metadata.manualPositions) {
             Object.entries(data.metadata.manualPositions).forEach(([nodeId, positionData]) => {
                 existingManualPositions.set(nodeId, positionData);
-                console.log(`🔄 Restored manual position for ${nodeId}: Y=${positionData.y}`);
             });
         }
         
@@ -1476,7 +1414,6 @@ class PulseSankeyChart {
                     node.manuallyPositioned = true;
                     // Save to metadata for persistence
                     this.saveManualPositionToMetadata(node);
-                    console.log(`🔒 Preserved position for ${node.id}: Y=${preserved.y}`);
                 } else {
                     console.warn(`⚠️ Skipping invalid preserved position for ${node.id}: Y=${preserved.y}`);
                 }
@@ -1492,7 +1429,6 @@ class PulseSankeyChart {
      * NEW: Calculate proportional node heights ensuring child nodes sum to parent height
      */
     calculateProportionalHeights() {
-        console.log('📏 Calculating proportional node heights for balance sheet');
         
         // First pass: Calculate base heights using standard formula
         this.nodes.forEach(node => {
@@ -1505,7 +1441,6 @@ class PulseSankeyChart {
         // Second pass: Adjust heights to ensure proportionality
         this.adjustHeightsForProportionality(parentChildMap);
         
-        console.log('✅ Proportional heights calculated');
     }
 
     /**
@@ -1530,7 +1465,6 @@ class PulseSankeyChart {
                     value: link.value
                 });
                 
-                console.log(`👨‍👩‍👧‍👦 Parent-child: ${childId} → ${parentId} (value: ${link.value})`);
             }
         });
         
@@ -1601,7 +1535,6 @@ class PulseSankeyChart {
             // Calculate parent's target height based on its value
             const parentTargetHeight = Math.max(8, parentNode.value * this.config.nodeHeightScale);
             
-            console.log(`📏 Adjusting children of ${parentId}: parent target height=${parentTargetHeight}, total child value=${totalChildValue}`);
             
             // Calculate raw proportional heights
             const rawHeights = children.map(child => {
@@ -1651,10 +1584,8 @@ class PulseSankeyChart {
             const actualChildSum = children.reduce((sum, child) => sum + child.node.height, 0);
             parentNode.height = actualChildSum;
             
-            console.log(`  📊 Parent ${parentId} height set to ${parentNode.height.toFixed(1)} (sum of children)`);
             children.forEach(child => {
                 const proportion = totalChildValue > 0 ? child.value / totalChildValue : 0;
-                console.log(`  📐 ${child.node.id}: proportion=${(proportion*100).toFixed(1)}%, height=${child.node.height.toFixed(1)}`);
             });
         });
         
@@ -1662,7 +1593,6 @@ class PulseSankeyChart {
         this.nodes.forEach(node => {
             if (node.height === undefined) {
                 node.height = node.baseHeight;
-                console.log(`📐 ${node.id}: using base height=${node.height.toFixed(1)}`);
             }
         });
     }
@@ -1703,13 +1633,11 @@ class PulseSankeyChart {
     }
 
     positionNodesWithGroupSpacing(nodes, availableHeight, basePadding, isLeftmost, isRightmost) {
-        console.log(`🔧 Applying group spacing for ${isLeftmost ? 'leftmost' : 'rightmost'} layer`);
         
         const manualNodes = nodes.filter(node => node.manuallyPositioned);
         const autoNodes = nodes.filter(node => !node.manuallyPositioned);
         
         if (autoNodes.length === 0) {
-            console.log('All nodes manually positioned, skipping automatic positioning');
             return; 
         }
         
@@ -1718,7 +1646,6 @@ class PulseSankeyChart {
             name: `Individual: ${node.id}`,
             nodes: [node]
         }));
-        console.log(`📊 Positioning ${groups.length} nodes in data order`);
         
         const totalNodeHeight = autoNodes.reduce((sum, node) => sum + node.height, 0);
         const totalBasePadding = basePadding * (autoNodes.length - 1);
@@ -1734,7 +1661,6 @@ class PulseSankeyChart {
         let currentY = startY;
         
         groups.forEach((group, groupIndex) => {
-            console.log(`📍 Positioning group "${group.name}" at Y: ${currentY}`);
             
             group.nodes.forEach((node, nodeIndex) => {
                 node.y = currentY;
@@ -1748,7 +1674,6 @@ class PulseSankeyChart {
             
             if (groupIndex < groups.length - 1) {
                 currentY += groupGap;
-                console.log(`📏 Added ${groupGap}px group gap after "${group.name}"`);
             }
         });
         
@@ -1756,7 +1681,6 @@ class PulseSankeyChart {
             node.layerIndex = 1000 + index;
         });
         
-        console.log(`✅ Group spacing applied. Total height used: ${currentY - startY}px`);
     }
 
     // detectNodeGroups function removed - maintaining data order
@@ -1822,7 +1746,6 @@ class PulseSankeyChart {
         const autoNodes = nodes.filter(node => !node.manuallyPositioned);
         
         if (autoNodes.length === 0) {
-            console.log('All nodes manually positioned, skipping recalculation');
             return;
         }
         
@@ -2012,7 +1935,6 @@ class PulseSankeyChart {
             return;
         }
 
-        console.log('🏢 Rendering brand logo with hover-based resize functionality:', brandLogo);
 
         // Create brand logo group
         const logoGroup = this.svg.append('g')
@@ -2099,7 +2021,6 @@ class PulseSankeyChart {
         const drag = d3.drag()
             .on('start', () => {
                 brandLogo.isDragging = true;
-                console.log('🖱️ Logo drag started');
             })
             .on('drag', (event) => {
                 const newX = Math.max(0, Math.min(this.config.width - brandLogo.width, brandLogo.x + event.dx));
@@ -2112,7 +2033,6 @@ class PulseSankeyChart {
             })
             .on('end', () => {
                 brandLogo.isDragging = false;
-                console.log(`🎯 Logo positioned at (${brandLogo.x}, ${brandLogo.y})`);
             });
 
         // Apply drag to logo image
@@ -2125,7 +2045,6 @@ class PulseSankeyChart {
             this.showOpacityPicker(logoImage, brandLogo.opacity, (newOpacity) => {
                 brandLogo.opacity = newOpacity;
                 logoImage.attr('opacity', newOpacity);
-                console.log(`💫 Logo opacity set to ${newOpacity}`);
             }, { x: rect.x, y: rect.y });
         });
 
@@ -2136,7 +2055,6 @@ class PulseSankeyChart {
             const resizeDrag = d3.drag()
                 .on('start', () => {
                     brandLogo.isResizing = true;
-                    console.log(`📏 Resize started from ${handleType} corner`);
                 })
                 .on('drag', (event) => {
                     const minSize = 20;
@@ -2183,13 +2101,11 @@ class PulseSankeyChart {
                 })
                 .on('end', () => {
                     brandLogo.isResizing = false;
-                    console.log(`📐 Logo resized to ${brandLogo.width}x${brandLogo.height}`);
                 });
             
             handleRect.call(resizeDrag);
         });
 
-        console.log(`🏢 Brand logo rendered at (${brandLogo.x}, ${brandLogo.y}) size ${brandLogo.width}x${brandLogo.height}`);
     }
 
     updateLogoPosition(logoGroup, brandLogo) {
@@ -2390,7 +2306,6 @@ class PulseSankeyChart {
                 self.chart.selectAll('.node-text-group').remove();
                 self.renderLabels();
                 
-                console.log(`📍 Node "${d.id}" repositioned to X: ${d.x.toFixed(1)}, Y: ${d.y.toFixed(1)}`);
                 
                 // Save manual position to metadata for persistence
                 self.saveManualPositionToMetadata(d);
@@ -3136,12 +3051,10 @@ class PulseSankeyChart {
         if (isToTotalAssets) {
             if (sourceColorGroup && sourceColorGroup.baseColor) {
                 baseColor = sourceColorGroup.baseColor;
-                console.log(`🔗 Link TO Total Assets: ${link.source.id} → ${link.target.id} = ${baseColor} (source color)`);
             }
         } else if (isFromTotalAssets) {
             if (targetColorGroup && targetColorGroup.baseColor) {
                 baseColor = targetColorGroup.baseColor;
-                console.log(`🔗 Link FROM Total Assets: ${link.source.id} → ${link.target.id} = ${baseColor} (target color)`);
             }
         } else {
             if (targetColorGroup && targetColorGroup.baseColor) {
@@ -3247,7 +3160,6 @@ class PulseSankeyChart {
         const baseColor = colorGroup.baseColor;
         const opacity = this.getHierarchicalOpacity(nodeId);
         
-        console.log(`🎨 Node ${nodeId}: base=${baseColor}, opacity=${opacity}, isParent=${colorGroup.isParentGroup}, group=${colorGroup.groupName}`);
         
         if (this.statementType === 'balance') {
             if (colorGroup.isParentGroup) {
@@ -3347,7 +3259,6 @@ class PulseSankeyChart {
      * ENHANCED: Set custom colors with revenue segment preservation
      */
     setCustomColors(newColors) {
-        console.log('🎨 Setting custom colors:', newColors);
         
         // Preserve existing individual revenue segment colors
         const preservedSegmentColors = new Map(this.revenueSegmentColors);
@@ -3370,14 +3281,12 @@ class PulseSankeyChart {
         
         this.rerenderWithNewColors();
         
-        console.log('🔒 Preserved revenue segment colors:', Object.fromEntries(this.revenueSegmentColors));
     }
 
     /**
      * ENHANCED: Set individual revenue segment color
      */
     setRevenueSegmentColor(nodeId, color) {
-        console.log(`🎨 Setting revenue segment color: ${nodeId} → ${color}`);
         
         this.revenueSegmentColors.set(nodeId, color);
         
@@ -3411,7 +3320,6 @@ class PulseSankeyChart {
                 y: node.y,
                 preserveLabelsAbove: node.preserveLabelsAbove
             };
-            console.log(`💾 Saved manual position for ${node.id}: Y=${node.y.toFixed(1)}`);
         }
     }
     
@@ -3445,7 +3353,6 @@ class PulseSankeyChart {
             }, 300);
         }
         
-        console.log('🔄 Re-rendered chart with new colors');
     }
 
     // Tooltip methods
@@ -3534,7 +3441,6 @@ class PulseSankeyChart {
     }
 
     setLayerSpacing(depth, multiplier) {
-        console.log(`🔧 Setting layer ${depth} spacing to ${multiplier}`);
         
         if (!this.config.layerSpacing) {
             this.config.layerSpacing = {};
@@ -3631,7 +3537,6 @@ class PulseSankeyChart {
             this.renderLabels();
         } else {
             // Handle visual-only changes that don't require position recalculation
-            console.log('🎨 Applying visual-only updates:', Object.keys(newConfig));
             
             if (newConfig.nodeOpacity !== undefined) {
                 this.chart.selectAll('.sankey-node rect')
@@ -3648,7 +3553,6 @@ class PulseSankeyChart {
             
             // Handle font size changes
             if (newConfig.globalFontSize !== undefined) {
-                console.log('📝 Updating font sizes to:', newConfig.globalFontSize);
                 this.chart.selectAll('.node-label')
                     .transition()
                     .duration(200)
@@ -3663,7 +3567,6 @@ class PulseSankeyChart {
             if (newConfig.textDistanceLeftmost !== undefined || 
                 newConfig.textDistanceMiddle !== undefined || 
                 newConfig.textDistanceRightmost !== undefined) {
-                console.log('📏 Updating text distances');
                 this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
                 this.renderLabels();
             }
@@ -3673,7 +3576,6 @@ class PulseSankeyChart {
                 key.includes('Color') || key.includes('color') || key === 'customColors'
             );
             if (colorChanges.length > 0) {
-                console.log('🎨 Updating colors for:', colorChanges);
                 // Re-apply node colors
                 this.chart.selectAll('.sankey-node rect').each((d) => {
                     const color = this.getNodeColor(d);
@@ -3714,7 +3616,6 @@ class PulseSankeyChart {
      * Reposition only automatically positioned nodes, preserving manually positioned ones
      */
     repositionAutoNodes() {
-        console.log('🔄 Repositioning only auto-positioned nodes, preserving manual positions');
         
         const dimensions = {
             width: this.config.width - this.config.margin.left - this.config.margin.right,
@@ -3731,7 +3632,6 @@ class PulseSankeyChart {
             const autoNodes = nodesAtDepth.filter(node => !node.manuallyPositioned);
             
             if (autoNodes.length > 0) {
-                console.log(`📍 Repositioning ${autoNodes.length} auto nodes at depth ${depth}`);
                 this.positionNodesAtDepth(autoNodes, dimensions.height, maxDepth);
             }
         });
@@ -3772,7 +3672,6 @@ class PulseSankeyChart {
         if (this.svg) {
             this.svg.style('background-color', color);
         }
-        console.log(`🎨 Background color updated to ${color}`);
     }
 
     updateTitleFont(fontFamily) {
@@ -3784,7 +3683,6 @@ class PulseSankeyChart {
             this.svg.selectAll('text')
                 .style('font-family', fontStack);
         }
-        console.log(`🔤 Title font updated to ${fontFamily}`);
     }
 
     getFontFamily() {
@@ -3798,7 +3696,6 @@ class PulseSankeyChart {
             this.svg.selectAll('text')
                 .style('fill', color);
         }
-        console.log(`🎨 Title color updated to ${color}`);
     }
 
     generateFileName(extension = 'png') {
@@ -3864,7 +3761,6 @@ class PulseSankeyChart {
         if (preset) {
             const colors = preset(categories);
             this.setCustomColors(colors);
-            console.log(`🎨 Applied ${presetName} color preset`);
             return colors;
         }
         return null;
@@ -3878,7 +3774,6 @@ class PulseSankeyChart {
         });
         
         this.setCustomColors(colors);
-        console.log('🎲 Randomized all colors');
         return colors;
     }
 
@@ -3897,7 +3792,6 @@ class PulseSankeyChart {
             this.render(this.data);
         }
         
-        console.log(`🎨 Updated ${category} color to ${color}`);
     }
 
     // Data processing methods for chart generation
@@ -4009,11 +3903,6 @@ class PulseSankeyChart {
 
     // Center chart with label-aware positioning
     centerChart() {
-        console.log('🎯🎯🎯 ===== SANKEY CENTER CHART METHOD CALLED ===== 🎯🎯🎯');
-        console.log('🔍 this.svg exists:', !!this.svg);
-        console.log('🔍 this.chart exists:', !!this.chart);
-        console.log('🔍 this.zoomContainer exists:', !!this.zoomContainer);
-        console.log('🔍 this.zoom exists:', !!this.zoom);
         
         if (!this.svg || !this.chart) {
             console.warn('⚠️ Cannot center chart - SVG or chart group not available');
@@ -4034,12 +3923,9 @@ class PulseSankeyChart {
             const currentX = currentTransform.x;
             const currentY = currentTransform.y;
             
-            console.log('🔍 BEFORE - Current scale:', currentScale);
-            console.log('🔍 BEFORE - Current position:', currentX, currentY);
             
             // Use the same approach as bar chart - get zoom container bounds
             const containerBounds = this.zoomContainer.node().getBBox();
-            console.log('📐 Zoom container unscaled bounds:', containerBounds);
             
             // Calculate where the center of the content currently appears on screen
             // The current visual center = unscaled center * scale + current translation
@@ -4049,8 +3935,6 @@ class PulseSankeyChart {
             const currentVisualCenterX = unscaledCenterX * currentScale + currentX;
             const currentVisualCenterY = unscaledCenterY * currentScale + currentY;
             
-            console.log('🎯 Unscaled content center:', unscaledCenterX, unscaledCenterY);
-            console.log('🎯 Current visual center on screen:', currentVisualCenterX, currentVisualCenterY);
             
             // Get SVG dimensions
             const svgWidth = parseFloat(this.svg.attr('width'));
@@ -4060,7 +3944,6 @@ class PulseSankeyChart {
             const svgCenterX = svgWidth / 2;
             const svgCenterY = svgHeight / 2;
             
-            console.log('📍 SVG center:', svgCenterX, svgCenterY);
             
             // The difference between where the content appears and where we want it
             const moveX = svgCenterX - currentVisualCenterX;
@@ -4070,15 +3953,12 @@ class PulseSankeyChart {
             const requiredX = currentX + moveX;
             const requiredY = currentY + moveY;
             
-            console.log('🎯 Required translation:', requiredX, requiredY);
             
             // Apply the centering transform with smooth animation
             const newTransform = d3.zoomIdentity
                 .translate(requiredX, requiredY)
                 .scale(currentScale);
             
-            console.log('✨ Applying smooth centering transition...');
-            console.log('🔧 New transform:', newTransform);
             
             // Apply transform to SVG (which has the zoom behavior attached)
             this.svg
@@ -4087,11 +3967,9 @@ class PulseSankeyChart {
                 .ease(d3.easeQuadInOut)
                 .call(this.zoom.transform, newTransform)
                 .on('end', () => {
-                    console.log('✅ Chart centering completed');
                     
                     // Log final state
                     const finalTransform = d3.zoomTransform(this.svg.node());
-                    console.log('🔍 AFTER - Final position:', finalTransform.x, finalTransform.y);
                 });
             
         } catch (error) {
@@ -4214,7 +4092,6 @@ class PulseSankeyChart {
         // Update node interaction behavior
         this.updateNodeInteractionMode();
         
-        console.log(`🔄 Interaction mode changed: ${previousMode} → ${mode}`);
     }
     
     updateModeButtonAppearances() {
@@ -5069,7 +4946,6 @@ class PulseSankeyChart {
         // Update the button appearance without closing the modal
         this.updateCyclingButtonAppearance(newCategory);
         
-        console.log(`🔄 Row ${rowIndex}: Target category changed to ${newCategory}`);
     }
     
     updateCyclingButtonAppearance(newCategory) {
@@ -5591,7 +5467,6 @@ class PulseSankeyChart {
         // Show success message
         this.showNodeCreationSuccess(name, parentNode.id, orientation);
         
-        console.log(`✅ Created ${orientation}-facing node: "${name}" linked to "${parentNode.id}"`);
     }
     
     calculateConnectedNodePosition(parentNode, newDepth) {
@@ -5652,7 +5527,6 @@ class PulseSankeyChart {
             });
         }
         
-        console.log('📊 Data synced to spreadsheet');
     }
     
     showNodeCreationSuccess(nodeName, parentNodeName, orientation) {
@@ -5810,12 +5684,9 @@ class PulseSankeyChart {
     }
     
     moveChildNodesWithParent(parentNode, deltaY) {
-        console.log(`🔄 moveChildNodesWithParent called for: ${parentNode.id}, deltaY: ${deltaY}`);
-        console.log(`🔗 Parent has ${parentNode.sourceLinks ? parentNode.sourceLinks.length : 0} source links`);
         
         // Only move immediate children (next depth level)
         if (!parentNode.sourceLinks || parentNode.sourceLinks.length === 0) {
-            console.log(`❌ No source links found for ${parentNode.id}`);
             return;
         }
         
@@ -5823,7 +5694,6 @@ class PulseSankeyChart {
         
         parentNode.sourceLinks.forEach(link => {
             const childNode = link.target;
-            console.log(`🎯 Examining child: ${childNode.id}, parent depth: ${parentNode.depth}, child depth: ${childNode.depth}`);
             
             // Only move direct children in the next layer
             if (childNode.depth === parentNode.depth + 1) {
@@ -5844,7 +5714,6 @@ class PulseSankeyChart {
                 this.chart.select(`[data-node-id="${childNode.id}"]`)
                     .attr('transform', `translate(${childNode.x}, ${childNode.y})`);
                 
-                console.log(`📍 Moved child node: ${childNode.id} to Y: ${constrainedY}`);
                 childrenMoved = true;
             }
         });
@@ -5914,7 +5783,6 @@ class PulseSankeyChart {
         
         this.updateArrangementHint(node, newLayer, newY);
         
-        console.log(`🔄 Node "${node.id}" moved from layer ${oldLayer} to layer ${newLayer}`);
     }
     
     calculateLayerX(layer) {
@@ -6267,7 +6135,6 @@ class PulseSankeyChart {
                     console.warn('⚠️ Error applying drag start styles:', error);
                 }
                 
-                console.log(`🔄 Started dragging: ${d.target.id}`);
             })
             .on('drag', function(event) {
                 const currentY = event.y;
@@ -6318,8 +6185,6 @@ class PulseSankeyChart {
                 let targetIndex = -1;
                 let insertBefore = true;
                 
-                console.log(`🎯 Looking for drop target at Y: ${currentY}`);
-                console.log(`📋 Available items: ${allItems.length}`);
                 
                 // Find the closest item to drop position
                 let closestDistance = Infinity;
@@ -6333,7 +6198,6 @@ class PulseSankeyChart {
                     const itemMiddle = rect.top + rect.height / 2;
                     const distance = Math.abs(currentY - itemMiddle);
                     
-                    console.log(`📍 Item ${i}: top=${rect.top}, bottom=${rect.bottom}, middle=${itemMiddle}, distance=${distance}`);
                     
                     // Check if mouse is within item bounds OR if it's the closest item
                     if ((currentY >= rect.top && currentY <= rect.bottom) || distance < closestDistance) {
@@ -6341,7 +6205,6 @@ class PulseSankeyChart {
                             // Direct hit
                             targetIndex = i;
                             insertBefore = currentY < itemMiddle;
-                            console.log(`🎯 Direct hit on item ${i}, insertBefore: ${insertBefore}`);
                             break;
                         } else if (distance < closestDistance) {
                             // Track closest item as fallback
@@ -6359,14 +6222,12 @@ class PulseSankeyChart {
                         // Dropping below all items - append to end
                         targetIndex = allItems.length - 1;
                         insertBefore = false;
-                        console.log(`🎯 Dropping below all items, appending to end`);
                     } else {
                         // Use existing closest item logic
                         targetIndex = closestIndex;
                         const closestRect = allItems[closestIndex].getBoundingClientRect();
                         const closestMiddle = closestRect.top + closestRect.height / 2;
                         insertBefore = currentY < closestMiddle;
-                        console.log(`🎯 Using closest item ${closestIndex}, insertBefore: ${insertBefore}`);
                     }
                 }
                 
@@ -6379,8 +6240,6 @@ class PulseSankeyChart {
                     const targetData = d3.select(targetItem).datum();
                     const targetSourceIndex = nodeData.sourceLinks.indexOf(targetData);
                     
-                    console.log(`🎯 Drop target: DOM index ${targetIndex}, sourceLinks index ${targetSourceIndex}, insertBefore: ${insertBefore}`);
-                    console.log(`📍 Dragged sourceLinks index: ${draggedIndex}`);
                     
                     let newIndex = targetSourceIndex;
                     
@@ -6394,7 +6253,6 @@ class PulseSankeyChart {
                         newIndex--;
                     }
                     
-                    console.log(`🔄 Final target index: ${newIndex}`);
                     
                     if (draggedIndex !== newIndex && newIndex >= 0 && newIndex <= nodeData.sourceLinks.length) {
                         const success = this.moveLinkInOrder(nodeData, draggedIndex, newIndex);
@@ -6402,10 +6260,8 @@ class PulseSankeyChart {
                             this.refreshLinkOrderingList(container, nodeData);
                         }
                     } else {
-                        console.log(`❌ Invalid reorder: ${draggedIndex} → ${newIndex}`);
                     }
                 } else {
-                    console.log(`❌ No valid drop target found`);
                 }
                 
                 // Clean up visual state - use draggedItem instead of this
@@ -6440,7 +6296,6 @@ class PulseSankeyChart {
         if (fromIndex < 0 || fromIndex >= nodeData.sourceLinks.length || 
             toIndex < 0 || toIndex > nodeData.sourceLinks.length || 
             fromIndex === toIndex) {
-            console.log(`❌ Invalid move: ${fromIndex} → ${toIndex}`);
             return false;
         }
         
@@ -6448,34 +6303,26 @@ class PulseSankeyChart {
         const link = nodeData.sourceLinks.splice(fromIndex, 1)[0];
         nodeData.sourceLinks.splice(toIndex, 0, link);
         
-        console.log(`🔄 Moved link "${link.target.id}" from position ${fromIndex} to ${toIndex}`);
-        console.log(`📋 New order:`, nodeData.sourceLinks.map(l => l.target.id));
         return true;
     }
     
     refreshLinkOrderingList(container, nodeData) {
-        console.log(`🔄 Refreshing list with new order:`, nodeData.sourceLinks.map(l => l.target.id));
         
         // Remove and recreate the list with updated order
         container.selectAll('.link-order-item').remove();
         this.createLinkOrderingList(container, nodeData);
         
-        console.log(`✅ List refreshed with ${nodeData.sourceLinks.length} items`);
     }
     
     applyLinkOrder(nodeData) {
-        console.log(`🔗 Applying new link order for node: ${nodeData.id}`);
-        console.log(`📋 Current link order:`, nodeData.sourceLinks.map(l => l.target.id));
         
         // Reorder target nodes to match the new link order
         this.reorderTargetNodes(nodeData);
         
         // Only recalculate link positions, not full layout
-        console.log(`⚙️ Recalculating link positions...`);
         this.calculateLinkPositions();
         
         // Re-render links and nodes to show new positions
-        console.log(`🎨 Re-rendering links and nodes...`);
         this.chart.selectAll('.sankey-link').remove();
         this.chart.selectAll('.sankey-node').remove();
         this.chart.selectAll('.node-text-group').remove();
@@ -6486,15 +6333,12 @@ class PulseSankeyChart {
         // Show success feedback
         this.showLinkOrderingSuccess(nodeData);
         
-        console.log(`✅ Link order applied successfully`);
     }
     
     reorderTargetNodes(sourceNode) {
-        console.log(`🔄 Reordering target nodes and handling collisions for: ${sourceNode.id}`);
         
         // Get all target nodes from this source node's links
         const targetNodes = sourceNode.sourceLinks.map(link => link.target);
-        console.log(`🎯 Target nodes to reorder:`, targetNodes.map(n => n.id));
         
         if (targetNodes.length === 0) return;
         
@@ -6523,14 +6367,12 @@ class PulseSankeyChart {
             node.manualY = currentY;
             node.manuallyPositioned = true;
             
-            console.log(`📍 Moving ${node.id}: ${oldY} → ${currentY}`);
             currentY += node.height + spacing;
         });
         
         // Now handle children and displacement
         this.repositionChildrenAndHandleCollisions(targetNodes, originalPositions);
         
-        console.log(`✅ Target nodes repositioned with collision handling`);
     }
     
     getAllChildNodes(node) {
@@ -6552,7 +6394,6 @@ class PulseSankeyChart {
             const deltaY = node.y - original.y;
             
             if (Math.abs(deltaY) > 5 && node.sourceLinks) {
-                console.log(`🔄 Moving children of ${node.id} by deltaY: ${deltaY}`);
                 this.moveChildrenRecursively(node, deltaY);
             }
         });
@@ -6577,7 +6418,6 @@ class PulseSankeyChart {
                 childNode.manualY = constrainedY;
                 childNode.manuallyPositioned = true;
                 
-                console.log(`📍 Moved child: ${childNode.id} to Y: ${constrainedY}`);
                 
                 // Recursively move grandchildren
                 this.moveChildrenRecursively(childNode, deltaY);
@@ -6586,7 +6426,6 @@ class PulseSankeyChart {
     }
     
     resolveOverlaps() {
-        console.log(`🔧 Starting overlap resolution...`);
         
         // Group nodes by depth (layer)
         const nodesByDepth = new Map();
@@ -6605,7 +6444,6 @@ class PulseSankeyChart {
         while (hasOverlaps && iteration < maxIterations) {
             hasOverlaps = false;
             iteration++;
-            console.log(`🔄 Overlap resolution iteration ${iteration}`);
             
             // For each layer, check for overlaps and resolve them
             nodesByDepth.forEach((nodesInLayer, depth) => {
@@ -6621,13 +6459,11 @@ class PulseSankeyChart {
                     const requiredY = previousNode.y + previousNode.height + minGap;
                     
                     if (currentNode.y < requiredY) {
-                        console.log(`⚠️ Iteration ${iteration}: ${currentNode.id} overlaps with ${previousNode.id}`);
                         const deltaY = requiredY - currentNode.y;
                         
                         // Move the overlapping node and its children (but don't call recursively)
                         currentNode.y = requiredY;
                         currentNode.manualY = requiredY;
-                        console.log(`🔧 Displaced ${currentNode.id} by ${deltaY} to Y: ${requiredY}`);
                         
                         // Mark that we found overlaps and need another iteration
                         hasOverlaps = true;
@@ -6636,13 +6472,11 @@ class PulseSankeyChart {
             });
         }
         
-        console.log(`✅ Overlap resolution completed after ${iteration} iterations`);
     }
     
     moveNodeAndChildren(node, deltaY) {
         node.y += deltaY;
         node.manualY = node.y;
-        console.log(`🔧 Displaced ${node.id} by ${deltaY} to avoid overlap`);
         
         // Move children too
         this.moveChildrenRecursively(node, deltaY);
@@ -6658,7 +6492,6 @@ class PulseSankeyChart {
                 childNode.manualY = childNode.y;
                 childNode.manuallyPositioned = true;
                 
-                console.log(`📍 Moved child ${childNode.id} by ${deltaY} to Y: ${childNode.y}`);
                 
                 // Recursively move grandchildren
                 this.moveChildrenWithNode(childNode, deltaY);
@@ -6713,7 +6546,6 @@ class PulseSankeyChart {
             return;
         }
 
-        console.log(`🎯 Highlighting nodes by category: ${category}`);
         
         if (category === 'off') {
             // Reset all nodes to normal opacity
@@ -6876,7 +6708,6 @@ class PulseSankeyChart {
                 return matchingNodes.has(nodeId) ? 1 : 0.3;
             });
 
-        console.log(`🎨 Highlighted nodes with target category: ${targetCategory}`);
     }
 
     // Highlight specific nodes and links (for individual row highlighting)
@@ -6944,7 +6775,6 @@ class PulseSankeyChart {
                 return nodeIds.has(nodeId) ? 1 : 0.3;
             });
 
-        console.log(`🎨 Highlighted ${nodeIds.size} nodes and ${linkIds.size} links`);
     }
 }
 
