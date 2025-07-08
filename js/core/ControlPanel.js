@@ -21,19 +21,11 @@ class PulseControlPanel {
         // **CRITICAL: Properly synchronize config with chart's actual config**
         this.config = { ...chart.config };
         
-        console.log('🎛️ Control panel initializing with config:', this.config);
-        console.log('📊 Chart config:', chart.config);
-        console.log('🎨 Chart colors:', chart.customColors);
-        console.log('📊 Chart data available:', !!chart.data, chart.data?.length || 0);
         
         // **CRITICAL FIX: For bar charts, ensure dynamic controls are properly initialized**
         if (controlModule && controlModule.hasDynamicControls && controlModule.hasDynamicControls()) {
-            console.log('🔄 Chart has dynamic controls, checking data availability');
             if (chart.data && chart.data.length > 0) {
-                console.log('✅ Chart has data, initializing dynamic controls');
                 controlModule.initializeDynamicControls(chart);
-            } else {
-                console.log('⚠️ Chart has no data yet, will initialize basic controls and update later');
             }
         }
         
@@ -114,7 +106,6 @@ class PulseControlPanel {
         this.clearAllDropdowns();
         
         const capabilities = this.controlModule.capabilities;
-        console.log('🎛️ Control capabilities:', Object.keys(capabilities));
         
         // Map sections to menu categories based on workflow
         const sectionMapping = {
@@ -128,11 +119,9 @@ class PulseControlPanel {
         // Distribute controls across menu sections
         Object.entries(capabilities).forEach(([sectionKey, section]) => {
             const menuCategory = this.findMenuCategory(sectionKey, sectionMapping);
-            console.log(`🎛️ Mapping section "${sectionKey}" to menu category "${menuCategory}"`);
             this.createControlsInMenu(menuCategory, sectionKey, section);
         });
         
-        console.log('✅ Generated horizontal menu controls');
     }
 
     // Clear all dropdown contents, preserving data-controls static content
@@ -176,7 +165,6 @@ class PulseControlPanel {
         if (lowerKey.includes('display') || lowerKey.includes('label') || lowerKey.includes('show') || lowerKey.includes('visibility')) return 'display';
         if (lowerKey.includes('general') || lowerKey.includes('chart') || lowerKey.includes('data')) return 'data';
         
-        console.log(`⚠️ Unmatched section "${sectionKey}" defaulting to 'data'`);
         return 'data'; // Default fallback
     }
 
@@ -452,7 +440,6 @@ class PulseControlPanel {
         // **CRITICAL: Get current color from chart, not just config defaults**
         let currentValue = this.getCurrentValue(config);
         
-        console.log(`🎨 Creating color control for ${config.id}, current value: ${currentValue}`);
 
         // Minimal color picker
         const colorPicker = colorItem
@@ -470,7 +457,6 @@ class PulseControlPanel {
             .style('margin', '0')
             .style('outline', 'none')
             .on('change', (event) => {
-                console.log(`🎨 Color changed for ${config.id}: ${event.target.value}`);
                 this.handleChange(config.id, event.target.value);
             });
 
@@ -625,7 +611,6 @@ class PulseControlPanel {
             .style('margin', '0')
             .style('transition', 'transform 0.15s ease')
             .on('change', (event) => {
-                console.log(`✅ Checkbox changed: ${config.id} = ${event.target.checked}`);
                 
                 // Visual feedback for the change
                 const checkboxEl = d3.select(event.target);
@@ -677,17 +662,14 @@ class PulseControlPanel {
                     // Use ChartZoom utility for resetZoom action with fallback
                     if (window.ChartZoom && window.ChartZoom.resetZoom) {
                         ChartZoom.resetZoom.call(this.chart);
-                        console.log(`🔘 Button action executed: ${config.action} via ChartZoom`);
                     } else if (this.chart && typeof this.chart.resetZoom === 'function') {
                         this.chart.resetZoom();
-                        console.log(`🔘 Button action executed: ${config.action} via chart method`);
                     } else {
                         console.warn('No resetZoom method available');
                     }
                 } else if (config.action && this.chart && typeof this.chart[config.action] === 'function') {
                     // Call the action method on the chart
                     this.chart[config.action]();
-                    console.log(`🔘 Button action executed: ${config.action}`);
                 } else {
                     console.warn(`Button action '${config.action}' not found on chart`);
                 }
@@ -834,7 +816,6 @@ class PulseControlPanel {
     createColorPickerControl(container, config) {
         const currentValue = this.getCurrentValue(config);
         
-        console.log(`🎨 Creating color picker for ${config.id}, current value: ${currentValue}`);
 
         const colorItem = container
             .append('div')
@@ -884,7 +865,6 @@ class PulseControlPanel {
         if (config.type === 'color' || config.type === 'color_picker') {
             if (this.controlModule && this.controlModule.getCurrentValue) {
                 const value = this.controlModule.getCurrentValue(config.id, this.chart);
-                console.log(`🎨 Got color value for ${config.id}: ${value}`);
                 return value;
             }
             
@@ -892,7 +872,6 @@ class PulseControlPanel {
             if (this.chart && this.chart.customColors) {
                 const category = config.id.replace('Color', '').toLowerCase();
                 if (this.chart.customColors[category]) {
-                    console.log(`🎨 Found color in chart.customColors for ${category}: ${this.chart.customColors[category]}`);
                     return this.chart.customColors[category];
                 }
             }
@@ -1045,12 +1024,6 @@ class PulseControlPanel {
 
     // FIXED: Handle control value changes with proper opacity updates
     handleChange(controlId, value) {
-        console.log(`🎛️ ControlPanel.handleChange called: ${controlId} = ${value}`);
-        console.log(`🎛️ Chart exists: ${!!this.chart}`);
-        console.log(`🎛️ Chart type: ${this.chart?.constructor?.name}`);
-        console.log(`🎛️ Control module exists: ${!!this.controlModule}`);
-        console.log(`🎛️ Control module type: ${this.controlModule?.constructor?.name}`);
-        console.log(`🎛️ Control module has handleControlChange: ${typeof this.controlModule?.handleControlChange}`);
         
         if (!this.chart) {
             console.error('❌ ControlPanel: No chart instance available for control change');
@@ -1092,7 +1065,6 @@ class PulseControlPanel {
 
         // **FIXED: Handle controls that need immediate updates**
         if (IMMEDIATE_UPDATE_CONTROLS.includes(controlId) || controlId.endsWith('Color')) {
-            console.log(`🚀 ControlPanel: Applying immediate update for ${controlId} = ${value}`);
             // Apply immediately without debounce for responsive feel
             if (this.controlModule && this.controlModule.handleControlChange) {
                 this.controlModule.handleControlChange(controlId, value, this.chart);
@@ -1107,33 +1079,21 @@ class PulseControlPanel {
             try {
                 if (this.controlModule && this.controlModule.handleControlChange) {
                     // Use chart-specific change handler if available
-                    console.log(`🎛️ Control Panel: Calling controlModule.handleControlChange for ${controlId}`);
                     this.controlModule.handleControlChange(controlId, value, this.chart);
-                    console.log(`✅ Control Panel: Successfully handled ${controlId} via control module`);
                 } else {
                     // Fall back to generic chart update
-                    console.log(`⚠️ Control Panel: No control module handler, falling back to chart.updateConfig for ${controlId}`);
                     if (this.chart && typeof this.chart.updateConfig === 'function') {
                         this.chart.updateConfig({ [controlId]: value });
-                        console.log(`✅ Control Panel: Successfully updated ${controlId} via chart.updateConfig`);
                     } else {
                         console.error(`❌ Control Panel: No updateConfig method available on chart for ${controlId}`);
-                        console.log('📊 Chart details:', {
-                            hasChart: !!this.chart,
-                            chartType: this.chart?.constructor?.name,
-                            hasUpdateConfig: typeof this.chart?.updateConfig,
-                            availableMethods: this.chart ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.chart)) : []
-                        });
                     }
                 }
             } catch (error) {
                 console.error(`❌ Control Panel: Error handling control change for ${controlId}:`, error);
                 // Try fallback to chart.updateConfig if control module failed
                 if (this.chart && typeof this.chart.updateConfig === 'function') {
-                    console.log(`🔄 Control Panel: Attempting fallback to chart.updateConfig for ${controlId}`);
                     try {
                         this.chart.updateConfig({ [controlId]: value });
-                        console.log(`✅ Control Panel: Fallback successful for ${controlId}`);
                     } catch (fallbackError) {
                         console.error(`❌ Control Panel: Fallback also failed for ${controlId}:`, fallbackError);
                     }
@@ -1218,7 +1178,6 @@ class PulseControlPanel {
             // Regenerate controls with default values
             this.generateControls();
             
-            console.log('✅ Reset to defaults complete', this.config);
         } else {
             console.warn('Control module does not support reset to defaults');
         }
@@ -1232,9 +1191,7 @@ class PulseControlPanel {
         
         // **CRITICAL FIX: Re-initialize dynamic controls when chart updates**
         if (controlModule && controlModule.hasDynamicControls && controlModule.hasDynamicControls()) {
-            console.log('🔄 Updating chart with dynamic controls');
             if (chart.data && chart.data.length > 0) {
-                console.log('✅ Chart has data, re-initializing dynamic controls');
                 controlModule.initializeDynamicControls(chart);
             }
         }
@@ -1249,7 +1206,6 @@ class PulseControlPanel {
             return;
         }
         
-        console.log('🔄 Refreshing control panel after data load');
         
         // Update chart reference
         this.chart = chart;
@@ -1257,14 +1213,12 @@ class PulseControlPanel {
         
         // Re-initialize dynamic controls with new data
         if (this.controlModule.hasDynamicControls && this.controlModule.hasDynamicControls()) {
-            console.log('🎛️ Re-initializing dynamic controls with data');
             this.controlModule.initializeDynamicControls(chart);
         }
         
         // Regenerate all controls
         this.generateControls();
         
-        console.log('✅ Control panel refreshed successfully');
     }
 
     // Get current configuration
@@ -1274,7 +1228,6 @@ class PulseControlPanel {
 
     // FIXED: Apply external configuration with proper color sync
     applyConfig(newConfig) {
-        console.log('🔧 Applying new config to control panel:', newConfig);
         
         // **ENHANCED: Properly merge new config**
         this.config = { ...this.config, ...newConfig };
@@ -1292,7 +1245,6 @@ class PulseControlPanel {
         // Regenerate controls to reflect new values
         this.generateControls();
         
-        console.log('✅ Config applied and controls regenerated');
     }
 
     // Export configuration
@@ -1340,7 +1292,6 @@ class PulseControlPanel {
             // Regenerate control panel
             this.generateControls();
             
-            console.log('🔄 Updated dynamic controls');
         }
     }
 
