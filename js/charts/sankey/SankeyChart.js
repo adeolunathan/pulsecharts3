@@ -2280,7 +2280,7 @@ class PulseSankeyChart {
                 // Ensure tooltip stays hidden during drag
                 self.hideTooltip();
                 // Enable both horizontal and vertical movement in all modes
-                self.handleArrangementDrag(event, d, this);
+                self.handleStandardDrag(event, d, this);
             })
             .on('end', function(event, d) {
                 self.isDragging = false;
@@ -3982,7 +3982,7 @@ class PulseSankeyChart {
     initializeInteractiveMode() {
         // Initialize interaction mode state
         this.interactionMode = {
-            mode: 'normal', // 'normal', 'arrange'
+            mode: 'normal',
         };
         
         // Add mode toggle buttons to chart container
@@ -4007,25 +4007,6 @@ class PulseSankeyChart {
             .style('gap', '8px');
             
             
-        // Arrange Mode Button
-        const arrangeButton = toggleContainer
-            .append('button')
-            .attr('class', 'arrange-mode-btn')
-            .style('padding', '4px 8px')
-            .style('background', '#8b5cf6')
-            .style('color', 'white')
-            .style('border', 'none')
-            .style('border-radius', '4px')
-            .style('cursor', 'pointer')
-            .style('font-size', '10px')
-            .style('font-weight', '500')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('gap', '4px')
-            .style('box-shadow', '0 1px 2px rgba(0,0,0,0.1)')
-            .style('transition', 'all 0.2s ease')
-            .html('🔄 Arrange')
-            .on('click', () => this.setInteractionMode('arrange'));
             
         // Center Chart Button
         const centerButton = toggleContainer
@@ -4078,14 +4059,8 @@ class PulseSankeyChart {
         
         // Handle mode-specific setup
         switch (mode) {
-            case 'arrange':
-                this.showArrangeInstructions();
-                this.enableLinkOrdering();
-                break;
             case 'normal':
                 this.clearInteractionState();
-                this.hideInstructions();
-                this.disableLinkOrdering();
                 break;
         }
         
@@ -4097,68 +4072,19 @@ class PulseSankeyChart {
     updateModeButtonAppearances() {
         const mode = this.interactionMode.mode;
         
-        // Update Arrange button  
-        const arrangeBtn = this.container.select('.arrange-mode-btn');
-        arrangeBtn.style('background', mode === 'arrange' ? '#7c3aed' : '#8b5cf6')
-                 .html(mode === 'arrange' ? '🔄 Active' : '🔄 Arrange');
-        
         // Show/hide Exit button
         const exitBtn = this.container.select('.normal-mode-btn');
         exitBtn.style('display', mode === 'normal' ? 'none' : 'flex');
     }
     
     
-    showArrangeInstructions() {
-        // Remove existing instructions
-        this.hideInstructions();
-        
-        const instructions = this.container
-            .insert('div', ':first-child')
-            .attr('class', 'arrangement-instructions')
-            .style('position', 'absolute')
-            .style('top', '50px')
-            .style('right', '10px')
-            .style('background', 'rgba(139, 92, 246, 0.9)')
-            .style('color', 'white')
-            .style('padding', '12px 16px')
-            .style('border-radius', '6px')
-            .style('font-size', '12px')
-            .style('max-width', '250px')
-            .style('z-index', '999')
-            .style('box-shadow', '0 4px 12px rgba(0,0,0,0.15)')
-            .html(`
-                <div style="font-weight: 600; margin-bottom: 6px;">🔄 Arrangement Mode Active</div>
-                <div>• Drag nodes to reposition</div>
-                <div>• <strong>Click nodes</strong> to reorder their outgoing links</div>
-                <div>• Changes update automatically</div>
-                <div style="margin-top: 8px; font-size: 10px; opacity: 0.8;">
-                    Click Exit to return to normal mode
-                </div>
-            `);
-    }
-    
-    hideInstructions() {
-        this.container.select('.arrangement-instructions').remove();
-    }
-    
     updateNodeClickHandlers() {
         // Add click handlers to existing nodes
         this.chart.selectAll('.sankey-node')
-            .style('cursor', () => {
-                switch (this.interactionMode.mode) {
-                    case 'arrange': return 'move';
-                    default: return 'pointer';
-                }
-            })
+            .style('cursor', 'pointer')
             .on('click', (event, d) => {
                 event.stopPropagation();
-                
-                // Show appropriate interface based on interaction mode
-                if (this.interactionMode.mode === 'arrange') {
-                    this.showLinkOrderingPanel(d);
-                } else {
-                    this.showEnhancedColorPicker(event, d);
-                }
+                this.showEnhancedColorPicker(event, d);
             });
     }
     
@@ -4166,28 +4092,13 @@ class PulseSankeyChart {
         const mode = this.interactionMode.mode;
         
         this.chart.selectAll('.sankey-node')
-            .style('cursor', () => {
-                switch (mode) {
-                    case 'arrange': return 'move';
-                    default: return 'pointer';
-                }
-            });
+            .style('cursor', 'pointer');
             
-        // Update visual state of nodes based on mode
-        switch (mode) {
-            case 'arrange':
-                this.chart.selectAll('.sankey-node rect')
-                    .style('stroke-width', '3px')
-                    .style('stroke', '#8b5cf6')
-                    .style('opacity', '1');
-                break;
-            default:
-                this.chart.selectAll('.sankey-node rect')
-                    .style('stroke-width', '2px')
-                    .style('stroke', 'white')
-                    .style('opacity', '1');
-                break;
-        }
+        // Update visual state of nodes
+        this.chart.selectAll('.sankey-node rect')
+            .style('stroke-width', '2px')
+            .style('stroke', 'white')
+            .style('opacity', '1');
     }
     
     // ===== ENHANCED COLOR PICKER WITH ADD NODE FUNCTIONALITY =====
@@ -5554,9 +5465,9 @@ class PulseSankeyChart {
         setTimeout(() => success.remove(), 4000);
     }
     
-    // ===== NODE ARRANGEMENT SYSTEM =====
+    // ===== NODE DRAG SYSTEM =====
     
-    handleArrangementDrag(event, draggedNode, element) {
+    handleStandardDrag(event, draggedNode, element) {
         // Calculate potential new position with free movement
         const newX = event.x;
         const newY = Math.max(20, Math.min(
@@ -5608,7 +5519,6 @@ class PulseSankeyChart {
         this.updateNodeComments(draggedNode);
         
         this.updateNodeLinks(draggedNode);
-        this.updateArrangementHint(draggedNode, draggedNode.depth, newY);
     }
     
     updateNodeLabels(node) {
@@ -5781,8 +5691,6 @@ class PulseSankeyChart {
         this.calculateLinkPositions();
         this.renderLinks();
         
-        this.updateArrangementHint(node, newLayer, newY);
-        
     }
     
     calculateLayerX(layer) {
@@ -5802,34 +5710,8 @@ class PulseSankeyChart {
         return nodeAtLayer ? nodeAtLayer.x : 0;
     }
     
-    updateArrangementHint(node, layer, y) {
-        // Remove existing hint
-        this.container.select('.arrangement-hint').remove();
-        
-        // Show hint with layer and position info
-        const hint = this.container
-            .append('div')
-            .attr('class', 'arrangement-hint')
-            .style('position', 'absolute')
-            .style('top', '120px')
-            .style('left', '10px')
-            .style('background', 'rgba(139, 92, 246, 0.9)')
-            .style('color', 'white')
-            .style('padding', '8px 12px')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
-            .style('pointer-events', 'none')
-            .style('z-index', '1000')
-            .html(`
-                <div style="font-weight: 600;">${node.id}</div>
-                <div>Layer: ${layer}</div>
-                <div>Y: ${Math.round(y)}</div>
-            `);
-    }
-    
     hideDragHint() {
         this.container.select('.drag-hint').remove();
-        this.container.select('.arrangement-hint').remove();
     }
     
     clearInteractionState() {
@@ -5855,686 +5737,6 @@ class PulseSankeyChart {
 
     // Clear brand logo
     
-    // ===== LINK ORDERING METHODS FOR ARRANGE MODE =====
-    
-    enableLinkOrdering() {
-        // Add click handlers to nodes for link ordering
-        this.chart.selectAll('.sankey-node rect')
-            .on('click.linkOrdering', (event, nodeData) => {
-                if (this.interactionMode.mode === 'arrange') {
-                    event.stopPropagation();
-                    this.showLinkOrderingPanel(nodeData);
-                }
-            });
-    }
-    
-    disableLinkOrdering() {
-        // Remove click handlers
-        this.chart.selectAll('.sankey-node rect')
-            .on('click.linkOrdering', null);
-    }
-    
-    showLinkOrderingPanel(nodeData) {
-        // Only show if node has outgoing links
-        if (!nodeData.sourceLinks || nodeData.sourceLinks.length <= 1) {
-            return; // No need to reorder if 1 or fewer links
-        }
-        
-        // Hide tooltip and remove existing panel
-        this.hideTooltip();
-        this.container.select('.link-ordering-panel').remove();
-        
-        const panel = this.container
-            .append('div')
-            .attr('class', 'link-ordering-panel')
-            .style('position', 'fixed')
-            .style('top', '50%')
-            .style('left', '50%')
-            .style('transform', 'translate(-50%, -50%)')
-            .style('background', 'white')
-            .style('border-radius', '12px')
-            .style('box-shadow', '0 12px 32px rgba(0, 0, 0, 0.15)')
-            .style('padding', '20px')
-            .style('z-index', '2000')
-            .style('max-width', '350px')
-            .style('width', '90%')
-            .style('border', '1px solid rgba(0,0,0,0.1)');
-            
-        // Header
-        const header = panel
-            .append('div')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('justify-content', 'space-between')
-            .style('margin-bottom', '16px')
-            .style('padding-bottom', '12px')
-            .style('border-bottom', '1px solid #f3f4f6');
-            
-        header
-            .append('h3')
-            .style('margin', '0')
-            .style('color', '#1f2937')
-            .style('font-size', '16px')
-            .style('font-weight', '600')
-            .html(`🔗 Reorder Links from "<span style="color: #7c3aed;">${nodeData.id}</span>"`);
-            
-        header
-            .append('button')
-            .style('background', 'none')
-            .style('border', 'none')
-            .style('font-size', '20px')
-            .style('cursor', 'pointer')
-            .style('color', '#6b7280')
-            .style('padding', '4px')
-            .style('border-radius', '4px')
-            .style('transition', 'background 0.2s')
-            .text('×')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#f3f4f6');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', 'none');
-            })
-            .on('click', () => panel.remove());
-        
-        // Instructions
-        panel
-            .append('div')
-            .style('font-size', '12px')
-            .style('color', '#6b7280')
-            .style('margin-bottom', '12px')
-            .style('padding', '8px 12px')
-            .style('background', '#f8fafc')
-            .style('border-radius', '6px')
-            .style('border-left', '3px solid #7c3aed')
-            .text('Drag and drop links to change the stacking order (top to bottom):');
-        
-        // Link list container
-        const linkListContainer = panel
-            .append('div')
-            .style('margin-bottom', '16px')
-            .style('max-height', '300px')
-            .style('overflow-y', 'auto');
-            
-        // Create the link list
-        this.createLinkOrderingList(linkListContainer, nodeData);
-        
-        // Action buttons
-        const actions = panel
-            .append('div')
-            .style('display', 'flex')
-            .style('gap', '12px')
-            .style('margin-top', '16px');
-            
-        actions
-            .append('button')
-            .style('flex', '1')
-            .style('padding', '10px 16px')
-            .style('background', '#7c3aed')
-            .style('color', 'white')
-            .style('border', 'none')
-            .style('border-radius', '8px')
-            .style('cursor', 'pointer')
-            .style('font-size', '13px')
-            .style('font-weight', '600')
-            .style('transition', 'background 0.2s')
-            .text('Apply New Order')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#6d28d9');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', '#7c3aed');
-            })
-            .on('click', () => {
-                this.applyLinkOrder(nodeData);
-                panel.remove();
-            });
-            
-        actions
-            .append('button')
-            .style('flex', '1')
-            .style('padding', '10px 16px')
-            .style('background', '#f3f4f6')
-            .style('color', '#374151')
-            .style('border', '1px solid #e5e7eb')
-            .style('border-radius', '8px')
-            .style('cursor', 'pointer')
-            .style('font-size', '13px')
-            .style('font-weight', '500')
-            .style('transition', 'background 0.2s')
-            .text('Cancel')
-            .on('mouseover', function() {
-                d3.select(this).style('background', '#e5e7eb');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('background', '#f3f4f6');
-            })
-            .on('click', () => panel.remove());
-    }
-    
-    createLinkOrderingList(container, nodeData) {
-        // Store original order for reference
-        this.originalLinkOrder = [...nodeData.sourceLinks];
-        
-        const linkItems = container
-            .selectAll('.link-order-item')
-            .data(nodeData.sourceLinks, d => d.target.id)
-            .enter()
-            .append('div')
-            .attr('class', 'link-order-item')
-            .style('background', '#ffffff')
-            .style('border', '1px solid #e5e7eb')
-            .style('border-radius', '8px')
-            .style('padding', '12px')
-            .style('margin-bottom', '6px')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('justify-content', 'space-between')
-            .style('font-size', '12px')
-            .style('transition', 'all 0.2s ease')
-            .style('box-shadow', '0 1px 3px rgba(0,0,0,0.1)')
-            .style('cursor', 'grab')
-            .on('mouseover', function() {
-                d3.select(this)
-                    .style('background', '#f8fafc')
-                    .style('border-color', '#7c3aed');
-            })
-            .on('mouseout', function() {
-                d3.select(this)
-                    .style('background', '#ffffff')
-                    .style('border-color', '#e5e7eb');
-            });
-            
-        // Link info section
-        const linkInfo = linkItems
-            .append('div')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('gap', '10px')
-            .style('flex', '1');
-            
-        // Color indicator
-        linkInfo
-            .append('div')
-            .style('width', '16px')
-            .style('height', '16px')
-            .style('border-radius', '4px')
-            .style('border', '1px solid rgba(0,0,0,0.1)')
-            .style('background', d => this.getLinkColor(d));
-            
-        // Link details
-        const linkDetails = linkInfo
-            .append('div')
-            .style('flex', '1');
-            
-        linkDetails
-            .append('div')
-            .style('font-weight', '600')
-            .style('color', '#1f2937')
-            .style('margin-bottom', '2px')
-            .text(d => `→ ${d.target.id}`);
-            
-        linkDetails
-            .append('div')
-            .style('font-size', '11px')
-            .style('color', '#6b7280')
-            .text(d => this.formatCurrency(d.value, d.target));
-        
-        // Add drag handle and enable drag-and-drop
-        this.addDragHandleAndSorting(linkItems, container, nodeData);
-    }
-    
-    addDragHandleAndSorting(linkItems, container, nodeData) {
-        // Add drag handle to each item
-        linkItems
-            .append('div')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('color', '#9ca3af')
-            .style('font-size', '14px')
-            .style('cursor', 'grab')
-            .style('padding', '4px')
-            .style('border-radius', '4px')
-            .style('transition', 'color 0.2s')
-            .text('⋮⋮')
-            .on('mouseover', function() {
-                d3.select(this).style('color', '#7c3aed');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('color', '#9ca3af');
-            });
-        
-        // Enable drag and drop sorting
-        this.enableLinkItemDragSort(linkItems, container, nodeData);
-    }
-    
-    enableLinkItemDragSort(linkItems, container, nodeData) {
-        let draggedItem = null;
-        let draggedData = null;
-        let allItems = [];
-        let startY = 0;
-        
-        linkItems.call(d3.drag()
-            .on('start', function(event, d) {
-                draggedItem = this;
-                draggedData = d;
-                startY = event.y;
-                
-                // Get all items for sorting
-                allItems = Array.from(container.selectAll('.link-order-item').nodes());
-                
-                try {
-                    d3.select(this)
-                        .style('cursor', 'grabbing')
-                        .style('opacity', '0.7')
-                        .style('transform', 'rotate(2deg) scale(1.02)')
-                        .style('z-index', '1000')
-                        .style('position', 'relative')
-                        .style('box-shadow', '0 8px 25px rgba(124, 58, 237, 0.3)');
-                } catch (error) {
-                    console.warn('⚠️ Error applying drag start styles:', error);
-                }
-                
-            })
-            .on('drag', function(event) {
-                const currentY = event.y;
-                const deltaY = currentY - startY;
-                
-                // Update visual position of dragged item
-                try {
-                    d3.select(this)
-                        .style('transform', `rotate(2deg) scale(1.02) translateY(${deltaY}px)`);
-                } catch (error) {
-                    console.warn('⚠️ Error updating drag position:', error);
-                }
-                
-                // Find the item we're hovering over
-                let targetItem = null;
-                let targetIndex = -1;
-                
-                for (let i = 0; i < allItems.length; i++) {
-                    const item = allItems[i];
-                    if (item === draggedItem) continue;
-                    
-                    const rect = item.getBoundingClientRect();
-                    if (currentY >= rect.top && currentY <= rect.bottom) {
-                        targetItem = item;
-                        targetIndex = i;
-                        break;
-                    }
-                }
-                
-                // Highlight target item safely
-                try {
-                    container.selectAll('.link-order-item')
-                        .style('background', function() {
-                            return this === targetItem ? '#f3f4f6' : '#ffffff';
-                        })
-                        .style('border-color', function() {
-                            return this === targetItem ? '#7c3aed' : '#e5e7eb';
-                        });
-                } catch (error) {
-                    console.warn('⚠️ Error highlighting target item:', error);
-                }
-            })
-            .on('end', function(event) {
-                // Get the actual mouse position in page coordinates
-                const currentY = event.sourceEvent.clientY;
-                
-                // Find target position - improved logic
-                let targetIndex = -1;
-                let insertBefore = true;
-                
-                
-                // Find the closest item to drop position
-                let closestDistance = Infinity;
-                let closestIndex = -1;
-                
-                for (let i = 0; i < allItems.length; i++) {
-                    const item = allItems[i];
-                    if (item === draggedItem) continue;
-                    
-                    const rect = item.getBoundingClientRect();
-                    const itemMiddle = rect.top + rect.height / 2;
-                    const distance = Math.abs(currentY - itemMiddle);
-                    
-                    
-                    // Check if mouse is within item bounds OR if it's the closest item
-                    if ((currentY >= rect.top && currentY <= rect.bottom) || distance < closestDistance) {
-                        if (currentY >= rect.top && currentY <= rect.bottom) {
-                            // Direct hit
-                            targetIndex = i;
-                            insertBefore = currentY < itemMiddle;
-                            break;
-                        } else if (distance < closestDistance) {
-                            // Track closest item as fallback
-                            closestDistance = distance;
-                            closestIndex = i;
-                        }
-                    }
-                }
-                
-                // If no direct hit, use closest item or handle drop at end
-                if (targetIndex === -1 && closestIndex !== -1) {
-                    // Check if we're dragging below all items
-                    const lastItemRect = allItems[allItems.length - 1].getBoundingClientRect();
-                    if (currentY > lastItemRect.bottom) {
-                        // Dropping below all items - append to end
-                        targetIndex = allItems.length - 1;
-                        insertBefore = false;
-                    } else {
-                        // Use existing closest item logic
-                        targetIndex = closestIndex;
-                        const closestRect = allItems[closestIndex].getBoundingClientRect();
-                        const closestMiddle = closestRect.top + closestRect.height / 2;
-                        insertBefore = currentY < closestMiddle;
-                    }
-                }
-                
-                // Perform the reorder
-                if (targetIndex !== -1) {
-                    const draggedIndex = nodeData.sourceLinks.indexOf(draggedData);
-                    
-                    // Get the actual data of the target item to find its index in sourceLinks
-                    const targetItem = allItems[targetIndex];
-                    const targetData = d3.select(targetItem).datum();
-                    const targetSourceIndex = nodeData.sourceLinks.indexOf(targetData);
-                    
-                    
-                    let newIndex = targetSourceIndex;
-                    
-                    // Adjust for insertion position
-                    if (!insertBefore) {
-                        newIndex++;
-                    }
-                    
-                    // Adjust if dragging downward (skip the dragged item itself)
-                    if (draggedIndex < newIndex) {
-                        newIndex--;
-                    }
-                    
-                    
-                    if (draggedIndex !== newIndex && newIndex >= 0 && newIndex <= nodeData.sourceLinks.length) {
-                        const success = this.moveLinkInOrder(nodeData, draggedIndex, newIndex);
-                        if (success) {
-                            this.refreshLinkOrderingList(container, nodeData);
-                        }
-                    } else {
-                    }
-                } else {
-                }
-                
-                // Clean up visual state - use draggedItem instead of this
-                if (draggedItem) {
-                    d3.select(draggedItem)
-                        .style('cursor', 'grab')
-                        .style('opacity', '1')
-                        .style('transform', 'none')
-                        .style('z-index', 'auto')
-                        .style('position', 'static')
-                        .style('box-shadow', '0 1px 3px rgba(0,0,0,0.1)');
-                }
-                
-                // Reset all item styles safely
-                try {
-                    container.selectAll('.link-order-item')
-                        .style('background', '#ffffff')
-                        .style('border-color', '#e5e7eb');
-                } catch (error) {
-                    console.warn('⚠️ Error resetting item styles:', error);
-                }
-                
-                draggedItem = null;
-                draggedData = null;
-                allItems = [];
-            }.bind(this))
-        );
-    }
-    
-    moveLinkInOrder(nodeData, fromIndex, toIndex) {
-        // Ensure valid indices
-        if (fromIndex < 0 || fromIndex >= nodeData.sourceLinks.length || 
-            toIndex < 0 || toIndex > nodeData.sourceLinks.length || 
-            fromIndex === toIndex) {
-            return false;
-        }
-        
-        // Move link from one position to another in the sourceLinks array
-        const link = nodeData.sourceLinks.splice(fromIndex, 1)[0];
-        nodeData.sourceLinks.splice(toIndex, 0, link);
-        
-        return true;
-    }
-    
-    refreshLinkOrderingList(container, nodeData) {
-        
-        // Remove and recreate the list with updated order
-        container.selectAll('.link-order-item').remove();
-        this.createLinkOrderingList(container, nodeData);
-        
-    }
-    
-    applyLinkOrder(nodeData) {
-        
-        // Reorder target nodes to match the new link order
-        this.reorderTargetNodes(nodeData);
-        
-        // Only recalculate link positions, not full layout
-        this.calculateLinkPositions();
-        
-        // Re-render links and nodes to show new positions
-        this.chart.selectAll('.sankey-link').remove();
-        this.chart.selectAll('.sankey-node').remove();
-        this.chart.selectAll('.node-text-group').remove();
-        this.renderNodes();
-        this.renderLinks();
-        this.renderLabels();
-        
-        // Show success feedback
-        this.showLinkOrderingSuccess(nodeData);
-        
-    }
-    
-    reorderTargetNodes(sourceNode) {
-        
-        // Get all target nodes from this source node's links
-        const targetNodes = sourceNode.sourceLinks.map(link => link.target);
-        
-        if (targetNodes.length === 0) return;
-        
-        // Store original positions before any changes
-        const originalPositions = new Map();
-        targetNodes.forEach(node => {
-            originalPositions.set(node.id, { y: node.y, children: this.getAllChildNodes(node) });
-        });
-        
-        // Calculate new Y positions for target nodes
-        const sourceY = sourceNode.y;
-        const sourceHeight = sourceNode.height;
-        const totalTargetHeight = targetNodes.reduce((sum, node) => sum + node.height, 0);
-        const spacing = 10;
-        const totalSpacing = (targetNodes.length - 1) * spacing;
-        const totalHeight = totalTargetHeight + totalSpacing;
-        
-        let startY = sourceY + (sourceHeight / 2) - (totalHeight / 2);
-        startY = Math.max(startY, 20);
-        
-        // Position target nodes in new order
-        let currentY = startY;
-        targetNodes.forEach((node, index) => {
-            const oldY = node.y;
-            node.y = currentY;
-            node.manualY = currentY;
-            node.manuallyPositioned = true;
-            
-            currentY += node.height + spacing;
-        });
-        
-        // Now handle children and displacement
-        this.repositionChildrenAndHandleCollisions(targetNodes, originalPositions);
-        
-    }
-    
-    getAllChildNodes(node) {
-        const children = [];
-        if (node.sourceLinks) {
-            node.sourceLinks.forEach(link => {
-                children.push(link.target);
-                // Recursively get grandchildren
-                children.push(...this.getAllChildNodes(link.target));
-            });
-        }
-        return children;
-    }
-    
-    repositionChildrenAndHandleCollisions(movedNodes, originalPositions) {
-        // First, move all children of the moved nodes
-        movedNodes.forEach(node => {
-            const original = originalPositions.get(node.id);
-            const deltaY = node.y - original.y;
-            
-            if (Math.abs(deltaY) > 5 && node.sourceLinks) {
-                this.moveChildrenRecursively(node, deltaY);
-            }
-        });
-        
-        // Then resolve collisions by displacing nodes that are now overlapping
-        this.resolveOverlaps();
-    }
-    
-    moveChildrenRecursively(parentNode, deltaY) {
-        if (!parentNode.sourceLinks) return;
-        
-        parentNode.sourceLinks.forEach(link => {
-            const childNode = link.target;
-            if (childNode.depth === parentNode.depth + 1) {
-                const newY = childNode.y + deltaY;
-                const constrainedY = Math.max(20, Math.min(
-                    this.config.height - this.config.margin.top - this.config.margin.bottom - childNode.height - 20,
-                    newY
-                ));
-                
-                childNode.y = constrainedY;
-                childNode.manualY = constrainedY;
-                childNode.manuallyPositioned = true;
-                
-                
-                // Recursively move grandchildren
-                this.moveChildrenRecursively(childNode, deltaY);
-            }
-        });
-    }
-    
-    resolveOverlaps() {
-        
-        // Group nodes by depth (layer)
-        const nodesByDepth = new Map();
-        this.nodes.forEach(node => {
-            if (!nodesByDepth.has(node.depth)) {
-                nodesByDepth.set(node.depth, []);
-            }
-            nodesByDepth.get(node.depth).push(node);
-        });
-        
-        // Keep resolving overlaps until no more are found
-        let maxIterations = 10;
-        let iteration = 0;
-        let hasOverlaps = true;
-        
-        while (hasOverlaps && iteration < maxIterations) {
-            hasOverlaps = false;
-            iteration++;
-            
-            // For each layer, check for overlaps and resolve them
-            nodesByDepth.forEach((nodesInLayer, depth) => {
-                // Sort nodes by Y position
-                nodesInLayer.sort((a, b) => a.y - b.y);
-                
-                // Check for overlaps and adjust positions
-                for (let i = 1; i < nodesInLayer.length; i++) {
-                    const currentNode = nodesInLayer[i];
-                    const previousNode = nodesInLayer[i - 1];
-                    
-                    const minGap = 10;
-                    const requiredY = previousNode.y + previousNode.height + minGap;
-                    
-                    if (currentNode.y < requiredY) {
-                        const deltaY = requiredY - currentNode.y;
-                        
-                        // Move the overlapping node and its children (but don't call recursively)
-                        currentNode.y = requiredY;
-                        currentNode.manualY = requiredY;
-                        
-                        // Mark that we found overlaps and need another iteration
-                        hasOverlaps = true;
-                    }
-                }
-            });
-        }
-        
-    }
-    
-    moveNodeAndChildren(node, deltaY) {
-        node.y += deltaY;
-        node.manualY = node.y;
-        
-        // Move children too
-        this.moveChildrenRecursively(node, deltaY);
-    }
-    
-    moveChildrenWithNode(parentNode, deltaY) {
-        if (!parentNode.sourceLinks) return;
-        
-        parentNode.sourceLinks.forEach(link => {
-            const childNode = link.target;
-            if (childNode.depth === parentNode.depth + 1) {
-                childNode.y += deltaY;
-                childNode.manualY = childNode.y;
-                childNode.manuallyPositioned = true;
-                
-                
-                // Recursively move grandchildren
-                this.moveChildrenWithNode(childNode, deltaY);
-            }
-        });
-    }
-    
-    showLinkOrderingSuccess(nodeData) {
-        // Create a temporary success message
-        const successMsg = this.container
-            .append('div')
-            .style('position', 'fixed')
-            .style('top', '20px')
-            .style('right', '20px')
-            .style('background', '#10b981')
-            .style('color', 'white')
-            .style('padding', '12px 16px')
-            .style('border-radius', '8px')
-            .style('font-size', '13px')
-            .style('font-weight', '600')
-            .style('z-index', '3000')
-            .style('box-shadow', '0 4px 12px rgba(16, 185, 129, 0.4)')
-            .style('opacity', '0')
-            .style('transform', 'translateY(-10px)')
-            .text(`✅ Link order updated for "${nodeData.id}"`);
-        
-        // Animate in
-        successMsg
-            .transition()
-            .duration(200)
-            .style('opacity', '1')
-            .style('transform', 'translateY(0px)');
-        
-        // Animate out and remove
-        setTimeout(() => {
-            successMsg
-                .transition()
-                .duration(300)
-                .style('opacity', '0')
-                .style('transform', 'translateY(-10px)')
-                .on('end', () => successMsg.remove());
-        }, 2500);
-    }
 
     /**
      * Highlight nodes by category
