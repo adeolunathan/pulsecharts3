@@ -28,6 +28,9 @@ class PulseSankeyChart {
         this.statementType = 'income';
         this.colorGroups = new Map();
         
+        // Title rendering optimization flag
+        this.brandingNeedsUpdate = true;
+        
         this.config = SankeyChartConfig.getInitialConfig();
         this.initializeChart();
         this.initializeInteractiveMode();
@@ -1056,6 +1059,12 @@ class PulseSankeyChart {
     }
 
     render(data) {
+        // Check if this is new data (requires branding update) or just a re-render
+        const isNewData = !this.data || JSON.stringify(this.data) !== JSON.stringify(data);
+        if (isNewData) {
+            this.brandingNeedsUpdate = true;
+        }
+        
         this.data = data;
         
         // Use FinancialDataProcessor for financial analysis
@@ -1099,10 +1108,15 @@ class PulseSankeyChart {
         }
         
         this.chart.selectAll('*').remove();
-        this.svg.selectAll('.chart-header, .chart-footnotes, .chart-branding').remove();
         
-        // Initialize all branding elements with fallback support
-        this.initializeBranding();
+        // Only re-initialize branding if it doesn't exist or data has changed significantly
+        const existingTitle = this.svg.select('.chart-header text');
+        if (existingTitle.empty() || this.brandingNeedsUpdate) {
+            this.svg.selectAll('.chart-header, .chart-footnotes, .chart-branding').remove();
+            // Initialize all branding elements with fallback support
+            this.initializeBranding();
+            this.brandingNeedsUpdate = false;
+        }
         this.renderLinks();
         this.renderNodes();
         this.renderLabels();
@@ -3648,9 +3662,16 @@ class PulseSankeyChart {
     configRequiresFullRender(oldConfig, newConfig) {
         // Only trigger full render for changes that truly require complete rebuild
         const fullRenderKeys = ['nodeWidth', 'nodeHeightScale'];
-        return fullRenderKeys.some(key => 
+        const needsFullRender = fullRenderKeys.some(key => 
             JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])
         );
+        
+        // When doing full render due to config changes (not new data), preserve branding
+        if (needsFullRender) {
+            this.brandingNeedsUpdate = false;
+        }
+        
+        return needsFullRender;
     }
 
     configRequiresLayoutRecalc(oldConfig, newConfig) {
