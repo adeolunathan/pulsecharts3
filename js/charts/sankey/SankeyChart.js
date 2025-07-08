@@ -1468,13 +1468,18 @@ class PulseSankeyChart {
         this.nodes.forEach(node => {
             const preserved = preservedPositions.get(node.id);
             if (preserved && (preserved.manuallyPositioned || preserved.y !== undefined)) {
-                // Restore Y position (preserve user's positioning)
-                node.y = preserved.y;
-                node.manualY = preserved.y;
-                node.manuallyPositioned = true;
-                // Save to metadata for persistence
-                this.saveManualPositionToMetadata(node);
-                console.log(`🔒 Preserved position for ${node.id}: Y=${preserved.y}`);
+                // Validate preserved Y position before using it
+                if (typeof preserved.y === 'number' && !isNaN(preserved.y)) {
+                    // Restore Y position (preserve user's positioning)
+                    node.y = preserved.y;
+                    node.manualY = preserved.y;
+                    node.manuallyPositioned = true;
+                    // Save to metadata for persistence
+                    this.saveManualPositionToMetadata(node);
+                    console.log(`🔒 Preserved position for ${node.id}: Y=${preserved.y}`);
+                } else {
+                    console.warn(`⚠️ Skipping invalid preserved position for ${node.id}: Y=${preserved.y}`);
+                }
             }
         });
 
@@ -3391,7 +3396,13 @@ class PulseSankeyChart {
      * Save manual position to metadata for persistence across navigation
      */
     saveManualPositionToMetadata(node) {
-        if (this.data && this.data.metadata) {
+        if (this.data && this.data.metadata && node && node.id) {
+            // Validate that node.y is a valid number before saving
+            if (typeof node.y !== 'number' || isNaN(node.y)) {
+                console.warn(`⚠️ Skipping save for ${node.id}: invalid Y position (${node.y})`);
+                return;
+            }
+            
             if (!this.data.metadata.manualPositions) {
                 this.data.metadata.manualPositions = {};
             }
