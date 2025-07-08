@@ -381,13 +381,7 @@ class PulseSankeyChart {
         
         console.log('🔄 Recalculating node values based on current links');
         
-        // Store original node values for source nodes (revenue segments)
-        const originalNodeValues = new Map();
-        this.data.nodes.forEach(node => {
-            originalNodeValues.set(node.id, node.value);
-        });
-        
-        // Reset only intermediate and target node values
+        // Calculate node values based on link connections
         this.data.nodes.forEach(node => {
             // Check if this is a source node (has outgoing links but no incoming links)
             const hasIncomingLinks = this.data.links.some(link => {
@@ -400,10 +394,15 @@ class PulseSankeyChart {
                 return sourceId === node.id;
             });
             
-            // If it's a pure source node (revenue segment), keep original value
+            // If it's a pure source node (revenue segment), sum outgoing flows
             if (hasOutgoingLinks && !hasIncomingLinks) {
-                console.log('🔹 Preserving source node value:', node.id, node.value);
-                // Keep the original value for source nodes
+                // Revenue segments should equal the sum of their outgoing flows
+                const outgoingFlows = this.data.links.filter(link => {
+                    const sourceId = link.source && link.source.id ? link.source.id : link.source;
+                    return sourceId === node.id;
+                });
+                node.value = outgoingFlows.reduce((sum, link) => sum + (parseFloat(link.value) || 0), 0);
+                console.log('🔹 Calculating source node value from outgoing flows:', node.id, node.value);
             } else {
                 // Reset intermediate and target nodes
                 node.value = 0;
