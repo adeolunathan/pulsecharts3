@@ -1172,7 +1172,71 @@ class PulseSankeyChart {
             .attr('opacity', 0.6)     // 60% opacity
             .text('PULSE ANALYTICS');
         
+        // Calculate actual content height and resize SVG dynamically
+        this.adjustSVGHeightToContent();
+        
         return this;
+    }
+
+    // Adjust SVG height to match actual content
+    adjustSVGHeightToContent() {
+        try {
+            // Calculate the maximum Y position of all chart content
+            let maxContentY = 0;
+            
+            // Check node positions if available
+            if (this.nodes && this.nodes.length > 0) {
+                maxContentY = Math.max(maxContentY, ...this.nodes.map(n => n.y + (n.height || 0)));
+            }
+            
+            // Check link positions if available
+            if (this.links && this.links.length > 0) {
+                const linkMaxY = this.links.reduce((max, link) => {
+                    const sourceY = (link.sourceY || 0) + (link.sourceHeight || 0);
+                    const targetY = (link.targetY || 0) + (link.targetHeight || 0);
+                    return Math.max(max, sourceY, targetY);
+                }, 0);
+                maxContentY = Math.max(maxContentY, linkMaxY);
+            }
+            
+            // Add margins and footer space
+            const topMargin = this.config.margin.top || 60;
+            const footerSpace = 100; // Space for logo and attribution
+            const actualContentHeight = maxContentY + topMargin + footerSpace;
+            
+            // Only resize if the content height is significantly different from current height
+            if (actualContentHeight > 0 && Math.abs(actualContentHeight - this.config.height) > 20) {
+                console.log(`🔧 Adjusting SVG height from ${this.config.height}px to ${actualContentHeight}px`);
+                
+                // Update SVG dimensions
+                this.svg
+                    .attr('height', actualContentHeight)
+                    .attr('viewBox', `0 0 ${this.config.width} ${actualContentHeight}`);
+                
+                // Update configuration for future reference
+                this.config.height = actualContentHeight;
+                
+                // Reposition footer elements to the new bottom
+                this.repositionFooterElements(actualContentHeight);
+            }
+        } catch (error) {
+            console.warn('⚠️ Error adjusting SVG height:', error);
+        }
+    }
+
+    // Reposition footer elements after height adjustment
+    repositionFooterElements(newHeight) {
+        // Reposition attribution text
+        this.svg.selectAll('.chart-attribution')
+            .attr('y', newHeight - 20);
+        
+        // Reposition footer group if it exists
+        this.svg.selectAll('.footer-group')
+            .attr('transform', `translate(0, ${newHeight - 35})`);
+        
+        // Reposition footnotes if they exist
+        this.svg.selectAll('.footnotes-group')
+            .attr('transform', `translate(0, ${newHeight - 80})`);
     }
 
     detectRevenueHub() {
