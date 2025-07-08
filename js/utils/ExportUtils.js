@@ -28,6 +28,12 @@ window.ExportUtils = (function() {
             clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
             clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
             
+            // Get actual SVG viewBox or width/height for proper sizing
+            const svgWidth = clonedSvg.getAttribute('width') || clonedSvg.viewBox?.baseVal?.width || svgRect.width;
+            const svgHeight = clonedSvg.getAttribute('height') || clonedSvg.viewBox?.baseVal?.height || svgRect.height;
+            
+            console.log(`📏 SVG dimensions: ${svgWidth}x${svgHeight}, Browser rect: ${svgRect.width}x${svgRect.height}`);
+            
             // Simple approach: Set SVG background directly
             clonedSvg.style.backgroundColor = settings.backgroundColor;
             
@@ -38,9 +44,9 @@ window.ExportUtils = (function() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Set canvas size with scaling
-            canvas.width = svgRect.width * settings.scale;
-            canvas.height = svgRect.height * settings.scale;
+            // Set canvas size with scaling - use actual SVG dimensions
+            canvas.width = parseFloat(svgWidth) * settings.scale;
+            canvas.height = parseFloat(svgHeight) * settings.scale;
             
             // Convert external images to data URLs for proper export
             console.log('🔄 Starting image conversion for export...');
@@ -51,14 +57,14 @@ window.ExportUtils = (function() {
                 
                 const svgData = new XMLSerializer().serializeToString(clonedSvg);
                 
-                renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgRect);
+                renderPNGFromSVG(svgData, canvas, ctx, settings, filename, { width: svgWidth, height: svgHeight });
             }).catch(error => {
                 console.warn('⚠️ Image conversion failed, proceeding with original images:', error);
                 
                 // Fallback: proceed without converted images
                 ensureBrandingVisibility(clonedSvg);
                 const svgData = new XMLSerializer().serializeToString(clonedSvg);
-                renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgRect);
+                renderPNGFromSVG(svgData, canvas, ctx, settings, filename, { width: svgWidth, height: svgHeight });
             });
             
         } catch (error) {
@@ -68,7 +74,7 @@ window.ExportUtils = (function() {
     }
     
     // Helper function to render PNG from SVG data
-    function renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgRect) {
+    function renderPNGFromSVG(svgData, canvas, ctx, settings, filename, svgDimensions) {
         try {
             const img = new Image();
             
@@ -80,9 +86,23 @@ window.ExportUtils = (function() {
                     ctx.fillStyle = settings.backgroundColor;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     
-                    // Draw image scaled
+                    // Apply scaling first
                     ctx.scale(settings.scale, settings.scale);
-                    ctx.drawImage(img, 0, 0);
+                    
+                    // Calculate centering offsets to match browser display
+                    const imgWidth = img.width || svgDimensions.width;
+                    const imgHeight = img.height || svgDimensions.height;
+                    const canvasWidth = canvas.width / settings.scale;
+                    const canvasHeight = canvas.height / settings.scale;
+                    
+                    // Center the image in the canvas (just like it appears in browser)
+                    const offsetX = Math.max(0, (canvasWidth - imgWidth) / 2);
+                    const offsetY = Math.max(0, (canvasHeight - imgHeight) / 2);
+                    
+                    console.log(`🖼️ Drawing image with centering offset: (${offsetX}, ${offsetY})`);
+                    
+                    // Draw image centered
+                    ctx.drawImage(img, offsetX, offsetY);
                     
                     // Convert to PNG and download
                     canvas.toBlob(function(blob) {
