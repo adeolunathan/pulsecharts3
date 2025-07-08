@@ -1109,13 +1109,39 @@ class PulseSankeyChart {
         
         this.chart.selectAll('*').remove();
         
-        // Only re-initialize branding if it doesn't exist or data has changed significantly
+        // Only re-initialize title and footnotes if title doesn't exist or data changed significantly
         const existingTitle = this.svg.select('.chart-header text');
         if (existingTitle.empty() || this.brandingNeedsUpdate) {
-            this.svg.selectAll('.chart-header, .chart-footnotes, .chart-branding').remove();
-            // Initialize all branding elements with fallback support
-            this.initializeBranding();
+            this.svg.selectAll('.chart-header, .chart-footnotes').remove();
+            // Initialize title and footnotes only
+            if (window.ChartBrandingUtils && window.ChartBrandingUtils.renderTitle) {
+                ChartBrandingUtils.renderTitle.call(this);
+            } else {
+                this.renderTitleFallback();
+            }
+            if (window.ChartBrandingUtils && window.ChartBrandingUtils.renderFootnotes) {
+                ChartBrandingUtils.renderFootnotes.call(this);
+            } else {
+                this.renderFootnotesFallback();
+            }
             this.brandingNeedsUpdate = false;
+        }
+        
+        // ALWAYS ensure branding footer and logo are present - force render every time
+        this.svg.selectAll('.chart-branding, .chart-brand-logo').remove();
+        
+        if (this.config.showBranding !== false) {
+            if (window.ChartBrandingUtils && window.ChartBrandingUtils.renderBrandingFooter) {
+                ChartBrandingUtils.renderBrandingFooter.call(this);
+            } else {
+                this.renderBrandingFooterFallback();
+            }
+        }
+        
+        if (window.ChartBrandingUtils && window.ChartBrandingUtils.renderBrandLogo) {
+            ChartBrandingUtils.renderBrandLogo.call(this);
+        } else {
+            this.renderBrandLogoFallback();
         }
         this.renderLinks();
         this.renderNodes();
