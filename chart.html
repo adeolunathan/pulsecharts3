@@ -155,7 +155,7 @@
 
 
         <!-- Main Chart Interface -->
-        <div id="data-builder" class="tab-content active" style="display: block !important; padding: 0; margin: 0;">
+        <div id="data-builder" class="active" style="display: block !important; padding: 0; margin: 0;">
             <!-- Horizontal Chart Controls Menu -->
             <div class="horizontal-controls-menu" style="display: block !important; visibility: visible !important;">
                 <div class="controls-menu-wrapper">
@@ -612,9 +612,6 @@
             },
             
             setupEventListeners() {
-                window.addEventListener('pulseTabSwitch', (e) => {
-                    this.handleTabSwitch(e.detail.tabName);
-                });
             },
             
             async waitForAppReady() {
@@ -711,7 +708,6 @@
     
     <!-- Flow Builder Implementation -->
     <script>
-        let currentMainTab = 'data-builder';
         let selectedChartType = null; // 'income' or 'balance'
         let isInitialized = false; // Prevent multiple initializations
         // Single page system - no tab switching needed
@@ -1810,12 +1806,6 @@
                 targetContent.classList.add('active');
             }
             
-            currentMainTab = tabName;
-            
-            window.dispatchEvent(new CustomEvent('pulseTabSwitch', {
-                detail: { tabName }
-            }));
-            
             if (tabName === 'data-builder') {
                 // Main chart is always visible in single-page interface
                 
@@ -1898,7 +1888,6 @@
                 updateAllStats();
                 
                 // Single page system - always data-builder
-                currentMainTab = 'data-builder';
                 
                 isInitialized = true;
                 return;
@@ -1927,37 +1916,6 @@
                     // CRITICAL: Update the chart data bridge with the new data
                     const sankeyData = generateNodesAndLinksFromFlows();
                     window.PulseDataBridge.setData(sankeyData, `chart-type-${urlParams.type}`);
-                    
-                    // Handle tab switching based on URL parameter
-                    if (urlParams.tab === 'data-builder') {
-                        // Only switch to data-builder if explicitly requested
-                        currentMainTab = 'data-builder';
-                        // Single page system - no tab switching needed
-                    } else {
-                        // Explicitly stay on data-builder
-                        currentMainTab = 'data-builder';
-                        
-                        // Ensure data-builder tab stays active
-                        document.querySelectorAll('.main-tab').forEach(tab => {
-                            tab.classList.remove('active');
-                        });
-                        const dataBuilderTab = document.querySelector(`[onclick="switchMainTab('data-builder')"]`);
-                        if (dataBuilderTab) {
-                            dataBuilderTab.classList.add('active');
-                        }
-                        
-                        document.querySelectorAll('.tab-content').forEach(content => {
-                            content.classList.remove('active');
-                        });
-                        const dataBuilderContent = document.getElementById('data-builder');
-                        if (dataBuilderContent) {
-                            dataBuilderContent.classList.add('active');
-                        }
-                        
-                        // Lock data builder to prevent automatic switching
-                        // Single page system - no chart view locking needed
-                        
-                    }
                     
                     isInitialized = true;
                     return;

@@ -3247,16 +3247,6 @@ body {
     background: #f59e0b;
 }
 
-/* Tab Content Areas */
-.tab-content {
-    display: none;
-    min-height: calc(100vh - 140px);
-    animation: fadeIn 0.3s ease;
-}
-
-.tab-content.active {
-    display: block;
-}
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -3654,8 +3644,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .main-tab,
     .color-picker,
-    .btn-color-action,
-    .tab-content {
+    .btn-color-action {
         transition: none;
         animation: none;
     }
