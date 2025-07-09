@@ -4401,8 +4401,12 @@ class PulseSankeyChart {
             });
             
             this.categoryManager.nodeCategories.set(node.id, category);
+            
+            // Update link categories associated with this node
+            this.updateLinkCategoriesForNode(node, category);
+            
             this.showNotification(`Assigned category "${category}" to ${node.name}`);
-            this.render(this.data); // Re-render to update colors
+            this.rerenderWithNewColors(); // Re-render to update colors
             modal.remove();
         };
         
@@ -4481,8 +4485,12 @@ class PulseSankeyChart {
             });
             
             this.categoryManager.nodeCategories.delete(node.id);
+            
+            // Update link categories associated with this node
+            this.updateLinkCategoriesForNode(node, null);
+            
             this.showNotification(`Removed category "${category}" from ${node.name}`);
-            this.render(this.data); // Re-render to update colors
+            this.rerenderWithNewColors(); // Re-render to update colors
         } else {
             this.showNotification('No category to remove from this node');
         }
@@ -4707,10 +4715,12 @@ class PulseSankeyChart {
         // Apply category to all selected nodes
         selectedNodes.forEach(node => {
             this.categoryManager.nodeCategories.set(node.id, categoryName);
+            // Update link categories associated with this node
+            this.updateLinkCategoriesForNode(node, categoryName);
         });
         
         this.showNotification(`Assigned category "${categoryName}" to ${selectedNodes.length} nodes`);
-        this.render(this.data); // Re-render to update colors
+        this.rerenderWithNewColors(); // Re-render to update colors
     }
 
     openBulkCategoryAssignmentModal(selectedNodes) {
@@ -4890,10 +4900,12 @@ class PulseSankeyChart {
         // Apply category to all selected nodes
         selectedNodes.forEach(node => {
             this.categoryManager.nodeCategories.set(node.id, categoryName);
+            // Update link categories associated with this node
+            this.updateLinkCategoriesForNode(node, categoryName);
         });
         
         this.showNotification(`Applied category "${categoryName}" to ${selectedNodes.length} nodes`);
-        this.render(this.data); // Re-render to update colors
+        this.rerenderWithNewColors(); // Re-render to update colors
     }
 
     removeCategoryFromSelectedNodes() {
@@ -4907,10 +4919,12 @@ class PulseSankeyChart {
         // Remove category from all selected nodes
         selectedNodes.forEach(node => {
             this.categoryManager.nodeCategories.delete(node.id);
+            // Update link categories associated with this node
+            this.updateLinkCategoriesForNode(node, null);
         });
         
         this.showNotification(`Removed category from ${selectedNodes.length} nodes`);
-        this.render(this.data); // Re-render to update colors
+        this.rerenderWithNewColors(); // Re-render to update colors
     }
 
     selectSimilarNodes(node) {
@@ -5317,6 +5331,61 @@ class PulseSankeyChart {
                 });
                 break;
         }
+    }
+
+    // Update link categories when node categories change
+    updateLinkCategoriesForNode(node, newCategory) {
+        if (!this.links || this.links.length === 0) return;
+        
+        // Update all links that have this node as source or target
+        this.links.forEach(link => {
+            // Update source-related category metadata
+            if (link.source && link.source.id === node.id) {
+                link.sourceCategory = newCategory;
+                // For pre-revenue links, update colorCategory to match source
+                if (this.statementType === 'income' && 
+                    FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
+                    link.colorCategory = newCategory;
+                }
+            }
+            
+            // Update target-related category metadata  
+            if (link.target && link.target.id === node.id) {
+                link.targetCategory = newCategory;
+                // For post-revenue links, update colorCategory to match target
+                if (this.statementType === 'income' && 
+                    !FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
+                    link.colorCategory = newCategory;
+                }
+            }
+        });
+    }
+
+    // Re-render with new colors (optimized for color-only updates)
+    rerenderWithNewColors() {
+        if (!this.chart) return;
+        
+        // Update node colors with smooth transition
+        this.chart.selectAll('.sankey-node rect')
+            .transition()
+            .duration(300)
+            .attr('fill', d => this.getNodeColor(d));
+        
+        // Update link colors with smooth transition
+        this.chart.selectAll('.sankey-link path')
+            .transition()
+            .duration(300)
+            .attr('fill', d => this.getLinkColor(d))
+            .attr('fill-opacity', d => this.statementType === 'balance' ? this.getLinkOpacity(d) : this.config.linkOpacity);
+        
+        // Update node text colors if needed
+        this.chart.selectAll('.sankey-node text')
+            .transition()
+            .duration(300)
+            .attr('fill', d => {
+                const bgColor = this.getNodeColor(d);
+                return ChartUtils.getContrastTextColor(bgColor);
+            });
     }
 
     // Control methods
@@ -6148,7 +6217,9 @@ class PulseSankeyChart {
         if (mode === 'edit') {
             this.modalSelectedColor = this.getNodeColor(nodeData);
         } else {
-            this.modalSelectedColor = this.getCurrentChartColors()[0] || '#3b82f6';
+            // Use first default category color instead of current chart colors
+            const defaultCategoryColors = Object.values(this.categoryManager.defaultCategories).map(cat => cat.color);
+            this.modalSelectedColor = defaultCategoryColors[0] || '#3b82f6';
         }
         
         // Show different content based on mode and step
@@ -6209,8 +6280,9 @@ class PulseSankeyChart {
         // Remove any existing modal
         this.container.select('.enhanced-color-picker').remove();
         
-        // Set initial color
-        this.modalSelectedColor = this.getCurrentChartColors()[0] || '#3b82f6';
+        // Set initial color using default category colors
+        const defaultCategoryColors = Object.values(this.categoryManager.defaultCategories).map(cat => cat.color);
+        this.modalSelectedColor = defaultCategoryColors[0] || '#3b82f6';
         
         // Create modal
         const modal = this.container
@@ -6325,11 +6397,11 @@ class PulseSankeyChart {
             .style('margin-bottom', '6px')
             .text('Color:');
             
-        // Current chart colors
-        const currentColors = this.getCurrentChartColors();
+        // Use default category colors instead of all available colors
+        const defaultCategoryColors = Object.values(this.categoryManager.defaultCategories).map(cat => cat.color);
         let selectedColor = this.modalSelectedColor;
         
-        if (currentColors.length > 0) {
+        if (defaultCategoryColors.length > 0) {
             const chartColorsGrid = colorSection
                 .append('div')
                 .style('display', 'flex')
@@ -6337,7 +6409,7 @@ class PulseSankeyChart {
                 .style('flex-wrap', 'wrap')
                 .style('margin-bottom', '8px');
                 
-            currentColors.forEach(color => {
+            defaultCategoryColors.forEach(color => {
                 const isSelected = color === selectedColor;
                 chartColorsGrid
                     .append('button')
@@ -6522,8 +6594,8 @@ class PulseSankeyChart {
             .append('div')
             .style('margin-bottom', '10px');
             
-        // Standard theme colors for edit mode
-        const standardColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+        // Use default category colors instead of all available colors
+        const defaultCategoryColors = Object.values(this.categoryManager.defaultCategories).map(cat => cat.color);
         let selectedColor = this.modalSelectedColor;
         
         // Standard colors grid
@@ -6534,7 +6606,7 @@ class PulseSankeyChart {
             .style('flex-wrap', 'wrap')
             .style('margin-bottom', '8px');
             
-        standardColors.forEach(color => {
+        defaultCategoryColors.forEach(color => {
                 const isSelected = color === selectedColor;
                 chartColorsGrid
                     .append('button')
@@ -7071,12 +7143,12 @@ class PulseSankeyChart {
             .append('div')
             .style('margin-bottom', '10px');
             
-        // Current chart colors
-        const currentColors = this.getCurrentChartColors();
+        // Use default category colors instead of all available colors
+        const defaultCategoryColors = Object.values(this.categoryManager.defaultCategories).map(cat => cat.color);
         let selectedColor = this.modalSelectedColor;
         
         // Chart colors grid
-        if (currentColors.length > 0) {
+        if (defaultCategoryColors.length > 0) {
             const chartColorsGrid = colorSection
                 .append('div')
                 .style('display', 'flex')
@@ -7084,7 +7156,7 @@ class PulseSankeyChart {
                 .style('flex-wrap', 'wrap')
                 .style('margin-bottom', '8px');
                 
-            currentColors.forEach(color => {
+            defaultCategoryColors.forEach(color => {
                 const isSelected = color === selectedColor;
                 chartColorsGrid
                     .append('button')
@@ -7127,8 +7199,10 @@ class PulseSankeyChart {
             .style('cursor', 'pointer')
             .on('change', () => {
                 this.modalSelectedColor = colorInput.node().value;
-                chartColorsGrid.selectAll('.chart-color-btn')
-                    .style('border', '2px solid white');
+                if (chartColorsGrid) {
+                    chartColorsGrid.selectAll('.chart-color-btn')
+                        .style('border', '2px solid white');
+                }
             });
             
         customColorRow

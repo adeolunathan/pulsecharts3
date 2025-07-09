@@ -74,9 +74,10 @@
             .style('cursor', 'pointer')
             .style('margin-bottom', '8px');
 
+        // Use default financial category colors
         const presetColors = [
-            '#3498db', '#2BA02D', '#CC0100', 
-            '#CC0100', '#9b59b6', '#34495e'
+            '#1e40af', '#dc2626', '#059669', 
+            '#7c3aed', '#f59e0b', '#6b7280'
         ];
 
         // Horizontal preset row
