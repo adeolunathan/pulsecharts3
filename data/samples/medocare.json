@@ -167,19 +167,19 @@
     { "source": "Cash & Equivalents", "target": "Current Assets", "value": 1500, "previousValue": 1200 },
     { "source": "Accounts Receivable", "target": "Current Assets", "value": 800, "previousValue": 750 },
     { "source": "Inventory", "target": "Current Assets", "value": 400, "previousValue": 380 },
-    { "source": "Property & Equipment", "target": "Non-Current Assets", "value": 2200 },
-    { "source": "Intangible Assets", "target": "Non-Current Assets", "value": 600 },
+    { "source": "Property & Equipment", "target": "Non-Current Assets", "value": 2200, "previousValue": 2250 },
+    { "source": "Intangible Assets", "target": "Non-Current Assets", "value": 600, "previousValue": 590 },
     { "source": "Current Assets", "target": "Total Assets", "value": 2700, "previousValue": 2330 },
     { "source": "Non-Current Assets", "target": "Total Assets", "value": 2800, "previousValue": 2650 },
     { "source": "Total Assets", "target": "Current Liabilities", "value": 1200, "previousValue": 1150 },
     { "source": "Total Assets", "target": "Non-Current Liabilities", "value": 1800, "previousValue": 1750 },
     { "source": "Total Assets", "target": "Shareholders Equity", "value": 2500, "previousValue": 2080 },
-    { "source": "Current Liabilities", "target": "Payables", "value": 300 },
-    { "source": "Current Liabilities", "target": "Current Debt", "value": 900 },
-    { "source": "Non-Current Liabilities", "target": "Long-term Debt", "value": 1100 },
-    { "source": "Non-Current Liabilities", "target": "Other non-current liabilities", "value": 700 },
-    { "source": "Shareholders Equity", "target": "Common Stock", "value": 1000 },
-    { "source": "Shareholders Equity", "target": "Retained Earnings", "value": 1500 }
+    { "source": "Current Liabilities", "target": "Payables", "value": 300, "previousValue": 320 },
+    { "source": "Current Liabilities", "target": "Current Debt", "value": 900, "previousValue": 880 },
+    { "source": "Non-Current Liabilities", "target": "Long-term Debt", "value": 1100, "previousValue": 1150 },
+    { "source": "Non-Current Liabilities", "target": "Other non-current liabilities", "value": 700, "previousValue": 690 },
+    { "source": "Shareholders Equity", "target": "Common Stock", "value": 1000, "previousValue": 970 },
+    { "source": "Shareholders Equity", "target": "Retained Earnings", "value": 1500, "previousValue": 1520 }
   ],
   "formatting": {
     "node_groups": {
