@@ -130,6 +130,44 @@ class SankeyControlModule {
                 isDynamic: true
             },
 
+            categoryManagement: {
+                title: "Category Management",
+                icon: "🏷️",
+                collapsed: true,
+                controls: [
+                    {
+                        id: "categoryOverview",
+                        type: "custom",
+                        label: "Category Overview",
+                        render: this.renderCategoryOverview.bind(this)
+                    },
+                    {
+                        id: "createCategory",
+                        type: "button",
+                        label: "Create New Category",
+                        action: this.openCategoryCreator.bind(this)
+                    },
+                    {
+                        id: "categoryTemplates",
+                        type: "dropdown",
+                        label: "Load Category Template",
+                        options: [
+                            { value: "financial", label: "Financial Statement" },
+                            { value: "operations", label: "Business Operations" },
+                            { value: "marketing", label: "Marketing Funnel" },
+                            { value: "custom", label: "Custom Template..." }
+                        ],
+                        default: "",
+                        action: this.loadCategoryTemplate.bind(this)
+                    },
+                    {
+                        id: "bulkAssignment",
+                        type: "button",
+                        label: "Bulk Category Assignment",
+                        action: this.openBulkAssignmentModal.bind(this)
+                    }
+                ]
+            },
 
             dimensions: {
                 title: "Node & Link Dimensions",
@@ -1267,6 +1305,599 @@ class SankeyControlModule {
             this.initializeDynamicColors(chart);
             console.log(`🔄 Updated dynamic color capabilities for ${this.statementType} statement`);
         }
+    }
+
+    /**
+     * Render category overview interface
+     */
+    renderCategoryOverview() {
+        if (!this.chart) return '<div>No chart data available</div>';
+        
+        const categoryManager = this.chart.categoryManager;
+        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        
+        let html = '<div class="category-overview">';
+        
+        // Statistics summary
+        const totalNodes = this.chart.nodes ? this.chart.nodes.length : 0;
+        const categorizedNodes = categoryManager.nodeCategories.size;
+        const uncategorizedNodes = totalNodes - categorizedNodes;
+        
+        html += `
+            <div class="category-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Nodes:</span>
+                    <span class="stat-value">${totalNodes}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Categorized:</span>
+                    <span class="stat-value">${categorizedNodes}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Uncategorized:</span>
+                    <span class="stat-value">${uncategorizedNodes}</span>
+                </div>
+            </div>
+        `;
+        
+        // Category list
+        html += '<div class="category-list">';
+        
+        allCategories.forEach((categoryData, categoryName) => {
+            const usage = this.getCategoryUsage(categoryName);
+            const color = categoryData.color || '#666';
+            const icon = categoryData.icon || '🏷️';
+            
+            html += `
+                <div class="category-item" data-category="${categoryName}">
+                    <div class="category-header">
+                        <span class="category-icon">${icon}</span>
+                        <span class="category-name">${categoryName}</span>
+                        <span class="category-usage">${usage.nodeCount} nodes</span>
+                    </div>
+                    <div class="category-actions">
+                        <button class="edit-category-btn" onclick="window.editCategory('${categoryName}')">Edit</button>
+                        <button class="delete-category-btn" onclick="window.deleteCategory('${categoryName}')">Delete</button>
+                    </div>
+                    <div class="category-color-preview" style="background-color: ${color}"></div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+        
+        // Add CSS styles
+        html += `
+            <style>
+                .category-overview {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    padding: 10px;
+                }
+                .category-stats {
+                    display: flex;
+                    gap: 15px;
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background: #f5f5f5;
+                    border-radius: 6px;
+                }
+                .stat-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+                .stat-label {
+                    font-size: 12px;
+                    color: #666;
+                }
+                .stat-value {
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #333;
+                }
+                .category-list {
+                    max-height: 300px;
+                    overflow-y: auto;
+                }
+                .category-item {
+                    display: flex;
+                    align-items: center;
+                    padding: 8px;
+                    margin: 5px 0;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    background: white;
+                }
+                .category-header {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .category-icon {
+                    font-size: 16px;
+                }
+                .category-name {
+                    font-weight: 500;
+                    color: #333;
+                }
+                .category-usage {
+                    font-size: 12px;
+                    color: #666;
+                }
+                .category-actions {
+                    display: flex;
+                    gap: 5px;
+                }
+                .edit-category-btn, .delete-category-btn {
+                    padding: 4px 8px;
+                    border: none;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 12px;
+                }
+                .edit-category-btn {
+                    background: #007bff;
+                    color: white;
+                }
+                .delete-category-btn {
+                    background: #dc3545;
+                    color: white;
+                }
+                .category-color-preview {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    margin-left: 10px;
+                }
+            </style>
+        `;
+        
+        return html;
+    }
+
+    /**
+     * Get category usage statistics
+     */
+    getCategoryUsage(categoryName) {
+        if (!this.chart || !this.chart.categoryManager) {
+            return { nodeCount: 0, totalValue: 0 };
+        }
+        
+        const categoryManager = this.chart.categoryManager;
+        let nodeCount = 0;
+        let totalValue = 0;
+        
+        categoryManager.nodeCategories.forEach((assignedCategory, nodeId) => {
+            if (assignedCategory === categoryName) {
+                nodeCount++;
+                // Find the node and add its value
+                const node = this.chart.nodes.find(n => n.id === nodeId);
+                if (node && node.value) {
+                    totalValue += node.value;
+                }
+            }
+        });
+        
+        return { nodeCount, totalValue };
+    }
+
+    /**
+     * Open category creator modal
+     */
+    openCategoryCreator() {
+        const modal = document.createElement('div');
+        modal.className = 'category-creator-modal';
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Create New Category</h3>
+                        <button class="close-modal" onclick="this.closest('.category-creator-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Category Name:</label>
+                            <input type="text" id="categoryName" placeholder="Enter category name" maxlength="50">
+                        </div>
+                        <div class="form-group">
+                            <label>Category Color:</label>
+                            <input type="color" id="categoryColor" value="#3b82f6">
+                        </div>
+                        <div class="form-group">
+                            <label>Category Icon:</label>
+                            <input type="text" id="categoryIcon" placeholder="🏷️" maxlength="2">
+                        </div>
+                        <div class="form-group">
+                            <label>Description:</label>
+                            <textarea id="categoryDescription" placeholder="Optional description" maxlength="200"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.category-creator-modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="window.createCategory()">Create Category</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .category-creator-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .modal-backdrop {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .modal-content {
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px;
+                    border-bottom: 1px solid #eee;
+                }
+                .modal-header h3 {
+                    margin: 0;
+                    color: #333;
+                }
+                .close-modal {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: #666;
+                }
+                .modal-body {
+                    padding: 20px;
+                }
+                .form-group {
+                    margin-bottom: 15px;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: 500;
+                    color: #333;
+                }
+                .form-group input, .form-group textarea {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 14px;
+                }
+                .form-group textarea {
+                    height: 80px;
+                    resize: vertical;
+                }
+                .modal-footer {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                    padding: 20px;
+                    border-top: 1px solid #eee;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .btn-primary {
+                    background: #007bff;
+                    color: white;
+                }
+                .btn-secondary {
+                    background: #6c757d;
+                    color: white;
+                }
+            </style>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Set up global functions for modal actions
+        window.createCategory = () => {
+            const name = document.getElementById('categoryName').value.trim();
+            const color = document.getElementById('categoryColor').value;
+            const icon = document.getElementById('categoryIcon').value.trim() || '🏷️';
+            const description = document.getElementById('categoryDescription').value.trim();
+            
+            if (!name) {
+                alert('Please enter a category name');
+                return;
+            }
+            
+            if (this.chart && this.chart.categoryManager) {
+                this.chart.categoryManager.userCategories.set(name, {
+                    color,
+                    icon,
+                    description
+                });
+                
+                this.chart.showNotification(`Created category "${name}"`);
+                modal.remove();
+                
+                // Refresh control panel if needed
+                if (window.controlPanel) {
+                    window.controlPanel.refresh();
+                }
+            }
+        };
+    }
+
+    /**
+     * Load category template
+     */
+    loadCategoryTemplate(templateType) {
+        if (!this.chart || !this.chart.categoryManager) {
+            console.warn('No chart or category manager available');
+            return;
+        }
+        
+        const templates = {
+            financial: {
+                revenue: { color: '#059669', icon: '💰', description: 'Revenue and income sources' },
+                expenses: { color: '#dc2626', icon: '💸', description: 'Operating expenses' },
+                assets: { color: '#3b82f6', icon: '🏦', description: 'Company assets' },
+                liabilities: { color: '#f59e0b', icon: '⚖️', description: 'Liabilities and debt' },
+                equity: { color: '#8b5cf6', icon: '📊', description: 'Shareholders equity' }
+            },
+            operations: {
+                production: { color: '#10b981', icon: '🏭', description: 'Production processes' },
+                sales: { color: '#3b82f6', icon: '📈', description: 'Sales and marketing' },
+                support: { color: '#f59e0b', icon: '🛠️', description: 'Customer support' },
+                admin: { color: '#6b7280', icon: '📋', description: 'Administrative functions' }
+            },
+            marketing: {
+                awareness: { color: '#8b5cf6', icon: '👁️', description: 'Brand awareness' },
+                consideration: { color: '#3b82f6', icon: '🤔', description: 'Consideration phase' },
+                conversion: { color: '#059669', icon: '🎯', description: 'Conversion funnel' },
+                retention: { color: '#f59e0b', icon: '🔄', description: 'Customer retention' }
+            }
+        };
+        
+        const template = templates[templateType];
+        if (!template) {
+            console.warn(`Unknown template type: ${templateType}`);
+            return;
+        }
+        
+        // Load template categories
+        Object.entries(template).forEach(([name, data]) => {
+            this.chart.categoryManager.userCategories.set(name, data);
+        });
+        
+        this.chart.showNotification(`Loaded ${templateType} template with ${Object.keys(template).length} categories`);
+        
+        // Refresh control panel if needed
+        if (window.controlPanel) {
+            window.controlPanel.refresh();
+        }
+    }
+
+    /**
+     * Open bulk assignment modal
+     */
+    openBulkAssignmentModal() {
+        if (!this.chart || !this.chart.nodes) {
+            console.warn('No chart or node data available');
+            return;
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'bulk-assignment-modal';
+        
+        // Get all available categories
+        const categoryManager = this.chart.categoryManager;
+        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        
+        // Build category options
+        let categoryOptions = '<option value="">Select a category...</option>';
+        allCategories.forEach((data, name) => {
+            categoryOptions += `<option value="${name}">${data.icon || '🏷️'} ${name}</option>`;
+        });
+        
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Bulk Category Assignment</h3>
+                        <button class="close-modal" onclick="this.closest('.bulk-assignment-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Assign Category:</label>
+                            <select id="bulkCategory">
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Assignment Method:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="assignmentMethod" value="selected" checked> Selected nodes only</label>
+                                <label><input type="radio" name="assignmentMethod" value="pattern"> Nodes matching pattern</label>
+                                <label><input type="radio" name="assignmentMethod" value="all"> All uncategorized nodes</label>
+                            </div>
+                        </div>
+                        <div class="form-group pattern-group" style="display: none;">
+                            <label>Name Pattern:</label>
+                            <input type="text" id="namePattern" placeholder="e.g., sales, marketing, etc.">
+                        </div>
+                        <div class="node-preview">
+                            <h4>Preview (0 nodes will be affected)</h4>
+                            <div class="node-list"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.bulk-assignment-modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="window.applyBulkAssignment()">Apply Assignment</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .bulk-assignment-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .modal-backdrop {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .modal-content {
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 600px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+                .radio-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .radio-group label {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-weight: normal;
+                }
+                .node-preview {
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 4px;
+                }
+                .node-list {
+                    max-height: 200px;
+                    overflow-y: auto;
+                    margin-top: 10px;
+                }
+                .node-item {
+                    padding: 5px;
+                    margin: 2px 0;
+                    background: white;
+                    border-radius: 3px;
+                    border-left: 3px solid #007bff;
+                }
+            </style>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Set up event listeners for preview updates
+        const updatePreview = () => {
+            const method = document.querySelector('input[name="assignmentMethod"]:checked').value;
+            const pattern = document.getElementById('namePattern').value.toLowerCase();
+            const patternGroup = document.querySelector('.pattern-group');
+            
+            // Show/hide pattern input
+            patternGroup.style.display = method === 'pattern' ? 'block' : 'none';
+            
+            // Get affected nodes
+            let affectedNodes = [];
+            
+            if (method === 'selected') {
+                // Get selected nodes from chart
+                affectedNodes = this.chart.getSelectedNodes();
+            } else if (method === 'pattern' && pattern) {
+                affectedNodes = this.chart.nodes.filter(node => 
+                    node.name.toLowerCase().includes(pattern)
+                );
+            } else if (method === 'all') {
+                affectedNodes = this.chart.nodes.filter(node => 
+                    !this.chart.categoryManager.nodeCategories.has(node.id)
+                );
+            }
+            
+            // Update preview
+            const preview = document.querySelector('.node-preview h4');
+            const nodeList = document.querySelector('.node-list');
+            
+            preview.textContent = `Preview (${affectedNodes.length} nodes will be affected)`;
+            
+            nodeList.innerHTML = affectedNodes.slice(0, 10).map(node => `
+                <div class="node-item">${node.name}</div>
+            `).join('');
+            
+            if (affectedNodes.length > 10) {
+                nodeList.innerHTML += `<div class="node-item">... and ${affectedNodes.length - 10} more</div>`;
+            }
+        };
+        
+        // Bind event listeners
+        document.querySelectorAll('input[name="assignmentMethod"]').forEach(radio => {
+            radio.addEventListener('change', updatePreview);
+        });
+        
+        document.getElementById('namePattern').addEventListener('input', updatePreview);
+        
+        // Initial preview
+        updatePreview();
+        
+        // Set up global function for applying assignment
+        window.applyBulkAssignment = () => {
+            const category = document.getElementById('bulkCategory').value;
+            const method = document.querySelector('input[name="assignmentMethod"]:checked').value;
+            const pattern = document.getElementById('namePattern').value.toLowerCase();
+            
+            if (!category) {
+                alert('Please select a category');
+                return;
+            }
+            
+            let affectedNodes = [];
+            
+            if (method === 'selected') {
+                // Get selected nodes from chart
+                affectedNodes = this.chart.getSelectedNodes();
+            } else if (method === 'pattern' && pattern) {
+                affectedNodes = this.chart.nodes.filter(node => 
+                    node.name.toLowerCase().includes(pattern)
+                );
+            } else if (method === 'all') {
+                affectedNodes = this.chart.nodes.filter(node => 
+                    !this.chart.categoryManager.nodeCategories.has(node.id)
+                );
+            }
+            
+            // Apply assignments
+            affectedNodes.forEach(node => {
+                this.chart.categoryManager.nodeCategories.set(node.id, category);
+            });
+            
+            this.chart.showNotification(`Assigned ${affectedNodes.length} nodes to category "${category}"`);
+            this.chart.render(this.chart.data); // Re-render to update colors
+            
+            modal.remove();
+        };
     }
 }
 

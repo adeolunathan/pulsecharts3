@@ -44,9 +44,29 @@ class PulseSankeyChart {
             }
         };
         
+        // Context menu and category operations
+        this.currentContextMenu = null;
+        this.copiedCategory = null;
+        
+        // Multi-node selection system
+        this.selectionManager = {
+            selectedNodes: new Set(),
+            selectionMode: false,
+            lastSelected: null,
+            selectionBox: null
+        };
+        
+        // Undo/Redo system for category operations
+        this.categoryHistory = {
+            undoStack: [],
+            redoStack: [],
+            maxHistorySize: 50
+        };
+        
         this.config = SankeyChartConfig.getInitialConfig();
         this.initializeChart();
         this.initializeInteractiveMode();
+        this.initializeKeyboardShortcuts();
     }
 
 
@@ -2836,6 +2856,11 @@ class PulseSankeyChart {
                 event.stopPropagation();
                 const currentColor = this.getNodeColor(d);
                 this.showColorPicker(event.currentTarget, currentColor);
+            })
+            .on('contextmenu', (event, d) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.showNodeContextMenu(d, event);
             });
 
         this.addDragBehavior(nodeGroups);
@@ -4138,6 +4163,1162 @@ class PulseSankeyChart {
         this.tooltip.style('opacity', 0);
     }
 
+    // Node Context Menu
+    showNodeContextMenu(node, event) {
+        // Import the NodeContextMenu class if not already available
+        if (typeof NodeContextMenu === 'undefined') {
+            console.warn('NodeContextMenu class not available. Please include ContextMenu.js');
+            return;
+        }
+        
+        // Hide any existing context menu
+        this.hideNodeContextMenu();
+        
+        // Create and show the context menu
+        this.currentContextMenu = new NodeContextMenu(node, event, this);
+        
+        // Set up callbacks
+        this.currentContextMenu.onHide(() => {
+            this.currentContextMenu = null;
+        });
+    }
+
+    hideNodeContextMenu() {
+        if (this.currentContextMenu) {
+            this.currentContextMenu.destroy();
+            this.currentContextMenu = null;
+        }
+    }
+
+    // Category assignment modal with smart suggestions
+    showCategoryAssignmentModal(node) {
+        const categoryManager = this.categoryManager;
+        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        
+        // Get smart category suggestions
+        const suggestions = this.suggestCategoryForNode(node.name);
+        
+        const modal = document.createElement('div');
+        modal.className = 'category-assignment-modal';
+        
+        // Build category options
+        let categoryOptions = '<option value="">Select a category...</option>';
+        allCategories.forEach((data, name) => {
+            const isSuggested = suggestions.includes(name);
+            categoryOptions += `<option value="${name}" ${isSuggested ? 'class="suggested"' : ''}>${data.icon || '🏷️'} ${name}${isSuggested ? ' (suggested)' : ''}</option>`;
+        });
+        
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Assign Category to "${node.name}"</h3>
+                        <button class="close-modal" onclick="this.closest('.category-assignment-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        ${suggestions.length > 0 ? `
+                            <div class="suggestions-section">
+                                <h4>Smart Suggestions:</h4>
+                                <div class="suggestion-chips">
+                                    ${suggestions.map(suggestion => {
+                                        const categoryData = allCategories.get(suggestion);
+                                        return `<button class="suggestion-chip" onclick="window.applySuggestedCategory('${suggestion}')">
+                                            ${categoryData?.icon || '🏷️'} ${suggestion}
+                                        </button>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="form-group">
+                            <label>Category:</label>
+                            <select id="nodeCategory">
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div class="node-info">
+                            <strong>Node:</strong> ${node.name}<br>
+                            <strong>Value:</strong> ${node.value || 'N/A'}<br>
+                            <strong>Current Category:</strong> ${categoryManager.nodeCategories.get(node.id) || 'None'}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.category-assignment-modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="window.assignNodeCategory()">Assign Category</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .category-assignment-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .modal-backdrop {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .modal-content {
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px;
+                    border-bottom: 1px solid #eee;
+                }
+                .modal-header h3 {
+                    margin: 0;
+                    color: #333;
+                }
+                .close-modal {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: #666;
+                }
+                .modal-body {
+                    padding: 20px;
+                }
+                .suggestions-section {
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                }
+                .suggestions-section h4 {
+                    margin: 0 0 10px 0;
+                    color: #333;
+                    font-size: 14px;
+                }
+                .suggestion-chips {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .suggestion-chip {
+                    background: #e3f2fd;
+                    border: 1px solid #2196f3;
+                    color: #1976d2;
+                    padding: 6px 12px;
+                    border-radius: 16px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    transition: all 0.2s;
+                }
+                .suggestion-chip:hover {
+                    background: #2196f3;
+                    color: white;
+                }
+                .form-group {
+                    margin-bottom: 15px;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: 500;
+                    color: #333;
+                }
+                .form-group select {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 14px;
+                }
+                .form-group select option.suggested {
+                    background: #e3f2fd;
+                    color: #1976d2;
+                }
+                .node-info {
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    color: #666;
+                }
+                .modal-footer {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                    padding: 20px;
+                    border-top: 1px solid #eee;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .btn-primary {
+                    background: #007bff;
+                    color: white;
+                }
+                .btn-secondary {
+                    background: #6c757d;
+                    color: white;
+                }
+            </style>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Set up global functions for modal actions
+        window.assignNodeCategory = () => {
+            const category = document.getElementById('nodeCategory').value;
+            
+            if (!category) {
+                alert('Please select a category');
+                return;
+            }
+            
+            // Record the operation for undo/redo
+            const oldCategory = this.categoryManager.nodeCategories.get(node.id);
+            this.recordCategoryOperation({
+                type: 'assign',
+                description: `Assign category "${category}" to ${node.name}`,
+                changes: [{
+                    nodeId: node.id,
+                    oldCategory: oldCategory,
+                    newCategory: category
+                }]
+            });
+            
+            this.categoryManager.nodeCategories.set(node.id, category);
+            this.showNotification(`Assigned category "${category}" to ${node.name}`);
+            this.render(this.data); // Re-render to update colors
+            modal.remove();
+        };
+        
+        window.applySuggestedCategory = (category) => {
+            document.getElementById('nodeCategory').value = category;
+            window.assignNodeCategory();
+        };
+    }
+
+    // Smart category suggestions based on node names
+    suggestCategoryForNode(nodeName) {
+        const suggestions = [];
+        const nameLower = nodeName.toLowerCase();
+        
+        // Financial patterns
+        if (nameLower.includes('revenue') || nameLower.includes('sales') || nameLower.includes('income')) {
+            suggestions.push('revenue');
+        }
+        if (nameLower.includes('expense') || nameLower.includes('cost') || nameLower.includes('spending')) {
+            suggestions.push('expense');
+        }
+        if (nameLower.includes('profit') || nameLower.includes('margin') || nameLower.includes('earnings')) {
+            suggestions.push('profit');
+        }
+        if (nameLower.includes('asset') || nameLower.includes('property') || nameLower.includes('investment')) {
+            suggestions.push('asset');
+        }
+        if (nameLower.includes('liability') || nameLower.includes('debt') || nameLower.includes('loan')) {
+            suggestions.push('liability');
+        }
+        
+        // Business operation patterns
+        if (nameLower.includes('salary') || nameLower.includes('wage') || nameLower.includes('payroll')) {
+            suggestions.push('expenses');
+        }
+        if (nameLower.includes('marketing') || nameLower.includes('advertising') || nameLower.includes('promotion')) {
+            suggestions.push('marketing');
+        }
+        if (nameLower.includes('operations') || nameLower.includes('operational') || nameLower.includes('admin')) {
+            suggestions.push('operations');
+        }
+        if (nameLower.includes('production') || nameLower.includes('manufacturing') || nameLower.includes('factory')) {
+            suggestions.push('production');
+        }
+        if (nameLower.includes('support') || nameLower.includes('service') || nameLower.includes('help')) {
+            suggestions.push('support');
+        }
+        
+        // Remove duplicates and return
+        return [...new Set(suggestions)];
+    }
+
+    // Copy node category
+    copyNodeCategory(node) {
+        const category = this.categoryManager.nodeCategories.get(node.id);
+        if (category) {
+            this.copiedCategory = category;
+            this.showNotification(`Copied category "${category}" from ${node.name}`);
+        } else {
+            this.showNotification('No category to copy from this node');
+        }
+    }
+
+    // Remove node category
+    removeNodeCategory(node) {
+        const category = this.categoryManager.nodeCategories.get(node.id);
+        if (category) {
+            // Record the operation for undo/redo
+            this.recordCategoryOperation({
+                type: 'remove',
+                description: `Remove category "${category}" from ${node.name}`,
+                changes: [{
+                    nodeId: node.id,
+                    oldCategory: category
+                }]
+            });
+            
+            this.categoryManager.nodeCategories.delete(node.id);
+            this.showNotification(`Removed category "${category}" from ${node.name}`);
+            this.render(this.data); // Re-render to update colors
+        } else {
+            this.showNotification('No category to remove from this node');
+        }
+    }
+
+    // Show color picker for specific node
+    showColorPickerForNode(node) {
+        const currentColor = this.getNodeColor(node);
+        // Find the node element in the DOM
+        const nodeElement = this.svg.select(`#node-${node.id.replace(/\W/g, '_')}`);
+        if (nodeElement.node()) {
+            this.showColorPicker(nodeElement.node(), currentColor);
+        }
+    }
+
+    // Reset node color
+    resetNodeColor(node) {
+        // Remove custom color
+        delete this.customColors[node.id];
+        this.showNotification(`Reset color for ${node.name}`);
+        this.render(this.data); // Re-render to update colors
+    }
+
+    // Show node details modal
+    showNodeDetailsModal(node) {
+        // TODO: Implement node details modal
+        console.log('Node details modal for:', node);
+    }
+
+    // Focus on node
+    focusOnNode(node) {
+        // TODO: Implement focus functionality (zoom, highlight, etc.)
+        console.log('Focus on node:', node.name);
+    }
+
+    // Show notification
+    showNotification(message, type = 'info') {
+        // Simple notification system
+        const notification = document.createElement('div');
+        notification.className = `pulse-notification pulse-notification-${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            z-index: 10001;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        `;
+        
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(notification);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Multi-node selection methods
+    handleNodeSelection(node, event) {
+        if (event.ctrlKey || event.metaKey) {
+            // Toggle selection with Ctrl/Cmd
+            this.toggleNodeSelection(node);
+        } else if (event.shiftKey) {
+            // Range selection with Shift
+            this.selectNodeRange(node);
+        } else {
+            // Single selection
+            this.selectSingleNode(node);
+        }
+        
+        // Update visual feedback
+        this.updateNodeSelectionVisuals();
+    }
+
+    selectSingleNode(node) {
+        // Clear previous selection
+        this.selectionManager.selectedNodes.clear();
+        
+        // Select the node
+        this.selectionManager.selectedNodes.add(node.id);
+        this.selectionManager.lastSelected = node;
+        
+        // Default action for single selection (show color picker)
+        if (this.selectionManager.selectedNodes.size === 1) {
+            this.showEnhancedColorPicker(null, node);
+        }
+    }
+
+    toggleNodeSelection(node) {
+        if (this.selectionManager.selectedNodes.has(node.id)) {
+            this.selectionManager.selectedNodes.delete(node.id);
+        } else {
+            this.selectionManager.selectedNodes.add(node.id);
+        }
+        
+        this.selectionManager.lastSelected = node;
+    }
+
+    selectNodeRange(node) {
+        if (!this.selectionManager.lastSelected) {
+            // No previous selection, treat as single selection
+            this.selectSingleNode(node);
+            return;
+        }
+        
+        // Find nodes between last selected and current node
+        const lastSelectedNode = this.selectionManager.lastSelected;
+        const currentNode = node;
+        
+        // Clear current selection
+        this.selectionManager.selectedNodes.clear();
+        
+        // Find all nodes at the same depths or between depths
+        const startDepth = Math.min(lastSelectedNode.depth, currentNode.depth);
+        const endDepth = Math.max(lastSelectedNode.depth, currentNode.depth);
+        
+        // Select nodes within the range
+        this.nodes.forEach(n => {
+            if (n.depth >= startDepth && n.depth <= endDepth) {
+                // For same depth, select nodes between y positions
+                if (n.depth === lastSelectedNode.depth || n.depth === currentNode.depth) {
+                    const minY = Math.min(lastSelectedNode.y, currentNode.y);
+                    const maxY = Math.max(lastSelectedNode.y, currentNode.y);
+                    
+                    if (n.y >= minY && n.y <= maxY) {
+                        this.selectionManager.selectedNodes.add(n.id);
+                    }
+                } else {
+                    // Select all nodes at intermediate depths
+                    this.selectionManager.selectedNodes.add(n.id);
+                }
+            }
+        });
+        
+        this.selectionManager.lastSelected = node;
+    }
+
+    selectAllNodes() {
+        this.selectionManager.selectedNodes.clear();
+        this.nodes.forEach(node => {
+            this.selectionManager.selectedNodes.add(node.id);
+        });
+        this.updateNodeSelectionVisuals();
+        this.showNotification(`Selected ${this.selectionManager.selectedNodes.size} nodes`);
+    }
+
+    clearSelection() {
+        this.selectionManager.selectedNodes.clear();
+        this.selectionManager.lastSelected = null;
+        this.updateNodeSelectionVisuals();
+    }
+
+    updateNodeSelectionVisuals() {
+        // Update visual appearance of selected nodes
+        this.chart.selectAll('.sankey-node rect')
+            .style('stroke', (d) => {
+                return this.selectionManager.selectedNodes.has(d.id) ? '#007bff' : 'none';
+            })
+            .style('stroke-width', (d) => {
+                return this.selectionManager.selectedNodes.has(d.id) ? '2px' : '0px';
+            })
+            .style('filter', (d) => {
+                return this.selectionManager.selectedNodes.has(d.id) ? 
+                    'drop-shadow(0 0 8px rgba(0,123,255,0.5))' : 
+                    'drop-shadow(0 2px 4px rgba(0,0,0,0.1))';
+            });
+    }
+
+    getSelectedNodes() {
+        return Array.from(this.selectionManager.selectedNodes)
+            .map(id => this.nodes.find(n => n.id === id))
+            .filter(node => node !== undefined);
+    }
+
+    assignCategoryToSelectedNodes(categoryName) {
+        const selectedNodes = this.getSelectedNodes();
+        
+        if (selectedNodes.length === 0) {
+            this.showNotification('No nodes selected', 'error');
+            return;
+        }
+        
+        // Record the operation for undo/redo
+        const changes = selectedNodes.map(node => ({
+            nodeId: node.id,
+            oldCategory: this.categoryManager.nodeCategories.get(node.id),
+            newCategory: categoryName
+        }));
+        
+        this.recordCategoryOperation({
+            type: 'assign',
+            description: `Assign category "${categoryName}" to ${selectedNodes.length} nodes`,
+            changes: changes
+        });
+        
+        // Apply category to all selected nodes
+        selectedNodes.forEach(node => {
+            this.categoryManager.nodeCategories.set(node.id, categoryName);
+        });
+        
+        this.showNotification(`Assigned category "${categoryName}" to ${selectedNodes.length} nodes`);
+        this.render(this.data); // Re-render to update colors
+    }
+
+    openBulkCategoryAssignmentModal(selectedNodes) {
+        // Get all available categories
+        const categoryManager = this.categoryManager;
+        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        
+        const modal = document.createElement('div');
+        modal.className = 'bulk-category-assignment-modal';
+        
+        // Build category options
+        let categoryOptions = '<option value="">Select a category...</option>';
+        allCategories.forEach((data, name) => {
+            categoryOptions += `<option value="${name}">${data.icon || '🏷️'} ${name}</option>`;
+        });
+        
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Assign Category to ${selectedNodes.length} Selected Nodes</h3>
+                        <button class="close-modal" onclick="this.closest('.bulk-category-assignment-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Category:</label>
+                            <select id="selectedNodeCategory">
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div class="selected-nodes-preview">
+                            <h4>Selected Nodes (${selectedNodes.length}):</h4>
+                            <div class="node-list">
+                                ${selectedNodes.slice(0, 10).map(node => `
+                                    <div class="node-item">${node.name}</div>
+                                `).join('')}
+                                ${selectedNodes.length > 10 ? `<div class="node-item">... and ${selectedNodes.length - 10} more</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.bulk-category-assignment-modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="window.assignCategoryToSelectedNodes()">Assign Category</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .bulk-category-assignment-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .modal-backdrop {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .modal-content {
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px;
+                    border-bottom: 1px solid #eee;
+                }
+                .modal-header h3 {
+                    margin: 0;
+                    color: #333;
+                }
+                .close-modal {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: #666;
+                }
+                .modal-body {
+                    padding: 20px;
+                }
+                .form-group {
+                    margin-bottom: 15px;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: 500;
+                    color: #333;
+                }
+                .form-group select {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 14px;
+                }
+                .selected-nodes-preview {
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 4px;
+                }
+                .node-list {
+                    max-height: 200px;
+                    overflow-y: auto;
+                    margin-top: 10px;
+                }
+                .node-item {
+                    padding: 5px;
+                    margin: 2px 0;
+                    background: white;
+                    border-radius: 3px;
+                    border-left: 3px solid #007bff;
+                }
+                .modal-footer {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                    padding: 20px;
+                    border-top: 1px solid #eee;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .btn-primary {
+                    background: #007bff;
+                    color: white;
+                }
+                .btn-secondary {
+                    background: #6c757d;
+                    color: white;
+                }
+            </style>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Set up global function for assignment
+        window.assignCategoryToSelectedNodes = () => {
+            const category = document.getElementById('selectedNodeCategory').value;
+            
+            if (!category) {
+                alert('Please select a category');
+                return;
+            }
+            
+            this.assignCategoryToSelectedNodes(category);
+            modal.remove();
+        };
+    }
+
+    applyCategoryToSelectedNodes(categoryName) {
+        const selectedNodes = this.getSelectedNodes();
+        
+        if (selectedNodes.length === 0) {
+            this.showNotification('No nodes selected', 'error');
+            return;
+        }
+        
+        // Apply category to all selected nodes
+        selectedNodes.forEach(node => {
+            this.categoryManager.nodeCategories.set(node.id, categoryName);
+        });
+        
+        this.showNotification(`Applied category "${categoryName}" to ${selectedNodes.length} nodes`);
+        this.render(this.data); // Re-render to update colors
+    }
+
+    removeCategoryFromSelectedNodes() {
+        const selectedNodes = this.getSelectedNodes();
+        
+        if (selectedNodes.length === 0) {
+            this.showNotification('No nodes selected', 'error');
+            return;
+        }
+        
+        // Remove category from all selected nodes
+        selectedNodes.forEach(node => {
+            this.categoryManager.nodeCategories.delete(node.id);
+        });
+        
+        this.showNotification(`Removed category from ${selectedNodes.length} nodes`);
+        this.render(this.data); // Re-render to update colors
+    }
+
+    selectSimilarNodes(node) {
+        // Clear current selection
+        this.selectionManager.selectedNodes.clear();
+        
+        // Find similar nodes (same category or similar name pattern)
+        const nodeCategory = this.categoryManager.nodeCategories.get(node.id);
+        const nodeName = node.name.toLowerCase();
+        
+        this.nodes.forEach(n => {
+            const currentCategory = this.categoryManager.nodeCategories.get(n.id);
+            const currentName = n.name.toLowerCase();
+            
+            // Select nodes with same category or similar names
+            if (currentCategory && currentCategory === nodeCategory) {
+                this.selectionManager.selectedNodes.add(n.id);
+            } else if (currentName.includes(nodeName) || nodeName.includes(currentName)) {
+                this.selectionManager.selectedNodes.add(n.id);
+            }
+        });
+        
+        this.updateNodeSelectionVisuals();
+        this.showNotification(`Selected ${this.selectionManager.selectedNodes.size} similar nodes`);
+    }
+
+    // Keyboard shortcuts for category operations
+    initializeKeyboardShortcuts() {
+        document.addEventListener('keydown', (event) => {
+            // Only handle shortcuts when the chart container is focused or no input is focused
+            if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+                return;
+            }
+            
+            const selectedNodes = this.getSelectedNodes();
+            
+            switch (event.key.toLowerCase()) {
+                case 'c':
+                    if (selectedNodes.length > 0) {
+                        event.preventDefault();
+                        this.openCategoryAssignmentForSelection();
+                    }
+                    break;
+                    
+                case 'a':
+                    if (event.ctrlKey || event.metaKey) {
+                        event.preventDefault();
+                        this.selectAllNodes();
+                    }
+                    break;
+                    
+                case 'escape':
+                    event.preventDefault();
+                    this.clearSelection();
+                    this.hideNodeContextMenu();
+                    break;
+                    
+                case 'delete':
+                case 'backspace':
+                    if (selectedNodes.length > 0) {
+                        event.preventDefault();
+                        this.removeCategoryFromSelectedNodes();
+                    }
+                    break;
+                    
+                case 'v':
+                    if (event.ctrlKey || event.metaKey) {
+                        if (this.copiedCategory && selectedNodes.length > 0) {
+                            event.preventDefault();
+                            this.applyCategoryToSelectedNodes(this.copiedCategory);
+                        }
+                    }
+                    break;
+                    
+                case 'z':
+                    if (event.ctrlKey || event.metaKey) {
+                        event.preventDefault();
+                        if (event.shiftKey) {
+                            this.redoCategoryOperation();
+                        } else {
+                            this.undoCategoryOperation();
+                        }
+                    }
+                    break;
+                    
+                case 'f':
+                    if (event.ctrlKey || event.metaKey) {
+                        event.preventDefault();
+                        this.showNodeSearchModal();
+                    }
+                    break;
+            }
+        });
+    }
+
+    openCategoryAssignmentForSelection() {
+        const selectedNodes = this.getSelectedNodes();
+        
+        if (selectedNodes.length === 0) {
+            this.showNotification('No nodes selected', 'error');
+            return;
+        }
+        
+        if (selectedNodes.length === 1) {
+            // Single node - show full assignment modal
+            this.showCategoryAssignmentModal(selectedNodes[0]);
+        } else {
+            // Multiple nodes - show bulk assignment modal
+            this.openBulkCategoryAssignmentModal(selectedNodes);
+        }
+    }
+
+    showNodeSearchModal() {
+        const modal = document.createElement('div');
+        modal.className = 'node-search-modal';
+        
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Search and Select Nodes</h3>
+                        <button class="close-modal" onclick="this.closest('.node-search-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="search-group">
+                            <input type="text" id="nodeSearchInput" placeholder="Search nodes by name..." autofocus>
+                            <div class="search-results" id="searchResults"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.node-search-modal').remove()">Close</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .node-search-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .modal-backdrop {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .modal-content {
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 600px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px;
+                    border-bottom: 1px solid #eee;
+                }
+                .modal-header h3 {
+                    margin: 0;
+                    color: #333;
+                }
+                .close-modal {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: #666;
+                }
+                .modal-body {
+                    padding: 20px;
+                }
+                .search-group {
+                    margin-bottom: 15px;
+                }
+                .search-group input {
+                    width: 100%;
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 14px;
+                }
+                .search-results {
+                    max-height: 400px;
+                    overflow-y: auto;
+                    margin-top: 10px;
+                    border: 1px solid #eee;
+                    border-radius: 4px;
+                }
+                .search-result-item {
+                    padding: 10px;
+                    border-bottom: 1px solid #eee;
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .search-result-item:hover {
+                    background: #f5f5f5;
+                }
+                .search-result-item.selected {
+                    background: #e3f2fd;
+                    border-left: 3px solid #2196f3;
+                }
+                .node-name {
+                    font-weight: 500;
+                    color: #333;
+                }
+                .node-category {
+                    font-size: 12px;
+                    color: #666;
+                    background: #f0f0f0;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                }
+                .modal-footer {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                    padding: 20px;
+                    border-top: 1px solid #eee;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .btn-secondary {
+                    background: #6c757d;
+                    color: white;
+                }
+            </style>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Set up search functionality
+        const searchInput = document.getElementById('nodeSearchInput');
+        const searchResults = document.getElementById('searchResults');
+        
+        const updateSearchResults = () => {
+            const query = searchInput.value.toLowerCase();
+            const filteredNodes = this.nodes.filter(node => 
+                node.name.toLowerCase().includes(query)
+            );
+            
+            searchResults.innerHTML = filteredNodes.map(node => {
+                const category = this.categoryManager.nodeCategories.get(node.id);
+                const isSelected = this.selectionManager.selectedNodes.has(node.id);
+                
+                return `
+                    <div class="search-result-item ${isSelected ? 'selected' : ''}" 
+                         data-node-id="${node.id}" 
+                         onclick="window.toggleNodeFromSearch('${node.id}')">
+                        <div class="node-name">${node.name}</div>
+                        <div class="node-category">${category || 'No category'}</div>
+                    </div>
+                `;
+            }).join('');
+        };
+        
+        searchInput.addEventListener('input', updateSearchResults);
+        
+        // Set up global function for node selection
+        window.toggleNodeFromSearch = (nodeId) => {
+            const node = this.nodes.find(n => n.id === nodeId);
+            if (node) {
+                this.toggleNodeSelection(node);
+                this.updateNodeSelectionVisuals();
+                updateSearchResults(); // Refresh to show updated selection
+            }
+        };
+        
+        // Initial search results
+        updateSearchResults();
+    }
+
+    // Undo/Redo system for category operations
+    recordCategoryOperation(operation) {
+        // Add to undo stack
+        this.categoryHistory.undoStack.push(operation);
+        
+        // Clear redo stack since we're making a new change
+        this.categoryHistory.redoStack = [];
+        
+        // Limit history size
+        if (this.categoryHistory.undoStack.length > this.categoryHistory.maxHistorySize) {
+            this.categoryHistory.undoStack.shift();
+        }
+    }
+
+    undoCategoryOperation() {
+        if (this.categoryHistory.undoStack.length === 0) {
+            this.showNotification('Nothing to undo', 'info');
+            return;
+        }
+        
+        const operation = this.categoryHistory.undoStack.pop();
+        this.categoryHistory.redoStack.push(operation);
+        
+        // Apply the reverse operation
+        this.applyReverseOperation(operation);
+        
+        this.showNotification(`Undid: ${operation.description}`);
+        this.render(this.data); // Re-render to update colors
+    }
+
+    redoCategoryOperation() {
+        if (this.categoryHistory.redoStack.length === 0) {
+            this.showNotification('Nothing to redo', 'info');
+            return;
+        }
+        
+        const operation = this.categoryHistory.redoStack.pop();
+        this.categoryHistory.undoStack.push(operation);
+        
+        // Apply the operation
+        this.applyOperation(operation);
+        
+        this.showNotification(`Redid: ${operation.description}`);
+        this.render(this.data); // Re-render to update colors
+    }
+
+    applyOperation(operation) {
+        switch (operation.type) {
+            case 'assign':
+                operation.changes.forEach(change => {
+                    if (change.newCategory) {
+                        this.categoryManager.nodeCategories.set(change.nodeId, change.newCategory);
+                    } else {
+                        this.categoryManager.nodeCategories.delete(change.nodeId);
+                    }
+                });
+                break;
+                
+            case 'remove':
+                operation.changes.forEach(change => {
+                    this.categoryManager.nodeCategories.delete(change.nodeId);
+                });
+                break;
+                
+            case 'create_category':
+                this.categoryManager.userCategories.set(operation.categoryName, operation.categoryData);
+                break;
+                
+            case 'delete_category':
+                this.categoryManager.userCategories.delete(operation.categoryName);
+                // Remove category from all nodes
+                this.categoryManager.nodeCategories.forEach((category, nodeId) => {
+                    if (category === operation.categoryName) {
+                        this.categoryManager.nodeCategories.delete(nodeId);
+                    }
+                });
+                break;
+        }
+    }
+
+    applyReverseOperation(operation) {
+        switch (operation.type) {
+            case 'assign':
+                operation.changes.forEach(change => {
+                    if (change.oldCategory) {
+                        this.categoryManager.nodeCategories.set(change.nodeId, change.oldCategory);
+                    } else {
+                        this.categoryManager.nodeCategories.delete(change.nodeId);
+                    }
+                });
+                break;
+                
+            case 'remove':
+                operation.changes.forEach(change => {
+                    if (change.oldCategory) {
+                        this.categoryManager.nodeCategories.set(change.nodeId, change.oldCategory);
+                    }
+                });
+                break;
+                
+            case 'create_category':
+                this.categoryManager.userCategories.delete(operation.categoryName);
+                // Remove category from all nodes
+                this.categoryManager.nodeCategories.forEach((category, nodeId) => {
+                    if (category === operation.categoryName) {
+                        this.categoryManager.nodeCategories.delete(nodeId);
+                    }
+                });
+                break;
+                
+            case 'delete_category':
+                this.categoryManager.userCategories.set(operation.categoryName, operation.categoryData);
+                // Restore category to nodes
+                operation.affectedNodes.forEach(nodeId => {
+                    this.categoryManager.nodeCategories.set(nodeId, operation.categoryName);
+                });
+                break;
+        }
+    }
+
     // Control methods
     setCurveIntensity(intensity) {
         this.config.curveIntensity = intensity;
@@ -4828,7 +6009,7 @@ class PulseSankeyChart {
             .style('cursor', 'pointer')
             .on('click', (event, d) => {
                 event.stopPropagation();
-                this.showEnhancedColorPicker(event, d);
+                this.handleNodeSelection(d, event);
             });
     }
     
