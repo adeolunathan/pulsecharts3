@@ -1583,45 +1583,6 @@
         
 
 
-        function switchMainTab(tabName, isManualClick = false) {
-            // Single page system - simplified chart type management
-            
-            // Update chart type indicator buttons if they exist
-            document.querySelectorAll('.chart-type-indicator').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            const targetTab = document.querySelector(`[onclick="switchMainTab('${tabName}')"]`);
-            if (targetTab) {
-                targetTab.classList.add('active');
-            }
-            
-            
-            if (tabName === 'data-builder') {
-                // Main chart is always visible in single-page interface
-                
-                // Flow Builder now uses the same horizontal menu structure as Chart View
-                // No need to hide the menu since it's the same interface
-                
-                // Only initialize if not already done
-                if (!isInitialized) {
-                    // Check chart type to determine initialization method
-                    const urlParams = getURLParameters();
-                    if (urlParams.type === 'bar' || urlParams.chartType === 'bar') {
-                        isInitialized = true; // Mark as initialized to prevent future calls
-                    } else {
-                        setTimeout(() => {
-                            initializeChartInterface();
-                        }, 100);
-                    }
-                } else {
-                }
-                
-                // Flow builder removed - using unified single-page system
-                
-            } else {
-                // Single-page interface - main chart always visible
-            }
-        }
 
         async function initializeChartInterface() {
             if (isInitialized) {

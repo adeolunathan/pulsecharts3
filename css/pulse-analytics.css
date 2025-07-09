@@ -3201,15 +3201,7 @@ body {
 /* ===== ENHANCED FEATURES CSS ADDITIONS ===== */
 /* Add these styles to your existing pulse-analytics.css file */
 
-/* Enhanced Tab Interface Styles */
-.main-tabs {
-    display: flex;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-bottom: 1px solid #e1e5e9;
-    margin: 0;
-    padding: 0 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+/* Enhanced Tab Interface Styles - main-tabs removed, using unified system */
 
 .chart-type-indicator {
     background: rgba(0, 0, 0, 0.4);
@@ -3583,10 +3575,6 @@ body {
         order: -1;
     }
     
-    .main-tabs {
-        padding: 0 12px;
-        overflow-x: auto;
-    }
     
     .chart-type-indicator {
         padding: 12px 16px;
@@ -3622,9 +3610,6 @@ body {
 }
 
 @media (max-width: 480px) {
-    .main-tabs {
-        padding: 0 8px;
-    }
     
     .chart-type-indicator {
         padding: 10px 12px;
