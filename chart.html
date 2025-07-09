@@ -33,6 +33,8 @@
     <script src="js/utils/ChartBrandingUtils.js"></script>
     <!-- Load ChartFlowEditor early to ensure availability -->
     <script src="js/utils/ChartFlowEditor.js"></script>
+    <!-- Load Unified Spreadsheet Editor -->
+    <script src="js/core/UnifiedSpreadsheetEditor.js"></script>
     
     <!-- Debug: Check if utilities loaded -->
     <script>
@@ -3170,8 +3172,20 @@
                 }
                 
 
-                // Initialize SpreadsheetController for Sankey flow builder
+                // Initialize SpreadsheetController for Sankey flow builder (OLD SYSTEM)
+                console.log('⚠️ Initializing OLD SpreadsheetController for main flow table');
                 window.spreadsheetController = new SpreadsheetController();
+                console.log('⚠️ OLD SpreadsheetController active - this handles the main flow table');
+                console.log('💡 To use the NEW unified editor with paste functionality, click the "Chart Builder" tab!');
+                
+                // Auto-select first cell in main flow table to enable paste immediately
+                setTimeout(() => {
+                    const firstCell = document.querySelector('#main-flow-table .spreadsheet-cell');
+                    if (firstCell && window.spreadsheetController && !window.spreadsheetController.selectedCell) {
+                        console.log('📋 OLD SpreadsheetController: Auto-selecting first cell to enable paste');
+                        window.spreadsheetController.selectCell(firstCell);
+                    }
+                }, 500);
             }
             
             // Helper: Wait for pulseApp to be ready
@@ -3258,30 +3272,41 @@
                 
                 // Update tab content immediately to prevent flicker
                 const dataBuilderContent = document.getElementById('data-builder');
-                if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
+                if (dataBuilderContent && !dataBuilderContent.querySelector('.unified-data-builder')) {
                     dataBuilderContent.innerHTML = `
-                        <div class="bar-chart-data-builder">
-                            <div id="bar-data-editor-container" style="padding: 20px;">
-                                <!-- BarDataEditor will be initialized here -->
+                        <div class="unified-data-builder">
+                            <div id="unified-data-editor-container" style="padding: 20px;">
+                                <!-- UnifiedSpreadsheetEditor will be initialized here -->
                             </div>
                         </div>
                     `;
                     
-                    // Initialize professional spreadsheet editor with proper timing
+                    // Initialize unified spreadsheet editor with proper timing
                     setTimeout(() => {
-                        if (typeof BarDataEditor !== 'undefined') {
+                        if (typeof UnifiedSpreadsheetEditor !== 'undefined') {
                             // Wait for chart to be fully initialized
                             const waitForChart = () => {
-                                if (window.pulseApp && window.pulseApp.chart && window.pulseApp.currentData) {
+                                if (window.pulseApp && window.pulseApp.chart) {
                                     const chartInstance = window.pulseApp.chart;
-                                    window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                                    const chartType = window.pulseApp.currentChartType || 'bar';
+                                    
+                                    // Destroy existing editor if it exists and is wrong type
+                                    if (window.unifiedDataEditor && window.unifiedDataEditor.chartType !== chartType) {
+                                        window.unifiedDataEditor.destroy();
+                                        window.unifiedDataEditor = null;
+                                    }
+                                    
+                                    if (!window.unifiedDataEditor) {
+                                        window.unifiedDataEditor = new UnifiedSpreadsheetEditor('unified-data-editor-container', chartInstance, chartType);
+                                        console.log('✅ UnifiedSpreadsheetEditor initialized for', chartType);
+                                    }
                                 } else {
                                     setTimeout(waitForChart, 100);
                                 }
                             };
                             waitForChart();
                         } else {
-                            console.error('❌ BarDataEditor class not available');
+                            console.error('❌ UnifiedSpreadsheetEditor class not available');
                         }
                     }, 200);
                 }
@@ -3406,35 +3431,56 @@
                 // Update the data builder content for bar charts (prevent duplicate calls)
                 const dataBuilderContent = document.getElementById('data-builder');
                 
-                // PREVENT FLICKERING: Only update if not already bar chart content
-                if (dataBuilderContent && !dataBuilderContent.querySelector('.bar-chart-data-builder')) {
+                // PREVENT FLICKERING: Only update if not already unified content
+                if (dataBuilderContent && !dataBuilderContent.querySelector('.unified-data-builder')) {
                     dataBuilderContent.innerHTML = `
-                        <div class="bar-chart-data-builder">
-                            <div id="bar-data-editor-container" style="padding: 20px;">
-                                <!-- BarDataEditor will be initialized here -->
+                        <div class="unified-data-builder">
+                            <div id="unified-data-editor-container" style="padding: 20px;">
+                                <!-- UnifiedSpreadsheetEditor will be initialized here -->
                             </div>
                         </div>
                     `;
                 } else {
+                    console.log('📊 Unified data builder already exists, skipping recreation');
                 }
                 
-                // Initialize professional spreadsheet editor with proper timing
+                // Initialize unified spreadsheet editor with proper timing
                 setTimeout(() => {
-                    if (typeof BarDataEditor !== 'undefined') {
-                        if (!window.barDataEditor) {
+                    if (typeof UnifiedSpreadsheetEditor !== 'undefined') {
+                        if (!window.unifiedDataEditor) {
                             // Wait for chart to be fully initialized
                             const waitForChart = () => {
-                                if (window.pulseApp && window.pulseApp.chart && window.pulseApp.currentData) {
+                                if (window.pulseApp && window.pulseApp.chart) {
                                     const chartInstance = window.pulseApp.chart;
-                                    window.barDataEditor = new BarDataEditor('bar-data-editor-container', chartInstance);
+                                    const chartType = window.pulseApp.currentChartType || 'bar';
+                                    
+                                    // Destroy existing editor if it exists and is wrong type
+                                    if (window.unifiedDataEditor && window.unifiedDataEditor.chartType !== chartType) {
+                                        window.unifiedDataEditor.destroy();
+                                        window.unifiedDataEditor = null;
+                                    }
+                                    
+                                    if (!window.unifiedDataEditor) {
+                                        window.unifiedDataEditor = new UnifiedSpreadsheetEditor('unified-data-editor-container', chartInstance, chartType);
+                                        console.log('✅ UnifiedSpreadsheetEditor initialized for', chartType);
+                                    }
                                 } else {
                                     setTimeout(waitForChart, 100);
                                 }
                             };
                             waitForChart();
+                        } else {
+                            console.log('📊 UnifiedDataEditor already exists, checking chart type compatibility');
+                            
+                            // Check if existing editor is compatible with current chart type
+                            const currentChartType = window.pulseApp?.currentChartType || 'bar';
+                            if (window.unifiedDataEditor.chartType !== currentChartType) {
+                                console.log(`📊 Switching unified editor from ${window.unifiedDataEditor.chartType} to ${currentChartType}`);
+                                window.unifiedDataEditor.switchChartType(currentChartType);
+                            }
                         }
                     } else {
-                        console.error('❌ BarDataEditor class not available');
+                        console.error('❌ UnifiedSpreadsheetEditor class not available');
                     }
                 }, 300);
                 
@@ -3443,6 +3489,44 @@
                 // **CRITICAL FIX: Use the app's switchChartType method for consistency**
                 if (window.pulseApp && window.pulseApp.switchChartType) {
                     window.pulseApp.switchChartType('sankey');
+                }
+                
+                // Update data builder content for Sankey charts to use unified system
+                const dataBuilderContent = document.getElementById('data-builder');
+                if (dataBuilderContent && !dataBuilderContent.querySelector('.unified-data-builder')) {
+                    dataBuilderContent.innerHTML = `
+                        <div class="unified-data-builder">
+                            <div id="unified-data-editor-container" style="padding: 20px;">
+                                <!-- UnifiedSpreadsheetEditor will be initialized here -->
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Initialize unified spreadsheet editor for Sankey
+                    setTimeout(() => {
+                        if (typeof UnifiedSpreadsheetEditor !== 'undefined') {
+                            const waitForChart = () => {
+                                if (window.pulseApp && window.pulseApp.chart) {
+                                    const chartInstance = window.pulseApp.chart;
+                                    // Destroy existing editor if it exists and is wrong type
+                                    if (window.unifiedDataEditor && window.unifiedDataEditor.chartType !== 'sankey') {
+                                        window.unifiedDataEditor.destroy();
+                                        window.unifiedDataEditor = null;
+                                    }
+                                    
+                                    if (!window.unifiedDataEditor) {
+                                        window.unifiedDataEditor = new UnifiedSpreadsheetEditor('unified-data-editor-container', chartInstance, 'sankey');
+                                        console.log('✅ UnifiedSpreadsheetEditor initialized for Sankey');
+                                    }
+                                } else {
+                                    setTimeout(waitForChart, 100);
+                                }
+                            };
+                            waitForChart();
+                        } else {
+                            console.error('❌ UnifiedSpreadsheetEditor class not available');
+                        }
+                    }, 200);
                 }
                 
                 // Restore original tab label for sankey
@@ -4604,17 +4688,26 @@
                 }
             }
 
-            // ===== EXCEL/CSV PASTE FUNCTIONALITY =====
+            // ===== ENHANCED EXCEL/CSV PASTE FUNCTIONALITY =====
             handlePaste(event) {
-                // Only handle paste if we're focused on a spreadsheet cell or the table
+                console.log('📋 OLD SpreadsheetController: Paste event detected', event);
+                
+                // More aggressive paste detection
                 const target = event.target;
                 const cell = target.closest('.spreadsheet-cell');
                 const table = target.closest('.flow-table');
                 
-                if (!cell && !table) {
+                // Handle paste if we have a selected cell OR if event is within flow table
+                const shouldHandle = cell || table || this.selectedCell;
+                
+                console.log('📋 OLD SpreadsheetController: Should handle paste?', shouldHandle);
+                
+                if (!shouldHandle) {
+                    console.log('📋 OLD SpreadsheetController: Ignoring paste - not in flow table area');
                     return; // Not in our spreadsheet
                 }
 
+                console.log('📋 OLD SpreadsheetController: Handling paste event');
                 event.preventDefault();
                 
                 // Get clipboard data
@@ -4865,15 +4958,40 @@
             // ===== GOOGLE SHEETS-LIKE COPY/PASTE FUNCTIONALITY =====
             
             handleCopyPaste(event) {
-                // Only handle when focused on spreadsheet
-                if (!this.selectedCell) return;
-                
+                // Enhanced copy/paste handling
                 if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-                    event.preventDefault();
-                    this.copyCells();
+                    if (this.selectedCell) {
+                        event.preventDefault();
+                        console.log('📋 OLD SpreadsheetController: Copy detected');
+                        this.copyCells();
+                    }
                 } else if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-                    event.preventDefault();
-                    this.pasteCells();
+                    console.log('📋 OLD SpreadsheetController: 🚨 CTRL+V DETECTED 🚨');
+                    console.log('📋 OLD SpreadsheetController: Selected cell:', this.selectedCell);
+                    
+                    // Handle paste if we have ANY selected cell OR if we're in the flow table area
+                    const shouldHandle = this.selectedCell || document.querySelector('.flow-table:hover');
+                    
+                    if (shouldHandle) {
+                        event.preventDefault();
+                        console.log('📋 OLD SpreadsheetController: 🎯 HANDLING CTRL+V');
+                        
+                        // Try async clipboard API first (more reliable for external data)
+                        navigator.clipboard.readText().then(text => {
+                            if (text && text.trim()) {
+                                console.log('📋 OLD SpreadsheetController: ✅ Got external clipboard data:', text.substring(0, 100) + '...');
+                                this.pasteDataToTable(text, this.selectedCell);
+                            } else {
+                                console.log('📋 OLD SpreadsheetController: No async clipboard data, using internal paste');
+                                this.pasteCells();
+                            }
+                        }).catch(err => {
+                            console.log('📋 OLD SpreadsheetController: Async clipboard failed, using internal paste:', err);
+                            this.pasteCells();
+                        });
+                    } else {
+                        console.log('📋 OLD SpreadsheetController: ❌ Not handling paste - no selected cell');
+                    }
                 }
             }
             
