@@ -8,7 +8,6 @@
     "period": "Q3 2025",
     "prepared_date": "2025-01-15"
   },
-  
   "nodes": [
     {
       "id": "Subscription Revenue",
@@ -183,6 +182,7 @@
       "source": "Total Revenue",
       "target": "Cost of Revenue",
       "value": 1550,
+      "previousValue": 1600,
       "type": "cost_flow",
       "description": "Direct costs of providing services"
     },
@@ -190,6 +190,7 @@
       "source": "Gross Profit",
       "target": "Operating Profit",
       "value": 650,
+      "previousValue": 670,
       "type": "profit_flow",
       "description": "Operating profit after operating expenses"
     },
@@ -197,6 +198,7 @@
       "source": "Gross Profit",
       "target": "Operating Expenses",
       "value": 2750,
+      "previousValue": 2700,
       "type": "expense_flow",
       "description": "Operating expenses reducing gross profit"
     },
@@ -212,6 +214,7 @@
       "source": "Operating Profit",
       "target": "Tax Expense",
       "value": 120,
+      "previousValue": 115,
       "type": "tax_flow",
       "description": "Income tax on operating profit"
     },
@@ -219,6 +222,7 @@
       "source": "Operating Profit",
       "target": "Other Expense",
       "value": 30,
+      "previousValue": 35,
       "type": "other_flow",
       "description": "Other expenses reducing operating profit"
     },
@@ -226,6 +230,7 @@
       "source": "Operating Expenses",
       "target": "Sales & Marketing",
       "value": 850,
+      "previousValue": 830,
       "type": "expense_breakdown",
       "description": "Sales and marketing portion of operating expenses"
     },
@@ -233,6 +238,7 @@
       "source": "Operating Expenses",
       "target": "R&D",
       "value": 1000,
+      "previousValue": 980,
       "type": "expense_breakdown",
       "description": "R&D portion of operating expenses"
     },
@@ -240,6 +246,7 @@
       "source": "Operating Expenses",
       "target": "SG&A",
       "value": 200,
+      "previousValue": 220,
       "type": "expense_breakdown",
       "description": "G&A portion of operating expenses"
     },
@@ -247,6 +254,7 @@
       "source": "Operating Expenses",
       "target": "Restructuring",
       "value": 700,
+      "previousValue": 690,
       "type": "expense_breakdown",
       "description": "Restructuring portion of operating expenses"
     }
@@ -264,13 +272,13 @@
         "sort_direction": "desc"
       },
       "final_results": {
-        "label": "Final Results", 
+        "label": "Final Results",
         "color_scheme": "greens",
         "sort_direction": "desc"
       },
       "final_adjustments": {
         "label": "Adjustments",
-        "color_scheme": "oranges", 
+        "color_scheme": "oranges",
         "sort_direction": "desc"
       }
     }

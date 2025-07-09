@@ -3211,7 +3211,7 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.main-tab {
+.chart-type-indicator {
     background: rgba(0, 0, 0, 0.4);
     border: none;
     color: rgba(255,255,255,0.7);
@@ -3224,20 +3224,20 @@ body {
     position: relative;
 }
 
-.main-tab:hover {
+.chart-type-indicator:hover {
     color: rgba(255,255,255,0.9);
     background: rgba(255,255,255,0.1);
     transform: translateY(-1px);
 }
 
-.main-tab.active {
+.chart-type-indicator.active {
     color: white;
     border-bottom-color: #f59e0b;
     background: rgba(255,255,255,0.15);
     font-weight: 600;
 }
 
-.main-tab.active::before {
+.chart-type-indicator.active::before {
     content: '';
     position: absolute;
     top: 0;
@@ -3588,7 +3588,7 @@ body {
         overflow-x: auto;
     }
     
-    .main-tab {
+    .chart-type-indicator {
         padding: 12px 16px;
         font-size: 15px;
         flex-shrink: 0;
@@ -3626,7 +3626,7 @@ body {
         padding: 0 8px;
     }
     
-    .main-tab {
+    .chart-type-indicator {
         padding: 10px 12px;
         font-size: 14px;
     }
@@ -3642,7 +3642,7 @@ body {
 
 /* Enhanced Accessibility */
 @media (prefers-reduced-motion: reduce) {
-    .main-tab,
+    .chart-type-indicator,
     .color-picker,
     .btn-color-action {
         transition: none;
@@ -3651,11 +3651,11 @@ body {
 }
 
 @media (prefers-contrast: high) {
-    .main-tab {
+    .chart-type-indicator {
         border: 1px solid rgba(255,255,255,0.3);
     }
     
-    .main-tab.active {
+    .chart-type-indicator.active {
         border-color: #f59e0b;
         background: rgba(245, 158, 11, 0.2);
     }

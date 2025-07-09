@@ -676,24 +676,6 @@
                 
             },
             
-            handleTabSwitch(tabName) {
-                
-                if (tabName === 'data-builder') {
-                    if (!this.currentData && window.pulseApp) {
-                        const appData = window.pulseApp.getCurrentData();
-                        if (appData) {
-                            this.currentData = appData;
-                        }
-                    }
-                    
-                    // Only refresh Flow Builder for Sankey charts
-                    if (window.currentChartType === 'sankey') {
-                        setTimeout(() => {
-                            this.refreshFlowBuilder();
-                        }, 50);
-                    }
-                }
-            }
         };
 
         // Initialize Data Bridge after DOM is ready and app.js has loaded
@@ -1788,9 +1770,10 @@
 
 
         function switchMainTab(tabName, isManualClick = false) {
-            // Single page system - simplified tab switching
+            // Single page system - simplified chart type management
             
-            document.querySelectorAll('.main-tab').forEach(tab => {
+            // Update chart type indicator buttons if they exist
+            document.querySelectorAll('.chart-type-indicator').forEach(tab => {
                 tab.classList.remove('active');
             });
             const targetTab = document.querySelector(`[onclick="switchMainTab('${tabName}')"]`);
@@ -1798,13 +1781,6 @@
                 targetTab.classList.add('active');
             }
             
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            const targetContent = document.getElementById(tabName);
-            if (targetContent) {
-                targetContent.classList.add('active');
-            }
             
             if (tabName === 'data-builder') {
                 // Main chart is always visible in single-page interface
@@ -3179,8 +3155,8 @@
                         return;
                     }
                     
-                    // **FIX FLICKER: Update tab content IMMEDIATELY before chart switch**
-                    updateTabContentForBarChart();
+                    // **FIX FLICKER: Update chart container IMMEDIATELY before chart switch**
+                    updateChartContainerForBarChart();
                     
                     // Switch to bar chart (will render once internally)
                     await window.pulseApp.switchChartType('bar');
@@ -3218,17 +3194,17 @@
                 }
             }
             
-            // Helper: Update tab content for bar chart (prevent flicker)
-            function updateTabContentForBarChart() {
-                console.log('🚀 Updating tab content for bar chart immediately');
+            // Helper: Update chart container for bar chart (prevent flicker)
+            function updateChartContainerForBarChart() {
+                console.log('🚀 Updating chart container for bar chart immediately');
                 
-                // Update tab label immediately
-                const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
+                // Update chart type indicator label immediately
+                const dataBuilderTabButton = document.querySelector('.chart-type-indicator[onclick*="data-builder"]');
                 if (dataBuilderTabButton) {
                     dataBuilderTabButton.innerHTML = '📊 Bar Data';
                 }
                 
-                // Update tab content immediately to prevent flicker
+                // Update chart container immediately to prevent flicker
                 const dataBuilderContent = document.getElementById('data-builder');
                 if (dataBuilderContent && !dataBuilderContent.querySelector('.unified-data-builder')) {
                     dataBuilderContent.innerHTML = `
@@ -3379,7 +3355,7 @@
                 }
                 
                 // Update tab labels for bar chart  
-                const dataBuilderTabButton = document.querySelector('.main-tab[onclick*="data-builder"]');
+                const dataBuilderTabButton = document.querySelector('.chart-type-indicator[onclick*="data-builder"]');
                 if (dataBuilderTabButton) {
                     dataBuilderTabButton.innerHTML = '📊 Bar Data';
                 } else {
@@ -3536,10 +3512,6 @@
                     // Show data preview
                     showBarDataPreview(data);
                     
-                    // DISABLED: Auto tab switch - handled by IIFE
-                    // setTimeout(() => {
-                    //     switchMainTab('chart-view');
-                    // }, 500);
                 })
                 .catch(error => {
                     console.error('❌ Failed to load bar chart sample:', error);
@@ -3572,10 +3544,6 @@
                     // Show data preview
                     showBarDataPreview(barData);
                     
-                    // DISABLED: Auto tab switch - handled by IIFE
-                    // setTimeout(() => {
-                    //     switchMainTab('chart-view');
-                    // }, 500);
                     
                 } catch (error) {
                     console.error('❌ File processing error:', error);
