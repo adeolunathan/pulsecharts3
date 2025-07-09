@@ -109,7 +109,7 @@ Immediate re-render (colors, opacity) or debounced update
 **Chart Organization**
 - Each chart type has its own directory under `js/charts/`
 - Chart files follow naming pattern: `[Type]Chart.js`, `[Type]Controls.js`, `[Type]Config.js`
-- Data editors are chart-specific: `BarDataEditor.js`
+- Data editor: `UnifiedSpreadsheetEditor.js` (supports all chart types)
 
 **Sample Data**
 - `data/samples/` contains JSON examples for different chart types

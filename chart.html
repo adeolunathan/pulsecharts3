@@ -474,7 +474,6 @@
     <script src="js/charts/bar/BarChartConfig.js"></script>
     <script src="js/charts/bar/BarChart.js"></script>
     <script src="js/charts/bar/BarControls.js"></script>
-    <script src="js/charts/bar/BarDataEditor.js"></script>
     
     <!-- Verify utilities before app loads -->
     <script>
@@ -547,13 +546,7 @@
                     this.chartInstance.render(this.currentData);
                 }
                 
-                if (window.currentChartType === 'sankey') {
-                    this.refreshFlowBuilder();
-                    // Also update the flow builder chart instance if it exists
-                    if (window.pulseApp && window.pulseApp.chart && source === 'flow-builder') {
-                        window.pulseApp.chart.render(this.currentData);
-                    }
-                }
+                // Flow builder removed - using unified system
                 
                 if (window.pulseApp && source !== 'app' && source !== 'app-initial') {
                     window.pulseApp.currentData = this.currentData;
@@ -564,25 +557,6 @@
                 }));
             },
             
-            refreshFlowBuilder() {
-                
-                const data = this.getData();
-                if (data && data.nodes && data.links) {
-                    window.flowData = convertSankeyDataToFlows(data);
-                    
-                    if (typeof renderFlowTable === 'function') {
-                        renderFlowTable();
-                        updateAllStats();
-                    }
-                    
-                    // Update the chart preview in Flow Builder
-                    if (typeof renderChartInFlowBuilder === 'function') {
-                        setTimeout(() => renderChartInFlowBuilder(), 100);
-                    }
-                } else {
-                    console.warn('⚠️ No data available for Flow Builder refresh');
-                }
-            },
             
             updateRealTimeIndicator() {
                 const indicator = document.getElementById('realtime-indicator');
@@ -607,9 +581,6 @@
                 }
             },
             
-            applyFlowBuilderChanges(newData) {
-                this.setData(newData, 'flow-builder');
-            },
             
             setupEventListeners() {
             },
@@ -1382,33 +1353,6 @@
             }
         }
 
-        // Initialize Flow Builder Chart Canvas
-        function initializeFlowBuilderChart() {
-            const chartContainer = document.getElementById('main-chart');
-            if (!chartContainer) return;
-            
-            
-            // Clear existing content and prepare for chart rendering
-            chartContainer.innerHTML = '';
-            chartContainer.style.background = 'white';
-            
-            // Initialize chart controls
-            initializeFlowBuilderControlPanel();
-            
-            // Try to render current chart data if available
-            if (window.pulseApp && window.pulseApp.getCurrentChart()) {
-                renderChartInFlowBuilder();
-            } else {
-                // Show placeholder
-                chartContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px; flex-direction: column; gap: 12px;">
-                        <div style="font-size: 24px;">📊</div>
-                        <div>Chart canvas ready for data</div>
-                        <div style="font-size: 14px; color: #9ca3af;">Add flows and click Apply to see the chart</div>
-                    </div>
-                `;
-            }
-        }
         
         // Basic control functions
         function randomizeColors() {
@@ -1430,50 +1374,6 @@
             resetNodeHighlighting();
         }
         
-        // Initialize Flow Builder Control Panel (same as Chart View)
-        function initializeFlowBuilderControlPanel() {
-            
-            // Wait for PulseControlPanel to be available
-            setTimeout(() => {
-                try {
-                    // Check if PulseControlPanel is available
-                    if (typeof PulseControlPanel !== 'undefined') {
-                        // Create a single control panel instance that will distribute controls across all dropdowns
-                        window.pulseApp.controlPanel = new PulseControlPanel('data-controls');
-                        
-                        // Initialize with current chart if available
-                        if (window.pulseApp.chart) {
-                            
-                            // Determine control module based on chart type
-                            let controlModule = null;
-                            if (window.pulseApp.chart.type === 'sankey' && typeof SankeyControlModule !== 'undefined') {
-                                controlModule = new SankeyControlModule();
-                                
-                                // Initialize dynamic controls for Sankey charts
-                                if (controlModule.initializeDynamicControls && window.pulseApp.chart.data) {
-                                    controlModule.initializeDynamicControls(window.pulseApp.chart);
-                                }
-                            } else if (window.pulseApp.chart.type === 'bar' && typeof BarControlModule !== 'undefined') {
-                                controlModule = new BarControlModule();
-                            }
-                            
-                            if (controlModule) {
-                                window.pulseApp.controlPanel.init(window.pulseApp.chart, controlModule);
-                            } else {
-                                console.warn('⚠️ No suitable control module found for chart type:', window.pulseApp.chart.type);
-                            }
-                        } else {
-                        }
-                    } else {
-                        console.warn('⚠️ PulseControlPanel class not loaded yet');
-                        // Try again in 500ms
-                        setTimeout(initializeFlowBuilderControlPanel, 500);
-                    }
-                } catch (error) {
-                    console.error('❌ Error initializing Flow Builder Control Panel:', error);
-                }
-            }, 100);
-        }
         
         // Toggle chart controls panel
         function toggleChartControls() {
@@ -1485,8 +1385,7 @@
                 button.innerHTML = '⚙️ Hide Controls';
                 button.style.background = '#ef4444';
                 
-                // Refresh controls
-                initializeFlowBuilderControlPanel();
+                // Flow builder removed - no controls to refresh
             } else {
                 panel.style.display = 'none';
                 button.innerHTML = '⚙️ Controls';
@@ -1572,10 +1471,8 @@
             
             let chartInstance = null;
             
-            // Determine which chart instance to use
-            if (window.pulseApp && window.pulseApp.flowBuilderMode && window.pulseApp.flowBuilderChart) {
-                chartInstance = window.pulseApp.flowBuilderChart;
-            } else if (window.pulseApp && window.pulseApp.chart) {
+            // Use the main chart instance (flow builder removed)
+            if (window.pulseApp && window.pulseApp.chart) {
                 chartInstance = window.pulseApp.chart;
             }
             
@@ -1610,11 +1507,6 @@
             return null;
         }
         
-        // Ensure Flow Builder controls work independently
-        function ensureFlowBuilderControlsWork() {
-            // Flow Builder controls should be self-contained and only affect the Flow Builder chart
-            // No need to intercept main app control panel updates
-        }
         
         // Export flow data to CSV
         function exportFlowDataToCSV() {
@@ -1689,84 +1581,6 @@
             }, 3000);
         }
         
-        // Render chart in Flow Builder canvas (copying from app.js approach)
-        function renderChartInFlowBuilder() {
-            const chartContainer = document.getElementById('main-chart');
-            if (!chartContainer) return;
-            
-            
-            // Clear container
-            chartContainer.innerHTML = '';
-            
-            // Get current data
-            const currentData = window.PulseDataBridge?.getData();
-            if (!currentData) {
-                console.warn('⚠️ No data available for Flow Builder chart');
-                chartContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px; flex-direction: column; gap: 12px;">
-                        <div style="font-size: 24px;">📊</div>
-                        <div>No data to display</div>
-                        <div style="font-size: 14px; color: #9ca3af;">Add flows to see the chart</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Get current chart type
-            const chartType = window.currentChartType || 'sankey';
-            
-            try {
-                // Use the same chart registry approach as app.js
-                const chartRegistry = {
-                    sankey: {
-                        name: 'Sankey Flow Chart',
-                        chartClass: PulseSankeyChart,
-                        controlModuleClass: SankeyControlModule,
-                        description: 'Financial flow visualization'
-                    },
-                    bar: {
-                        name: 'Bar Chart',
-                        chartClass: PulseBarChart,
-                        controlModuleClass: BarControlModule,
-                        description: 'Categorical data visualization'
-                    }
-                };
-                
-                const chartDefinition = chartRegistry[chartType];
-                if (!chartDefinition || !chartDefinition.chartClass) {
-                    throw new Error(`Chart type '${chartType}' not found or chart class not available`);
-                }
-                
-                
-                // Create chart instance using the same pattern as app.js (line 200)
-                const flowBuilderChart = new chartDefinition.chartClass('main-chart');
-                
-                // Apply control defaults if control module is available
-                if (chartDefinition.controlModuleClass) {
-                    const controlModule = new chartDefinition.controlModuleClass();
-                    flowBuilderChart.applyControlDefaults(controlModule);
-                }
-                
-                // Render the chart with data
-                flowBuilderChart.render(currentData);
-                
-                // Store reference for controls and future operations
-                window.pulseApp.chart = flowBuilderChart;
-                
-                // Register with Data Bridge so it can update this chart
-                window.PulseDataBridge.setChartInstance(flowBuilderChart);
-                
-                
-            } catch (error) {
-                console.error('❌ Error rendering chart in Flow Builder:', error);
-                chartContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ef4444; font-size: 14px; flex-direction: column; gap: 8px;">
-                        <div>Error rendering chart</div>
-                        <div style="font-size: 14px;">${error.message}</div>
-                    </div>
-                `;
-            }
-        }
 
 
         function switchMainTab(tabName, isManualClick = false) {
@@ -1802,22 +1616,7 @@
                 } else {
                 }
                 
-                // Initialize Flow Builder chart canvas independently
-                setTimeout(() => {
-                    initializeFlowBuilderChart();
-                    
-                    // Initialize Flow Builder chart controls independently
-                    setTimeout(() => {
-                        if (window.pulseApp.chart) {
-                            
-                            // Initialize Flow Builder controls independently
-                            initializeFlowBuilderControlPanel();
-                            
-                            // Ensure controls work with Flow Builder independently
-                            ensureFlowBuilderControlsWork();
-                        }
-                    }, 500);
-                }, 200);
+                // Flow builder removed - using unified single-page system
                 
             } else {
                 // Single-page interface - main chart always visible
@@ -2694,7 +2493,7 @@
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             const sankeyData = generateNodesAndLinksFromFlows();
-            window.PulseDataBridge.applyFlowBuilderChanges(sankeyData);
+            window.PulseDataBridge.setData(sankeyData, 'flow-builder');
             
             // Reset highlighting when chart data changes
             resetNodeHighlighting();
@@ -3198,11 +2997,7 @@
             function updateChartContainerForBarChart() {
                 console.log('🚀 Updating chart container for bar chart immediately');
                 
-                // Update chart type indicator label immediately
-                const dataBuilderTabButton = document.querySelector('.chart-type-indicator[onclick*="data-builder"]');
-                if (dataBuilderTabButton) {
-                    dataBuilderTabButton.innerHTML = '📊 Bar Data';
-                }
+                // Tab system removed - no chart type indicator to update
                 
                 // Update chart container immediately to prevent flicker
                 const dataBuilderContent = document.getElementById('data-builder');
@@ -3354,13 +3149,7 @@
                     window.pulseApp.switchChartType('bar');
                 }
                 
-                // Update tab labels for bar chart  
-                const dataBuilderTabButton = document.querySelector('.chart-type-indicator[onclick*="data-builder"]');
-                if (dataBuilderTabButton) {
-                    dataBuilderTabButton.innerHTML = '📊 Bar Data';
-                } else {
-                    console.error('❌ Could not find data-builder tab button');
-                }
+                // Tab system removed - no tab labels to update
                 
                 // Update the data builder content for bar charts (prevent duplicate calls)
                 const dataBuilderContent = document.getElementById('data-builder');
@@ -3463,17 +3252,7 @@
                     }, 200);
                 }
                 
-                // Restore original tab label for sankey
-                const dataBuilderTabButton = document.querySelector('.tab-button[data-tab="data-builder"]');
-                if (dataBuilderTabButton) {
-                    dataBuilderTabButton.innerHTML = '<span class="tab-icon">🔗</span> Chart Builder';
-                }
-                
-                // Show flow builder
-                const flowBuilderTab = document.querySelector('[data-tab="data-builder"]');
-                if (flowBuilderTab) {
-                    flowBuilderTab.style.display = 'block';
-                }
+                // Tab system removed - no tab labels or visibility to manage
             }
             
             // Update URL to reflect chart type

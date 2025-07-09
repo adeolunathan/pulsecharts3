@@ -243,9 +243,9 @@ class PulseApplication {
 
             await this.initializeChartType(newChartType);
             
-            // **BAR CHART: Let BarDataEditor be the single source of truth**
+            // **BAR CHART: Let UnifiedSpreadsheetEditor be the single source of truth**
             if (newChartType === 'bar') {
-                console.log('📊 Setting up bar chart - waiting for BarDataEditor to provide data');
+                console.log('📊 Setting up bar chart - waiting for UnifiedSpreadsheetEditor to provide data');
                 
                 // **REQUIRED: BarChartConfig must be available**
                 if (!window.BarChartConfig) {
@@ -254,9 +254,9 @@ class PulseApplication {
                 
                 let barChartData;
                 
-                // Check if there's existing custom data from BarDataEditor in preservedData
+                // Check if there's existing custom data from data editor in preservedData
                 if (preservedData && preservedData.metadata && preservedData.metadata.source === 'data-editor') {
-                    console.log('📊 Found existing custom data from BarDataEditor, preserving it');
+                    console.log('📊 Found existing custom data from data editor, preserving it');
                     barChartData = preservedData;
                     this.currentData = barChartData;
                     this.chart.render(barChartData);
@@ -268,15 +268,15 @@ class PulseApplication {
                     this.chart.render(barChartData);
                     this.notifyDataBridgeUpdate('bar-chart-data-preserved');
                 } else {
-                    console.log('📊 No existing data found - BarDataEditor will provide initial data');
-                    // Start with default data temporarily, BarDataEditor will take over
+                    console.log('📊 No existing data found - UnifiedSpreadsheetEditor will provide initial data');
+                    // Start with default data temporarily, UnifiedSpreadsheetEditor will take over
                     barChartData = window.BarChartConfig.getDefaultData();
                     this.currentData = barChartData;
                     this.chart.render(barChartData);
                     this.notifyDataBridgeUpdate('bar-chart-temporary-init');
                 }
                 
-                console.log('✅ Bar chart initialized, BarDataEditor will sync data');
+                console.log('✅ Bar chart initialized, UnifiedSpreadsheetEditor will sync data');
             } else {
                 // For other chart types (like sankey), use existing logic
                 if (preservedData) {

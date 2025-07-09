@@ -628,6 +628,13 @@ class UnifiedSpreadsheetEditor {
         });
     }
 
+    formatCellValue(value, type) {
+        if (type === 'number') {
+            return typeof value === 'number' ? value.toLocaleString() : (value || '0');
+        }
+        return this.escapeHtml(value || '');
+    }
+
     formatCellValueSafe(value, type) {
         if (type === 'number') {
             return typeof value === 'number' ? value.toLocaleString() : (value || '0');
@@ -1601,6 +1608,12 @@ Marketing	Customer Acquisition	150000	120000	New customer acquisition`;
         return this.data.filter(row => {
             return this.columns.some(col => row[col.id] && row[col.id] !== '');
         });
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     destroy() {

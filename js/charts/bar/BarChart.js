@@ -130,9 +130,9 @@ class PulseBarChart {
             
             // If no fresh data found, trigger data refresh
             if (!freshDataFound) {
-                console.log('🔄 No data source found, triggering BarDataEditor refresh...');
+                console.log('🔄 No data source found, triggering data editor refresh...');
                 
-                // Always trigger the event - BarDataEditor will handle it if present
+                // Always trigger the event - UnifiedSpreadsheetEditor will handle it if present
                 window.dispatchEvent(new CustomEvent('chartTypeChanged', { 
                     detail: { newType: newConfig.barChartType, oldType: oldChartType } 
                 }));
