@@ -49,88 +49,37 @@
     }
 
     /**
-     * Detect the revenue hub node - the main revenue aggregation point
-     * @param {Array} nodes - Array of chart nodes
+     * REMOVED: Revenue hub detection - replaced with user-controlled category system
+     * Legacy function maintained for backwards compatibility
+     * @param {Array} nodes - Array of chart nodes  
      * @param {Array} links - Array of chart links
-     * @returns {Object} - {node: revenueHubNode, layer: revenueHubLayer}
+     * @returns {Object} - {node: null, layer: 1} - Always returns null for hub
      */
     function detectRevenueHub(nodes, links) {
-        if (!nodes || !Array.isArray(nodes)) {
-            console.warn('⚠️ No nodes provided for revenue hub detection');
-            return { node: null, layer: 1 };
-        }
-
-        // Strategy 1: Look for nodes with "total revenue" or similar
-        let revenueHub = nodes.find(node => {
-            const idLower = node.id.toLowerCase();
-            return idLower.includes('total revenue') || 
-                   idLower.includes('revenue hub') ||
-                   idLower.includes('net revenue') ||
-                   (idLower === 'revenue' && node.targetLinks && node.targetLinks.length > 3);
-        });
-
-        // Strategy 2: Find revenue category node with multiple inflows
-        if (!revenueHub) {
-            const revenueNodes = nodes.filter(node => 
-                node.category === 'revenue' && node.targetLinks && node.targetLinks.length > 1
-            );
-            
-            if (revenueNodes.length > 0) {
-                // Choose the one with most inflows or highest value
-                revenueHub = revenueNodes.reduce((max, node) => 
-                    (node.targetLinks.length > max.targetLinks.length || 
-                     (node.targetLinks.length === max.targetLinks.length && node.value > max.value)) ? node : max
-                );
-            }
-        }
-
-        // Strategy 3: Find middle-layer revenue node
-        if (!revenueHub) {
-            const depths = [...new Set(nodes.map(n => n.depth))];
-            const middleDepth = depths[Math.floor(depths.length / 2)];
-            
-            revenueHub = nodes.find(node => 
-                node.depth === middleDepth && 
-                node.category === 'revenue'
-            );
-        }
-
-        if (revenueHub) {
-            console.log(`💰 Revenue hub detected: ${revenueHub.id} at layer ${revenueHub.depth}`);
-            return { node: revenueHub, layer: revenueHub.depth };
-        } else {
-            // Fallback: assume layer 1 is revenue hub layer
-            console.log(`💰 Revenue hub layer defaulted to: 1`);
-            return { node: null, layer: 1 };
-        }
+        console.log('⚠️ Revenue hub detection disabled - using category-based system');
+        return { node: null, layer: 1 };
     }
 
     /**
-     * Check if a node is in the pre-revenue segment
+     * REMOVED: Pre-revenue node detection - replaced with category-based system
+     * Legacy function maintained for backwards compatibility
      * @param {Object} node - Chart node
      * @param {number} revenueHubLayer - The layer where revenue hub is located
-     * @returns {boolean}
+     * @returns {boolean} - Always returns false
      */
     function isPreRevenueNode(node, revenueHubLayer) {
-        if (!node || revenueHubLayer === null || revenueHubLayer === undefined) return false;
-        
-        // Nodes to the left of or in layers before the revenue hub
-        return node.depth < revenueHubLayer;
+        return false; // No longer using revenue hub concept
     }
 
     /**
-     * Check if a link is in the pre-revenue segment
+     * REMOVED: Pre-revenue link detection - replaced with category-based system
+     * Legacy function maintained for backwards compatibility
      * @param {Object} link - Chart link
      * @param {number} revenueHubLayer - The layer where revenue hub is located
-     * @returns {boolean}
+     * @returns {boolean} - Always returns false
      */
     function isPreRevenueLink(link, revenueHubLayer) {
-        if (!link || revenueHubLayer === null || revenueHubLayer === undefined) return false;
-        
-        // Links where both source and target are before revenue hub
-        // OR links flowing INTO the revenue hub from pre-revenue segments
-        return (link.source.depth < revenueHubLayer) ||
-               (link.source.depth < revenueHubLayer && link.target.depth <= revenueHubLayer);
+        return false; // No longer using revenue hub concept
     }
 
     /**

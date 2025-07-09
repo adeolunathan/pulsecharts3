@@ -31,6 +31,19 @@ class PulseSankeyChart {
         // Title rendering optimization flag
         this.brandingNeedsUpdate = true;
         
+        // Enhanced Category Management System
+        this.categoryManager = {
+            userCategories: new Map(),     // Custom user-defined categories
+            nodeCategories: new Map(),     // Node ID -> category assignments
+            defaultCategories: {           // Built-in categories with enhanced metadata
+                revenue: { color: '#1e40af', icon: '💰', description: 'Revenue and income flows' },
+                expense: { color: '#dc2626', icon: '💸', description: 'Operating expenses' },
+                profit: { color: '#059669', icon: '📈', description: 'Profit and margin nodes' },
+                asset: { color: '#7c3aed', icon: '🏦', description: 'Assets and resources' },
+                liability: { color: '#f59e0b', icon: '⚖️', description: 'Liabilities and obligations' }
+            }
+        };
+        
         this.config = SankeyChartConfig.getInitialConfig();
         this.initializeChart();
         this.initializeInteractiveMode();
@@ -1067,6 +1080,15 @@ class PulseSankeyChart {
         
         this.data = data;
         
+        // Load categories from metadata and migrate legacy categories
+        this.loadCategoriesFromMetadata();
+        this.migrateLegacyCategories();
+        
+        // PHASE 2: Migrate from revenue hub system to category-based system
+        if (!this.hasBeenMigratedFromRevenueHub()) {
+            this.migrateLegacyRevenueHubToCategories();
+        }
+        
         // Use FinancialDataProcessor for financial analysis
         if (window.FinancialDataProcessor) {
             this.statementType = FinancialDataProcessor.detectStatementType(data);
@@ -1649,7 +1671,8 @@ class PulseSankeyChart {
     }
 
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
-        const groupedNodes = this.groupNodes(nodes);
+        // PHASE 2: Use category-based positioning instead of revenue hub detection
+        const groupedNodes = this.positionNodesByCategory(nodes);
         const depth = nodes[0]?.depth ?? 0;
         
         const isLeftmost = depth === 0;
@@ -1837,6 +1860,534 @@ class PulseSankeyChart {
             name: `Individual: ${node.id}`,
             nodes: [node]
         }));
+    }
+
+    /**
+     * PHASE 2: Position nodes based on category assignments instead of revenue hub detection
+     * Groups nodes by their assigned categories and positions them accordingly
+     */
+    positionNodesByCategory(nodes) {
+        const categoryGroups = this.groupNodesByCategory(nodes);
+        const userDefinedHubs = this.getUserDefinedHubs();
+        
+        // Convert category groups to format expected by existing positioning logic
+        const groupedNodes = [];
+        
+        // Define category priority order (hub categories first, then others)
+        const categoryPriority = ['revenue', 'asset', 'liability', 'expense', 'profit'];
+        
+        // Process hub categories first
+        userDefinedHubs.forEach(hubCategory => {
+            if (categoryGroups.has(hubCategory)) {
+                const categoryNodes = categoryGroups.get(hubCategory);
+                groupedNodes.push({
+                    name: `Category: ${hubCategory}`,
+                    nodes: categoryNodes,
+                    isHubCategory: true,
+                    categoryName: hubCategory
+                });
+            }
+        });
+        
+        // Process remaining categories in priority order
+        categoryPriority.forEach(category => {
+            if (categoryGroups.has(category) && !userDefinedHubs.includes(category)) {
+                const categoryNodes = categoryGroups.get(category);
+                groupedNodes.push({
+                    name: `Category: ${category}`,
+                    nodes: categoryNodes,
+                    isHubCategory: false,
+                    categoryName: category
+                });
+            }
+        });
+        
+        // Process uncategorized nodes last
+        if (categoryGroups.has('uncategorized')) {
+            const uncategorizedNodes = categoryGroups.get('uncategorized');
+            groupedNodes.push({
+                name: 'Uncategorized',
+                nodes: uncategorizedNodes,
+                isHubCategory: false,
+                categoryName: 'uncategorized'
+            });
+        }
+        
+        console.log(`📊 Category-based positioning: ${groupedNodes.length} category groups found`);
+        return groupedNodes;
+    }
+
+    /**
+     * Group nodes by their assigned categories
+     * @param {Array} nodes - Array of nodes to group
+     * @returns {Map} - Map of category name to array of nodes
+     */
+    groupNodesByCategory(nodes) {
+        const categoryGroups = new Map();
+        
+        nodes.forEach(node => {
+            const category = this.getCategoryForNode(node.id) || 'uncategorized';
+            
+            if (!categoryGroups.has(category)) {
+                categoryGroups.set(category, []);
+            }
+            categoryGroups.get(category).push(node);
+        });
+        
+        return categoryGroups;
+    }
+
+    /**
+     * Get user-defined hub categories - categories that should act as "hubs" in positioning
+     * These categories will be positioned prominently in the flow
+     * @returns {Array} - Array of category names that act as hubs
+     */
+    getUserDefinedHubs() {
+        // Users can define which categories act as hubs through metadata
+        if (this.data?.metadata?.hubCategories) {
+            return this.data.metadata.hubCategories;
+        }
+        
+        // Default hub categories (revenue is typically a hub in financial flows)
+        return ['revenue'];
+    }
+
+    /**
+     * PHASE 2: Enhanced category logic and positioning preferences
+     * Allow users to set positioning preferences for categories
+     */
+    setCategoryPositioningPreference(categoryName, preference) {
+        if (!this.data.metadata) {
+            this.data.metadata = {};
+        }
+        if (!this.data.metadata.categoryPositioning) {
+            this.data.metadata.categoryPositioning = {};
+        }
+        
+        // Validate preference
+        const validPreferences = ['hub', 'top', 'center', 'bottom', 'auto'];
+        if (!validPreferences.includes(preference)) {
+            console.warn(`⚠️ Invalid positioning preference: ${preference}. Valid options: ${validPreferences.join(', ')}`);
+            return false;
+        }
+        
+        this.data.metadata.categoryPositioning[categoryName] = preference;
+        console.log(`✅ Set positioning preference for ${categoryName}: ${preference}`);
+        return true;
+    }
+
+    /**
+     * Get positioning preference for a category
+     * @param {string} categoryName - Name of the category
+     * @returns {string} - Positioning preference ('hub', 'top', 'center', 'bottom', 'auto')
+     */
+    getCategoryPositioningPreference(categoryName) {
+        if (this.data?.metadata?.categoryPositioning) {
+            return this.data.metadata.categoryPositioning[categoryName] || 'auto';
+        }
+        return 'auto';
+    }
+
+    /**
+     * Enhanced category-based positioning with user preferences
+     * @param {Array} nodes - Array of nodes to position
+     * @returns {Array} - Array of positioned node groups
+     */
+    positionNodesByCategory(nodes) {
+        const categoryGroups = this.groupNodesByCategory(nodes);
+        const userDefinedHubs = this.getUserDefinedHubs();
+        
+        // Convert category groups to format expected by existing positioning logic
+        const groupedNodes = [];
+        
+        // Separate categories by positioning preference
+        const hubCategories = [];
+        const topCategories = [];
+        const centerCategories = [];
+        const bottomCategories = [];
+        const autoCategories = [];
+        
+        // Process all categories and sort by positioning preference
+        for (const [categoryName, categoryNodes] of categoryGroups) {
+            const preference = this.getCategoryPositioningPreference(categoryName);
+            const categoryGroup = {
+                name: `Category: ${categoryName}`,
+                nodes: categoryNodes,
+                isHubCategory: userDefinedHubs.includes(categoryName),
+                categoryName: categoryName,
+                positioningPreference: preference
+            };
+            
+            switch (preference) {
+                case 'hub':
+                    hubCategories.push(categoryGroup);
+                    break;
+                case 'top':
+                    topCategories.push(categoryGroup);
+                    break;
+                case 'center':
+                    centerCategories.push(categoryGroup);
+                    break;
+                case 'bottom':
+                    bottomCategories.push(categoryGroup);
+                    break;
+                default:
+                    autoCategories.push(categoryGroup);
+            }
+        }
+        
+        // Combine in preferred order: hub -> top -> center -> auto -> bottom
+        const orderedCategories = [
+            ...hubCategories,
+            ...topCategories,
+            ...centerCategories,
+            ...autoCategories,
+            ...bottomCategories
+        ];
+        
+        // Apply enhanced positioning logic
+        orderedCategories.forEach((group, index) => {
+            group.positioningOrder = index;
+            group.totalGroups = orderedCategories.length;
+        });
+        
+        console.log(`📊 Enhanced category positioning: ${orderedCategories.length} category groups with preferences`);
+        return orderedCategories;
+    }
+
+    /**
+     * Add category management controls to the control panel
+     * @param {HTMLElement} container - Container for controls
+     */
+    addCategoryManagementControls(container) {
+        const categorySection = document.createElement('div');
+        categorySection.className = 'category-management-section';
+        categorySection.innerHTML = `
+            <h4>Category Management</h4>
+            <div class="category-positioning-controls">
+                <label>Hub Categories:</label>
+                <div class="hub-categories-list" id="hubCategoriesList"></div>
+                <button id="addHubCategoryBtn">Add Hub Category</button>
+            </div>
+            <div class="category-positioning-prefs">
+                <label>Positioning Preferences:</label>
+                <div class="positioning-prefs-list" id="positioningPrefsList"></div>
+            </div>
+        `;
+        
+        container.appendChild(categorySection);
+        
+        // Initialize controls
+        this.initializeCategoryManagementControls();
+    }
+
+    /**
+     * Initialize category management controls
+     */
+    initializeCategoryManagementControls() {
+        const hubCategoriesList = document.getElementById('hubCategoriesList');
+        const addHubCategoryBtn = document.getElementById('addHubCategoryBtn');
+        const positioningPrefsList = document.getElementById('positioningPrefsList');
+        
+        if (!hubCategoriesList || !addHubCategoryBtn || !positioningPrefsList) {
+            console.warn('⚠️ Category management controls not found');
+            return;
+        }
+        
+        // Update hub categories list
+        const updateHubCategoriesList = () => {
+            const hubCategories = this.getUserDefinedHubs();
+            hubCategoriesList.innerHTML = hubCategories.map(cat => `
+                <div class="hub-category-item">
+                    <span>${cat}</span>
+                    <button onclick="this.removeHubCategory('${cat}')" class="remove-btn">×</button>
+                </div>
+            `).join('');
+        };
+        
+        // Update positioning preferences list
+        const updatePositioningPrefsList = () => {
+            const allCategories = this.getAllCategories();
+            positioningPrefsList.innerHTML = Object.keys(allCategories).map(categoryName => `
+                <div class="positioning-pref-item">
+                    <span>${categoryName}:</span>
+                    <select onchange="this.setCategoryPositioningPreference('${categoryName}', this.value)">
+                        <option value="auto" ${this.getCategoryPositioningPreference(categoryName) === 'auto' ? 'selected' : ''}>Auto</option>
+                        <option value="hub" ${this.getCategoryPositioningPreference(categoryName) === 'hub' ? 'selected' : ''}>Hub</option>
+                        <option value="top" ${this.getCategoryPositioningPreference(categoryName) === 'top' ? 'selected' : ''}>Top</option>
+                        <option value="center" ${this.getCategoryPositioningPreference(categoryName) === 'center' ? 'selected' : ''}>Center</option>
+                        <option value="bottom" ${this.getCategoryPositioningPreference(categoryName) === 'bottom' ? 'selected' : ''}>Bottom</option>
+                    </select>
+                </div>
+            `).join('');
+        };
+        
+        // Initialize lists
+        updateHubCategoriesList();
+        updatePositioningPrefsList();
+        
+        // Add event listeners
+        addHubCategoryBtn.addEventListener('click', () => {
+            const category = prompt('Enter category name to add as hub:');
+            if (category && this.getAllCategories()[category]) {
+                this.addHubCategory(category);
+                updateHubCategoriesList();
+                this.render(this.data); // Re-render with new hub
+            }
+        });
+    }
+
+    /**
+     * Add a category as a hub
+     * @param {string} categoryName - Name of the category
+     */
+    addHubCategory(categoryName) {
+        if (!this.data.metadata) {
+            this.data.metadata = {};
+        }
+        if (!this.data.metadata.hubCategories) {
+            this.data.metadata.hubCategories = ['revenue'];
+        }
+        
+        if (!this.data.metadata.hubCategories.includes(categoryName)) {
+            this.data.metadata.hubCategories.push(categoryName);
+            console.log(`✅ Added ${categoryName} as hub category`);
+        }
+    }
+
+    /**
+     * Remove a category from hubs
+     * @param {string} categoryName - Name of the category
+     */
+    removeHubCategory(categoryName) {
+        if (this.data?.metadata?.hubCategories) {
+            const index = this.data.metadata.hubCategories.indexOf(categoryName);
+            if (index > -1) {
+                this.data.metadata.hubCategories.splice(index, 1);
+                console.log(`✅ Removed ${categoryName} from hub categories`);
+            }
+        }
+    }
+
+    /**
+     * PHASE 2: Migration from revenue hub system to category-based system
+     * Detect nodes that were positioned based on revenue hub logic and migrate them to categories
+     */
+    migrateLegacyRevenueHubToCategories() {
+        if (!this.data || !this.data.nodes) return;
+
+        console.log('🔄 Starting migration from revenue hub system to category-based system...');
+        
+        // Check if we have legacy revenue hub data
+        const hasLegacyRevenueHub = this.data.metadata?.legacyRevenueHub || 
+                                    this.data.metadata?.revenueHubNode ||
+                                    this.detectLegacyRevenueHubPatterns();
+        
+        if (!hasLegacyRevenueHub) {
+            console.log('✅ No legacy revenue hub data detected, skipping migration');
+            return;
+        }
+
+        // Migrate nodes based on their positioning and connection patterns
+        this.migrateNodesBasedOnRevenueHubPosition();
+        
+        // Migrate links based on their relationship to revenue hubs
+        this.migrateLinksBasedOnRevenueHubRelationships();
+        
+        // Clean up legacy metadata
+        this.cleanupLegacyRevenueHubMetadata();
+        
+        console.log('✅ Migration from revenue hub system completed');
+    }
+
+    /**
+     * Detect legacy revenue hub patterns in the data
+     * @returns {boolean} - True if legacy patterns are detected
+     */
+    detectLegacyRevenueHubPatterns() {
+        if (!this.data || !this.data.nodes || !this.data.links) return false;
+
+        // Look for nodes that might have been positioned as revenue hubs
+        const potentialRevenueHubs = this.data.nodes.filter(node => {
+            const nodeId = node.id.toLowerCase();
+            return nodeId.includes('revenue') || 
+                   nodeId.includes('income') || 
+                   nodeId.includes('sales') ||
+                   (node.depth === 1 && node.sourceLinks && node.sourceLinks.length > 2);
+        });
+
+        // Look for pre-revenue node patterns
+        const preRevenuePatterns = this.data.nodes.filter(node => {
+            const nodeId = node.id.toLowerCase();
+            return nodeId.includes('segment') || 
+                   nodeId.includes('product') || 
+                   nodeId.includes('service') ||
+                   (node.depth === 0 && node.targetLinks && node.targetLinks.length === 1);
+        });
+
+        const hasLegacyPatterns = potentialRevenueHubs.length > 0 || preRevenuePatterns.length > 0;
+        
+        if (hasLegacyPatterns) {
+            console.log(`🔍 Legacy revenue hub patterns detected: ${potentialRevenueHubs.length} potential hubs, ${preRevenuePatterns.length} pre-revenue nodes`);
+        }
+        
+        return hasLegacyPatterns;
+    }
+
+    /**
+     * Migrate nodes based on their positioning relative to revenue hubs
+     */
+    migrateNodesBasedOnRevenueHubPosition() {
+        if (!this.data || !this.data.nodes) return;
+
+        this.data.nodes.forEach(node => {
+            // Skip if already categorized
+            if (this.getCategoryForNode(node.id)) {
+                return;
+            }
+
+            // Determine category based on node characteristics
+            const category = this.determineCategoryFromLegacyPosition(node);
+            
+            if (category) {
+                this.assignNodeToCategory(node.id, category);
+                console.log(`🔄 Migrated node "${node.id}" to category "${category}"`);
+            }
+        });
+    }
+
+    /**
+     * Determine category based on legacy positioning and node characteristics
+     * @param {Object} node - The node to categorize
+     * @returns {string|null} - The determined category or null
+     */
+    determineCategoryFromLegacyPosition(node) {
+        const nodeId = node.id.toLowerCase();
+        
+        // Revenue nodes
+        if (nodeId.includes('revenue') || nodeId.includes('income') || nodeId.includes('sales')) {
+            return 'revenue';
+        }
+        
+        // Expense nodes
+        if (nodeId.includes('expense') || nodeId.includes('cost') || nodeId.includes('operating')) {
+            return 'expense';
+        }
+        
+        // Profit nodes
+        if (nodeId.includes('profit') || nodeId.includes('margin') || nodeId.includes('net')) {
+            return 'profit';
+        }
+        
+        // Asset nodes
+        if (nodeId.includes('asset') || nodeId.includes('cash') || nodeId.includes('inventory')) {
+            return 'asset';
+        }
+        
+        // Liability nodes
+        if (nodeId.includes('liability') || nodeId.includes('debt') || nodeId.includes('payable')) {
+            return 'liability';
+        }
+        
+        // Based on depth and connections
+        if (node.depth === 0 && node.sourceLinks && node.sourceLinks.length > 0) {
+            // Left-most nodes that flow into revenue are likely revenue segments
+            const flowsToRevenue = node.sourceLinks.some(link => {
+                const targetId = link.target.id.toLowerCase();
+                return targetId.includes('revenue') || targetId.includes('income');
+            });
+            
+            if (flowsToRevenue) {
+                return 'revenue';
+            }
+        }
+        
+        // Based on flow patterns
+        if (node.targetLinks && node.targetLinks.length > 0) {
+            const comesFromRevenue = node.targetLinks.some(link => {
+                const sourceId = link.source.id.toLowerCase();
+                return sourceId.includes('revenue') || sourceId.includes('income');
+            });
+            
+            if (comesFromRevenue) {
+                return 'expense';
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Migrate links based on their relationship to revenue hubs
+     */
+    migrateLinksBasedOnRevenueHubRelationships() {
+        if (!this.data || !this.data.links) return;
+
+        this.data.links.forEach(link => {
+            // Update link metadata to reflect new category-based system
+            const sourceCategory = this.getCategoryForNode(link.source.id);
+            const targetCategory = this.getCategoryForNode(link.target.id);
+            
+            if (sourceCategory) {
+                link.sourceCategory = sourceCategory;
+            }
+            
+            if (targetCategory) {
+                link.targetCategory = targetCategory;
+                link.colorCategory = targetCategory; // Update color assignment
+            }
+        });
+        
+        console.log('🔄 Updated link categories based on migrated node categories');
+    }
+
+    /**
+     * Clean up legacy revenue hub metadata
+     */
+    cleanupLegacyRevenueHubMetadata() {
+        if (!this.data || !this.data.metadata) return;
+
+        // Remove legacy revenue hub properties
+        const legacyProperties = [
+            'legacyRevenueHub',
+            'revenueHubNode',
+            'revenueHubLayer',
+            'preRevenueNodes',
+            'revenueSegments'
+        ];
+        
+        legacyProperties.forEach(prop => {
+            if (this.data.metadata[prop]) {
+                delete this.data.metadata[prop];
+                console.log(`🧹 Removed legacy property: ${prop}`);
+            }
+        });
+        
+        // Mark as migrated
+        this.data.metadata.migratedFromRevenueHub = true;
+        this.data.metadata.migrationDate = new Date().toISOString();
+        
+        console.log('🧹 Legacy revenue hub metadata cleaned up');
+    }
+
+    /**
+     * Check if data has already been migrated from revenue hub system
+     * @returns {boolean} - True if already migrated
+     */
+    hasBeenMigratedFromRevenueHub() {
+        return this.data?.metadata?.migratedFromRevenueHub === true;
+    }
+
+    /**
+     * Force re-migration (useful for testing or fixing migration issues)
+     */
+    forceMigrationFromRevenueHub() {
+        if (this.data?.metadata) {
+            delete this.data.metadata.migratedFromRevenueHub;
+            delete this.data.metadata.migrationDate;
+        }
+        
+        this.migrateLegacyRevenueHubToCategories();
     }
 
     // sortNodesInGroup function removed - maintaining original data order
@@ -2980,18 +3531,29 @@ class PulseSankeyChart {
      * ENHANCED: Get node color with revenue segment support
      */
     getNodeColor(node) {
-        // Check for node-specific custom color first
+        // PHASE 2: Enhanced color assignment with category-first logic
+        
+        // 1. Check for node-specific custom color first (highest priority)
         if (node.customColor) {
             return node.customColor;
         }
         
-        // Check for individual revenue segment color first
+        // 2. CATEGORY-FIRST LOGIC: Check for category assignment from new category system
+        const assignedCategory = this.getCategoryForNode(node.id);
+        if (assignedCategory) {
+            const categories = this.getAllCategories();
+            if (categories[assignedCategory]) {
+                // Apply category-specific color enhancements
+                return this.enhanceColorForCategory(categories[assignedCategory].color, assignedCategory, node);
+            }
+        }
+        
+        // 3. Legacy revenue segment color system (for backwards compatibility)
         if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && this.revenueSegmentColors.has(node.id)) {
             return this.revenueSegmentColors.get(node.id);
         }
         
-        // FIXED: Revenue segments should use their own default colors, not category colors
-        // This prevents "Total Revenue" color changes from affecting revenue segments
+        // 4. Legacy revenue segment default colors
         if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && node.category === 'revenue') {
             // Enhanced vibrant revenue segment color palette
             const defaultSegmentColors = [
@@ -3005,6 +3567,7 @@ class PulseSankeyChart {
             return defaultSegmentColors[segmentIndex % defaultSegmentColors.length];
         }
         
+        // 5. Legacy category system fallback
         let effectiveCategory = node.category;
         if (node.category === 'tax') {
             effectiveCategory = 'expense';
@@ -3014,13 +3577,147 @@ class PulseSankeyChart {
             return this.customColors[effectiveCategory];
         }
         
-        // Enhanced vibrant default colors
+        // 6. Enhanced vibrant default colors
         const defaultColors = {
             revenue: '#1e40af',    // Deep vibrant blue
             profit: '#059669',     // Vibrant emerald green
             expense: '#dc2626'     // Sharp red
         };
         return defaultColors[node.category] || '#6b7280';
+    }
+
+    /**
+     * PHASE 2: Enhance color based on category and node characteristics
+     * @param {string} baseColor - Base color from category
+     * @param {string} categoryName - Name of the category
+     * @param {Object} node - Node object
+     * @returns {string} - Enhanced color
+     */
+    enhanceColorForCategory(baseColor, categoryName, node) {
+        // Check if this category has positioning preference that affects color
+        const positioningPreference = this.getCategoryPositioningPreference(categoryName);
+        
+        // Hub categories get enhanced saturation
+        const isHubCategory = this.getUserDefinedHubs().includes(categoryName);
+        if (isHubCategory || positioningPreference === 'hub') {
+            return this.enhanceColorSaturation(baseColor, 15);
+        }
+        
+        // Top positioned categories get slightly lighter colors
+        if (positioningPreference === 'top') {
+            return this.lightenColor(baseColor, 10);
+        }
+        
+        // Bottom positioned categories get slightly darker colors
+        if (positioningPreference === 'bottom') {
+            return this.darkenColor(baseColor, 10);
+        }
+        
+        // Return base color for other categories
+        return baseColor;
+    }
+
+    /**
+     * Enhance color saturation
+     * @param {string} color - Base color
+     * @param {number} amount - Amount to enhance (0-100)
+     * @returns {string} - Enhanced color
+     */
+    enhanceColorSaturation(color, amount) {
+        // Convert hex to HSL, increase saturation, convert back
+        const hsl = this.hexToHsl(color);
+        hsl.s = Math.min(1, hsl.s + amount / 100);
+        return this.hslToHex(hsl);
+    }
+
+    /**
+     * Lighten color
+     * @param {string} color - Base color
+     * @param {number} amount - Amount to lighten (0-100)
+     * @returns {string} - Lightened color
+     */
+    lightenColor(color, amount) {
+        const hsl = this.hexToHsl(color);
+        hsl.l = Math.min(1, hsl.l + amount / 100);
+        return this.hslToHex(hsl);
+    }
+
+    /**
+     * Darken color
+     * @param {string} color - Base color
+     * @param {number} amount - Amount to darken (0-100)
+     * @returns {string} - Darkened color
+     */
+    darkenColor(color, amount) {
+        const hsl = this.hexToHsl(color);
+        hsl.l = Math.max(0, hsl.l - amount / 100);
+        return this.hslToHex(hsl);
+    }
+
+    /**
+     * Convert hex color to HSL
+     * @param {string} hex - Hex color
+     * @returns {Object} - HSL object {h, s, l}
+     */
+    hexToHsl(hex) {
+        const r = parseInt(hex.substr(1, 2), 16) / 255;
+        const g = parseInt(hex.substr(3, 2), 16) / 255;
+        const b = parseInt(hex.substr(5, 2), 16) / 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        
+        return {h, s, l};
+    }
+
+    /**
+     * Convert HSL to hex color
+     * @param {Object} hsl - HSL object {h, s, l}
+     * @returns {string} - Hex color
+     */
+    hslToHex(hsl) {
+        const {h, s, l} = hsl;
+        
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        
+        let r, g, b;
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        
+        const toHex = (c) => {
+            const hex = Math.round(c * 255).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 
     /**
@@ -4742,6 +5439,9 @@ class PulseSankeyChart {
                 this.container.select('.enhanced-color-picker').remove();
             });
         
+        // Add category assignment section
+        this.addCategoryAssignmentSection(container, nodeData);
+        
         // Add cycling toggle for target category
         this.addCyclingToggle(container, nodeData);
         
@@ -4953,6 +5653,235 @@ class PulseSankeyChart {
             const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
             cell.textContent = categoryName;
         }
+    }
+
+    /**
+     * Add category assignment section to the existing modal
+     */
+    addCategoryAssignmentSection(container, nodeData) {
+        const currentCategory = this.getCategoryForNode(nodeData.id);
+        const allCategories = this.getAllCategories();
+        
+        // Category assignment section
+        const categorySection = container
+            .append('div')
+            .style('margin-top', '12px')
+            .style('margin-bottom', '12px')
+            .style('padding', '12px')
+            .style('background', '#f8f9fa')
+            .style('border-radius', '8px')
+            .style('border', '1px solid #e9ecef');
+        
+        // Section header
+        categorySection
+            .append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '6px')
+            .style('margin-bottom', '8px')
+            .call(header => {
+                header.append('span')
+                    .style('font-size', '11px')
+                    .style('font-weight', '600')
+                    .style('color', '#495057')
+                    .text('Category');
+                
+                header.append('span')
+                    .style('font-size', '10px')
+                    .style('color', '#6c757d')
+                    .text('(assign to enable styling)');
+            });
+        
+        // Current category display
+        const currentCategoryDiv = categorySection
+            .append('div')
+            .style('margin-bottom', '8px');
+        
+        if (currentCategory) {
+            const categoryInfo = allCategories[currentCategory];
+            currentCategoryDiv
+                .append('div')
+                .style('display', 'inline-flex')
+                .style('align-items', 'center')
+                .style('gap', '4px')
+                .style('padding', '4px 8px')
+                .style('background', categoryInfo.color)
+                .style('color', 'white')
+                .style('border-radius', '12px')
+                .style('font-size', '10px')
+                .style('font-weight', '500')
+                .call(pill => {
+                    pill.append('span').text(categoryInfo.icon);
+                    pill.append('span').text(currentCategory);
+                });
+        } else {
+            currentCategoryDiv
+                .append('div')
+                .style('font-size', '10px')
+                .style('color', '#6c757d')
+                .style('font-style', 'italic')
+                .text('No category assigned');
+        }
+        
+        // Category selection pills
+        const categoryPills = categorySection
+            .append('div')
+            .style('display', 'flex')
+            .style('gap', '4px')
+            .style('flex-wrap', 'wrap')
+            .style('margin-bottom', '8px');
+        
+        // Add "Remove Category" pill
+        categoryPills
+            .append('button')
+            .style('padding', '4px 8px')
+            .style('border', '1px solid #dc3545')
+            .style('background', currentCategory ? '#dc3545' : 'white')
+            .style('color', currentCategory ? 'white' : '#dc3545')
+            .style('border-radius', '12px')
+            .style('font-size', '10px')
+            .style('cursor', 'pointer')
+            .style('font-weight', '500')
+            .text('🚫 Remove')
+            .on('click', () => {
+                this.categoryManager.nodeCategories.delete(nodeData.id);
+                this.saveCategoriesToMetadata();
+                this.container.select('.enhanced-color-picker').remove();
+                if (this.render && this.data) {
+                    this.render(this.data);
+                }
+            });
+        
+        // Add category pills for each available category
+        for (const [name, categoryInfo] of Object.entries(allCategories)) {
+            const isSelected = currentCategory === name;
+            
+            categoryPills
+                .append('button')
+                .style('padding', '4px 8px')
+                .style('border', isSelected ? '2px solid #007bff' : '1px solid #dee2e6')
+                .style('background', isSelected ? categoryInfo.color : 'white')
+                .style('color', isSelected ? 'white' : '#495057')
+                .style('border-radius', '12px')
+                .style('font-size', '10px')
+                .style('cursor', 'pointer')
+                .style('font-weight', '500')
+                .style('display', 'inline-flex')
+                .style('align-items', 'center')
+                .style('gap', '3px')
+                .style('transition', 'all 0.2s ease')
+                .call(pill => {
+                    pill.append('span').text(categoryInfo.icon);
+                    pill.append('span').text(name);
+                })
+                .on('mouseover', function() {
+                    if (!isSelected) {
+                        d3.select(this)
+                            .style('border-color', categoryInfo.color)
+                            .style('background', categoryInfo.color + '20');
+                    }
+                })
+                .on('mouseout', function() {
+                    if (!isSelected) {
+                        d3.select(this)
+                            .style('border-color', '#dee2e6')
+                            .style('background', 'white');
+                    }
+                })
+                .on('click', () => {
+                    this.assignNodeToCategory(nodeData.id, name);
+                    this.container.select('.enhanced-color-picker').remove();
+                    if (this.render && this.data) {
+                        this.render(this.data);
+                    }
+                });
+        }
+        
+        // Custom category creation
+        const customCategoryDiv = categorySection
+            .append('div')
+            .style('margin-top', '8px')
+            .style('padding-top', '8px')
+            .style('border-top', '1px solid #dee2e6');
+        
+        const customForm = customCategoryDiv
+            .append('div')
+            .style('display', 'flex')
+            .style('gap', '4px')
+            .style('align-items', 'center');
+        
+        const nameInput = customForm
+            .append('input')
+            .attr('type', 'text')
+            .attr('placeholder', 'New category')
+            .style('flex', '1')
+            .style('padding', '4px 6px')
+            .style('border', '1px solid #ced4da')
+            .style('border-radius', '4px')
+            .style('font-size', '10px')
+            .style('outline', 'none')
+            .style('max-width', '80px');
+        
+        const colorInput = customForm
+            .append('input')
+            .attr('type', 'color')
+            .attr('value', '#3b82f6')
+            .style('width', '20px')
+            .style('height', '20px')
+            .style('border', 'none')
+            .style('border-radius', '3px')
+            .style('cursor', 'pointer');
+        
+        const iconInput = customForm
+            .append('input')
+            .attr('type', 'text')
+            .attr('placeholder', '📊')
+            .attr('maxlength', '2')
+            .style('width', '24px')
+            .style('padding', '4px 2px')
+            .style('border', '1px solid #ced4da')
+            .style('border-radius', '4px')
+            .style('font-size', '10px')
+            .style('text-align', 'center')
+            .style('outline', 'none');
+        
+        const createButton = customForm
+            .append('button')
+            .style('padding', '4px 8px')
+            .style('background', '#28a745')
+            .style('color', 'white')
+            .style('border', 'none')
+            .style('border-radius', '4px')
+            .style('font-size', '10px')
+            .style('cursor', 'pointer')
+            .style('font-weight', '500')
+            .text('Create')
+            .on('click', () => {
+                const name = nameInput.node().value.trim();
+                const color = colorInput.node().value;
+                const icon = iconInput.node().value.trim() || '📊';
+                
+                if (name && this.createCustomCategory(name, color, icon)) {
+                    this.assignNodeToCategory(nodeData.id, name);
+                    this.container.select('.enhanced-color-picker').remove();
+                    if (this.render && this.data) {
+                        this.render(this.data);
+                    }
+                }
+            });
+        
+        // Enter key support for inputs
+        nameInput.on('keypress', (event) => {
+            if (event.key === 'Enter') {
+                createButton.node().click();
+            }
+        });
+        
+        iconInput.on('keypress', (event) => {
+            if (event.key === 'Enter') {
+                createButton.node().click();
+            }
+        });
     }
     
     addCreateStep1Section(container, nodeData) {
@@ -6024,6 +6953,228 @@ class PulseSankeyChart {
                 return nodeIds.has(nodeId) ? 1 : 0.3;
             });
 
+    }
+
+    // ===== CATEGORY MANAGEMENT SYSTEM METHODS =====
+    
+    /**
+     * Get assigned category for a node
+     * @param {string} nodeId - The node ID
+     * @returns {string|null} - The category name or null if not assigned
+     */
+    getCategoryForNode(nodeId) {
+        return this.categoryManager.nodeCategories.get(nodeId) || null;
+    }
+
+    /**
+     * Assign a node to a category
+     * @param {string} nodeId - The node ID
+     * @param {string} categoryName - The category name
+     */
+    assignNodeToCategory(nodeId, categoryName) {
+        if (!nodeId || !categoryName) {
+            console.warn('⚠️ Invalid nodeId or categoryName for category assignment');
+            return;
+        }
+        
+        // Check if category exists
+        if (!this.getAllCategories().hasOwnProperty(categoryName)) {
+            console.warn(`⚠️ Category '${categoryName}' does not exist`);
+            return;
+        }
+        
+        this.categoryManager.nodeCategories.set(nodeId, categoryName);
+        this.saveCategoriesToMetadata();
+        
+        console.log(`✅ Assigned node '${nodeId}' to category '${categoryName}'`);
+    }
+
+    /**
+     * Create a new custom category
+     * @param {string} name - Category name
+     * @param {string} color - Category color
+     * @param {string} icon - Category icon
+     * @param {string} description - Category description
+     */
+    createCustomCategory(name, color, icon, description) {
+        if (!name || !color) {
+            console.warn('⚠️ Name and color are required for custom category');
+            return false;
+        }
+        
+        // Check for duplicate names
+        if (this.getAllCategories().hasOwnProperty(name)) {
+            console.warn(`⚠️ Category '${name}' already exists`);
+            return false;
+        }
+        
+        this.categoryManager.userCategories.set(name, {
+            color: color,
+            icon: icon || '📊',
+            description: description || `Custom category: ${name}`
+        });
+        
+        this.saveCategoriesToMetadata();
+        console.log(`✅ Created custom category '${name}'`);
+        return true;
+    }
+
+    /**
+     * Delete a category and reassign nodes
+     * @param {string} categoryName - The category to delete
+     * @param {string} reassignTo - Category to reassign nodes to (optional)
+     */
+    deleteCategory(categoryName) {
+        if (!categoryName) {
+            console.warn('⚠️ Category name is required for deletion');
+            return false;
+        }
+        
+        // Cannot delete default categories
+        if (this.categoryManager.defaultCategories.hasOwnProperty(categoryName)) {
+            console.warn(`⚠️ Cannot delete default category '${categoryName}'`);
+            return false;
+        }
+        
+        // Check if category exists
+        if (!this.categoryManager.userCategories.has(categoryName)) {
+            console.warn(`⚠️ Category '${categoryName}' does not exist`);
+            return false;
+        }
+        
+        // Remove category
+        this.categoryManager.userCategories.delete(categoryName);
+        
+        // Remove all node assignments to this category
+        const nodesToReassign = [];
+        for (const [nodeId, assignedCategory] of this.categoryManager.nodeCategories) {
+            if (assignedCategory === categoryName) {
+                nodesToReassign.push(nodeId);
+            }
+        }
+        
+        nodesToReassign.forEach(nodeId => {
+            this.categoryManager.nodeCategories.delete(nodeId);
+        });
+        
+        this.saveCategoriesToMetadata();
+        console.log(`✅ Deleted category '${categoryName}' and unassigned ${nodesToReassign.length} nodes`);
+        return true;
+    }
+
+    /**
+     * Get all available categories (default + custom)
+     * @returns {Object} - Object containing all categories
+     */
+    getAllCategories() {
+        const allCategories = { ...this.categoryManager.defaultCategories };
+        
+        // Add user categories
+        for (const [name, category] of this.categoryManager.userCategories) {
+            allCategories[name] = category;
+        }
+        
+        return allCategories;
+    }
+
+    /**
+     * Load categories from metadata
+     */
+    loadCategoriesFromMetadata() {
+        if (!this.data || !this.data.metadata) {
+            return;
+        }
+        
+        const metadata = this.data.metadata;
+        
+        // Load user categories
+        if (metadata.userCategories) {
+            this.categoryManager.userCategories.clear();
+            for (const [name, category] of Object.entries(metadata.userCategories)) {
+                this.categoryManager.userCategories.set(name, category);
+            }
+        }
+        
+        // Load node category assignments
+        if (metadata.nodeCategories) {
+            this.categoryManager.nodeCategories.clear();
+            for (const [nodeId, categoryName] of Object.entries(metadata.nodeCategories)) {
+                this.categoryManager.nodeCategories.set(nodeId, categoryName);
+            }
+        }
+        
+        console.log('✅ Loaded categories from metadata');
+    }
+
+    /**
+     * Save categories to metadata
+     */
+    saveCategoriesToMetadata() {
+        if (!this.data) {
+            this.data = {};
+        }
+        if (!this.data.metadata) {
+            this.data.metadata = {};
+        }
+        
+        // Save user categories
+        this.data.metadata.userCategories = {};
+        for (const [name, category] of this.categoryManager.userCategories) {
+            this.data.metadata.userCategories[name] = category;
+        }
+        
+        // Save node category assignments
+        this.data.metadata.nodeCategories = {};
+        for (const [nodeId, categoryName] of this.categoryManager.nodeCategories) {
+            this.data.metadata.nodeCategories[nodeId] = categoryName;
+        }
+        
+        console.log('✅ Saved categories to metadata');
+    }
+
+    /**
+     * Migrate legacy categories to new system
+     */
+    migrateLegacyCategories() {
+        if (!this.data || !this.data.nodes) {
+            return;
+        }
+        
+        let migrationCount = 0;
+        
+        this.data.nodes.forEach(node => {
+            if (node.category && !this.categoryManager.nodeCategories.has(node.id)) {
+                // Check if it's a valid category
+                if (this.categoryManager.defaultCategories.hasOwnProperty(node.category)) {
+                    this.categoryManager.nodeCategories.set(node.id, node.category);
+                    migrationCount++;
+                }
+            }
+        });
+        
+        if (migrationCount > 0) {
+            this.saveCategoriesToMetadata();
+            console.log(`✅ Migrated ${migrationCount} legacy category assignments`);
+        }
+    }
+
+    /**
+     * Test method to open category assignment modal for a node
+     * @param {string} nodeId - The node ID
+     */
+    testCategoryAssignment(nodeId) {
+        if (!this.data || !this.data.nodes) {
+            console.warn('⚠️ No chart data available');
+            return;
+        }
+        
+        const node = this.data.nodes.find(n => n.id === nodeId);
+        if (!node) {
+            console.warn(`⚠️ Node '${nodeId}' not found`);
+            return;
+        }
+        
+        new CategoryAssignmentModal(this, node);
     }
 }
 
