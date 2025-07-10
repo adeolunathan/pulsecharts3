@@ -16,10 +16,6 @@ class PulseSankeyChart {
         this.customColors = {};
         this.revenueSegmentColors = new Map(); // Individual colors for revenue segments
         
-        // Revenue hub detection
-        this.revenueHubNode = null;
-        this.revenueHubLayer = null;
-        
         // Color picker state
         this.isColorPickerActive = false;
         this.selectedElement = null;
@@ -41,6 +37,11 @@ class PulseSankeyChart {
                 profit: { color: '#059669', icon: '📈', description: 'Profit and margin nodes' },
                 asset: { color: '#7c3aed', icon: '🏦', description: 'Assets and resources' },
                 liability: { color: '#f59e0b', icon: '⚖️', description: 'Liabilities and obligations' }
+            },
+            positioningPreferences: {
+                hubCategories: new Set(['revenue']),    // Categories that act as hubs
+                layerPreferences: new Map(),            // Category -> preferred layer
+                groupingRules: new Map()                // Category -> grouping behavior
             }
         };
         
@@ -352,18 +353,8 @@ class PulseSankeyChart {
                 
                 let nodeToDelete = null;
                 
-                // Check if this is a revenue segment link (source flows to revenue hub)
-                const isRevenueSegmentLink = window.FinancialDataProcessor && 
-                    FinancialDataProcessor.isPreRevenueLink && 
-                    FinancialDataProcessor.isPreRevenueLink(linkData, this.revenueHubLayer);
-                
-                if (isRevenueSegmentLink) {
-                    // For revenue segments, check if source node should be deleted
-                    nodeToDelete = linkSourceId;
-                } else {
-                    // For other links, check if target node should be deleted
-                    nodeToDelete = linkTargetId;
-                }
+                // Default: delete the target node of the link
+                nodeToDelete = linkTargetId;
                 
                 // Check if the node has any remaining connections
                 const hasOtherLinks = this.data.links.some(link => {
@@ -974,41 +965,27 @@ class PulseSankeyChart {
             }
         }
         
-        // Income statement logic
-        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer)) {
-            // Individual revenue segment color
-            this.revenueSegmentColors.set(node.id, color);
-            
-            // Update metadata for revenue segments
-            if (this.data && this.data.metadata) {
-                if (!this.data.metadata.revenueSegmentColors) {
-                    this.data.metadata.revenueSegmentColors = {};
-                }
-                this.data.metadata.revenueSegmentColors[node.id] = color;
+        // Category-based color assignment
+        let effectiveCategory = node.category;
+        if (node.category === 'tax') {
+            effectiveCategory = 'expense';
+        }
+        
+        this.customColors[effectiveCategory] = color;
+        
+        // Handle tax as expense alias
+        if (effectiveCategory === 'expense') {
+            this.customColors['tax'] = color;
+        }
+        
+        // Update metadata for categories
+        if (this.data && this.data.metadata) {
+            if (!this.data.metadata.colorPalette) {
+                this.data.metadata.colorPalette = {};
             }
-        } else {
-            // Category-based color for post-revenue nodes
-            let effectiveCategory = node.category;
-            if (node.category === 'tax') {
-                effectiveCategory = 'expense';
-            }
-            
-            this.customColors[effectiveCategory] = color;
-            
-            // Handle tax as expense alias
+            this.data.metadata.colorPalette[effectiveCategory] = color;
             if (effectiveCategory === 'expense') {
-                this.customColors['tax'] = color;
-            }
-            
-            // Update metadata for categories
-            if (this.data && this.data.metadata) {
-                if (!this.data.metadata.colorPalette) {
-                    this.data.metadata.colorPalette = {};
-                }
-                this.data.metadata.colorPalette[effectiveCategory] = color;
-                if (effectiveCategory === 'expense') {
-                    this.data.metadata.colorPalette['tax'] = color;
-                }
+                this.data.metadata.colorPalette['tax'] = color;
             }
         }
         
@@ -1049,41 +1026,27 @@ class PulseSankeyChart {
             }
         }
         
-        // Income statement logic
-        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
-            // For pre-revenue links, update the source node's individual color
-            this.revenueSegmentColors.set(link.source.id, color);
-            
-            // Update metadata
-            if (this.data && this.data.metadata) {
-                if (!this.data.metadata.revenueSegmentColors) {
-                    this.data.metadata.revenueSegmentColors = {};
-                }
-                this.data.metadata.revenueSegmentColors[link.source.id] = color;
+        // Category-based link color assignment
+        let effectiveCategory = link.target.category;
+        if (link.target.category === 'tax') {
+            effectiveCategory = 'expense';
+        }
+        
+        this.customColors[effectiveCategory] = color;
+        
+        // Handle tax as expense alias
+        if (effectiveCategory === 'expense') {
+            this.customColors['tax'] = color;
+        }
+        
+        // Update metadata
+        if (this.data && this.data.metadata) {
+            if (!this.data.metadata.colorPalette) {
+                this.data.metadata.colorPalette = {};
             }
-        } else {
-            // For post-revenue links, update target category color
-            let effectiveCategory = link.target.category;
-            if (link.target.category === 'tax') {
-                effectiveCategory = 'expense';
-            }
-            
-            this.customColors[effectiveCategory] = color;
-            
-            // Handle tax as expense alias
+            this.data.metadata.colorPalette[effectiveCategory] = color;
             if (effectiveCategory === 'expense') {
-                this.customColors['tax'] = color;
-            }
-            
-            // Update metadata
-            if (this.data && this.data.metadata) {
-                if (!this.data.metadata.colorPalette) {
-                    this.data.metadata.colorPalette = {};
-                }
-                this.data.metadata.colorPalette[effectiveCategory] = color;
-                if (effectiveCategory === 'expense') {
-                    this.data.metadata.colorPalette['tax'] = color;
-                }
+                this.data.metadata.colorPalette['tax'] = color;
             }
         }
         
@@ -1128,21 +1091,16 @@ class PulseSankeyChart {
         
         this.processData(data);
         
-        // Use FinancialDataProcessor for revenue hub detection
-        if (window.FinancialDataProcessor) {
-            const revenueHubResult = FinancialDataProcessor.detectRevenueHub(this.nodes, this.links);
-            this.revenueHubNode = revenueHubResult.node;
-            this.revenueHubLayer = revenueHubResult.layer;
-        } else {
-            console.warn('⚠️ FinancialDataProcessor not available, using fallback revenue hub detection');
-            this.detectRevenueHubFallback();
-        }
+        // Revenue hub detection removed - using category-based system
         
         this.calculateLayout();  // Layout first
         
+        // PHASE 2: Apply category-based positioning (replaces revenue hub detection)
+        this.positionNodesByCategory();
+        
         // Use FinancialDataProcessor for financial metrics
         if (window.FinancialDataProcessor) {
-            FinancialDataProcessor.calculateFinancialMetrics(this.nodes, this.revenueHubNode, this.formatCurrency.bind(this));
+            FinancialDataProcessor.calculateFinancialMetrics(this.nodes, this.formatCurrency.bind(this));
         } else {
             console.warn('⚠️ FinancialDataProcessor not available, using fallback metrics calculation');
             this.calculateFinancialMetricsFallback();
@@ -1269,20 +1227,8 @@ class PulseSankeyChart {
             .attr('transform', `translate(0, ${newHeight - 80})`);
     }
 
-    detectRevenueHub() {
-        console.warn('detectRevenueHub() has been moved to FinancialDataProcessor - using fallback');
-        this.revenueHubLayer = 1;
-    }
 
-    isPreRevenueNode(node) {
-        console.warn('isPreRevenueNode() has been moved to FinancialDataProcessor - using fallback');
-        return false;
-    }
 
-    isPreRevenueLink(link) {
-        console.warn('isPreRevenueLink() has been moved to FinancialDataProcessor - using fallback');
-        return false;
-    }
 
     detectAndApplyColors(data) {
         // Preserve existing revenue segment colors before applying new colors
@@ -1690,8 +1636,8 @@ class PulseSankeyChart {
     }
 
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
-        // PHASE 2: Use category-based positioning instead of revenue hub detection
-        const groupedNodes = this.positionNodesByCategory(nodes);
+        // PHASE 2: Apply category-based positioning metadata to nodes
+        // (this is called during layout after positionNodesByCategory() in render())
         const depth = nodes[0]?.depth ?? 0;
         
         const isLeftmost = depth === 0;
@@ -1707,10 +1653,11 @@ class PulseSankeyChart {
             layerPadding = this.config.nodePadding * this.config.middleSpacing;
         }
 
-        if ((isLeftmost || isRightmost) && groupedNodes.length > 1) {
-            this.positionNodesWithGroupSpacing(groupedNodes, availableHeight, layerPadding, isLeftmost, isRightmost);
+        // Use the nodes directly since category positioning is already applied
+        if ((isLeftmost || isRightmost) && nodes.length > 1) {
+            this.positionNodesWithGroupSpacing(nodes, availableHeight, layerPadding, isLeftmost, isRightmost);
         } else {
-            this.positionNodesStandard(groupedNodes, availableHeight, layerPadding);
+            this.positionNodesStandard(nodes, availableHeight, layerPadding);
         }
     }
 
@@ -1881,60 +1828,6 @@ class PulseSankeyChart {
         }));
     }
 
-    /**
-     * PHASE 2: Position nodes based on category assignments instead of revenue hub detection
-     * Groups nodes by their assigned categories and positions them accordingly
-     */
-    positionNodesByCategory(nodes) {
-        const categoryGroups = this.groupNodesByCategory(nodes);
-        const userDefinedHubs = this.getUserDefinedHubs();
-        
-        // Convert category groups to format expected by existing positioning logic
-        const groupedNodes = [];
-        
-        // Define category priority order (hub categories first, then others)
-        const categoryPriority = ['revenue', 'asset', 'liability', 'expense', 'profit'];
-        
-        // Process hub categories first
-        userDefinedHubs.forEach(hubCategory => {
-            if (categoryGroups.has(hubCategory)) {
-                const categoryNodes = categoryGroups.get(hubCategory);
-                groupedNodes.push({
-                    name: `Category: ${hubCategory}`,
-                    nodes: categoryNodes,
-                    isHubCategory: true,
-                    categoryName: hubCategory
-                });
-            }
-        });
-        
-        // Process remaining categories in priority order
-        categoryPriority.forEach(category => {
-            if (categoryGroups.has(category) && !userDefinedHubs.includes(category)) {
-                const categoryNodes = categoryGroups.get(category);
-                groupedNodes.push({
-                    name: `Category: ${category}`,
-                    nodes: categoryNodes,
-                    isHubCategory: false,
-                    categoryName: category
-                });
-            }
-        });
-        
-        // Process uncategorized nodes last
-        if (categoryGroups.has('uncategorized')) {
-            const uncategorizedNodes = categoryGroups.get('uncategorized');
-            groupedNodes.push({
-                name: 'Uncategorized',
-                nodes: uncategorizedNodes,
-                isHubCategory: false,
-                categoryName: 'uncategorized'
-            });
-        }
-        
-        console.log(`📊 Category-based positioning: ${groupedNodes.length} category groups found`);
-        return groupedNodes;
-    }
 
     /**
      * Group nodes by their assigned categories
@@ -2007,72 +1900,6 @@ class PulseSankeyChart {
         return 'auto';
     }
 
-    /**
-     * Enhanced category-based positioning with user preferences
-     * @param {Array} nodes - Array of nodes to position
-     * @returns {Array} - Array of positioned node groups
-     */
-    positionNodesByCategory(nodes) {
-        const categoryGroups = this.groupNodesByCategory(nodes);
-        const userDefinedHubs = this.getUserDefinedHubs();
-        
-        // Convert category groups to format expected by existing positioning logic
-        const groupedNodes = [];
-        
-        // Separate categories by positioning preference
-        const hubCategories = [];
-        const topCategories = [];
-        const centerCategories = [];
-        const bottomCategories = [];
-        const autoCategories = [];
-        
-        // Process all categories and sort by positioning preference
-        for (const [categoryName, categoryNodes] of categoryGroups) {
-            const preference = this.getCategoryPositioningPreference(categoryName);
-            const categoryGroup = {
-                name: `Category: ${categoryName}`,
-                nodes: categoryNodes,
-                isHubCategory: userDefinedHubs.includes(categoryName),
-                categoryName: categoryName,
-                positioningPreference: preference
-            };
-            
-            switch (preference) {
-                case 'hub':
-                    hubCategories.push(categoryGroup);
-                    break;
-                case 'top':
-                    topCategories.push(categoryGroup);
-                    break;
-                case 'center':
-                    centerCategories.push(categoryGroup);
-                    break;
-                case 'bottom':
-                    bottomCategories.push(categoryGroup);
-                    break;
-                default:
-                    autoCategories.push(categoryGroup);
-            }
-        }
-        
-        // Combine in preferred order: hub -> top -> center -> auto -> bottom
-        const orderedCategories = [
-            ...hubCategories,
-            ...topCategories,
-            ...centerCategories,
-            ...autoCategories,
-            ...bottomCategories
-        ];
-        
-        // Apply enhanced positioning logic
-        orderedCategories.forEach((group, index) => {
-            group.positioningOrder = index;
-            group.totalGroups = orderedCategories.length;
-        });
-        
-        console.log(`📊 Enhanced category positioning: ${orderedCategories.length} category groups with preferences`);
-        return orderedCategories;
-    }
 
     /**
      * Add category management controls to the control panel
@@ -3567,26 +3394,7 @@ class PulseSankeyChart {
             }
         }
         
-        // 3. Legacy revenue segment color system (for backwards compatibility)
-        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && this.revenueSegmentColors.has(node.id)) {
-            return this.revenueSegmentColors.get(node.id);
-        }
-        
-        // 4. Legacy revenue segment default colors
-        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueNode(node, this.revenueHubLayer) && node.category === 'revenue') {
-            // Enhanced vibrant revenue segment color palette
-            const defaultSegmentColors = [
-                '#1e40af', '#2563eb', '#3b82f6', '#0ea5e9', '#06b6d4', 
-                '#14b8a6', '#10b981', '#059669', '#0d9488', '#0f766e'
-            ];
-            const revenueSegmentNodes = window.FinancialDataProcessor ? 
-                FinancialDataProcessor.getRevenueSegmentNodes(this.nodes, this.revenueHubLayer) : 
-                this.getRevenueSegmentNodesFallback();
-            const segmentIndex = revenueSegmentNodes.findIndex(n => n.id === node.id);
-            return defaultSegmentColors[segmentIndex % defaultSegmentColors.length];
-        }
-        
-        // 5. Legacy category system fallback
+        // 3. Category system fallback
         let effectiveCategory = node.category;
         if (node.category === 'tax') {
             effectiveCategory = 'expense';
@@ -3751,16 +3559,10 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Income statement link colors with revenue segment support
+     * Category-based link colors for income statements
      */
     getLinkColor_Income(link) {
-        // NEW: Pre-revenue links use SOURCE color (revenue segment logic)
-        if (window.FinancialDataProcessor && FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
-            const sourceColor = this.getNodeColor(link.source);
-            return ChartUtils.lightenColor(sourceColor, 15);
-        }
-        
-        // ENHANCED: Check for user-created nodes with custom colors
+        // Check for user-created nodes with custom colors
         // Links should inherit the color from the node they originate from
         if (link.source.userCreated || link.source.customColor) {
             const sourceColor = this.getNodeColor(link.source);
@@ -3772,7 +3574,7 @@ class PulseSankeyChart {
             return ChartUtils.lightenColor(targetColor, 15);
         }
         
-        // Existing logic: Post-revenue links use TARGET color
+        // Category-based links use TARGET color
         const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
         
         let effectiveCategory = targetCategory;
@@ -3853,11 +3655,6 @@ class PulseSankeyChart {
         }
     }
 
-    detectRevenueHubFallback() {
-        console.warn('⚠️ detectRevenueHub() has been moved to FinancialDataProcessor - using fallback');
-        this.revenueHubNode = null;
-        this.revenueHubLayer = 1;
-    }
 
     calculateFinancialMetricsFallback() {
         console.warn('⚠️ calculateFinancialMetrics() has been moved to FinancialDataProcessor - using fallback');
@@ -3872,10 +3669,6 @@ class PulseSankeyChart {
         }
     }
 
-    getRevenueSegmentNodesFallback() {
-        console.warn('⚠️ getRevenueSegmentNodes() has been moved to FinancialDataProcessor - using fallback');
-        return [];
-    }
 
     assignColorGroups() {
         console.warn('assignColorGroups() has been moved to FinancialDataProcessor - using fallback');
@@ -5309,11 +5102,6 @@ class PulseSankeyChart {
             // Update source-related category metadata
             if (link.source && link.source.id === node.id) {
                 link.sourceCategory = newCategory;
-                // For pre-revenue links, update colorCategory to match source
-                if (this.statementType === 'income' && 
-                    FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
-                    link.colorCategory = newCategory;
-                }
             }
             
             // Update target-related category metadata  
@@ -8349,7 +8137,128 @@ class PulseSankeyChart {
             }
         }
         
+        // Load positioning preferences
+        if (metadata.categoryPositioningPreferences) {
+            const prefs = metadata.categoryPositioningPreferences;
+            if (prefs.hubCategories) {
+                this.categoryManager.positioningPreferences.hubCategories = new Set(prefs.hubCategories);
+            }
+            if (prefs.layerPreferences) {
+                this.categoryManager.positioningPreferences.layerPreferences = new Map(Object.entries(prefs.layerPreferences));
+            }
+        }
+        
         console.log('✅ Loaded categories from metadata');
+    }
+
+    /**
+     * Add a category as a hub category
+     * @param {string} categoryName - The category to mark as hub
+     */
+    addHubCategory(categoryName) {
+        this.categoryManager.positioningPreferences.hubCategories.add(categoryName);
+        this.saveCategoriesToMetadata();
+        console.log(`✅ Added '${categoryName}' as hub category`);
+    }
+
+    /**
+     * Remove a category from hub categories
+     * @param {string} categoryName - The category to remove from hubs
+     */
+    removeHubCategory(categoryName) {
+        this.categoryManager.positioningPreferences.hubCategories.delete(categoryName);
+        this.saveCategoriesToMetadata();
+        console.log(`✅ Removed '${categoryName}' from hub categories`);
+    }
+
+    /**
+     * Check if a category is marked as a hub category
+     * @param {string} categoryName - The category to check
+     * @returns {boolean} - True if it's a hub category
+     */
+    isHubCategory(categoryName) {
+        return this.categoryManager.positioningPreferences.hubCategories.has(categoryName);
+    }
+
+    /**
+     * Get all hub categories
+     * @returns {Set} - Set of hub category names
+     */
+    getHubCategories() {
+        return new Set(this.categoryManager.positioningPreferences.hubCategories);
+    }
+
+    /**
+     * Group nodes by their assigned categories
+     * @returns {Map} - Map of category -> array of nodes
+     */
+    groupNodesByCategory() {
+        const categoryGroups = new Map();
+        
+        if (!this.nodes) return categoryGroups;
+        
+        this.nodes.forEach(node => {
+            const category = this.getCategoryForNode(node.id) || 'uncategorized';
+            if (!categoryGroups.has(category)) {
+                categoryGroups.set(category, []);
+            }
+            categoryGroups.get(category).push(node);
+        });
+        
+        return categoryGroups;
+    }
+
+    /**
+     * Position nodes based on category preferences instead of revenue hub
+     */
+    positionNodesByCategory() {
+        if (!this.nodes || this.nodes.length === 0) return;
+        
+        const categoryGroups = this.groupNodesByCategory();
+        const hubCategories = this.getHubCategories();
+        
+        console.log(`📊 Positioning ${this.nodes.length} nodes using category-based system`);
+        console.log(`🎯 Hub categories: ${Array.from(hubCategories).join(', ')}`);
+        
+        // Identify nodes in hub categories
+        const hubNodes = new Set();
+        for (const [category, nodes] of categoryGroups) {
+            if (hubCategories.has(category)) {
+                nodes.forEach(node => hubNodes.add(node.id));
+                console.log(`🎯 Hub category '${category}' contains ${nodes.length} nodes`);
+            }
+        }
+        
+        // Apply intelligent layer positioning based on category relationships
+        this.nodes.forEach(node => {
+            const category = this.getCategoryForNode(node.id);
+            const isHubNode = hubNodes.has(node.id);
+            
+            // Hub nodes get priority positioning in central layers
+            if (isHubNode) {
+                // Keep hub nodes in their natural flow position but mark them as important
+                node.isHubNode = true;
+                node.categoryPositioning = 'hub';
+            } else {
+                // Non-hub nodes positioned relative to connected hub nodes
+                node.isHubNode = false;
+                node.categoryPositioning = 'flow';
+                
+                // Determine positioning preference based on category
+                if (category === 'revenue') {
+                    node.layerPreference = 'early';
+                } else if (category === 'expense') {
+                    node.layerPreference = 'middle';
+                } else if (category === 'profit') {
+                    node.layerPreference = 'late';
+                } else {
+                    node.layerPreference = 'auto';
+                }
+            }
+        });
+        
+        console.log(`✅ Applied category-based positioning to ${this.nodes.length} nodes`);
+        console.log(`🎯 ${hubNodes.size} nodes marked as hub nodes`);
     }
 
     /**

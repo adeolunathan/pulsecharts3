@@ -48,103 +48,40 @@
         return statementType;
     }
 
-    /**
-     * REMOVED: Revenue hub detection - replaced with user-controlled category system
-     * Legacy function maintained for backwards compatibility
-     * @param {Array} nodes - Array of chart nodes  
-     * @param {Array} links - Array of chart links
-     * @returns {Object} - {node: null, layer: 1} - Always returns null for hub
-     */
-    function detectRevenueHub(nodes, links) {
-        console.log('⚠️ Revenue hub detection disabled - using category-based system');
-        return { node: null, layer: 1 };
-    }
 
     /**
-     * REMOVED: Pre-revenue node detection - replaced with category-based system
-     * Legacy function maintained for backwards compatibility
-     * @param {Object} node - Chart node
-     * @param {number} revenueHubLayer - The layer where revenue hub is located
-     * @returns {boolean} - Always returns false
-     */
-    function isPreRevenueNode(node, revenueHubLayer) {
-        return false; // No longer using revenue hub concept
-    }
-
-    /**
-     * REMOVED: Pre-revenue link detection - replaced with category-based system
-     * Legacy function maintained for backwards compatibility
-     * @param {Object} link - Chart link
-     * @param {number} revenueHubLayer - The layer where revenue hub is located
-     * @returns {boolean} - Always returns false
-     */
-    function isPreRevenueLink(link, revenueHubLayer) {
-        return false; // No longer using revenue hub concept
-    }
-
-    /**
-     * Get all revenue segment nodes (pre-revenue nodes)
+     * Calculate financial metrics for all nodes (category-based approach)
      * @param {Array} nodes - Array of chart nodes
-     * @param {number} revenueHubLayer - The layer where revenue hub is located
-     * @returns {Array} - Array of pre-revenue nodes
-     */
-    function getRevenueSegmentNodes(nodes, revenueHubLayer) {
-        if (!nodes || !Array.isArray(nodes)) return [];
-        return nodes.filter(node => isPreRevenueNode(node, revenueHubLayer));
-    }
-
-    /**
-     * Get all pre-revenue nodes (alias for getRevenueSegmentNodes)
-     * @param {Array} nodes - Array of chart nodes
-     * @param {number} revenueHubLayer - The layer where revenue hub is located
-     * @returns {Array} - Array of pre-revenue nodes
-     */
-    function getPreRevenueNodes(nodes, revenueHubLayer) {
-        return getRevenueSegmentNodes(nodes, revenueHubLayer);
-    }
-
-    /**
-     * Calculate financial metrics for all nodes
-     * @param {Array} nodes - Array of chart nodes
-     * @param {Object} revenueHubNode - The main revenue node
      * @param {Function} formatCurrency - Currency formatting function
      * @returns {Array} - Updated nodes with financial metrics
      */
-    function calculateFinancialMetrics(nodes, revenueHubNode, formatCurrency) {
+    function calculateFinancialMetrics(nodes, formatCurrency) {
         if (!nodes || !Array.isArray(nodes)) {
             console.warn('⚠️ No nodes provided for financial metrics calculation');
             return nodes;
         }
 
-        // Use the provided revenue hub node or find fallback
-        let totalRevenueNode = revenueHubNode;
+        // Find total revenue using category-based approach
+        let totalRevenueNode = null;
         
-        // If no revenue hub was provided, use sophisticated fallback logic
+        // Strategy 1: Look for nodes with "total revenue" in name
+        totalRevenueNode = nodes.find(n => 
+            n.id && n.id.toLowerCase().includes('total revenue')
+        );
+        
+        // Strategy 2: Find the revenue node with the highest value
         if (!totalRevenueNode) {
-            // Strategy 1: Look for nodes with "total revenue" in name
-            totalRevenueNode = nodes.find(n => 
-                n.id && n.id.toLowerCase().includes('total revenue')
-            );
-            
-            // Strategy 2: Find the revenue node with the highest value
-            if (!totalRevenueNode) {
-                const revenueNodes = nodes.filter(n => n.category === 'revenue');
-                if (revenueNodes.length > 0) {
-                    totalRevenueNode = revenueNodes.reduce((max, node) => 
-                        node.value > max.value ? node : max
-                    );
-                }
+            const revenueNodes = nodes.filter(n => n.category === 'revenue');
+            if (revenueNodes.length > 0) {
+                totalRevenueNode = revenueNodes.reduce((max, node) => 
+                    node.value > max.value ? node : max
+                );
             }
-            
-            // Strategy 3: Find revenue node that has the most outgoing flows (acts as a hub)
-            if (!totalRevenueNode) {
-                const revenueNodes = nodes.filter(n => n.category === 'revenue');
-                if (revenueNodes.length > 0) {
-                    totalRevenueNode = revenueNodes.reduce((max, node) => 
-                        (node.sourceLinks && node.sourceLinks.length > (max.sourceLinks ? max.sourceLinks.length : 0)) ? node : max
-                    );
-                }
-            }
+        }
+        
+        // Strategy 3: Find the first revenue category node
+        if (!totalRevenueNode) {
+            totalRevenueNode = nodes.find(n => n.category === 'revenue');
         }
         
         const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
@@ -152,7 +89,7 @@
         // Log which revenue node is being used for margin calculations
         if (totalRevenueNode) {
             const formattedRevenue = formatCurrency ? formatCurrency(totalRevenue) : totalRevenue;
-            console.log(`💰 Using revenue node for margin calculations: "${totalRevenueNode.id}" (${formattedRevenue}) at depth ${totalRevenueNode.depth}`);
+            console.log(`💰 Using revenue node for margin calculations: "${totalRevenueNode.id}" (${formattedRevenue})`);
         } else {
             console.warn('⚠️ No revenue node found for margin calculations - margins will be 0%');
         }
@@ -434,11 +371,6 @@
     window.FinancialDataProcessor = {
         detectStatementType,
         calculateFinancialMetrics,
-        detectRevenueHub,
-        isPreRevenueNode,
-        isPreRevenueLink,
-        getRevenueSegmentNodes,
-        getPreRevenueNodes,
         assignColorGroups,
         isExactParentGroupMatch,
         determineChildParentGroup,
