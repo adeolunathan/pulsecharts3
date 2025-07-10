@@ -1724,10 +1724,15 @@
             // Update row data attributes
             row.dataset.flowIndex = index;
             
+            // Check description column visibility state
+            const descriptionToggle = document.getElementById('description-column-toggle');
+            const showDescription = descriptionToggle ? descriptionToggle.checked : true;
+            const descriptionDisplay = showDescription ? 'table-cell' : 'none';
+            
             // Update each cell based on column type
             const cells = row.querySelectorAll('td');
             cells.forEach(cell => {
-                const cellType = cell.dataset.field;
+                const cellType = cell.dataset.col || cell.dataset.field; // Support both data-col and data-field
                 switch (cellType) {
                     case 'source':
                         cell.textContent = flow.source;
@@ -1743,6 +1748,8 @@
                         break;
                     case 'description':
                         cell.textContent = flow.description || '';
+                        // Ensure description cell visibility matches current toggle state
+                        cell.style.display = descriptionDisplay;
                         break;
                 }
             });
@@ -2266,6 +2273,11 @@
             // Check if this is an empty row (declare early to use throughout)
             const isEmpty = !flow.source && !flow.target && flow.value === 0;
             
+            // Check if description column should be visible
+            const descriptionToggle = document.getElementById('description-column-toggle');
+            const showDescription = descriptionToggle ? descriptionToggle.checked : true; // Default to true if toggle not found
+            const descriptionDisplay = showDescription ? 'table-cell' : 'none';
+            
             let rowHTML = `
                 <td class="control-cell">
                     <div class="flow-controls">
@@ -2280,7 +2292,7 @@
                     <div class="cell-content">${flow.target}</div>
                     <input type="text" class="cell-editor" style="display: none;">
                 </td>
-                <td class="spreadsheet-cell" data-col="description" data-row="${index}" data-type="text">
+                <td class="spreadsheet-cell" data-col="description" data-row="${index}" data-type="text" style="display: ${descriptionDisplay};">
                     <div class="cell-content">${flow.description || ''}</div>
                     <input type="text" class="cell-editor" style="display: none;" placeholder="Flow description...">
                 </td>
