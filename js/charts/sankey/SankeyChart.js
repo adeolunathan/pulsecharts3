@@ -4193,7 +4193,7 @@ class PulseSankeyChart {
     // Category assignment modal with smart suggestions
     showCategoryAssignmentModal(node) {
         const categoryManager = this.categoryManager;
-        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        const allCategories = new Map([...Object.entries(categoryManager.defaultCategories), ...categoryManager.userCategories]);
         
         // Get smart category suggestions
         const suggestions = this.suggestCategoryForNode(node.name);
@@ -5352,11 +5352,9 @@ class PulseSankeyChart {
             // Update target-related category metadata  
             if (link.target && link.target.id === node.id) {
                 link.targetCategory = newCategory;
-                // For post-revenue links, update colorCategory to match target
-                if (this.statementType === 'income' && 
-                    !FinancialDataProcessor.isPreRevenueLink(link, this.revenueHubLayer)) {
-                    link.colorCategory = newCategory;
-                }
+                // ALWAYS update colorCategory for incoming links to match target node's category
+                // This ensures that incoming links adopt the target node's category color
+                link.colorCategory = newCategory;
             }
         });
     }
@@ -6997,12 +6995,8 @@ class PulseSankeyChart {
             .style('font-weight', '500')
             .text('🚫 Remove')
             .on('click', () => {
-                this.categoryManager.nodeCategories.delete(nodeData.id);
-                this.saveCategoriesToMetadata();
+                this.removeNodeFromCategory(nodeData.id);
                 this.container.select('.enhanced-color-picker').remove();
-                if (this.render && this.data) {
-                    this.render(this.data);
-                }
             });
         
         // Add category pills for each available category
@@ -7044,9 +7038,6 @@ class PulseSankeyChart {
                 .on('click', () => {
                     this.assignNodeToCategory(nodeData.id, name);
                     this.container.select('.enhanced-color-picker').remove();
-                    if (this.render && this.data) {
-                        this.render(this.data);
-                    }
                 });
         }
         
@@ -7117,9 +7108,6 @@ class PulseSankeyChart {
                 if (name && this.createCustomCategory(name, color, icon)) {
                     this.assignNodeToCategory(nodeData.id, name);
                     this.container.select('.enhanced-color-picker').remove();
-                    if (this.render && this.data) {
-                        this.render(this.data);
-                    }
                 }
             });
         
@@ -8241,7 +8229,43 @@ class PulseSankeyChart {
         this.categoryManager.nodeCategories.set(nodeId, categoryName);
         this.saveCategoriesToMetadata();
         
+        // Find the node object to update link categories
+        const node = this.nodes?.find(n => n.id === nodeId);
+        if (node) {
+            // Update link categories for this node
+            this.updateLinkCategoriesForNode(node, categoryName);
+            
+            // Re-render with new colors to show the changes
+            this.rerenderWithNewColors();
+        }
+        
         console.log(`✅ Assigned node '${nodeId}' to category '${categoryName}'`);
+    }
+
+    /**
+     * Remove category assignment from a node
+     * @param {string} nodeId - The node ID
+     */
+    removeNodeFromCategory(nodeId) {
+        if (!nodeId) {
+            console.warn('⚠️ Invalid nodeId for category removal');
+            return;
+        }
+        
+        this.categoryManager.nodeCategories.delete(nodeId);
+        this.saveCategoriesToMetadata();
+        
+        // Find the node object to update link categories
+        const node = this.nodes?.find(n => n.id === nodeId);
+        if (node) {
+            // Update link categories for this node (null means no category)
+            this.updateLinkCategoriesForNode(node, null);
+            
+            // Re-render with new colors to show the changes
+            this.rerenderWithNewColors();
+        }
+        
+        console.log(`✅ Removed category assignment from node '${nodeId}'`);
     }
 
     /**

@@ -307,7 +307,7 @@ class CategoryAssignmentModal {
         // Assign category to current node
         if (this.selectedCategory === '') {
             // Remove category
-            this.chart.categoryManager.nodeCategories.delete(this.node.id);
+            this.chart.removeNodeFromCategory(this.node.id);
         } else {
             this.chart.assignNodeToCategory(this.node.id, this.selectedCategory);
         }
@@ -316,16 +316,11 @@ class CategoryAssignmentModal {
         if (applySimilar && this.similarNodes.length > 0) {
             this.similarNodes.forEach(node => {
                 if (this.selectedCategory === '') {
-                    this.chart.categoryManager.nodeCategories.delete(node.id);
+                    this.chart.removeNodeFromCategory(node.id);
                 } else {
                     this.chart.assignNodeToCategory(node.id, this.selectedCategory);
                 }
             });
-        }
-        
-        // Re-render chart to show changes
-        if (this.chart.render && this.chart.data) {
-            this.chart.render(this.chart.data);
         }
         
         // Close modal
