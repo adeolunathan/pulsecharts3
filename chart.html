@@ -1733,21 +1733,48 @@
             const cells = row.querySelectorAll('td');
             cells.forEach(cell => {
                 const cellType = cell.dataset.col || cell.dataset.field; // Support both data-col and data-field
+                
+                // Find the cell-content div within the cell to preserve structure
+                const cellContentDiv = cell.querySelector('.cell-content');
+                
                 switch (cellType) {
                     case 'source':
-                        cell.textContent = flow.source;
+                        if (cellContentDiv) {
+                            cellContentDiv.textContent = flow.source;
+                        } else {
+                            cell.textContent = flow.source;
+                        }
                         break;
                     case 'target':
-                        cell.textContent = flow.target;
+                        if (cellContentDiv) {
+                            cellContentDiv.textContent = flow.target;
+                        } else {
+                            cell.textContent = flow.target;
+                        }
                         break;
                     case 'value':
-                        cell.textContent = flow.value.toLocaleString();
+                        const isEmpty = !flow.source && !flow.target && flow.value === 0;
+                        const valueText = isEmpty ? '' : (flow.value ? flow.value.toLocaleString() : '0');
+                        if (cellContentDiv) {
+                            cellContentDiv.textContent = valueText;
+                        } else {
+                            cell.textContent = valueText;
+                        }
                         break;
                     case 'previousValue':
-                        cell.textContent = flow.previousValue.toLocaleString();
+                        const prevValueText = flow.previousValue ? flow.previousValue.toLocaleString() : '';
+                        if (cellContentDiv) {
+                            cellContentDiv.textContent = prevValueText;
+                        } else {
+                            cell.textContent = prevValueText;
+                        }
                         break;
                     case 'description':
-                        cell.textContent = flow.description || '';
+                        if (cellContentDiv) {
+                            cellContentDiv.textContent = flow.description || '';
+                        } else {
+                            cell.textContent = flow.description || '';
+                        }
                         // Ensure description cell visibility matches current toggle state
                         cell.style.display = descriptionDisplay;
                         break;

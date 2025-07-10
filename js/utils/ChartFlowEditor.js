@@ -265,6 +265,26 @@
         // Set up autocomplete functionality for both inputs
         setupAutocomplete.call(this, fromInput, fromDropdown, 'from');
         setupAutocomplete.call(this, toInput, toDropdown, 'to');
+        
+        // Set up keyboard event handling for Enter key to Save & Sync
+        this.flowEditor.on('keydown', (event) => {
+            // Check if Enter key is pressed (key code 13 or event.key === 'Enter')
+            if (event.keyCode === 13 || event.key === 'Enter') {
+                // Don't trigger if we're in a dropdown (autocomplete)
+                const activeDropdown = this.flowEditor.select('.from-dropdown:not([style*="display: none"]), .to-dropdown:not([style*="display: none"])');
+                if (!activeDropdown.empty()) {
+                    return; // Let autocomplete handle Enter key
+                }
+                
+                // Prevent default form submission behavior
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Trigger Save & Sync functionality
+                console.log('⌨️ Enter key pressed - triggering Save & Sync');
+                resetTableFromModal.call(this);
+            }
+        });
     }
 
     /**
