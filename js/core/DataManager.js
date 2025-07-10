@@ -88,55 +88,50 @@ class PulseDataManager {
             });
         };
 
-        // Transform revenue components (depth 0)
+        // Transform revenue components (depth 0) - no aggregation
         let sortOrder = 1;
         if (incomeStatement.revenue) {
             Object.entries(incomeStatement.revenue).forEach(([key, value]) => {
                 if (key !== 'total_revenue' && typeof value === 'number') {
                     const nodeName = this.formatNodeName(key);
                     addNode(nodeName, 0, value, 'revenue', 'revenue_sources', sortOrder++);
-                    addLink(nodeName, 'Total Revenue', value, 'revenue');
+                    // Link directly to gross profit instead of total revenue aggregation
+                    addLink(nodeName, 'Gross Profit', value, 'revenue');
                 }
             });
         }
 
-        // Add total revenue (depth 1)
-        addNode('Total Revenue', 1, incomeStatement.revenue?.total_revenue || 0, 'revenue', 'aggregated_revenue');
+        // Add gross profit and COGS (depth 1) - no total revenue dependency
+        addNode('Gross Profit', 1, incomeStatement.gross_profit || 0, 'profit', 'gross_metrics', 1);
+        addNode('Cost of Goods Sold', 1, incomeStatement.cost_of_goods_sold?.total_cogs || 0, 'cost', 'gross_metrics', 2);
 
-        // Add gross profit and COGS (depth 2)
-        addNode('Gross Profit', 2, incomeStatement.gross_profit || 0, 'profit', 'gross_metrics', 1);
-        addNode('Cost of Goods Sold', 2, incomeStatement.cost_of_goods_sold?.total_cogs || 0, 'cost', 'gross_metrics', 2);
-        
-        addLink('Total Revenue', 'Gross Profit', incomeStatement.gross_profit || 0, 'profit');
-        addLink('Total Revenue', 'Cost of Goods Sold', incomeStatement.cost_of_goods_sold?.total_cogs || 0, 'cost');
-
-        // Add operating metrics (depth 3)
-        addNode('Operating Income', 3, incomeStatement.operating_income || 0, 'profit', 'operating_metrics', 1);
+        // Add operating metrics (depth 2) - link to gross profit
+        addNode('Operating Income', 2, incomeStatement.operating_income || 0, 'profit', 'operating_metrics', 1);
         
         const totalOpEx = incomeStatement.operating_expenses?.total_operating_expenses || 0;
-        addNode('Operating Expenses', 3, totalOpEx, 'expense', 'operating_metrics', 2);
+        addNode('Operating Expenses', 2, totalOpEx, 'expense', 'operating_metrics', 2);
         
         addLink('Gross Profit', 'Operating Income', incomeStatement.operating_income || 0, 'profit');
         addLink('Gross Profit', 'Operating Expenses', totalOpEx, 'expense');
 
-        // Add operating expense breakdown (depth 4)
+        // Add operating expense breakdown (depth 3)
         sortOrder = 1;
         if (incomeStatement.operating_expenses) {
             Object.entries(incomeStatement.operating_expenses).forEach(([key, value]) => {
                 if (key !== 'total_operating_expenses' && typeof value === 'number') {
                     const nodeName = this.formatNodeName(key);
-                    addNode(nodeName, 4, value, 'expense', 'operating_expenses', sortOrder++);
+                    addNode(nodeName, 3, value, 'expense', 'operating_expenses', sortOrder++);
                     addLink('Operating Expenses', nodeName, value, 'expense');
                 }
             });
         }
 
-        // Add final results (depth 4)
-        addNode('Net Income', 4, incomeStatement.net_income || 0, 'income', 'final_results', 1);
+        // Add final results (depth 3)
+        addNode('Net Income', 3, incomeStatement.net_income || 0, 'income', 'final_results', 1);
         addLink('Operating Income', 'Net Income', incomeStatement.net_income || 0, 'income');
 
         if (incomeStatement.tax_expense) {
-            addNode('Tax Expense', 4, incomeStatement.tax_expense, 'expense', 'final_adjustments', 1);
+            addNode('Tax Expense', 3, incomeStatement.tax_expense, 'expense', 'final_adjustments', 1);
             addLink('Operating Income', 'Tax Expense', incomeStatement.tax_expense, 'expense');
         }
 

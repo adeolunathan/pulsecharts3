@@ -365,37 +365,46 @@ window.DataProcessor = (function() {
         // Create links
         const nodeMap = new Map(nodes.map(node => [node.id, node]));
         
-        // Revenue to Total Revenue
+        // Create direct links without revenue aggregation
         flow_structure.revenue_sources.forEach(source => {
-            links.push({
-                source: source.id,
-                target: 'Total Revenue',
-                value: source.value,
-                type: 'revenue'
-            });
+            // Link revenue sources directly to their targets (no total revenue aggregation)
+            const targetNode = nodeMap.get(source.target || 'Gross Profit');
+            if (targetNode) {
+                links.push({
+                    source: source.id,
+                    target: targetNode.id,
+                    value: source.value,
+                    type: 'revenue'
+                });
+            }
         });
         
-        // Total Revenue splits
-        const totalRevenue = nodeMap.get('Total Revenue');
+        // Create direct links for cost and profit flows
         const costOfRevenue = nodeMap.get('Cost of Revenue');
         const grossProfit = nodeMap.get('Gross Profit');
         
-        if (totalRevenue && costOfRevenue) {
-            links.push({
-                source: 'Total Revenue',
-                target: 'Cost of Revenue',
-                value: costOfRevenue.value,
-                type: 'cost'
-            });
+        if (costOfRevenue) {
+            const targetNode = nodeMap.get(costOfRevenue.target || 'Operating Expenses');
+            if (targetNode) {
+                links.push({
+                    source: 'Cost of Revenue',
+                    target: targetNode.id,
+                    value: costOfRevenue.value,
+                    type: 'cost'
+                });
+            }
         }
         
-        if (totalRevenue && grossProfit) {
-            links.push({
-                source: 'Total Revenue',
-                target: 'Gross Profit',
-                value: grossProfit.value,
-                type: 'profit'
-            });
+        if (grossProfit) {
+            const targetNode = nodeMap.get(grossProfit.target || 'Operating Profit');
+            if (targetNode) {
+                links.push({
+                    source: 'Gross Profit',
+                    target: targetNode.id,
+                    value: grossProfit.value,
+                    type: 'profit'
+                });
+            }
         }
         
         // Gross Profit splits

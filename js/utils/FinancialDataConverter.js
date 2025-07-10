@@ -191,39 +191,48 @@ class FinancialDataConverter {
     createLinks(nodes, links, flow_structure, display_settings) {
         const nodeMap = new Map(nodes.map(node => [node.id, node]));
 
-        // 1. Revenue sources to Total Revenue
-        const totalRevenue = nodeMap.get('Total Revenue');
-        if (totalRevenue) {
-            flow_structure.revenue_sources.forEach(source => {
+        // 1. Create links from revenue sources (no total revenue aggregation)
+        flow_structure.revenue_sources.forEach(source => {
+            // Link revenue sources directly to their targets without aggregation
+            const targetNode = nodeMap.get(source.target || 'Gross Profit');
+            if (targetNode) {
                 links.push({
                     source: source.id,
-                    target: 'Total Revenue',
+                    target: targetNode.id,
                     value: source.value,
                     type: 'revenue'
                 });
-            });
-        }
+            }
+        });
 
-        // 2. Total Revenue splits to Cost and Gross Profit
+        // 2. Create links for cost and profit flows (no total revenue dependency)
         const costOfRevenue = nodeMap.get('Cost of Revenue');
         const grossProfit = nodeMap.get('Gross Profit');
         
-        if (totalRevenue && costOfRevenue) {
-            links.push({
-                source: 'Total Revenue',
-                target: 'Cost of Revenue',
-                value: costOfRevenue.value,
-                type: 'cost'
-            });
+        if (costOfRevenue) {
+            // Link cost of revenue to its target or expense breakdown
+            const targetNode = nodeMap.get(costOfRevenue.target || 'Operating Expenses');
+            if (targetNode) {
+                links.push({
+                    source: 'Cost of Revenue',
+                    target: targetNode.id,
+                    value: costOfRevenue.value,
+                    type: 'cost'
+                });
+            }
         }
         
-        if (totalRevenue && grossProfit) {
-            links.push({
-                source: 'Total Revenue',
-                target: 'Gross Profit',
-                value: grossProfit.value,
-                type: 'profit'
-            });
+        if (grossProfit) {
+            // Link gross profit to its target
+            const targetNode = nodeMap.get(grossProfit.target || 'Operating Profit');
+            if (targetNode) {
+                links.push({
+                    source: 'Gross Profit',
+                    target: targetNode.id,
+                    value: grossProfit.value,
+                    type: 'profit'
+                });
+            }
         }
 
         // 3. Gross Profit splits to Operating Expenses and Operating Profit
@@ -516,13 +525,7 @@ class FinancialDataConverter {
         
         if (!data.flow_structure) return { errors };
 
-        // Calculate expected totals
-        const revenueTotal = data.flow_structure.revenue_sources?.reduce((sum, source) => sum + source.value, 0) || 0;
-        const totalRevenue = data.flow_structure.intermediate_flows?.find(f => f.id === 'Total Revenue')?.value;
-        
-        if (totalRevenue && Math.abs(revenueTotal - totalRevenue) > 0.01) {
-            errors.push(`Revenue total mismatch: sources sum to ${revenueTotal}, but Total Revenue is ${totalRevenue}`);
-        }
+        // Remove revenue total validation - no longer aggregating revenue
 
         // Check expense breakdown sums
         const expenseTotal = data.flow_structure.expense_breakdown?.reduce((sum, exp) => sum + exp.value, 0) || 0;

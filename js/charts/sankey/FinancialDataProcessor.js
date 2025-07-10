@@ -6,8 +6,7 @@
  * 
  * Handles both Income Statement and Balance Sheet analysis including:
  * - Statement type detection
- * - Revenue hub identification  
- * - Financial metrics calculation
+ * - Generic financial metrics calculation (no revenue aggregation)
  * - Balance sheet hierarchy analysis
  */
 (function() {
@@ -50,86 +49,34 @@
 
 
     /**
-     * Calculate financial metrics for all nodes (category-based approach)
+     * Calculate financial metrics for all nodes (generic approach - no revenue aggregation)
      * @param {Array} nodes - Array of chart nodes
-     * @param {Function} formatCurrency - Currency formatting function
      * @returns {Array} - Updated nodes with financial metrics
      */
-    function calculateFinancialMetrics(nodes, formatCurrency) {
+    function calculateFinancialMetrics(nodes) {
         if (!nodes || !Array.isArray(nodes)) {
             console.warn('⚠️ No nodes provided for financial metrics calculation');
             return nodes;
         }
 
-        // Find total revenue using category-based approach
-        let totalRevenueNode = null;
+        console.log('📊 Calculating financial metrics without revenue aggregation');
         
-        // Strategy 1: Look for nodes with "total revenue" in name
-        totalRevenueNode = nodes.find(n => 
-            n.id && n.id.toLowerCase().includes('total revenue')
-        );
-        
-        // Strategy 2: Find the revenue node with the highest value
-        if (!totalRevenueNode) {
-            const revenueNodes = nodes.filter(n => n.category === 'revenue');
-            if (revenueNodes.length > 0) {
-                totalRevenueNode = revenueNodes.reduce((max, node) => 
-                    node.value > max.value ? node : max
-                );
-            }
-        }
-        
-        // Strategy 3: Find the first revenue category node
-        if (!totalRevenueNode) {
-            totalRevenueNode = nodes.find(n => n.category === 'revenue');
-        }
-        
-        const totalRevenue = totalRevenueNode ? totalRevenueNode.value : 0;
-        
-        // Log which revenue node is being used for margin calculations
-        if (totalRevenueNode) {
-            const formattedRevenue = formatCurrency ? formatCurrency(totalRevenue) : totalRevenue;
-            console.log(`💰 Using revenue node for margin calculations: "${totalRevenueNode.id}" (${formattedRevenue})`);
-        } else {
-            console.warn('⚠️ No revenue node found for margin calculations - margins will be 0%');
-        }
-        
-        // Update each node with financial metrics
+        // Update each node with basic financial metrics (no revenue-based calculations)
         nodes.forEach(node => {
-            // Only calculate percentageOfRevenue and marginValue if marginPercentage is not already provided from Flow Builder
+            // Only set default values if not already provided from Flow Builder
             if (!node.marginPercentage || node.marginPercentage === 'N/A') {
-                if (totalRevenue > 0) {
-                    node.percentageOfRevenue = (node.value / totalRevenue) * 100;
-                } else {
-                    node.percentageOfRevenue = 0;
-                }
-                
-                // Calculate marginPercentage for ALL nodes, not just profit
-                node.marginPercentage = node.percentageOfRevenue.toFixed(1) + '%';
-                
-                // Set specific margin types for profit nodes
-                if (node.category === 'profit') {
-                    if (node.id.toLowerCase().includes('gross')) {
-                        node.marginType = 'Gross Margin';
-                    } else if (node.id.toLowerCase().includes('operating')) {
-                        node.marginType = 'Operating Margin';
-                    } else if (node.id.toLowerCase().includes('net')) {
-                        node.marginType = 'Net Margin';
-                    } else {
-                        node.marginType = 'Margin';
-                    }
-                } else {
-                    // For non-profit nodes, show as "% of Revenue"
-                    node.marginType = '% of Revenue';
-                }
-                
-                node.marginValue = node.percentageOfRevenue;
+                // Set default margin percentage to N/A since we're not calculating based on revenue
+                node.marginPercentage = 'N/A';
+                node.marginType = 'N/A';
+                node.marginValue = 0;
+                node.percentageOfRevenue = 0;
             }
             
+            // Set expense type flag
             node.isExpenseType = node.category === 'expense';
         });
         
-        console.log('📊 Financial metrics calculated (prioritizing Flow Builder marginPercentage)');
+        console.log('📊 Financial metrics calculated (generic approach - no revenue aggregation)');
         return nodes;
     }
 
