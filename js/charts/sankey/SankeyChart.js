@@ -4030,9 +4030,9 @@ class PulseSankeyChart {
         this.selectionManager.selectedNodes.add(node.id);
         this.selectionManager.lastSelected = node;
         
-        // Default action for single selection (show color picker)
+        // Default action for single selection (show category assignment modal)
         if (this.selectionManager.selectedNodes.size === 1) {
-            this.showEnhancedColorPicker(null, node);
+            new CategoryAssignmentModal(this, node);
         }
     }
 
