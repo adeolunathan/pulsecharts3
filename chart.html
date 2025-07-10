@@ -1329,7 +1329,7 @@
             // Reset any chart highlighting effects
             const chart = window.pulseApp?.chart;
             if (chart && typeof chart.highlightNodesByCategory === 'function') {
-                chart.highlightNodesByCategory(null);
+                chart.highlightNodesByCategory('off');
             }
             
             // Re-initialize category buttons to match current data

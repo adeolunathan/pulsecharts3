@@ -7055,7 +7055,7 @@ class PulseSankeyChart {
         }
 
         
-        if (category === 'off') {
+        if (category === 'off' || category === null || category === undefined) {
             // Reset all nodes to normal opacity
             this.chart.selectAll('.sankey-node rect')
                 .transition()
@@ -7099,7 +7099,7 @@ class PulseSankeyChart {
             // Highlight matching nodes
             this.chart.selectAll('.sankey-node rect')
                 .filter(function(d) {
-                    return d.category === category;
+                    return d && d.category === category;
                 })
                 .transition()
                 .duration(300)
@@ -7115,7 +7115,7 @@ class PulseSankeyChart {
             // Highlight matching labels
             this.chart.selectAll('.node-text-group')
                 .filter(function(d) {
-                    return d.category === category;
+                    return d && d.category === category;
                 })
                 .transition()
                 .duration(300)
@@ -7124,7 +7124,7 @@ class PulseSankeyChart {
             // Highlight related links
             this.chart.selectAll('.sankey-link path')
                 .filter(function(d) {
-                    return d.source.category === category || d.target.category === category;
+                    return d && d.source && d.target && (d.source.category === category || d.target.category === category);
                 })
                 .transition()
                 .duration(300)
