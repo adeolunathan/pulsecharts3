@@ -55,12 +55,6 @@ class PulseSankeyChart {
             selectionBox: null
         };
         
-        // Undo/Redo system for category operations
-        this.categoryHistory = {
-            undoStack: [],
-            redoStack: [],
-            maxHistorySize: 50
-        };
         
         this.config = SankeyChartConfig.getInitialConfig();
         this.initializeChart();
@@ -279,7 +273,8 @@ class PulseSankeyChart {
                 };
                 
                 
-                // Removed automatic node value recalculation
+                // Recalculate affected node values to maintain consistency
+                this.recalculateAffectedNodeValues(updatedFlow.source, updatedFlow.target, originalSourceId, originalTargetId);
                 
                 // Re-render the chart with updated data first
                 this.render(this.data);
@@ -323,6 +318,57 @@ class PulseSankeyChart {
                 console.warn('⚠️ Original link not found in data');
             }
         }
+    }
+
+    /**
+     * Recalculate node values based on connected links to maintain consistency
+     * @param {string} newSourceId - The new source node ID
+     * @param {string} newTargetId - The new target node ID  
+     * @param {string} originalSourceId - The original source node ID
+     * @param {string} originalTargetId - The original target node ID
+     */
+    recalculateAffectedNodeValues(newSourceId, newTargetId, originalSourceId, originalTargetId) {
+        if (!this.data || !this.data.nodes || !this.data.links) return;
+        
+        // Create a set of all affected node IDs
+        const affectedNodeIds = new Set([newSourceId, newTargetId]);
+        if (originalSourceId && originalSourceId !== newSourceId) {
+            affectedNodeIds.add(originalSourceId);
+        }
+        if (originalTargetId && originalTargetId !== newTargetId) {
+            affectedNodeIds.add(originalTargetId);
+        }
+        
+        // Recalculate values for all affected nodes
+        affectedNodeIds.forEach(nodeId => {
+            const node = this.data.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+            
+            // Calculate incoming link totals (determines node value for target nodes)
+            const incomingLinks = this.data.links.filter(link => {
+                const linkTargetId = link.target && link.target.id ? link.target.id : link.target;
+                return linkTargetId === nodeId;
+            });
+            
+            // Calculate outgoing link totals (determines node value for source nodes)
+            const outgoingLinks = this.data.links.filter(link => {
+                const linkSourceId = link.source && link.source.id ? link.source.id : link.source;
+                return linkSourceId === nodeId;
+            });
+            
+            // For target nodes, use incoming links; for source nodes, use outgoing links
+            // If both exist, use the maximum (some nodes are both source and target)
+            const incomingTotal = incomingLinks.reduce((sum, link) => sum + Math.abs(link.value || 0), 0);
+            const outgoingTotal = outgoingLinks.reduce((sum, link) => sum + Math.abs(link.value || 0), 0);
+            const incomingPrevious = incomingLinks.reduce((sum, link) => sum + Math.abs(link.previousValue || 0), 0);
+            const outgoingPrevious = outgoingLinks.reduce((sum, link) => sum + Math.abs(link.previousValue || 0), 0);
+            
+            // Use the larger of incoming or outgoing totals (for nodes that are both source and target)
+            node.value = Math.max(incomingTotal, outgoingTotal);
+            node.previousValue = Math.max(incomingPrevious, outgoingPrevious);
+            
+            console.log(`🔄 Recalculated node "${nodeId}": value=${node.value}, previousValue=${node.previousValue} (incoming: ${incomingTotal}, outgoing: ${outgoingTotal})`);
+        });
     }
 
     // Handle flow delete from flow editor
@@ -3041,7 +3087,6 @@ class PulseSankeyChart {
         
         if (node && node.isExpenseType) {
             formattedValue = `(${formattedValue})`;
-            console.log(`💰 Formatting expense value for ${node.id}: ${formattedValue}`);
         }
         
         // REMOVED: Margin display from formatCurrency to eliminate duplicate calculations
@@ -3800,25 +3845,10 @@ class PulseSankeyChart {
                 return;
             }
             
-            // Record the operation for undo/redo
-            const oldCategory = this.categoryManager.nodeCategories.get(node.id);
-            this.recordCategoryOperation({
-                type: 'assign',
-                description: `Assign category "${category}" to ${node.name}`,
-                changes: [{
-                    nodeId: node.id,
-                    oldCategory: oldCategory,
-                    newCategory: category
-                }]
-            });
-            
-            this.categoryManager.nodeCategories.set(node.id, category);
-            
-            // Update link categories associated with this node
-            this.updateLinkCategoriesForNode(node, category);
+            // Use proper method to assign category (this handles node properties and re-rendering)
+            this.assignNodeToCategory(node.id, category);
             
             this.showNotification(`Assigned category "${category}" to ${node.name}`);
-            this.rerenderWithNewColors(); // Re-render to update colors
             modal.remove();
         };
         
@@ -3886,23 +3916,10 @@ class PulseSankeyChart {
     removeNodeCategory(node) {
         const category = this.categoryManager.nodeCategories.get(node.id);
         if (category) {
-            // Record the operation for undo/redo
-            this.recordCategoryOperation({
-                type: 'remove',
-                description: `Remove category "${category}" from ${node.name}`,
-                changes: [{
-                    nodeId: node.id,
-                    oldCategory: category
-                }]
-            });
-            
-            this.categoryManager.nodeCategories.delete(node.id);
-            
-            // Update link categories associated with this node
-            this.updateLinkCategoriesForNode(node, null);
+            // Use proper method to remove category (this handles node properties and re-rendering)
+            this.removeNodeFromCategory(node.id);
             
             this.showNotification(`Removed category "${category}" from ${node.name}`);
-            this.rerenderWithNewColors(); // Re-render to update colors
         } else {
             this.showNotification('No category to remove from this node');
         }
@@ -4111,24 +4128,9 @@ class PulseSankeyChart {
             return;
         }
         
-        // Record the operation for undo/redo
-        const changes = selectedNodes.map(node => ({
-            nodeId: node.id,
-            oldCategory: this.categoryManager.nodeCategories.get(node.id),
-            newCategory: categoryName
-        }));
-        
-        this.recordCategoryOperation({
-            type: 'assign',
-            description: `Assign category "${categoryName}" to ${selectedNodes.length} nodes`,
-            changes: changes
-        });
-        
         // Apply category to all selected nodes
         selectedNodes.forEach(node => {
-            this.categoryManager.nodeCategories.set(node.id, categoryName);
-            // Update link categories associated with this node
-            this.updateLinkCategoriesForNode(node, categoryName);
+            this.assignNodeToCategory(node.id, categoryName);
         });
         
         this.showNotification(`Assigned category "${categoryName}" to ${selectedNodes.length} nodes`);
@@ -4311,9 +4313,7 @@ class PulseSankeyChart {
         
         // Apply category to all selected nodes
         selectedNodes.forEach(node => {
-            this.categoryManager.nodeCategories.set(node.id, categoryName);
-            // Update link categories associated with this node
-            this.updateLinkCategoriesForNode(node, categoryName);
+            this.assignNodeToCategory(node.id, categoryName);
         });
         
         this.showNotification(`Applied category "${categoryName}" to ${selectedNodes.length} nodes`);
@@ -4330,9 +4330,7 @@ class PulseSankeyChart {
         
         // Remove category from all selected nodes
         selectedNodes.forEach(node => {
-            this.categoryManager.nodeCategories.delete(node.id);
-            // Update link categories associated with this node
-            this.updateLinkCategoriesForNode(node, null);
+            this.removeNodeFromCategory(node.id);
         });
         
         this.showNotification(`Removed category from ${selectedNodes.length} nodes`);
@@ -4410,16 +4408,6 @@ class PulseSankeyChart {
                     }
                     break;
                     
-                case 'z':
-                    if (event.ctrlKey || event.metaKey) {
-                        event.preventDefault();
-                        if (event.shiftKey) {
-                            this.redoCategoryOperation();
-                        } else {
-                            this.undoCategoryOperation();
-                        }
-                    }
-                    break;
                     
                 case 'f':
                     if (event.ctrlKey || event.metaKey) {
@@ -4624,125 +4612,6 @@ class PulseSankeyChart {
         updateSearchResults();
     }
 
-    // Undo/Redo system for category operations
-    recordCategoryOperation(operation) {
-        // Add to undo stack
-        this.categoryHistory.undoStack.push(operation);
-        
-        // Clear redo stack since we're making a new change
-        this.categoryHistory.redoStack = [];
-        
-        // Limit history size
-        if (this.categoryHistory.undoStack.length > this.categoryHistory.maxHistorySize) {
-            this.categoryHistory.undoStack.shift();
-        }
-    }
-
-    undoCategoryOperation() {
-        if (this.categoryHistory.undoStack.length === 0) {
-            this.showNotification('Nothing to undo', 'info');
-            return;
-        }
-        
-        const operation = this.categoryHistory.undoStack.pop();
-        this.categoryHistory.redoStack.push(operation);
-        
-        // Apply the reverse operation
-        this.applyReverseOperation(operation);
-        
-        this.showNotification(`Undid: ${operation.description}`);
-        this.render(this.data); // Re-render to update colors
-    }
-
-    redoCategoryOperation() {
-        if (this.categoryHistory.redoStack.length === 0) {
-            this.showNotification('Nothing to redo', 'info');
-            return;
-        }
-        
-        const operation = this.categoryHistory.redoStack.pop();
-        this.categoryHistory.undoStack.push(operation);
-        
-        // Apply the operation
-        this.applyOperation(operation);
-        
-        this.showNotification(`Redid: ${operation.description}`);
-        this.render(this.data); // Re-render to update colors
-    }
-
-    applyOperation(operation) {
-        switch (operation.type) {
-            case 'assign':
-                operation.changes.forEach(change => {
-                    if (change.newCategory) {
-                        this.categoryManager.nodeCategories.set(change.nodeId, change.newCategory);
-                    } else {
-                        this.categoryManager.nodeCategories.delete(change.nodeId);
-                    }
-                });
-                break;
-                
-            case 'remove':
-                operation.changes.forEach(change => {
-                    this.categoryManager.nodeCategories.delete(change.nodeId);
-                });
-                break;
-                
-            case 'create_category':
-                this.categoryManager.userCategories.set(operation.categoryName, operation.categoryData);
-                break;
-                
-            case 'delete_category':
-                this.categoryManager.userCategories.delete(operation.categoryName);
-                // Remove category from all nodes
-                this.categoryManager.nodeCategories.forEach((category, nodeId) => {
-                    if (category === operation.categoryName) {
-                        this.categoryManager.nodeCategories.delete(nodeId);
-                    }
-                });
-                break;
-        }
-    }
-
-    applyReverseOperation(operation) {
-        switch (operation.type) {
-            case 'assign':
-                operation.changes.forEach(change => {
-                    if (change.oldCategory) {
-                        this.categoryManager.nodeCategories.set(change.nodeId, change.oldCategory);
-                    } else {
-                        this.categoryManager.nodeCategories.delete(change.nodeId);
-                    }
-                });
-                break;
-                
-            case 'remove':
-                operation.changes.forEach(change => {
-                    if (change.oldCategory) {
-                        this.categoryManager.nodeCategories.set(change.nodeId, change.oldCategory);
-                    }
-                });
-                break;
-                
-            case 'create_category':
-                this.categoryManager.userCategories.delete(operation.categoryName);
-                // Remove category from all nodes
-                this.categoryManager.nodeCategories.forEach((category, nodeId) => {
-                    if (category === operation.categoryName) {
-                        this.categoryManager.nodeCategories.delete(nodeId);
-                    }
-                });
-                break;
-                
-            case 'delete_category':
-                this.categoryManager.userCategories.set(operation.categoryName, operation.categoryData);
-                // Restore category to nodes
-                operation.affectedNodes.forEach(nodeId => {
-                    this.categoryManager.nodeCategories.set(nodeId, operation.categoryName);
-                });
-                break;
-        }
-    }
 
     // Update link categories when node categories change
     updateLinkCategoriesForNode(node, newCategory) {
@@ -7362,14 +7231,26 @@ class PulseSankeyChart {
         this.categoryManager.nodeCategories.set(nodeId, categoryName);
         this.saveCategoriesToMetadata();
         
-        // Find the node object to update link categories
+        // Find the node object to update link categories and node properties
         const node = this.nodes?.find(n => n.id === nodeId);
         if (node) {
+            // Update the node's category property to reflect the new assignment
+            node.category = categoryName;
+            
+            // Update expense type flag for proper value formatting
+            node.isExpenseType = categoryName === 'expense';
+            
             // Update link categories for this node
             this.updateLinkCategoriesForNode(node, categoryName);
             
-            // Re-render with new colors to show the changes
+            // Re-render with new colors and refresh labels immediately to show the changes
             this.rerenderWithNewColors();
+            
+            // Force immediate label refresh to show expense formatting
+            this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
+            this.renderLabels();
+            
+            console.log(`🔄 Updated node '${nodeId}' properties: category='${categoryName}', isExpenseType=${node.isExpenseType}`);
         }
         
         console.log(`✅ Assigned node '${nodeId}' to category '${categoryName}'`);
@@ -7388,14 +7269,22 @@ class PulseSankeyChart {
         this.categoryManager.nodeCategories.delete(nodeId);
         this.saveCategoriesToMetadata();
         
-        // Find the node object to update link categories
+        // Find the node object to update link categories and node properties
         const node = this.nodes?.find(n => n.id === nodeId);
         if (node) {
+            // Reset the node's category property
+            node.category = null;
+            
+            // Reset expense type flag for proper value formatting
+            node.isExpenseType = false;
+            
             // Update link categories for this node (null means no category)
             this.updateLinkCategoriesForNode(node, null);
             
             // Re-render with new colors to show the changes
             this.rerenderWithNewColors();
+            
+            console.log(`🔄 Reset node '${nodeId}' properties: category=null, isExpenseType=false`);
         }
         
         console.log(`✅ Removed category assignment from node '${nodeId}'`);

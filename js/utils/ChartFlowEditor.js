@@ -484,15 +484,18 @@
             return;
         }
         
-        // STEP 2: Reset the table (same as external reset button)
-        // Give the save a moment to complete, then reset the table
+        // STEP 2: Update table without full rebuild to preserve structure
         setTimeout(() => {
-            if (typeof window.loadCurrentChartData === 'function') {
-                console.log('🔄 Updating spreadsheet table...');
+            if (typeof window.updateTableRowsPreservingStructure === 'function') {
+                console.log('🔄 Updating spreadsheet table (preserving structure)...');
+                window.updateTableRowsPreservingStructure();
+                console.log('✅ Save & Sync completed successfully - chart and table synchronized!');
+            } else if (typeof window.loadCurrentChartData === 'function') {
+                console.log('🔄 Updating spreadsheet table (fallback to full rebuild)...');
                 window.loadCurrentChartData();
                 console.log('✅ Save & Sync completed successfully - chart and table synchronized!');
             } else {
-                console.warn('⚠️ loadCurrentChartData function not available');
+                console.warn('⚠️ No table update function available');
             }
             
             // STEP 3: Close the modal automatically after sync is complete

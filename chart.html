@@ -846,6 +846,21 @@
             const descriptionToggle = document.getElementById('description-column-toggle');
             const showDescription = descriptionToggle.checked;
             
+            // Preserve current column widths before toggling
+            const table = document.getElementById('main-flow-table');
+            if (table && window.storedColumnWidths !== undefined) {
+                const headers = table.querySelectorAll('thead th');
+                headers.forEach((th, index) => {
+                    const columnId = th.dataset?.col || `col-${index}`;
+                    if (getComputedStyle(th).display !== 'none') {
+                        const currentWidth = parseInt(getComputedStyle(th).width);
+                        if (currentWidth > 0) {
+                            storedColumnWidths[columnId] = currentWidth;
+                        }
+                    }
+                });
+            }
+            
             // Toggle the header column
             const descriptionHeader = document.getElementById('description-col');
             if (descriptionHeader) {
@@ -872,13 +887,9 @@
                 }
             }
             
-            // Trigger chart resize after panel adjustment
+            // Trigger chart resize after panel adjustment (without full rerender to preserve node positions)
             setTimeout(() => {
-                if (window.pulseApp && window.pulseApp.chart && typeof window.pulseApp.chart.render === 'function') {
-                    window.pulseApp.chart.render(window.pulseApp.chart.data);
-                }
-                
-                // Alternative: trigger window resize event to force chart redraw
+                // Only trigger resize event to adjust chart container size, not full rerender
                 window.dispatchEvent(new Event('resize'));
             }, 100);
             
@@ -891,6 +902,9 @@
                 }
             }, 200);
         }
+
+        // Column width storage for preserving widths across visibility changes
+        let storedColumnWidths = {};
 
         // Truly independent column resizing functionality
         function initializeColumnResizing() {
@@ -913,17 +927,22 @@
             let startWidth = 0;
             let originalTableWidth = 0;
 
-            // Get all columns and their current widths (only visible columns)
+            // Get all columns and their current widths (preserving hidden column widths)
             function getAllColumnWidths() {
                 const headers = table.querySelectorAll('thead th');
                 const widths = [];
-                headers.forEach(th => {
-                    // Only get width for visible columns
+                headers.forEach((th, index) => {
+                    const columnId = th.dataset?.col || `col-${index}`;
+                    
                     if (getComputedStyle(th).display !== 'none') {
-                        widths.push(parseInt(getComputedStyle(th).width));
+                        // Column is visible - get current width and store it
+                        const currentWidth = parseInt(getComputedStyle(th).width);
+                        storedColumnWidths[columnId] = currentWidth;
+                        widths.push(currentWidth);
                     } else {
-                        // Store a placeholder for hidden columns
-                        widths.push(0);
+                        // Column is hidden - use previously stored width or default
+                        const storedWidth = storedColumnWidths[columnId] || 140; // Default width
+                        widths.push(storedWidth);
                     }
                 });
                 return widths;
@@ -936,8 +955,14 @@
                 
                 headers.forEach((th, index) => {
                     const width = widths[index];
+                    const columnId = th.dataset?.col || `col-${index}`;
                     
-                    // Skip hidden columns
+                    // Store width for future reference (even for hidden columns)
+                    if (width > 0) {
+                        storedColumnWidths[columnId] = width;
+                    }
+                    
+                    // Skip hidden columns for actual width setting
                     if (getComputedStyle(th).display === 'none') {
                         return;
                     }
@@ -1693,6 +1718,99 @@
                 // Sankey chart without data - redirect to type selector
                 window.location.href = 'js/charts/sankey/sankey-type-selector.html';
             }
+        }
+
+        function updateFlowRowData(row, flow, index) {
+            // Update row data attributes
+            row.dataset.flowIndex = index;
+            
+            // Update each cell based on column type
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                const cellType = cell.dataset.field;
+                switch (cellType) {
+                    case 'source':
+                        cell.textContent = flow.source;
+                        break;
+                    case 'target':
+                        cell.textContent = flow.target;
+                        break;
+                    case 'value':
+                        cell.textContent = flow.value.toLocaleString();
+                        break;
+                    case 'previousValue':
+                        cell.textContent = flow.previousValue.toLocaleString();
+                        break;
+                    case 'description':
+                        cell.textContent = flow.description || '';
+                        break;
+                }
+            });
+            
+            // Update category buttons if they exist
+            const sourceCategoryBtn = row.querySelector('.source-category-btn');
+            const targetCategoryBtn = row.querySelector('.target-category-btn');
+            
+            if (sourceCategoryBtn) {
+                sourceCategoryBtn.textContent = flow.sourceCategory;
+                sourceCategoryBtn.dataset.category = flow.sourceCategory;
+            }
+            
+            if (targetCategoryBtn) {
+                targetCategoryBtn.textContent = flow.targetCategory;
+                targetCategoryBtn.dataset.category = flow.targetCategory;
+            }
+        }
+
+        function updateTableRowsPreservingStructure() {
+            const data = window.PulseDataBridge.getData();
+            if (!data) {
+                console.warn('⚠️ No chart data available for table update');
+                return;
+            }
+            
+            // CRITICAL: Preserve existing colors
+            const existingColors = { ...flowData.metadata.colorPalette };
+            
+            // Convert chart data to flow format
+            const updatedFlowData = convertSankeyDataToFlows(data);
+            
+            // CRITICAL: Restore colors
+            updatedFlowData.metadata.colorPalette = { ...existingColors, ...updatedFlowData.metadata.colorPalette };
+            
+            // Update only the changed data without rebuilding table structure
+            const tbody = document.getElementById('flows-tbody');
+            const existingRows = tbody.querySelectorAll('tr');
+            
+            // Update existing rows in-place
+            updatedFlowData.flows.forEach((flow, index) => {
+                if (existingRows[index]) {
+                    // Update existing row data
+                    updateFlowRowData(existingRows[index], flow, index);
+                } else {
+                    // Add new row if needed
+                    const newRow = createFlowRow(flow, index);
+                    tbody.appendChild(newRow);
+                }
+            });
+            
+            // Remove excess rows if new data has fewer flows
+            for (let i = updatedFlowData.flows.length; i < existingRows.length; i++) {
+                if (existingRows[i]) {
+                    existingRows[i].remove();
+                }
+            }
+            
+            // Update the global flow data
+            flowData = updatedFlowData;
+            
+            // Update metadata and stats
+            updateMetadataInputs();
+            updateAllStats();
+            
+            // Apply styling without rebuilding
+            applyVarianceColors();
+            setTimeout(() => initializeCategoryButtons(), 50);
         }
 
         function loadCurrentChartData() {
