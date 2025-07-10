@@ -29,7 +29,7 @@
             .style('top', '50%')
             .style('left', '50%')
             .style('transform', 'translate(-50%, -50%)')
-            .style('width', '280px')
+            .style('width', '320px')
             .style('background', 'white')
             .style('border-radius', '8px')
             .style('box-shadow', '0 8px 32px rgba(0,0,0,0.15)')
@@ -43,7 +43,7 @@
             .style('display', 'flex')
             .style('justify-content', 'space-between')
             .style('align-items', 'center')
-            .style('padding', '16px 16px 12px 16px')
+            .style('padding', '12px 16px 8px 16px')
             .style('border-bottom', '1px solid #e5e7eb');
 
         header.append('h3')
@@ -75,7 +75,7 @@
 
         // Form container
         const form = this.flowEditor.append('div')
-            .style('padding', '16px');
+            .style('padding', '12px 16px');
 
         // From field
         form.append('label')
@@ -89,7 +89,7 @@
         const fromContainer = form.append('div')
             .attr('class', 'from-container')
             .style('position', 'relative')
-            .style('margin-bottom', '12px');
+            .style('margin-bottom', '8px');
 
         const fromInput = fromContainer.append('input')
             .attr('type', 'text')
@@ -129,7 +129,7 @@
         const toContainer = form.append('div')
             .attr('class', 'to-container')
             .style('position', 'relative')
-            .style('margin-bottom', '12px');
+            .style('margin-bottom', '8px');
 
         const toInput = toContainer.append('input')
             .attr('type', 'text')
@@ -161,7 +161,7 @@
         const amountRow = form.append('div')
             .style('display', 'flex')
             .style('gap', '8px')
-            .style('margin-bottom', '16px');
+            .style('margin-bottom', '12px');
 
         // Amount current
         const currentColumn = amountRow.append('div')
@@ -214,12 +214,12 @@
         buttonRow.append('button')
             .text('Cancel')
             .style('flex', '1')
-            .style('padding', '8px 16px')
-            .style('background', '#f3f4f6')
+            .style('padding', '10px 16px')
+            .style('background', '#f8f9fa')
             .style('color', '#374151')
-            .style('border', '1px solid #d1d5db')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
+            .style('border', '1px solid #e9ecef')
+            .style('border-radius', '6px')
+            .style('font-size', '13px')
             .style('font-weight', '500')
             .style('cursor', 'pointer')
             .style('transition', 'all 0.15s ease')
@@ -233,14 +233,14 @@
 
         // Save & Reset button
         buttonRow.append('button')
-            .text('💾🔄 Save & Sync')
+            .text('💾 Save & Sync')
             .style('flex', '1')
-            .style('padding', '8px 16px')
+            .style('padding', '10px 16px')
             .style('background', '#059669')
             .style('color', 'white')
             .style('border', 'none')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
+            .style('border-radius', '6px')
+            .style('font-size', '13px')
             .style('font-weight', '500')
             .style('cursor', 'pointer')
             .style('transition', 'all 0.15s ease')

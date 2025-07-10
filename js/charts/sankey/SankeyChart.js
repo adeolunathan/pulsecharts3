@@ -5403,8 +5403,9 @@ class PulseSankeyChart {
             .style('border-radius', '16px')
             .style('padding', '0')
             .style('box-shadow', '0 20px 40px rgba(0, 0, 0, 0.15)')
-            .style('max-width', mode === 'create' && this.modalStep === 1 ? '180px' : '200px')
-            .style('width', '70%')
+            .style('max-width', mode === 'create' && this.modalStep === 1 ? '320px' : '380px')
+            .style('width', '90%')
+            .style('min-width', '320px')
             .style('max-height', '90vh')
             .style('overflow', 'hidden')
             .style('animation', 'modal-scale-in 0.2s ease-out');
@@ -5429,29 +5430,28 @@ class PulseSankeyChart {
         // Header with node info
         const header = content
             .append('div')
-            .style('padding', '12px 12px 0 12px')
-            .style('border-bottom', '1px solid #f3f4f6')
-            .style('margin-bottom', '8px');
+            .style('padding', '20px 24px 16px 24px')
+            .style('border-bottom', '1px solid #e5e7eb')
+            .style('background', '#fafbfc');
             
         const headerFlex = header
             .append('div')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('gap', '8px')
-            .style('margin-bottom', '8px');
+            .style('gap', '12px');
             
         // Node icon
         headerFlex
             .append('div')
-            .style('width', '32px')
-            .style('height', '32px')
+            .style('width', '40px')
+            .style('height', '40px')
             .style('background', this.getNodeColor(nodeData))
-            .style('border-radius', '8px')
+            .style('border-radius', '12px')
             .style('display', 'flex')
             .style('align-items', 'center')
             .style('justify-content', 'center')
             .style('color', 'white')
-            .style('font-size', '14px')
+            .style('font-size', '18px')
             .style('font-weight', 'bold')
             .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.15)')
             .text('📊');
@@ -5462,18 +5462,20 @@ class PulseSankeyChart {
         headerText
             .append('h3')
             .style('margin', '0')
-            .style('color', '#1f2937')
-            .style('font-size', '16px')
-            .style('font-weight', '600')
-            .text(mode === 'edit' ? nodeData.id : (this.modalStep === 1 ? 'Add Node' : 'Configure Node'));
+            .style('color', '#111827')
+            .style('font-size', '18px')
+            .style('font-weight', '700')
+            .style('line-height', '1.2')
+            .text(mode === 'edit' ? nodeData.id : (this.modalStep === 1 ? 'Add New Node' : 'Configure Node'));
             
         if (mode === 'edit') {
             headerText
                 .append('p')
-                .style('margin', '2px 0 0 0')
+                .style('margin', '4px 0 0 0')
                 .style('color', '#6b7280')
-                .style('font-size', '12px')
-                .text(`${nodeData.category || 'Node'} • Value: ${(nodeData.value || 0).toLocaleString()}`);
+                .style('font-size', '14px')
+                .style('font-weight', '500')
+                .text(`${nodeData.category || 'Uncategorized'} • ${(nodeData.value || 0).toLocaleString()}`);
         } else if (this.modalStep === 1) {
             headerText
                 .append('p')
@@ -5483,10 +5485,28 @@ class PulseSankeyChart {
                 .text('Step 1: Choose color');
         }
         
-        // Main content area
+        // Main content area with modern 2-column grid layout
         const mainContent = content
             .append('div')
-            .style('padding', '0 12px 12px 12px');
+            .style('padding', '24px')
+            .style('display', 'grid')
+            .style('grid-template-columns', '1fr 1fr')
+            .style('gap', '24px')
+            .style('min-height', '200px');
+            
+        // Left column: Visual customization
+        const leftColumn = mainContent
+            .append('div')
+            .style('display', 'flex')
+            .style('flex-direction', 'column')
+            .style('gap', '16px');
+            
+        // Right column: Properties & configuration  
+        const rightColumn = mainContent
+            .append('div')
+            .style('display', 'flex')
+            .style('flex-direction', 'column')
+            .style('gap', '16px');
         
         // Set initial color based on mode
         if (mode === 'edit') {
@@ -5499,15 +5519,18 @@ class PulseSankeyChart {
         
         // Show different content based on mode and step
         if (mode === 'edit') {
-            // Edit mode: only show color picker for existing node
-            this.addEditColorSection(mainContent, nodeData);
+            // Edit mode: color picker in left column, category/properties in right column
+            this.addEditColorSection(leftColumn, nodeData);
+            this.addCategoryAssignmentSection(rightColumn, nodeData);
         } else if (mode === 'create') {
             if (this.modalStep === 1) {
-                // Create mode step 1: just color picker and add button
-                this.addCreateStep1Section(mainContent, nodeData);
+                // Create mode step 1: color picker in left column, basic setup in right
+                this.addCreateStep1Section(leftColumn, nodeData);
+                this.addCreateStep1Properties(rightColumn, nodeData);
             } else {
-                // Create mode step 2: full configuration
-                this.addCreateStep2Section(mainContent, nodeData);
+                // Create mode step 2: form in left column, configuration in right
+                this.addCreateStep2Section(leftColumn, nodeData);
+                this.addCreateStep2Properties(rightColumn, nodeData);
             }
         }
         
@@ -5886,8 +5909,8 @@ class PulseSankeyChart {
                 chartColorsGrid
                     .append('button')
                     .attr('class', 'chart-color-btn')
-                    .style('width', '24px')
-                    .style('height', '24px')
+                    .style('width', '18px')
+                    .style('height', '18px')
                     .style('background', color)
                     .style('border', isSelected ? '3px solid #3b82f6' : '2px solid white')
                     .style('border-radius', '6px')
@@ -6245,8 +6268,8 @@ class PulseSankeyChart {
                 chartColorsGrid
                     .append('button')
                     .attr('class', 'chart-color-btn')
-                    .style('width', '24px')
-                    .style('height', '24px')
+                    .style('width', '18px')
+                    .style('height', '18px')
                     .style('background', color)
                     .style('border', isSelected ? '3px solid #3b82f6' : '2px solid white')
                     .style('border-radius', '6px')
