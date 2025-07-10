@@ -1,5 +1,5 @@
-/* ===== PULSE SANKEY CHART - ENHANCED WITH REVENUE SEGMENT COLOR CONTROL ===== */
-/* Added independent color control for revenue segments and click-to-select colors */
+/* ===== PULSE SANKEY CHART - GENERIC CATEGORY-BASED SYSTEM ===== */
+/* Generic category management with no special revenue handling */
 
 class PulseSankeyChart {
     constructor(containerId) {
@@ -14,7 +14,6 @@ class PulseSankeyChart {
         
         // Custom color storage
         this.customColors = {};
-        this.revenueSegmentColors = new Map(); // Individual colors for revenue segments
         
         // Color picker state
         this.isColorPickerActive = false;
@@ -39,7 +38,7 @@ class PulseSankeyChart {
                 liability: { color: '#f59e0b', icon: '⚖️', description: 'Liabilities and obligations' }
             },
             positioningPreferences: {
-                hubCategories: new Set(['revenue']),    // Categories that act as hubs
+                hubCategories: new Set(),               // No special hub categories
                 layerPreferences: new Map(),            // Category -> preferred layer
                 groupingRules: new Map()                // Category -> grouping behavior
             }
@@ -280,8 +279,7 @@ class PulseSankeyChart {
                 };
                 
                 
-                // Recalculate node values based on updated links
-                this.recalculateNodeValues();
+                // Removed automatic node value recalculation
                 
                 // Re-render the chart with updated data first
                 this.render(this.data);
@@ -348,8 +346,7 @@ class PulseSankeyChart {
                 
                 
                 // Check which node should be deleted based on link type
-                // For revenue segments (sources that flow to revenue hubs), delete the source
-                // For other links, delete the target if it becomes orphaned
+                // Delete the target if it becomes orphaned
                 
                 let nodeToDelete = null;
                 
@@ -382,51 +379,10 @@ class PulseSankeyChart {
         }
     }
 
-    // Recalculate node values based on current links
+    // Removed automatic node value calculation - all values preserved as-is
     recalculateNodeValues() {
-        if (!this.data || !this.data.nodes || !this.data.links) return;
-        
-        
-        // Calculate node values based on link connections
-        this.data.nodes.forEach(node => {
-            // Check if this is a source node (has outgoing links but no incoming links)
-            const hasIncomingLinks = this.data.links.some(link => {
-                const targetId = link.target && link.target.id ? link.target.id : link.target;
-                return targetId === node.id;
-            });
-            
-            const hasOutgoingLinks = this.data.links.some(link => {
-                const sourceId = link.source && link.source.id ? link.source.id : link.source;
-                return sourceId === node.id;
-            });
-            
-            // If it's a pure source node (revenue segment), sum outgoing flows
-            if (hasOutgoingLinks && !hasIncomingLinks) {
-                // Revenue segments should equal the sum of their outgoing flows
-                const outgoingFlows = this.data.links.filter(link => {
-                    const sourceId = link.source && link.source.id ? link.source.id : link.source;
-                    return sourceId === node.id;
-                });
-                node.value = outgoingFlows.reduce((sum, link) => sum + (parseFloat(link.value) || 0), 0);
-            } else {
-                // Reset intermediate and target nodes
-                node.value = 0;
-            }
-        });
-        
-        // Calculate intermediate and target node values from links
-        this.data.links.forEach(link => {
-            const sourceId = link.source && link.source.id ? link.source.id : link.source;
-            const targetId = link.target && link.target.id ? link.target.id : link.target;
-            const linkValue = parseFloat(link.value) || 0;
-            
-            // Add value to target node (incoming flow)
-            const targetNode = this.data.nodes.find(node => node.id === targetId);
-            if (targetNode) {
-                targetNode.value += linkValue;
-            }
-        });
-        
+        // No automatic calculation - all node values are preserved from original data
+        return;
     }
 
     // Update spreadsheet data if available - simplified for backup notification
@@ -1231,22 +1187,7 @@ class PulseSankeyChart {
 
 
     detectAndApplyColors(data) {
-        // Preserve existing revenue segment colors before applying new colors
-        const existingSegmentColors = new Map(this.revenueSegmentColors);
-        
-        // Apply revenue segment colors from metadata
-        if (data.metadata && data.metadata.revenueSegmentColors) {
-            Object.entries(data.metadata.revenueSegmentColors).forEach(([nodeId, color]) => {
-                this.revenueSegmentColors.set(nodeId, color);
-            });
-        }
-        
-        // Restore any existing segment colors that weren't in metadata
-        existingSegmentColors.forEach((color, nodeId) => {
-            if (!this.revenueSegmentColors.has(nodeId)) {
-                this.revenueSegmentColors.set(nodeId, color);
-            }
-        });
+        // Removed revenue segment color handling - using generic category system
 
         if (data.metadata && data.metadata.colorPalette) {
             this.customColors = { ...data.metadata.colorPalette };
@@ -1854,15 +1795,7 @@ class PulseSankeyChart {
      * These categories will be positioned prominently in the flow
      * @returns {Array} - Array of category names that act as hubs
      */
-    getUserDefinedHubs() {
-        // Users can define which categories act as hubs through metadata
-        if (this.data?.metadata?.hubCategories) {
-            return this.data.metadata.hubCategories;
-        }
-        
-        // Default hub categories (revenue is typically a hub in financial flows)
-        return ['revenue'];
-    }
+    // Removed getUserDefinedHubs function - no longer supporting hub categories
 
     /**
      * PHASE 2: Enhanced category logic and positioning preferences
@@ -1940,16 +1873,7 @@ class PulseSankeyChart {
             return;
         }
         
-        // Update hub categories list
-        const updateHubCategoriesList = () => {
-            const hubCategories = this.getUserDefinedHubs();
-            hubCategoriesList.innerHTML = hubCategories.map(cat => `
-                <div class="hub-category-item">
-                    <span>${cat}</span>
-                    <button onclick="this.removeHubCategory('${cat}')" class="remove-btn">×</button>
-                </div>
-            `).join('');
-        };
+        // Removed hub categories list management
         
         // Update positioning preferences list
         const updatePositioningPrefsList = () => {
@@ -1959,7 +1883,6 @@ class PulseSankeyChart {
                     <span>${categoryName}:</span>
                     <select onchange="this.setCategoryPositioningPreference('${categoryName}', this.value)">
                         <option value="auto" ${this.getCategoryPositioningPreference(categoryName) === 'auto' ? 'selected' : ''}>Auto</option>
-                        <option value="hub" ${this.getCategoryPositioningPreference(categoryName) === 'hub' ? 'selected' : ''}>Hub</option>
                         <option value="top" ${this.getCategoryPositioningPreference(categoryName) === 'top' ? 'selected' : ''}>Top</option>
                         <option value="center" ${this.getCategoryPositioningPreference(categoryName) === 'center' ? 'selected' : ''}>Center</option>
                         <option value="bottom" ${this.getCategoryPositioningPreference(categoryName) === 'bottom' ? 'selected' : ''}>Bottom</option>
@@ -1983,37 +1906,7 @@ class PulseSankeyChart {
         });
     }
 
-    /**
-     * Add a category as a hub
-     * @param {string} categoryName - Name of the category
-     */
-    addHubCategory(categoryName) {
-        if (!this.data.metadata) {
-            this.data.metadata = {};
-        }
-        if (!this.data.metadata.hubCategories) {
-            this.data.metadata.hubCategories = ['revenue'];
-        }
-        
-        if (!this.data.metadata.hubCategories.includes(categoryName)) {
-            this.data.metadata.hubCategories.push(categoryName);
-            console.log(`✅ Added ${categoryName} as hub category`);
-        }
-    }
-
-    /**
-     * Remove a category from hubs
-     * @param {string} categoryName - Name of the category
-     */
-    removeHubCategory(categoryName) {
-        if (this.data?.metadata?.hubCategories) {
-            const index = this.data.metadata.hubCategories.indexOf(categoryName);
-            if (index > -1) {
-                this.data.metadata.hubCategories.splice(index, 1);
-                console.log(`✅ Removed ${categoryName} from hub categories`);
-            }
-        }
-    }
+    // Removed old hub category management functions
 
     /**
      * PHASE 2: Migration from revenue hub system to category-based system
@@ -2135,18 +2028,7 @@ class PulseSankeyChart {
             return 'liability';
         }
         
-        // Based on depth and connections
-        if (node.depth === 0 && node.sourceLinks && node.sourceLinks.length > 0) {
-            // Left-most nodes that flow into revenue are likely revenue segments
-            const flowsToRevenue = node.sourceLinks.some(link => {
-                const targetId = link.target.id.toLowerCase();
-                return targetId.includes('revenue') || targetId.includes('income');
-            });
-            
-            if (flowsToRevenue) {
-                return 'revenue';
-            }
-        }
+        // Removed revenue segment detection - using generic category assignment
         
         // Based on flow patterns
         if (node.targetLinks && node.targetLinks.length > 0) {
@@ -3374,7 +3256,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Get node color with revenue segment support
+     * Get node color with generic category system
      */
     getNodeColor(node) {
         // PHASE 2: Enhanced color assignment with category-first logic
@@ -3425,10 +3307,7 @@ class PulseSankeyChart {
         const positioningPreference = this.getCategoryPositioningPreference(categoryName);
         
         // Hub categories get enhanced saturation
-        const isHubCategory = this.getUserDefinedHubs().includes(categoryName);
-        if (isHubCategory || positioningPreference === 'hub') {
-            return this.enhanceColorSaturation(baseColor, 15);
-        }
+        // Removed hub category special handling - all categories treated equally
         
         // Top positioned categories get slightly lighter colors
         if (positioningPreference === 'top') {
@@ -3548,7 +3427,7 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Get link color with revenue segment logic
+     * Get link color with generic category system
      */
     getLinkColor(link) {
         if (this.statementType === 'balance') {
@@ -3805,13 +3684,9 @@ class PulseSankeyChart {
     }
 
     /**
-     * ENHANCED: Set custom colors with revenue segment preservation
+     * Set custom colors with generic category system
      */
     setCustomColors(newColors) {
-        
-        // Preserve existing individual revenue segment colors
-        const preservedSegmentColors = new Map(this.revenueSegmentColors);
-        
         this.customColors = { ...this.customColors, ...newColors };
         
         if (this.data && this.data.metadata) {
@@ -3825,30 +3700,10 @@ class PulseSankeyChart {
             this.assignColorGroups();
         }
         
-        // Restore individual revenue segment colors
-        this.revenueSegmentColors = preservedSegmentColors;
-        
         this.rerenderWithNewColors();
-        
     }
 
-    /**
-     * ENHANCED: Set individual revenue segment color
-     */
-    setRevenueSegmentColor(nodeId, color) {
-        
-        this.revenueSegmentColors.set(nodeId, color);
-        
-        // Update metadata
-        if (this.data && this.data.metadata) {
-            if (!this.data.metadata.revenueSegmentColors) {
-                this.data.metadata.revenueSegmentColors = {};
-            }
-            this.data.metadata.revenueSegmentColors[nodeId] = color;
-        }
-        
-        this.rerenderWithNewColors();
-    }
+    // Removed setRevenueSegmentColor function - using generic category system
 
     /**
      * Save manual position to metadata for persistence across navigation
@@ -4487,7 +4342,7 @@ class PulseSankeyChart {
     openBulkCategoryAssignmentModal(selectedNodes) {
         // Get all available categories
         const categoryManager = this.categoryManager;
-        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        const allCategories = new Map([...Object.entries(categoryManager.defaultCategories), ...categoryManager.userCategories]);
         
         const modal = document.createElement('div');
         modal.className = 'bulk-category-assignment-modal';
@@ -7240,14 +7095,7 @@ class PulseSankeyChart {
             }
         });
         
-        // Get colors from revenue segment colors
-        if (this.revenueSegmentColors) {
-            this.revenueSegmentColors.forEach(color => {
-                if (color && color !== '#95a5a6') {
-                    colors.add(color);
-                }
-            });
-        }
+        // Removed revenue segment colors - using generic category system
         
         return Array.from(colors).slice(0, 8); // Limit to 8 colors for clean UI
     }
@@ -8137,12 +7985,9 @@ class PulseSankeyChart {
             }
         }
         
-        // Load positioning preferences
+        // Load positioning preferences (hub categories removed)
         if (metadata.categoryPositioningPreferences) {
             const prefs = metadata.categoryPositioningPreferences;
-            if (prefs.hubCategories) {
-                this.categoryManager.positioningPreferences.hubCategories = new Set(prefs.hubCategories);
-            }
             if (prefs.layerPreferences) {
                 this.categoryManager.positioningPreferences.layerPreferences = new Map(Object.entries(prefs.layerPreferences));
             }
@@ -8151,42 +7996,13 @@ class PulseSankeyChart {
         console.log('✅ Loaded categories from metadata');
     }
 
-    /**
-     * Add a category as a hub category
-     * @param {string} categoryName - The category to mark as hub
-     */
-    addHubCategory(categoryName) {
-        this.categoryManager.positioningPreferences.hubCategories.add(categoryName);
-        this.saveCategoriesToMetadata();
-        console.log(`✅ Added '${categoryName}' as hub category`);
-    }
-
-    /**
-     * Remove a category from hub categories
-     * @param {string} categoryName - The category to remove from hubs
-     */
-    removeHubCategory(categoryName) {
-        this.categoryManager.positioningPreferences.hubCategories.delete(categoryName);
-        this.saveCategoriesToMetadata();
-        console.log(`✅ Removed '${categoryName}' from hub categories`);
-    }
-
-    /**
-     * Check if a category is marked as a hub category
-     * @param {string} categoryName - The category to check
-     * @returns {boolean} - True if it's a hub category
-     */
-    isHubCategory(categoryName) {
-        return this.categoryManager.positioningPreferences.hubCategories.has(categoryName);
-    }
+    // Removed hub category functions - no longer supporting hub categories
 
     /**
      * Get all hub categories
      * @returns {Set} - Set of hub category names
      */
-    getHubCategories() {
-        return new Set(this.categoryManager.positioningPreferences.hubCategories);
-    }
+    // Removed getHubCategories function - no longer supporting hub categories
 
     /**
      * Group nodes by their assigned categories
@@ -8209,56 +8025,25 @@ class PulseSankeyChart {
     }
 
     /**
-     * Position nodes based on category preferences instead of revenue hub
+     * Apply generic category-based properties to nodes (no special positioning)
      */
     positionNodesByCategory() {
         if (!this.nodes || this.nodes.length === 0) return;
         
-        const categoryGroups = this.groupNodesByCategory();
-        const hubCategories = this.getHubCategories();
+        console.log(`📊 Applying category properties to ${this.nodes.length} nodes (no special positioning)`);
         
-        console.log(`📊 Positioning ${this.nodes.length} nodes using category-based system`);
-        console.log(`🎯 Hub categories: ${Array.from(hubCategories).join(', ')}`);
-        
-        // Identify nodes in hub categories
-        const hubNodes = new Set();
-        for (const [category, nodes] of categoryGroups) {
-            if (hubCategories.has(category)) {
-                nodes.forEach(node => hubNodes.add(node.id));
-                console.log(`🎯 Hub category '${category}' contains ${nodes.length} nodes`);
-            }
-        }
-        
-        // Apply intelligent layer positioning based on category relationships
+        // Apply category-based properties to all nodes equally
         this.nodes.forEach(node => {
             const category = this.getCategoryForNode(node.id);
-            const isHubNode = hubNodes.has(node.id);
             
-            // Hub nodes get priority positioning in central layers
-            if (isHubNode) {
-                // Keep hub nodes in their natural flow position but mark them as important
-                node.isHubNode = true;
-                node.categoryPositioning = 'hub';
-            } else {
-                // Non-hub nodes positioned relative to connected hub nodes
-                node.isHubNode = false;
-                node.categoryPositioning = 'flow';
-                
-                // Determine positioning preference based on category
-                if (category === 'revenue') {
-                    node.layerPreference = 'early';
-                } else if (category === 'expense') {
-                    node.layerPreference = 'middle';
-                } else if (category === 'profit') {
-                    node.layerPreference = 'late';
-                } else {
-                    node.layerPreference = 'auto';
-                }
-            }
+            // All nodes treated equally - no hub/special positioning
+            node.isHubNode = false;
+            node.categoryPositioning = 'regular';
+            node.categoryGroup = category;
+            node.layerPreference = 'auto'; // All nodes use auto positioning
         });
         
-        console.log(`✅ Applied category-based positioning to ${this.nodes.length} nodes`);
-        console.log(`🎯 ${hubNodes.size} nodes marked as hub nodes`);
+        console.log(`✅ Applied generic category properties to ${this.nodes.length} nodes`);
     }
 
     /**

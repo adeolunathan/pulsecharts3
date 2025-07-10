@@ -1233,7 +1233,7 @@ class SankeyControlModule {
         if (!this.chart) return '<div>No chart data available</div>';
         
         const categoryManager = this.chart.categoryManager;
-        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        const allCategories = new Map([...Object.entries(categoryManager.defaultCategories), ...categoryManager.userCategories]);
         
         let html = '<div class="category-overview">';
         
@@ -1626,7 +1626,7 @@ class SankeyControlModule {
         
         // Get all available categories
         const categoryManager = this.chart.categoryManager;
-        const allCategories = new Map([...categoryManager.defaultCategories, ...categoryManager.userCategories]);
+        const allCategories = new Map([...Object.entries(categoryManager.defaultCategories), ...categoryManager.userCategories]);
         
         // Build category options
         let categoryOptions = '<option value="">Select a category...</option>';

@@ -695,11 +695,19 @@ class PulseControlPanel {
 
     // Create custom control (placeholder for extensibility)
     createCustomControl(container, config) {
-        container.append('div')
-            .attr('class', 'control-custom')
-            .text(`Custom control: ${config.component || 'Unknown'}`);
-        
-        console.warn(`Custom control type '${config.component}' not implemented`);
+        if (config.render && typeof config.render === 'function') {
+            // Use the render function to create the custom control
+            const customContent = config.render();
+            container.append('div')
+                .attr('class', 'control-custom')
+                .html(customContent);
+        } else {
+            container.append('div')
+                .attr('class', 'control-custom')
+                .text(`Custom control: ${config.component || config.render || 'Unknown'}`);
+            
+            console.warn(`Custom control type '${config.component || config.render}' not implemented`);
+        }
     }
 
     // Create file upload control
