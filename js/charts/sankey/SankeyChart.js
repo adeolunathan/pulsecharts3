@@ -279,9 +279,13 @@ class PulseSankeyChart {
                 // Re-render the chart with updated data first
                 this.render(this.data);
                 
-                // CRITICAL: Notify PulseDataBridge of the update first (so it has the latest data)
-                if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
-                    window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
+                // CRITICAL: Update PulseDataBridge with the latest data first
+                if (window.PulseDataBridge) {
+                    if (typeof window.PulseDataBridge.setData === 'function') {
+                        window.PulseDataBridge.setData(this.data, 'chart-edit');
+                    } else if (typeof window.PulseDataBridge.notifyDataChange === 'function') {
+                        window.PulseDataBridge.notifyDataChange(this.data, 'chart-edit');
+                    }
                 }
                 
                 // Now do EXACTLY what the reset button does
@@ -299,18 +303,16 @@ class PulseSankeyChart {
                     // CRITICAL: Restore colors (like reset button does)
                     window.flowData.metadata.colorPalette = { ...existingColors, ...window.flowData.metadata.colorPalette };
                     
-                    // Call exact same sequence as reset button
+                    // Update metadata and stats but don't render table here to avoid conflicts
                     if (typeof window.updateMetadataInputs === 'function') {
                         window.updateMetadataInputs();
-                    }
-                    if (typeof window.renderFlowTable === 'function') {
-                        window.renderFlowTable();
                     }
                     if (typeof window.updateAllStats === 'function') {
                         window.updateAllStats();
                     }
                     
-                    // Success message (no alert dialog)
+                    // Mark that we've updated the data - table update will be handled by resetTableFromModal
+                    console.log('📊 Chart data updated, table sync will be handled by modal');
                 } else {
                     console.warn('⚠️ Could not execute reset sequence - missing functions');
                 }
