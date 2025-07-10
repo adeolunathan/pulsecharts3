@@ -44,8 +44,7 @@ class PulseSankeyChart {
             }
         };
         
-        // Context menu and category operations
-        this.currentContextMenu = null;
+        // Category operations
         this.copiedCategory = null;
         
         // Multi-node selection system
@@ -2857,11 +2856,6 @@ class PulseSankeyChart {
                 const currentColor = this.getNodeColor(d);
                 this.showColorPicker(event.currentTarget, currentColor);
             })
-            .on('contextmenu', (event, d) => {
-                event.preventDefault();
-                event.stopPropagation();
-                this.showNodeContextMenu(d, event);
-            });
 
         this.addDragBehavior(nodeGroups);
         
@@ -4163,32 +4157,6 @@ class PulseSankeyChart {
         this.tooltip.style('opacity', 0);
     }
 
-    // Node Context Menu
-    showNodeContextMenu(node, event) {
-        // Import the NodeContextMenu class if not already available
-        if (typeof NodeContextMenu === 'undefined') {
-            console.warn('NodeContextMenu class not available. Please include ContextMenu.js');
-            return;
-        }
-        
-        // Hide any existing context menu
-        this.hideNodeContextMenu();
-        
-        // Create and show the context menu
-        this.currentContextMenu = new NodeContextMenu(node, event, this);
-        
-        // Set up callbacks
-        this.currentContextMenu.onHide(() => {
-            this.currentContextMenu = null;
-        });
-    }
-
-    hideNodeContextMenu() {
-        if (this.currentContextMenu) {
-            this.currentContextMenu.destroy();
-            this.currentContextMenu = null;
-        }
-    }
 
     // Category assignment modal with smart suggestions
     showCategoryAssignmentModal(node) {
@@ -4979,7 +4947,6 @@ class PulseSankeyChart {
                 case 'escape':
                     event.preventDefault();
                     this.clearSelection();
-                    this.hideNodeContextMenu();
                     break;
                     
                 case 'delete':
