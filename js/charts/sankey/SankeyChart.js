@@ -6703,8 +6703,10 @@ class PulseSankeyChart {
         this.renderLinks();
         this.renderLabels();
         
-        // Update spreadsheet data
-        this.syncToSpreadsheet();
+        // Update the internal data to include the new node and link
+        this.updateInternalDataStructure();
+        
+        // Note: Full spreadsheet sync is deferred to avoid layout disruption
         
         // Show success message
         this.showNodeCreationSuccess(name, parentNode.id, orientation);
@@ -6751,24 +6753,74 @@ class PulseSankeyChart {
     }
     
     
-    syncToSpreadsheet() {
-        // This method will update the data spreadsheet with the new node
-        // For now, we'll just update the internal data structure
-        // The actual spreadsheet sync would depend on the spreadsheet implementation
-        
-        if (window.spreadsheetController && window.spreadsheetController.addNodeRow) {
-            // If the spreadsheet controller exists, add the new node
-            const newNodeData = this.nodes.filter(n => n.userCreated);
-            newNodeData.forEach(node => {
-                window.spreadsheetController.addNodeRow({
-                    source: node.id,
-                    target: '',
-                    value: node.value,
-                    description: node.description
-                });
-            });
+    updateInternalDataStructure() {
+        // Gently update the internal data structure to reflect current nodes and links
+        // without triggering full re-renders or layout recalculations
+        try {
+            // Build flows from current links
+            const flows = this.links.map(link => ({
+                source: link.source?.id || link.source,
+                target: link.target?.id || link.target,
+                value: link.value || 0,
+                description: link.description || ''
+            }));
+            
+            // Update data structure
+            this.data = {
+                ...this.data,
+                flows: flows
+            };
+            
+            console.log('✅ Updated internal data structure');
+        } catch (error) {
+            console.warn('⚠️ Failed to update internal data structure:', error.message);
         }
-        
+    }
+
+    syncToSpreadsheet() {
+        // Update the data spreadsheet with current chart data including new nodes
+        // This is a gentle sync that doesn't trigger full re-renders
+        try {
+            // Convert current chart data to spreadsheet format
+            const spreadsheetData = this.convertToSpreadsheetFormat(this.data);
+            
+            if (!spreadsheetData || !Array.isArray(spreadsheetData) || spreadsheetData.length === 0) {
+                console.warn('⚠️ No valid spreadsheet data generated');
+                return;
+            }
+            
+            // Update the internal data structure - skip first row (headers)
+            this.data = {
+                ...this.data,
+                flows: spreadsheetData.slice(1).map(row => ({
+                    source: row[0] || '',
+                    target: row[1] || '',
+                    value: parseFloat(row[2]) || 0,
+                    description: row[5] || ''  // Description is at index 5
+                }))
+            };
+            
+            // Gentle notification to spreadsheet without triggering full chart re-render
+            try {
+                // Dispatch custom event for spreadsheet sync only
+                const spreadsheetUpdateEvent = new CustomEvent('pulseSpreadsheetSync', {
+                    detail: { 
+                        data: this.data, 
+                        source: 'node-creation',
+                        preserveLayout: true,
+                        timestamp: Date.now()
+                    }
+                });
+                window.dispatchEvent(spreadsheetUpdateEvent);
+                
+                console.log('✅ Gently synchronized chart data to spreadsheet');
+            } catch (eventError) {
+                console.warn('⚠️ Could not notify spreadsheet:', eventError.message);
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Failed to sync to spreadsheet:', error.message);
+        }
     }
     
     showNodeCreationSuccess(nodeName, parentNodeName, orientation) {
@@ -7262,6 +7314,15 @@ class PulseSankeyChart {
             // Update the node's category property to reflect the new assignment
             node.category = categoryName;
             
+            // Remove any custom color to allow category color to take precedence
+            if (node.customColor) {
+                delete node.customColor;
+                // Also remove from the custom colors map
+                if (this.customColors && this.customColors[nodeId]) {
+                    delete this.customColors[nodeId];
+                }
+            }
+            
             // Update expense type flag for proper value formatting
             node.isExpenseType = categoryName === 'expense';
             
@@ -7275,7 +7336,7 @@ class PulseSankeyChart {
             this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
             this.renderLabels();
             
-            console.log(`🔄 Updated node '${nodeId}' properties: category='${categoryName}', isExpenseType=${node.isExpenseType}`);
+            console.log(`🔄 Updated node '${nodeId}' properties: category='${categoryName}', isExpenseType=${node.isExpenseType}, customColor removed`);
         }
         
         console.log(`✅ Assigned node '${nodeId}' to category '${categoryName}'`);

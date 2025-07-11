@@ -7,7 +7,16 @@ class CategoryAssignmentModal {
         this.node = node;
         this.modalId = `category-modal-${Date.now()}`;
         this.currentCategory = this.chart.getCategoryForNode(this.node.id);
-        this.similarNodes = this.findSimilarNodes();
+        
+        // For newly created nodes, initialize with a selected category if none exists
+        if (!this.currentCategory && this.node.userCreated) {
+            this.selectedCategory = ''; // Start with "None" selected for new nodes
+        } else {
+            this.selectedCategory = this.currentCategory;
+        }
+        
+        // Debug log for troubleshooting
+        console.log(`🔍 CategoryAssignmentModal for node '${this.node.id}', current category: ${this.currentCategory || 'none'}, userCreated: ${this.node.userCreated}`);
         
         this.createModal();
         this.setupEventListeners();
@@ -23,7 +32,9 @@ class CategoryAssignmentModal {
                     <div class="md-modal-header">
                         <div class="md-modal-title-container">
                             <h2 id="modal-title" class="md-modal-title">Category Assignment</h2>
-                            <div class="md-modal-subtitle">${this.node.id}</div>
+                            <div class="md-modal-subtitle">
+                                <span class="md-node-name">${this.node.id}</span>
+                            </div>
                         </div>
                         <button class="md-icon-button md-modal-close" aria-label="Close" type="button">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -34,53 +45,37 @@ class CategoryAssignmentModal {
                     
                     <div class="md-modal-content">
                         <div class="md-section">
-                            <h3 class="md-section-title">Available Categories</h3>
-                            <div class="md-chips-container">
+                            <h3 class="md-section-title">Categories</h3>
+                            <div class="md-category-grid">
                                 ${this.renderMaterialCategoryChips()}
                             </div>
                         </div>
                         
-                        <div class="md-section">
-                            <h3 class="md-section-title">Create New Category</h3>
-                            <div class="md-form-row">
-                                <div class="md-text-field">
-                                    <input type="text" id="category-name-input" class="md-text-field-input" placeholder=" " maxlength="30">
-                                    <label for="category-name-input" class="md-text-field-label">Category name</label>
-                                </div>
-                                <div class="md-color-field">
+                        <div class="md-section md-create-section">
+                            <div class="md-create-header">
+                                <span class="md-create-title">Create Category</span>
+                                <div class="md-create-controls">
+                                    <input type="text" id="category-name-input" class="md-name-input" placeholder="Name" maxlength="20">
+                                    <input type="text" id="category-icon-input" class="md-icon-input" placeholder="📊" maxlength="2" value="📊">
                                     <input type="color" id="category-color-input" class="md-color-input" value="#1e40af">
-                                    <label class="md-color-label">Color</label>
+                                    <button id="category-create-btn" class="md-add-btn" type="button">+</button>
                                 </div>
-                                <div class="md-text-field md-text-field-small">
-                                    <input type="text" id="category-icon-input" class="md-text-field-input" placeholder=" " maxlength="2" value="📊">
-                                    <label for="category-icon-input" class="md-text-field-label">Icon</label>
-                                </div>
-                                <button id="category-create-btn" class="md-button md-button-outlined" type="button">
-                                    <span>Create</span>
-                                </button>
                             </div>
-                        </div>
-                        
-                        <div class="md-section">
-                            <label class="md-checkbox-container">
-                                <input type="checkbox" id="category-apply-similar" class="md-checkbox-input" ${this.similarNodes.length > 0 ? '' : 'disabled'}>
-                                <div class="md-checkbox-box">
-                                    <svg class="md-checkbox-checkmark" width="18" height="18" viewBox="0 0 18 18">
-                                        <path d="M6.61 11.89L3.5 8.78 2.44 9.84 6.61 14.01 15.56 5.06 14.5 4z" fill="currentColor"/>
-                                    </svg>
-                                </div>
-                                <span class="md-checkbox-label">Apply to similar nodes (${this.similarNodes.length} found)</span>
-                            </label>
                         </div>
                     </div>
                     
                     <div class="md-modal-actions">
-                        <button class="md-button md-button-text" id="category-cancel-btn" type="button">
-                            <span>Cancel</span>
+                        <button class="md-action-btn md-add-node-btn" id="category-add-node-btn" type="button">
+                            + Add Node
                         </button>
-                        <button class="md-button md-button-filled" id="category-save-btn" type="button">
-                            <span>Save</span>
-                        </button>
+                        <div class="md-action-group">
+                            <button class="md-action-btn md-cancel-btn" id="category-cancel-btn" type="button">
+                                Cancel
+                            </button>
+                            <button class="md-action-btn md-save-btn" id="category-save-btn" type="button">
+                                Save
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,13 +98,15 @@ class CategoryAssignmentModal {
         const allCategories = this.chart.getAllCategories();
         let chipsHTML = '';
         
-        // Add "Remove Category" option with trash icon
+        // Add "Remove Category" option
+        const isRemoveSelected = this.currentCategory === '' || this.currentCategory === null || this.currentCategory === undefined;
         chipsHTML += `
-            <div class="md-chip md-chip-remove" data-category="" role="button" tabindex="0" aria-label="Remove category">
-                <svg class="md-chip-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                </svg>
-                <span class="md-chip-text">Remove</span>
+            <div class="md-category-chip md-remove-chip ${isRemoveSelected ? 'md-chip-active' : ''}" 
+                 data-category="" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Remove category">
+                <span class="md-chip-text">None</span>
             </div>
         `;
         
@@ -117,13 +114,12 @@ class CategoryAssignmentModal {
         for (const [name, category] of Object.entries(allCategories)) {
             const isSelected = this.currentCategory === name;
             chipsHTML += `
-                <div class="md-chip ${isSelected ? 'md-chip-selected' : ''}" 
+                <div class="md-category-chip ${isSelected ? 'md-chip-active' : ''}" 
                      data-category="${name}" 
                      role="button" 
                      tabindex="0" 
                      aria-label="Select ${name} category"
                      style="--chip-color: ${category.color}">
-                    <span class="md-chip-icon">${category.icon}</span>
                     <span class="md-chip-text">${name}</span>
                 </div>
             `;
@@ -132,38 +128,6 @@ class CategoryAssignmentModal {
         return chipsHTML;
     }
 
-    /**
-     * Find nodes with similar names for bulk assignment
-     */
-    findSimilarNodes() {
-        if (!this.chart.data || !this.chart.data.nodes) return [];
-        
-        const currentNodeName = this.node.id.toLowerCase();
-        const similarNodes = [];
-        
-        this.chart.data.nodes.forEach(node => {
-            if (node.id !== this.node.id) {
-                const nodeName = node.id.toLowerCase();
-                
-                // Check for similar words (basic similarity)
-                const currentWords = currentNodeName.split(/\s+/);
-                const nodeWords = nodeName.split(/\s+/);
-                
-                const commonWords = currentWords.filter(word => 
-                    nodeWords.some(nodeWord => 
-                        nodeWord.includes(word) || word.includes(nodeWord)
-                    )
-                );
-                
-                // If more than 50% of words are similar, consider it similar
-                if (commonWords.length > 0 && commonWords.length / currentWords.length > 0.5) {
-                    similarNodes.push(node);
-                }
-            }
-        });
-        
-        return similarNodes;
-    }
 
     /**
      * Get color for a category
@@ -214,6 +178,12 @@ class CategoryAssignmentModal {
         // Save button
         modal.querySelector('#category-save-btn').addEventListener('click', () => this.save());
         
+        // Add Node button
+        modal.querySelector('#category-add-node-btn').addEventListener('click', () => {
+            this.close();
+            this.chart.showCompleteNodeCreationModal(this.node);
+        });
+        
         // Focus management
         setTimeout(() => {
             modal.querySelector('.md-modal-surface').focus();
@@ -238,14 +208,14 @@ class CategoryAssignmentModal {
         const modal = document.getElementById(this.modalId);
         
         // Remove previous selection
-        modal.querySelectorAll('.md-chip').forEach(chip => {
-            chip.classList.remove('md-chip-selected');
+        modal.querySelectorAll('.md-category-chip').forEach(chip => {
+            chip.classList.remove('md-chip-active');
         });
         
         // Add selection to clicked chip
         const selectedChip = modal.querySelector(`[data-category="${categoryName}"]`);
         if (selectedChip) {
-            selectedChip.classList.add('md-chip-selected');
+            selectedChip.classList.add('md-chip-active');
         }
         
         this.selectedCategory = categoryName;
@@ -277,7 +247,7 @@ class CategoryAssignmentModal {
             iconInput.value = '📊';
             
             // Refresh category chips
-            const chipsContainer = modal.querySelector('.md-chips-container');
+            const chipsContainer = modal.querySelector('.md-category-grid');
             chipsContainer.innerHTML = this.renderMaterialCategoryChips();
             
             // Re-setup chip event listeners
@@ -297,7 +267,7 @@ class CategoryAssignmentModal {
      * Setup chip event listeners
      */
     setupChipListeners(modal) {
-        modal.querySelectorAll('.md-chip').forEach(chip => {
+        modal.querySelectorAll('.md-category-chip').forEach(chip => {
             chip.addEventListener('click', (e) => {
                 const categoryName = e.currentTarget.dataset.category;
                 this.selectCategory(categoryName);
@@ -348,32 +318,20 @@ class CategoryAssignmentModal {
      * Save category assignment
      */
     save() {
-        const modal = document.getElementById(this.modalId);
-        const applySimilar = modal.querySelector('#category-apply-similar').checked;
+        // If no category was explicitly selected, use the current selection
+        const categoryToAssign = this.selectedCategory !== undefined ? this.selectedCategory : this.currentCategory;
         
-        if (this.selectedCategory === undefined) {
-            // No category selected, do nothing
-            this.close();
-            return;
-        }
-        
-        // Assign category to current node
-        if (this.selectedCategory === '') {
-            // Remove category
+        if (categoryToAssign === undefined || categoryToAssign === null) {
+            // No valid category, treat as remove category
+            console.log(`🗑️ No category selected for node '${this.node.id}', treating as remove category`);
+            this.chart.removeNodeFromCategory(this.node.id);
+        } else if (categoryToAssign === '') {
+            // Explicitly remove category
+            console.log(`🗑️ Removing category from node '${this.node.id}'`);
             this.chart.removeNodeFromCategory(this.node.id);
         } else {
-            this.chart.assignNodeToCategory(this.node.id, this.selectedCategory);
-        }
-        
-        // Apply to similar nodes if requested
-        if (applySimilar && this.similarNodes.length > 0) {
-            this.similarNodes.forEach(node => {
-                if (this.selectedCategory === '') {
-                    this.chart.removeNodeFromCategory(node.id);
-                } else {
-                    this.chart.assignNodeToCategory(node.id, this.selectedCategory);
-                }
-            });
+            console.log(`✅ Assigning category '${categoryToAssign}' to node '${this.node.id}'`);
+            this.chart.assignNodeToCategory(this.node.id, categoryToAssign);
         }
         
         // Close modal
@@ -446,14 +404,12 @@ class CategoryAssignmentModal {
             /* Material Design Modal Surface */
             .md-modal-surface {
                 background: #ffffff;
-                border-radius: 28px;
-                box-shadow: 0 24px 38px 3px rgba(0, 0, 0, 0.14),
-                           0 9px 46px 8px rgba(0, 0, 0, 0.12),
-                           0 11px 15px -7px rgba(0, 0, 0, 0.20);
+                border-radius: 8px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
                 min-width: 280px;
-                max-width: 720px;
-                width: 90vw;
-                max-height: 90vh;
+                max-width: 360px;
+                width: auto;
+                max-height: 420px;
                 overflow: hidden;
                 outline: none;
                 transform: scale(0.8);
@@ -467,9 +423,9 @@ class CategoryAssignmentModal {
             /* Modal Header */
             .md-modal-header {
                 display: flex;
-                align-items: flex-start;
+                align-items: center;
                 justify-content: space-between;
-                padding: 24px 24px 16px 24px;
+                padding: 12px 16px 8px 16px;
             }
             
             .md-modal-title-container {
@@ -479,37 +435,70 @@ class CategoryAssignmentModal {
             .md-modal-title {
                 margin: 0;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 24px;
-                line-height: 32px;
-                font-weight: 400;
+                font-size: 14px;
+                line-height: 18px;
+                font-weight: 500;
                 color: #1d1b20;
                 letter-spacing: 0;
             }
             
             .md-modal-subtitle {
-                margin: 2px 0 0 0;
+                margin: 1px 0 0 0;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 14px;
-                line-height: 20px;
-                font-weight: 500;
+                font-size: 11px;
+                line-height: 14px;
+                font-weight: 400;
                 color: #49454f;
                 letter-spacing: 0.1px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            
+            .md-node-name {
+                font-weight: 500;
+                color: #1d1b20;
+            }
+            
+            .md-current-category {
+                display: inline-flex;
+                align-items: center;
+                gap: 2px;
+                padding: 2px 6px;
+                border-radius: 8px;
+                background-color: var(--category-color);
+                color: white;
+                font-size: 9px;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+            
+            .md-no-category {
+                font-size: 9px;
+                color: #9ca3af;
+                font-style: italic;
             }
             
             /* Icon Button */
             .md-icon-button {
                 background: none;
                 border: none;
-                width: 48px;
-                height: 48px;
-                border-radius: 24px;
+                width: 24px;
+                height: 24px;
+                border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
                 color: #49454f;
                 transition: background-color 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
-                margin: -12px -12px 0 0;
+                margin: 0;
+            }
+            
+            .md-icon-button svg {
+                width: 16px;
+                height: 16px;
             }
             
             .md-icon-button:hover {
@@ -527,133 +516,223 @@ class CategoryAssignmentModal {
             
             /* Modal Content */
             .md-modal-content {
-                padding: 0 24px;
+                padding: 0 16px;
                 overflow-y: auto;
-                max-height: calc(90vh - 200px);
+                max-height: 300px;
             }
             
             /* Sections */
             .md-section {
-                margin-bottom: 32px;
+                margin-bottom: 12px;
             }
             
             .md-section-title {
-                margin: 0 0 16px 0;
+                margin: 0 0 6px 0;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 16px;
-                line-height: 24px;
+                font-size: 12px;
+                line-height: 16px;
                 font-weight: 500;
                 color: #1d1b20;
                 letter-spacing: 0.1px;
             }
             
-            /* Material Design Chips */
-            .md-chips-container {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
+            /* Category Grid - Two Rows Layout */
+            .md-category-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+                gap: 6px;
+                justify-content: space-between;
             }
             
-            .md-chip {
-                display: inline-flex;
+            /* Category Chips */
+            .md-category-chip {
+                display: flex;
                 align-items: center;
+                justify-content: center;
                 height: 32px;
-                padding: 0 16px;
-                border-radius: 8px;
-                border: 1px solid #79747e;
-                background-color: transparent;
+                padding: 4px 8px;
+                border-radius: 6px;
+                background-color: var(--chip-color, #f3f4f6);
                 cursor: pointer;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 14px;
-                line-height: 20px;
-                font-weight: 500;
-                letter-spacing: 0.1px;
-                color: #1d1b20;
+                font-size: 11px;
+                line-height: 14px;
+                font-weight: 600;
+                color: #ffffff;
                 transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
                 user-select: none;
                 outline: none;
+                border: 2px solid transparent;
+                position: relative;
             }
             
-            .md-chip:hover {
-                background-color: rgba(29, 27, 32, 0.08);
+            .md-category-chip:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             }
             
-            .md-chip:focus {
+            .md-category-chip:focus {
                 border-color: #6750a4;
-                background-color: rgba(103, 80, 164, 0.12);
             }
             
-            .md-chip.md-chip-selected {
-                background-color: #e8def8;
-                border-color: #6750a4;
-                color: #21005d;
+            /* Active (Selected) State with Glow */
+            .md-category-chip.md-chip-active {
+                border-color: #ffffff;
+                box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.4), 0 0 20px rgba(103, 80, 164, 0.3);
+                transform: scale(1.05);
             }
             
-            .md-chip.md-chip-remove {
-                border-color: #ba1a1a;
-                color: #ba1a1a;
-            }
-            
-            .md-chip.md-chip-remove:hover {
-                background-color: rgba(186, 26, 26, 0.08);
-            }
-            
-            .md-chip.md-chip-remove.md-chip-selected {
-                background-color: #ffdad6;
-                color: #410002;
-            }
-            
-            .md-chip:not(.md-chip-remove) {
-                background-color: var(--chip-color, #e8def8);
-                border-color: var(--chip-color, #6750a4);
+            /* Remove Category Chip */
+            .md-remove-chip {
+                background-color: #dc3545 !important;
                 color: #ffffff;
             }
             
-            .md-chip:not(.md-chip-remove):hover {
-                filter: brightness(1.1);
-            }
-            
-            .md-chip-icon {
-                margin-right: 8px;
-                flex-shrink: 0;
+            .md-remove-chip.md-chip-active {
+                box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.4), 0 0 20px rgba(220, 53, 69, 0.3);
             }
             
             .md-chip-text {
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 120px;
+                max-width: 100%;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 600;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
             }
             
-            /* Form Row */
-            .md-form-row {
+            /* Create Category Section */
+            .md-create-section {
+                background-color: #f8fafc;
+                border-radius: 8px;
+                padding: 12px;
+                margin: 4px 0;
+            }
+            
+            .md-create-header {
                 display: flex;
-                gap: 16px;
-                align-items: flex-end;
-                flex-wrap: wrap;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .md-create-title {
+                font-size: 11px;
+                font-weight: 600;
+                color: #64748b;
+                min-width: 80px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .md-create-controls {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+                flex: 1;
+            }
+            
+            .md-name-input {
+                flex: 1;
+                height: 32px;
+                padding: 0 10px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+                font-size: 12px;
+                color: #1e293b;
+                outline: none;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+                background-color: #ffffff;
+            }
+            
+            .md-name-input:focus {
+                border-color: #6750a4;
+                box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1);
+            }
+            
+            .md-icon-input {
+                width: 40px;
+                height: 32px;
+                padding: 0;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                font-size: 14px;
+                text-align: center;
+                outline: none;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+                background-color: #ffffff;
+            }
+            
+            .md-icon-input:focus {
+                border-color: #6750a4;
+                box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1);
+            }
+            
+            .md-color-input {
+                width: 32px;
+                height: 32px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                cursor: pointer;
+                background: none;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+            }
+            
+            .md-color-input:focus {
+                border-color: #6750a4;
+                box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1);
+            }
+            
+            .md-add-btn {
+                width: 32px;
+                height: 32px;
+                border: none;
+                border-radius: 6px;
+                background-color: #6750a4;
+                color: #ffffff;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+                box-shadow: 0 2px 4px rgba(103, 80, 164, 0.2);
+            }
+            
+            .md-add-btn:hover {
+                background-color: #5d4e99;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(103, 80, 164, 0.3);
+            }
+            
+            .md-add-btn:active {
+                transform: translateY(0);
             }
             
             /* Material Design Text Field */
             .md-text-field {
                 position: relative;
                 flex: 1;
-                min-width: 120px;
+                min-width: 80px;
             }
             
             .md-text-field-small {
-                flex: 0 0 80px;
+                flex: 0 0 40px;
             }
             
             .md-text-field-input {
                 width: 100%;
-                height: 56px;
-                padding: 16px 16px 8px 16px;
+                height: 32px;
+                padding: 8px 8px 4px 8px;
                 border: 1px solid #79747e;
                 border-radius: 4px;
                 background-color: transparent;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 16px;
-                line-height: 24px;
+                font-size: 12px;
+                line-height: 16px;
                 color: #1d1b20;
                 outline: none;
                 transition: border-color 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -667,17 +746,17 @@ class CategoryAssignmentModal {
             
             .md-text-field-input:not(:placeholder-shown) + .md-text-field-label,
             .md-text-field-input:focus + .md-text-field-label {
-                transform: translateY(-24px) scale(0.75);
+                transform: translateY(-14px) scale(0.75);
                 color: #6750a4;
             }
             
             .md-text-field-label {
                 position: absolute;
-                top: 16px;
-                left: 16px;
+                top: 8px;
+                left: 8px;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 16px;
-                line-height: 24px;
+                font-size: 12px;
+                line-height: 16px;
                 color: #49454f;
                 pointer-events: none;
                 transform-origin: top left;
@@ -689,12 +768,12 @@ class CategoryAssignmentModal {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                gap: 8px;
+                gap: 4px;
             }
             
             .md-color-input {
-                width: 56px;
-                height: 56px;
+                width: 32px;
+                height: 32px;
                 border: 1px solid #79747e;
                 border-radius: 4px;
                 cursor: pointer;
@@ -710,85 +789,37 @@ class CategoryAssignmentModal {
             
             .md-color-label {
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 12px;
-                line-height: 16px;
+                font-size: 10px;
+                line-height: 12px;
                 color: #49454f;
                 letter-spacing: 0.4px;
             }
             
-            /* Checkbox */
-            .md-checkbox-container {
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                cursor: pointer;
-                min-height: 48px;
-            }
             
-            .md-checkbox-input {
-                position: absolute;
-                opacity: 0;
-                width: 0;
-                height: 0;
-            }
-            
-            .md-checkbox-box {
-                position: relative;
-                width: 18px;
-                height: 18px;
-                border: 2px solid #79747e;
-                border-radius: 2px;
-                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
-            }
-            
-            .md-checkbox-input:checked + .md-checkbox-box {
-                background-color: #6750a4;
-                border-color: #6750a4;
-            }
-            
-            .md-checkbox-input:disabled + .md-checkbox-box {
-                border-color: #c7c5ca;
-            }
-            
-            .md-checkbox-checkmark {
-                position: absolute;
-                top: -2px;
-                left: -2px;
-                opacity: 0;
-                color: #ffffff;
-                transition: opacity 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
-            }
-            
-            .md-checkbox-input:checked + .md-checkbox-box .md-checkbox-checkmark {
-                opacity: 1;
-            }
-            
-            .md-checkbox-label {
-                font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 14px;
-                line-height: 20px;
-                color: #1d1b20;
-                letter-spacing: 0.25px;
-            }
-            
-            /* Modal Actions */
+            /* Modal Actions Layout */
             .md-modal-actions {
                 display: flex;
-                justify-content: flex-end;
-                gap: 8px;
-                padding: 16px 24px 24px 24px;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                border-top: 1px solid #e2e8f0;
+                background-color: #f8fafc;
             }
             
-            /* Material Design Buttons */
-            .md-button {
-                height: 40px;
-                padding: 0 24px;
-                border-radius: 20px;
+            .md-action-group {
+                display: flex;
+                gap: 6px;
+            }
+            
+            /* Action Buttons */
+            .md-action-btn {
+                height: 28px;
+                padding: 0 12px;
+                border-radius: 6px;
                 border: none;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 14px;
-                line-height: 20px;
-                font-weight: 500;
+                font-size: 11px;
+                font-weight: 600;
                 letter-spacing: 0.1px;
                 cursor: pointer;
                 transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -796,59 +827,46 @@ class CategoryAssignmentModal {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                min-width: 64px;
+                min-width: 60px;
             }
             
-            .md-button-text {
-                background-color: transparent;
-                color: #6750a4;
-            }
-            
-            .md-button-text:hover {
-                background-color: rgba(103, 80, 164, 0.08);
-            }
-            
-            .md-button-text:focus {
-                background-color: rgba(103, 80, 164, 0.12);
-            }
-            
-            .md-button-text:active {
-                background-color: rgba(103, 80, 164, 0.16);
-            }
-            
-            .md-button-outlined {
-                background-color: transparent;
-                color: #6750a4;
-                border: 1px solid #79747e;
-            }
-            
-            .md-button-outlined:hover {
-                background-color: rgba(103, 80, 164, 0.08);
-                border-color: #6750a4;
-            }
-            
-            .md-button-outlined:focus {
-                background-color: rgba(103, 80, 164, 0.12);
-                border-color: #6750a4;
-            }
-            
-            .md-button-filled {
-                background-color: #6750a4;
+            .md-add-node-btn {
+                background-color: #0ea5e9;
                 color: #ffffff;
+                box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
             }
             
-            .md-button-filled:hover {
-                background-color: #5d4e99;
-                box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+            .md-add-node-btn:hover {
+                background-color: #0284c7;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(14, 165, 233, 0.3);
             }
             
-            .md-button-filled:focus {
-                background-color: #5d4e99;
-                box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+            .md-cancel-btn {
+                background-color: transparent;
+                color: #64748b;
+                border: 1px solid #cbd5e1;
             }
             
-            .md-button-filled:active {
-                background-color: #4c4289;
+            .md-cancel-btn:hover {
+                background-color: #f1f5f9;
+                border-color: #94a3b8;
+            }
+            
+            .md-save-btn {
+                background-color: #10b981;
+                color: #ffffff;
+                box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+            }
+            
+            .md-save-btn:hover {
+                background-color: #059669;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+            }
+            
+            .md-action-btn:active {
+                transform: translateY(0);
             }
             
             /* Material Design Snackbar */
