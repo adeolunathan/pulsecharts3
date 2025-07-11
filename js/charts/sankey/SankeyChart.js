@@ -6706,7 +6706,8 @@ class PulseSankeyChart {
         // Update the internal data to include the new node and link
         this.updateInternalDataStructure();
         
-        // Note: Full spreadsheet sync is deferred to avoid layout disruption
+        // Gentle sync to spreadsheet without triggering layout recalculation
+        this.gentleSpreadsheetSync();
         
         // Show success message
         this.showNodeCreationSuccess(name, parentNode.id, orientation);
@@ -6774,6 +6775,31 @@ class PulseSankeyChart {
             console.log('✅ Updated internal data structure');
         } catch (error) {
             console.warn('⚠️ Failed to update internal data structure:', error.message);
+        }
+    }
+
+    gentleSpreadsheetSync() {
+        // Sync to spreadsheet without triggering chart re-render
+        try {
+            if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
+                // Use data bridge with no-render flag
+                window.PulseDataBridge.notifyDataChange(this.data, 'chart-update-no-render');
+            }
+            
+            // Also dispatch custom event for spreadsheet-only updates
+            const spreadsheetEvent = new CustomEvent('pulseSpreadsheetUpdate', {
+                detail: { 
+                    data: this.data, 
+                    source: 'node-creation',
+                    noRender: true,
+                    timestamp: Date.now()
+                }
+            });
+            window.dispatchEvent(spreadsheetEvent);
+            
+            console.log('✅ Gentle spreadsheet sync completed');
+        } catch (error) {
+            console.warn('⚠️ Gentle spreadsheet sync failed:', error.message);
         }
     }
 

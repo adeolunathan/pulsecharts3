@@ -45,21 +45,17 @@ class CategoryAssignmentModal {
                     
                     <div class="md-modal-content">
                         <div class="md-section">
-                            <h3 class="md-section-title">Categories</h3>
                             <div class="md-category-grid">
                                 ${this.renderMaterialCategoryChips()}
                             </div>
                         </div>
                         
                         <div class="md-section md-create-section">
-                            <div class="md-create-header">
-                                <span class="md-create-title">Create Category</span>
-                                <div class="md-create-controls">
-                                    <input type="text" id="category-name-input" class="md-name-input" placeholder="Name" maxlength="20">
-                                    <input type="text" id="category-icon-input" class="md-icon-input" placeholder="📊" maxlength="2" value="📊">
-                                    <input type="color" id="category-color-input" class="md-color-input" value="#1e40af">
-                                    <button id="category-create-btn" class="md-add-btn" type="button">+</button>
-                                </div>
+                            <div class="md-create-title">Create Category</div>
+                            <div class="md-create-controls">
+                                <input type="text" id="category-name-input" class="md-name-input" placeholder="Name" maxlength="20">
+                                <input type="color" id="category-color-input" class="md-color-input" value="#1e40af">
+                                <button id="category-create-btn" class="md-add-btn" type="button">+</button>
                             </div>
                         </div>
                     </div>
@@ -106,7 +102,7 @@ class CategoryAssignmentModal {
                  role="button" 
                  tabindex="0" 
                  aria-label="Remove category">
-                <span class="md-chip-text">None</span>
+                <span class="md-chip-icon">✕</span>
             </div>
         `;
         
@@ -228,11 +224,10 @@ class CategoryAssignmentModal {
         const modal = document.getElementById(this.modalId);
         const nameInput = modal.querySelector('#category-name-input');
         const colorInput = modal.querySelector('#category-color-input');
-        const iconInput = modal.querySelector('#category-icon-input');
         
         const name = nameInput.value.trim();
         const color = colorInput.value;
-        const icon = iconInput.value.trim() || '📊';
+        const icon = '📊'; // Default icon since we removed the picker
         
         if (!name) {
             this.showSnackbar('Please enter a category name', 'error');
@@ -244,7 +239,6 @@ class CategoryAssignmentModal {
         if (this.chart.createCustomCategory(name, color, icon)) {
             // Clear form
             nameInput.value = '';
-            iconInput.value = '📊';
             
             // Refresh category chips
             const chipsContainer = modal.querySelector('.md-category-grid');
@@ -406,10 +400,10 @@ class CategoryAssignmentModal {
                 background: #ffffff;
                 border-radius: 8px;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-                min-width: 280px;
-                max-width: 360px;
+                min-width: 260px;
+                max-width: 320px;
                 width: auto;
-                max-height: 420px;
+                max-height: 380px;
                 overflow: hidden;
                 outline: none;
                 transform: scale(0.8);
@@ -516,14 +510,14 @@ class CategoryAssignmentModal {
             
             /* Modal Content */
             .md-modal-content {
-                padding: 0 16px;
+                padding: 0 12px;
                 overflow-y: auto;
-                max-height: 300px;
+                max-height: 280px;
             }
             
             /* Sections */
             .md-section {
-                margin-bottom: 12px;
+                margin-bottom: 8px;
             }
             
             .md-section-title {
@@ -539,8 +533,8 @@ class CategoryAssignmentModal {
             /* Category Grid - Two Rows Layout */
             .md-category-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-                gap: 6px;
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+                gap: 4px;
                 justify-content: space-between;
             }
             
@@ -549,14 +543,14 @@ class CategoryAssignmentModal {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 32px;
-                padding: 4px 8px;
-                border-radius: 6px;
+                height: 28px;
+                padding: 3px 6px;
+                border-radius: 5px;
                 background-color: var(--chip-color, #f3f4f6);
                 cursor: pointer;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 11px;
-                line-height: 14px;
+                font-size: 10px;
+                line-height: 12px;
                 font-weight: 600;
                 color: #ffffff;
                 transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -598,32 +592,31 @@ class CategoryAssignmentModal {
                 text-overflow: ellipsis;
                 max-width: 100%;
                 text-align: center;
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: 600;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            }
+            
+            .md-chip-icon {
+                font-size: 12px;
+                font-weight: bold;
             }
             
             /* Create Category Section */
             .md-create-section {
                 background-color: #f8fafc;
-                border-radius: 8px;
-                padding: 12px;
-                margin: 4px 0;
-            }
-            
-            .md-create-header {
-                display: flex;
-                align-items: center;
-                gap: 12px;
+                border-radius: 6px;
+                padding: 8px;
+                margin: 6px 0 0 0;
             }
             
             .md-create-title {
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: 600;
                 color: #64748b;
-                min-width: 80px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                margin-bottom: 6px;
             }
             
             .md-create-controls {
@@ -652,23 +645,6 @@ class CategoryAssignmentModal {
                 box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1);
             }
             
-            .md-icon-input {
-                width: 40px;
-                height: 32px;
-                padding: 0;
-                border: 1px solid #cbd5e1;
-                border-radius: 6px;
-                font-size: 14px;
-                text-align: center;
-                outline: none;
-                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
-                background-color: #ffffff;
-            }
-            
-            .md-icon-input:focus {
-                border-color: #6750a4;
-                box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1);
-            }
             
             .md-color-input {
                 width: 32px;
@@ -801,7 +777,7 @@ class CategoryAssignmentModal {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 12px 16px;
+                padding: 8px 12px;
                 border-top: 1px solid #e2e8f0;
                 background-color: #f8fafc;
             }
@@ -813,12 +789,12 @@ class CategoryAssignmentModal {
             
             /* Action Buttons */
             .md-action-btn {
-                height: 28px;
-                padding: 0 12px;
-                border-radius: 6px;
+                height: 24px;
+                padding: 0 8px;
+                border-radius: 4px;
                 border: none;
                 font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: 600;
                 letter-spacing: 0.1px;
                 cursor: pointer;
@@ -827,7 +803,7 @@ class CategoryAssignmentModal {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                min-width: 60px;
+                min-width: 50px;
             }
             
             .md-add-node-btn {
