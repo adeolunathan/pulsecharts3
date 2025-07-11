@@ -6772,7 +6772,7 @@ class PulseSankeyChart {
                 flows: flows
             };
             
-            console.log('✅ Updated internal data structure');
+            console.log(`✅ Updated internal data structure with ${flows.length} flows:`, flows);
         } catch (error) {
             console.warn('⚠️ Failed to update internal data structure:', error.message);
         }
@@ -6781,27 +6781,119 @@ class PulseSankeyChart {
     gentleSpreadsheetSync() {
         // Sync to spreadsheet without triggering chart re-render
         try {
-            if (window.PulseDataBridge && typeof window.PulseDataBridge.notifyDataChange === 'function') {
-                // Use data bridge with no-render flag
-                window.PulseDataBridge.notifyDataChange(this.data, 'chart-update-no-render');
+            // Debug: Log what's available
+            console.log('🔍 Spreadsheet sync debug:', {
+                unifiedDataEditor: !!window.unifiedDataEditor,
+                unifiedDataEditorType: window.unifiedDataEditor?.chartType,
+                spreadsheetController: !!window.spreadsheetController,
+                flowData: typeof flowData !== 'undefined',
+                flowDataFlows: typeof flowData !== 'undefined' ? flowData?.flows?.length : 'N/A',
+                renderFlowTable: typeof renderFlowTable,
+                BusinessFlow: typeof BusinessFlow
+            });
+            
+            // First try: Modern UnifiedSpreadsheetEditor
+            if (window.unifiedDataEditor && 
+                window.unifiedDataEditor.chartType === 'sankey' &&
+                typeof window.unifiedDataEditor.render === 'function') {
+                console.log('📊 Syncing data to UnifiedSpreadsheetEditor...');
+                
+                // Direct sync: update spreadsheet data without triggering chart updates
+                if (this.data && this.data.flows) {
+                    // Convert flows to spreadsheet format
+                    const spreadsheetData = this.data.flows.map(flow => ({
+                        source: flow.source || '',
+                        target: flow.target || '',
+                        value: flow.value || 0,
+                        previousValue: flow.previousValue || 0,
+                        description: flow.description || ''
+                    }));
+                    
+                    // Update spreadsheet data directly without triggering loadInitialData
+                    window.unifiedDataEditor.data = spreadsheetData;
+                    window.unifiedDataEditor.render();
+                    
+                    console.log(`✅ Updated UnifiedSpreadsheetEditor with ${spreadsheetData.length} flows`);
+                    return;
+                }
             }
             
-            // Also dispatch custom event for spreadsheet-only updates
-            const spreadsheetEvent = new CustomEvent('pulseSpreadsheetUpdate', {
-                detail: { 
-                    data: this.data, 
-                    source: 'node-creation',
-                    noRender: true,
-                    timestamp: Date.now()
+            // Second try: Legacy SpreadsheetController with flowData
+            if (window.spreadsheetController && typeof flowData !== 'undefined' && 
+                typeof BusinessFlow !== 'undefined' && this.data && this.data.flows) {
+                console.log('📊 Syncing data to legacy SpreadsheetController...');
+                
+                // Update the legacy flowData.flows array with proper BusinessFlow instances
+                flowData.flows = this.data.flows.map(flow => new BusinessFlow({
+                    id: flow.id || `flow_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    source: flow.source || '',
+                    target: flow.target || '',
+                    value: flow.value || 0,
+                    previousValue: flow.previousValue || 0,
+                    description: flow.description || '',
+                    flowType: 'revenue_flow',
+                    sourceLayer: 0,
+                    targetLayer: 1,
+                    sourceOrder: 1,
+                    targetOrder: 1,
+                    sourceCategory: 'revenue',
+                    targetCategory: 'revenue'
+                }));
+                
+                // Trigger visual update of the spreadsheet using renderFlowTable
+                if (typeof renderFlowTable === 'function') {
+                    renderFlowTable();
+                } else if (typeof window.spreadsheetController.rebuildTable === 'function') {
+                    window.spreadsheetController.rebuildTable();
                 }
-            });
-            window.dispatchEvent(spreadsheetEvent);
+                
+                console.log(`✅ Updated legacy spreadsheet with ${this.data.flows.length} BusinessFlow instances`);
+                return;
+            }
             
-            console.log('✅ Gentle spreadsheet sync completed');
+            // Third try: Direct call to renderFlowTable if available
+            if (typeof renderFlowTable === 'function' && typeof flowData !== 'undefined' && 
+                typeof BusinessFlow !== 'undefined' && this.data && this.data.flows) {
+                console.log('📊 Syncing via renderFlowTable function...');
+                
+                // Update flowData first with proper BusinessFlow instances
+                flowData.flows = this.data.flows.map(flow => new BusinessFlow({
+                    id: flow.id || `flow_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    source: flow.source || '',
+                    target: flow.target || '',
+                    value: flow.value || 0,
+                    previousValue: flow.previousValue || 0,
+                    description: flow.description || '',
+                    flowType: 'revenue_flow',
+                    sourceLayer: 0,
+                    targetLayer: 1,
+                    sourceOrder: 1,
+                    targetOrder: 1,
+                    sourceCategory: 'revenue',
+                    targetCategory: 'revenue'
+                }));
+                
+                // Call renderFlowTable to refresh display
+                renderFlowTable();
+                
+                console.log(`✅ Updated spreadsheet via renderFlowTable with ${this.data.flows.length} BusinessFlow instances`);
+                return;
+            }
+            
+            // Fallback: Update PulseApp data for future sync
+            if (window.pulseApp) {
+                console.log('📊 Updating PulseApp current data for future sync');
+                window.pulseApp.currentData = this.data;
+                console.log('✅ PulseApp data updated');
+                return;
+            }
+            
+            console.log('ℹ️ No spreadsheet system available, data will sync when system initializes');
         } catch (error) {
             console.warn('⚠️ Gentle spreadsheet sync failed:', error.message);
         }
     }
+
 
     syncToSpreadsheet() {
         // Update the data spreadsheet with current chart data including new nodes
