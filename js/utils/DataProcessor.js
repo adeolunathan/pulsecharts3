@@ -19,6 +19,7 @@ window.DataProcessor = (function() {
             return [text];
         }
         
+        
         const words = text.split(' ');
         const lines = [];
         let currentLine = '';
