@@ -5582,43 +5582,23 @@
 
         // Chart Title Editing Functions with Modal
         function findChartTitle() {
-            // Try multiple selectors to find the chart title
-            const selectors = [
-                '#main-chart text.chart-title',
-                '#main-chart .chart-title', 
-                '#main-chart text[text-anchor="middle"]',
-                '#main-chart text[text-anchor="center"]',
-                '#main-chart svg text:first-of-type',
-                '#main-chart text',
-                '#main-chart svg g text'
+            // FIXED: Only target elements with the correct class, no text content matching
+            const titleSelectors = [
+                '#main-chart .main-chart-title',  // Primary: correct class
+                '#main-chart text.chart-title',   // Secondary: legacy class
+                '#main-chart .chart-title'        // Tertiary: any chart-title class
             ];
             
-            for (const selector of selectors) {
-                const elements = document.querySelectorAll(selector);
-                for (const element of elements) {
-                    const text = element.textContent.trim();
-                    // Look for titles that contain typical chart title keywords
-                    if (text.length > 10 && (
-                        text.includes('Statement') || 
-                        text.includes('Corp') || 
-                        text.includes('Inc') || 
-                        text.includes('Q1') || text.includes('Q2') || text.includes('Q3') || text.includes('Q4') ||
-                        text.includes('2023') || text.includes('2024') || text.includes('2025') ||
-                        text.includes('Income') || text.includes('Balance')
-                    )) {
-                        return element;
-                    }
+            // Try each selector in order of specificity
+            for (const selector of titleSelectors) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    console.log(`📍 Found chart title using selector: ${selector}`);
+                    return element;
                 }
             }
             
-            // Fallback: get the first text element that's reasonably long
-            const allTexts = document.querySelectorAll('#main-chart text');
-            for (const text of allTexts) {
-                if (text.textContent.trim().length > 15) {
-                    return text;
-                }
-            }
-            
+            console.warn('⚠️ No chart title element found with proper class selectors');
             return null;
         }
 
