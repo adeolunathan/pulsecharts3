@@ -2774,12 +2774,12 @@
                 // Get source and target values with fallback logic
                 const sourceValue = columnMap.source >= 0 ? values[columnMap.source] : `Flow ${i} Source`;
                 const targetValue = columnMap.target >= 0 ? values[columnMap.target] : `Flow ${i} Target`;
-                const amountValue = columnMap.amount >= 0 ? parseFloat(values[columnMap.amount]) : 100;
+                const amountValue = columnMap.amount >= 0 ? (window.robustParseNumber ? window.robustParseNumber(values[columnMap.amount]) : parseFloat(values[columnMap.amount])) : 100;
                 
                 // Minimum requirement: at least one meaningful value
                 if (values.length >= 1 && (sourceValue || targetValue || amountValue)) {
                     const previousValue = columnMap.previousAmount >= 0 && values[columnMap.previousAmount] 
-                        ? parseFloat(values[columnMap.previousAmount]) || 0 
+                        ? (window.robustParseNumber ? window.robustParseNumber(values[columnMap.previousAmount]) : parseFloat(values[columnMap.previousAmount])) || 0 
                         : 0;
                     
                     flows.push(new BusinessFlow({
@@ -3471,7 +3471,7 @@
                 
                 data.forEach(item => {
                     const category = item.category || item.name || item.label;
-                    const value = parseFloat(item.value || item.amount || item.y);
+                    const value = window.robustParseNumber ? window.robustParseNumber(item.value || item.amount || item.y) : parseFloat(item.value || item.amount || item.y);
                     
                     if (category && !isNaN(value)) {
                         categories.push(category);
@@ -3511,7 +3511,7 @@
                 const row = lines[i].split(',').map(cell => cell.trim());
                 if (row.length > Math.max(categoryIndex, valueIndex)) {
                     const category = row[categoryIndex];
-                    const value = parseFloat(row[valueIndex]);
+                    const value = window.robustParseNumber ? window.robustParseNumber(row[valueIndex]) : parseFloat(row[valueIndex]);
                     
                     if (category && !isNaN(value)) {
                         categories.push(category);
@@ -4643,6 +4643,17 @@
                 // Trigger chart update
                 debouncedRealTimeUpdate();
                 
+                // Ensure title control isolation after paste operations
+                if (window.TitleControlIsolation) {
+                    setTimeout(() => {
+                        const chart = window.pulseApp?.currentChart || window.currentChart;
+                        if (chart) {
+                            window.TitleControlIsolation.ensureTitleIsolation(chart);
+                            console.log('📝 Title isolation ensured after bulk paste operation');
+                        }
+                    }, 600); // Longer delay for bulk operations
+                }
+                
                 // Additional debug: log table state
                 
                 // Show success message
@@ -4658,16 +4669,37 @@
                     return [];
                 }
 
-                // Detect delimiter (tab, comma, or semicolon)
+                // Detect delimiter (tab, comma, or semicolon) - FIXED: Don't treat thousands separators as delimiters
                 const firstLine = lines[0];
                 let delimiter = '\t'; // Default to tab (Excel/Google Sheets)
                 
                 if (firstLine.includes('\t')) {
                     delimiter = '\t';
-                } else if (firstLine.includes(',')) {
-                    delimiter = ',';
                 } else if (firstLine.includes(';')) {
                     delimiter = ';';
+                } else if (firstLine.includes(',')) {
+                    // SMART COMMA DETECTION: Only use comma as delimiter if it's clearly CSV, not thousands separator
+                    const hasLetters = /[a-zA-Z]/.test(firstLine);
+                    const hasQuotes = firstLine.includes('"');
+                    const segments = firstLine.split(',');
+                    
+                    // Check if this looks like a thousands-separated number
+                    const thousandsSeparatorRegex = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/; // Standard thousands format
+                    const flexibleThousandsRegex = /^-?\d+(,\d+)+(\.\d+)?$/; // Flexible format like 57,405
+                    const isThousandsSeparated = thousandsSeparatorRegex.test(firstLine.trim()) || 
+                                                flexibleThousandsRegex.test(firstLine.trim());
+                    
+                    // Use comma as delimiter only if:
+                    // 1. Has letters/quotes (clearly text data) OR  
+                    // 2. NOT a thousands-separated number AND has multiple meaningful segments
+                    const looksLikeCSV = hasLetters || hasQuotes || 
+                        (!isThousandsSeparated && segments.length > 1 && 
+                         segments.filter(seg => seg.trim() !== '').length > 1);
+                    
+                    if (looksLikeCSV) {
+                        delimiter = ',';
+                    }
+                    // Otherwise keep default tab delimiter (treat as single cell with thousands separator)
                 }
 
 
@@ -4788,6 +4820,17 @@
 
             parseNumber(value) {
                 console.log('🔢 🚨 OLD CONTROLLER DEBUG: parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
+                
+                // Use the centralized robust number parser if available
+                if (window.robustParseNumber) {
+                    console.log('🔢 OLD CONTROLLER: Using centralized robust parser');
+                    const result = window.robustParseNumber(value);
+                    console.log('🔢 🚨 OLD CONTROLLER DEBUG: Robust parser result:', result, 'original input was:', JSON.stringify(value));
+                    return result;
+                }
+                
+                // Fallback to original logic if robust parser not available
+                console.log('⚠️ OLD CONTROLLER: Robust parser not available, using fallback');
                 
                 if (value === null || value === undefined || value === '') {
                     console.log('🔢 OLD CONTROLLER: empty value, returning 0');
@@ -5967,11 +6010,19 @@
                     const newSize = this.value + 'px';
                     modalTitleFontSizeValue.textContent = newSize;
                     
-                    // Live preview on chart title
-                    const liveTitle = findChartTitle();
-                    if (liveTitle) {
-                        liveTitle.style.fontSize = newSize;
-                        liveTitle.setAttribute('font-size', newSize);
+                    // Live preview using isolation system
+                    if (window.TitleControlIsolation) {
+                        const chart = window.pulseApp?.currentChart || window.currentChart;
+                        if (chart) {
+                            window.TitleControlIsolation.applyTitleSize(chart, parseInt(this.value));
+                        }
+                    } else {
+                        // Fallback to direct manipulation
+                        const liveTitle = findChartTitle();
+                        if (liveTitle) {
+                            liveTitle.style.fontSize = newSize;
+                            liveTitle.setAttribute('font-size', newSize);
+                        }
                     }
                 });
             }
@@ -5981,12 +6032,20 @@
                 modalTitleColor.addEventListener('input', function() {
                     const newColor = this.value;
                     
-                    // Live preview on chart title
-                    const liveTitle = findChartTitle();
-                    if (liveTitle) {
-                        liveTitle.style.fill = newColor;
-                        liveTitle.setAttribute('fill', newColor);
-                        liveTitle.setAttribute('data-custom-color', newColor);
+                    // Live preview using isolation system
+                    if (window.TitleControlIsolation) {
+                        const chart = window.pulseApp?.currentChart || window.currentChart;
+                        if (chart) {
+                            window.TitleControlIsolation.applyTitleColor(chart, newColor);
+                        }
+                    } else {
+                        // Fallback to direct manipulation
+                        const liveTitle = findChartTitle();
+                        if (liveTitle) {
+                            liveTitle.style.fill = newColor;
+                            liveTitle.setAttribute('fill', newColor);
+                            liveTitle.setAttribute('data-custom-color', newColor);
+                        }
                     }
                 });
             }

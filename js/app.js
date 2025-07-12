@@ -129,6 +129,13 @@ class PulseApplication {
                     this.controlPanel?.generateControls();
                 }
                 
+                // Ensure title controls remain isolated after chart re-render
+                if (window.TitleControlIsolation) {
+                    setTimeout(() => {
+                        window.TitleControlIsolation.ensureTitleIsolation(this.chart);
+                    }, 100);
+                }
+                
                 // Update status
                 this.setStatus('Ready', 'ready');
             }
