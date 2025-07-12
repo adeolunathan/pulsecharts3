@@ -30,7 +30,7 @@
             .attr('x', this.config.width / 2)
             .attr('y', 60)
             .attr('text-anchor', 'middle')
-            .attr('font-size', '40px')
+            .attr('font-size', (this.config.titleSize || 40) + 'px')
             .attr('font-weight', '1000')
             .attr('font-family', this.getFontFamily ? this.getFontFamily() : 'Inter, sans-serif')
             .attr('fill', this.config.titleColor)
@@ -412,13 +412,15 @@
      * Update title font
      */
     function updateTitleFont(fontFamily) {
+        console.log('🔤 🚨 SANKEY DEBUG: ChartBrandingUtils.updateTitleFont called with:', fontFamily, 'chart type:', this.constructor.name);
         this.config.titleFont = fontFamily;
         if (this.svg) {
             const fontStack = this.getFontFamily ? this.getFontFamily() : fontFamily;
             
-            // Update chart title and all text elements
-            this.svg.selectAll('text')
-                .style('font-family', fontStack);
+            // Update only the chart title element
+            const titleElements = this.svg.selectAll('.main-chart-title');
+            console.log('🔤 🚨 SANKEY DEBUG: Found title elements:', titleElements.size(), 'applying font:', fontStack);
+            titleElements.style('font-family', fontStack);
             
             console.log(`🔤 Title font updated to ${fontFamily}`);
         }
@@ -430,8 +432,8 @@
     function updateTitleColor(color) {
         this.config.titleColor = color;
         if (this.svg) {
-            // Update all text elements
-            this.svg.selectAll('text')
+            // Update only the chart title element
+            this.svg.selectAll('.main-chart-title')
                 .style('fill', color);
         }
         console.log(`🎨 Title color updated to ${color}`);

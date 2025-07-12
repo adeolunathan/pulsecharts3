@@ -985,7 +985,7 @@ class PulseSankeyChart {
         console.warn('⚠️ Using fallback title font update');
         this.config.titleFont = fontFamily;
         if (this.svg) {
-            this.svg.selectAll('text').style('font-family', fontFamily);
+            this.svg.selectAll('.main-chart-title').style('font-family', fontFamily);
         }
     }
 
@@ -993,7 +993,7 @@ class PulseSankeyChart {
         console.warn('⚠️ Using fallback title color update');
         this.config.titleColor = color;
         if (this.svg) {
-            this.svg.selectAll('text').style('fill', color);
+            this.svg.selectAll('.main-chart-title').style('fill', color);
         }
     }
 

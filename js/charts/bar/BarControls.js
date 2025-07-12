@@ -825,7 +825,7 @@ window.BarControlModule = (function() {
                 if (controlId === 'backgroundColor' && chart.svg) {
                     chart.svg.style('background-color', value);
                 } else if (controlId === 'titleColor' && chart.svg) {
-                    chart.svg.selectAll('.chart-title, .chart-header text').style('fill', value);
+                    chart.svg.selectAll('.main-chart-title').style('fill', value);
                 } else if (controlId === 'labelColor' && chart.chart) {
                     chart.chart.selectAll('.bar-label, .grouped-bar-label, .stacked-bar-label, .waterfall-bar-label, .polar-label').style('fill', value);
                 } else if (controlId === 'axisColor' && chart.svg) {
@@ -922,16 +922,16 @@ window.BarControlModule = (function() {
                     chart.applyFontFamilyToAllText();
                 } else {
                     // Fallback to just title
-                    chart.svg.selectAll('.chart-title, .chart-header text').style('font-family', chart.getFontFamily());
+                    chart.svg.selectAll('.main-chart-title').style('font-family', chart.getFontFamily());
                 }
             }
             // Handle title color changes
             else if (controlId === 'titleColor') {
-                chart.svg.selectAll('.chart-title, .chart-header text').style('fill', value);
+                chart.svg.selectAll('.main-chart-title').style('fill', value);
             }
             // Handle title size changes
             else if (controlId === 'titleSize') {
-                chart.svg.selectAll('.chart-title, .chart-header text')
+                chart.svg.selectAll('.main-chart-title')
                     .interrupt() // Stop any ongoing transitions
                     .style('font-size', value + 'px');
             }

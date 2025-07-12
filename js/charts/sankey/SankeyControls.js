@@ -591,6 +591,7 @@ class SankeyControlModule {
 
         // Handle titleFont specially
         if (controlId === 'titleFont') {
+            console.log('🔤 🚨 SANKEY DEBUG: titleFont control changed to:', value, 'chart instance:', chart);
             chart.updateConfig({ titleFont: value });
             return;
         }

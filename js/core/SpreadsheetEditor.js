@@ -499,13 +499,13 @@ class SpreadsheetEditor {
     }
 
     formatCellValueSafe(value, type) {
-        console.log('🎨 formatCellValueSafe called with:', JSON.stringify(value), 'type:', type, 'value type:', typeof value);
+        console.log('🎨 🚨 SANKEY DEBUG: formatCellValueSafe called with:', JSON.stringify(value), 'type:', type, 'value type:', typeof value);
         
         if (type === 'number') {
             if (typeof value === 'number') {
-                // Display whole numbers without any decimal places
-                const result = Math.trunc(value).toLocaleString();
-                console.log('🎨 formatCellValueSafe: formatted number', value, '->', result);
+                // Display numbers exactly as stored, with locale formatting but no truncation
+                const result = value.toLocaleString();
+                console.log('🎨 🚨 SANKEY DEBUG: formatCellValueSafe formatted number', value, '->', result);
                 return result;
             }
             const fallback = value || '0';
@@ -1056,7 +1056,7 @@ class SpreadsheetEditor {
     }
 
     parseNumber(value) {
-        console.log('🔢 parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
+        console.log('🔢 🚨 SANKEY DEBUG: parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
         
         if (value === null || value === undefined || value === '') {
             console.log('🔢 parseNumber: empty value, returning 0');
@@ -1077,7 +1077,7 @@ class SpreadsheetEditor {
         if (cleanValue.endsWith('%')) {
             cleanValue = cleanValue.slice(0, -1);
             const num = parseFloat(cleanValue);
-            const result = isNaN(num) ? 0 : Math.trunc(num / 100);
+            const result = isNaN(num) ? 0 : Math.floor(num / 100);
             console.log('🔢 parseNumber: percentage value:', JSON.stringify(cleanValue), 'result:', result);
             return result;
         }
@@ -1094,19 +1094,22 @@ class SpreadsheetEditor {
             
             // Handle thousands separators with flexibility
             // Standard format: 1,234,567 (1-3 digits, then groups of 3)
-            // Also support: 57,405 (any digits before comma, then any digits after)
+            // Fixed format: Accept any pattern with commas and digits (like 57,405)
             const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
-            const flexibleCommaRegex = /^-?\d+(,\d+)*(\.\d+)?$/;
-            console.log('🔢 parseNumber: testing thousands separator regex against:', JSON.stringify(cleanValue));
+            const flexibleCommaRegex = /^-?\d+(,\d+)+(\.\d+)?$/; // Fixed: require at least one comma group
+            const anyCommaRegex = /^-?\d+([,\d]+)*(\.\d+)?$/; // Accept any comma pattern
+            console.log('🔢 🚨 SANKEY DEBUG: testing thousands separator regex against:', JSON.stringify(cleanValue));
             const standardMatch = standardThousandsRegex.test(cleanValue);
             const flexibleMatch = flexibleCommaRegex.test(cleanValue);
-            console.log('🔢 parseNumber: standard regex test result:', standardMatch);
-            console.log('🔢 parseNumber: flexible regex test result:', flexibleMatch);
+            const anyCommaMatch = anyCommaRegex.test(cleanValue);
+            console.log('🔢 🚨 SANKEY DEBUG: standard regex test result:', standardMatch);
+            console.log('🔢 🚨 SANKEY DEBUG: flexible regex test result:', flexibleMatch);
+            console.log('🔢 🚨 SANKEY DEBUG: anyComma regex test result:', anyCommaMatch);
             
-            if (standardMatch || flexibleMatch) {
+            if (standardMatch || flexibleMatch || anyCommaMatch) {
                 const before = cleanValue;
                 cleanValue = cleanValue.replace(/,/g, '');
-                console.log('🔢 parseNumber: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+                console.log('🔢 🚨 SANKEY DEBUG: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
             }
             // European style (1.234.567,50) - but only if we detect this pattern
             else {
@@ -1129,18 +1132,18 @@ class SpreadsheetEditor {
         }
         
         // Parse the cleaned value
-        console.log('🔢 parseNumber: about to parse:', JSON.stringify(cleanValue));
+        console.log('🔢 🚨 SANKEY DEBUG: about to parse:', JSON.stringify(cleanValue));
         const num = parseFloat(cleanValue);
-        console.log('🔢 parseNumber: parseFloat result:', num, 'isNaN:', isNaN(num));
+        console.log('🔢 🚨 SANKEY DEBUG: parseFloat result:', num, 'isNaN:', isNaN(num), 'type:', typeof num);
         
         if (isNaN(num)) {
             console.log('🔢 parseNumber: NaN detected, returning 0');
             return 0;
         }
         
-        // Return whole number (truncate decimals completely)
-        const result = Math.trunc(num);
-        console.log('🔢 parseNumber: final result:', result);
+        // Return whole number (floor decimals for consistent behavior)
+        const result = Math.floor(num);
+        console.log('🔢 🚨 SANKEY DEBUG: parseNumber final result:', result, 'original input was:', JSON.stringify(value));
         return result;
     }
 
@@ -1357,7 +1360,7 @@ class SpreadsheetEditor {
 
     // Ensure chart title remains clickable after chart updates
     ensureChartTitleClickable() {
-        console.log('📝 ensureChartTitleClickable: Dispatching title update event for', this.data.length, 'rows');
+        console.log('📝 🚨 SANKEY DEBUG: ensureChartTitleClickable: Dispatching title update event for', this.data.length, 'rows');
         
         // Dispatch a custom event to notify the centralized system
         try {
