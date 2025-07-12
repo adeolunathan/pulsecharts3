@@ -196,7 +196,7 @@ class SankeyControlModule {
                         type: "slider", 
                         label: "Node Height Scale", 
                         min: 0, 
-                        max: 0.3, 
+                        max: 0.1, 
                         default: 0.05, 
                         step: 0.001, 
                         description: "Scale factor for node heights" 

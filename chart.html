@@ -5984,9 +5984,11 @@
                     
                     // Live preview using isolation system
                     if (window.TitleControlIsolation) {
-                        const chart = window.pulseApp?.currentChart || window.currentChart;
+                        const chart = window.pulseApp?.chart || window.pulseApp?.currentChart || window.currentChart;
                         if (chart) {
                             window.TitleControlIsolation.applyTitleSize(chart, parseInt(this.value));
+                        } else {
+                            console.warn('⚠️ No chart instance found for title size update');
                         }
                     } else {
                         // Fallback to direct manipulation
@@ -6006,9 +6008,11 @@
                     
                     // Live preview using isolation system
                     if (window.TitleControlIsolation) {
-                        const chart = window.pulseApp?.currentChart || window.currentChart;
+                        const chart = window.pulseApp?.chart || window.pulseApp?.currentChart || window.currentChart;
                         if (chart) {
                             window.TitleControlIsolation.applyTitleColor(chart, newColor);
+                        } else {
+                            console.warn('⚠️ No chart instance found for title color update');
                         }
                     } else {
                         // Fallback to direct manipulation
@@ -6136,12 +6140,6 @@
 
         // Universal event delegation for chart title editing
         document.addEventListener('click', function(e) {
-            console.log('🖱️ Document click detected - target:', e.target.tagName, 'text:', e.target.textContent?.substring(0, 50));
-            console.log('🖱️ Target is in main-chart:', !!e.target.closest('#main-chart'));
-            console.log('🖱️ Target is text element:', e.target.tagName === 'text' || e.target.tagName === 'TEXT');
-            console.log('🖱️ Target has data-editable:', e.target.hasAttribute('data-editable'));
-            console.log('🖱️ data-editable value:', e.target.getAttribute('data-editable'));
-            
             // Check if clicked element is a chart title
             if (e.target.closest('#main-chart') && 
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
@@ -6149,8 +6147,6 @@
                 e.stopPropagation();
                 console.log('🎯 Chart title clicked:', e.target.textContent);
                 openTitleEditModal();
-            } else if (e.target.closest('#main-chart') && (e.target.tagName === 'text' || e.target.tagName === 'TEXT')) {
-                console.log('🖱️ Text element in chart clicked but no data-editable attribute');
             }
         });
 
