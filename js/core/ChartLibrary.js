@@ -67,6 +67,11 @@ class ChartLibrary {
                     window.pulseApp.chart.updateConfig(chart.config);
                 }
 
+                // Update spreadsheet editor with the loaded data
+                setTimeout(() => {
+                    this.updateSpreadsheetWithData(chart.data, chart.chartType);
+                }, 200);
+
                 console.log(`✅ Chart "${chart.name}" loaded successfully`);
                 
                 // Close library sidebar
@@ -545,6 +550,38 @@ class ChartLibrary {
             }
         };
         reader.readAsText(file);
+    }
+
+    // Update spreadsheet editor with loaded data
+    updateSpreadsheetWithData(data, chartType) {
+        console.log('📊 Updating spreadsheet with loaded data:', data);
+        
+        // Try to find the active unified data editor
+        if (window.unifiedDataEditor) {
+            try {
+                // Switch chart type if needed
+                if (window.unifiedDataEditor.chartType !== chartType) {
+                    console.log(`🔄 Switching spreadsheet editor from ${window.unifiedDataEditor.chartType} to ${chartType}`);
+                    window.unifiedDataEditor.switchChartType(chartType);
+                }
+                
+                // Wait a bit for the switch to complete, then load data
+                setTimeout(() => {
+                    if (window.unifiedDataEditor.loadExistingChartData) {
+                        window.unifiedDataEditor.loadExistingChartData(data);
+                        window.unifiedDataEditor.render();
+                        console.log('✅ Spreadsheet updated with loaded chart data');
+                    } else {
+                        console.warn('⚠️ loadExistingChartData method not available on editor');
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Error updating spreadsheet with data:', error);
+            }
+        } else {
+            console.warn('⚠️ No unified data editor found to update');
+        }
     }
 }
 

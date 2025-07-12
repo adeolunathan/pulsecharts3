@@ -5493,40 +5493,87 @@
         }
 
         function makeChartTitleEditable() {
-            let chartTitle = findChartTitle();
+            console.log('📝 makeChartTitleEditable: Starting...');
             
-            // If no title exists, create a default clickable title
-            if (!chartTitle) {
-                chartTitle = createDefaultTitle();
+            // Find ALL potential title elements and make them editable
+            const chartContainer = document.querySelector('#main-chart');
+            if (!chartContainer) {
+                console.log('📝 makeChartTitleEditable: No chart container found');
+                return false;
             }
             
-            if (chartTitle) {
-                // Restore custom title text if it exists
-                if (window.customChartTitle && chartTitle.textContent !== window.customChartTitle) {
-                    chartTitle.textContent = window.customChartTitle;
-                    console.log('📝 Restored custom title:', window.customChartTitle);
-                }
+            // Get all text elements in the chart
+            const allTextElements = chartContainer.querySelectorAll('text');
+            console.log('📝 makeChartTitleEditable: Found', allTextElements.length, 'text elements');
+            
+            let titlesFound = 0;
+            
+            allTextElements.forEach((textElement, index) => {
+                const text = textElement.textContent || '';
+                const isLargeText = text.length > 15; // Increased from 10 to be more selective
+                const hasMainTitleKeywords = /Statement|Corp|Inc|Q[1-4]|202[3-5]|Income|Balance|TechFlow/i.test(text);
+                const isCentered = textElement.getAttribute('text-anchor') === 'middle';
+                const hasLargeFontSize = parseInt(textElement.getAttribute('font-size') || '0') > 30; // Increased from 20 to be more selective
+                const isInHeader = textElement.closest('.chart-header'); // More specific selection
                 
-                // Restore custom title styling if it exists
-                if (window.customTitleFontSize) {
-                    chartTitle.style.fontSize = window.customTitleFontSize + 'px';
-                    chartTitle.setAttribute('font-size', window.customTitleFontSize + 'px');
-                }
-                if (window.customTitleColor) {
-                    chartTitle.style.setProperty('--custom-color', window.customTitleColor);
-                    chartTitle.style.fill = window.customTitleColor;
-                    chartTitle.setAttribute('fill', window.customTitleColor);
-                    chartTitle.setAttribute('data-custom-color', window.customTitleColor);
-                }
+                // Much more restrictive criteria - only the main chart title
+                const isMainTitle = isLargeText && hasMainTitleKeywords && (isCentered || hasLargeFontSize || isInHeader);
                 
-                // Always apply/reapply styling to ensure title remains editable
-                chartTitle.setAttribute('data-editable', 'true');
-                chartTitle.style.cursor = 'pointer';
-                chartTitle.style.transition = 'fill 0.2s ease';
-                
-                return true;
+                if (isMainTitle) {
+                    console.log(`📝 Making MAIN title ${index} editable:`, text.substring(0, 50));
+                    
+                    // Restore custom title text if it exists
+                    if (window.customChartTitle && textElement.textContent !== window.customChartTitle) {
+                        textElement.textContent = window.customChartTitle;
+                        console.log('📝 Restored custom title:', window.customChartTitle);
+                    }
+                    
+                    // Restore custom title styling if it exists
+                    if (window.customTitleFontSize) {
+                        textElement.style.fontSize = window.customTitleFontSize + 'px';
+                        textElement.setAttribute('font-size', window.customTitleFontSize + 'px');
+                        console.log('📝 Restored custom font size:', window.customTitleFontSize);
+                    }
+                    if (window.customTitleColor) {
+                        textElement.style.setProperty('--custom-color', window.customTitleColor);
+                        textElement.style.fill = window.customTitleColor;
+                        textElement.setAttribute('fill', window.customTitleColor);
+                        textElement.setAttribute('data-custom-color', window.customTitleColor);
+                        console.log('📝 Restored custom title color:', window.customTitleColor);
+                    }
+                    
+                    // Always apply/reapply styling to ensure title remains editable
+                    const beforeEditable = textElement.getAttribute('data-editable');
+                    textElement.setAttribute('data-editable', 'true');
+                    textElement.style.cursor = 'pointer';
+                    textElement.style.transition = 'fill 0.2s ease';
+                    
+                    console.log('📝 makeChartTitleEditable: Set data-editable from', beforeEditable, 'to true on MAIN title:', index);
+                    titlesFound++;
+                } else {
+                    // For debugging: remove data-editable from elements that shouldn't have it
+                    if (textElement.hasAttribute('data-editable')) {
+                        console.log(`📝 REMOVING data-editable from non-title element ${index}:`, text.substring(0, 30));
+                        textElement.removeAttribute('data-editable');
+                        textElement.style.cursor = '';
+                    }
+                }
+            });
+            
+            console.log('📝 makeChartTitleEditable: Made', titlesFound, 'title elements editable');
+            
+            // If no titles found, create a default one
+            if (titlesFound === 0) {
+                console.log('📝 makeChartTitleEditable: No titles found, creating default...');
+                const chartTitle = createDefaultTitle();
+                if (chartTitle) {
+                    console.log('📝 makeChartTitleEditable: createDefaultTitle result:', chartTitle);
+                    return true;
+                }
+                return false;
             }
-            return false;
+            
+            return true;
         }
 
         function updateCurrencyDisplayLive(newCurrency) {
@@ -5647,6 +5694,9 @@
                 .attr('font-family', 'Inter, sans-serif')
                 .attr('fill', '#1f2937')
                 .attr('class', 'chart-title')
+                .attr('data-editable', 'true')
+                .style('cursor', 'pointer')
+                .style('transition', 'fill 0.2s ease')
                 .text(defaultTitle);
 
             return titleElement.node();
@@ -5949,13 +5999,21 @@
 
         // Universal event delegation for chart title editing
         document.addEventListener('click', function(e) {
+            console.log('🖱️ Document click detected - target:', e.target.tagName, 'text:', e.target.textContent?.substring(0, 50));
+            console.log('🖱️ Target is in main-chart:', !!e.target.closest('#main-chart'));
+            console.log('🖱️ Target is text element:', e.target.tagName === 'text' || e.target.tagName === 'TEXT');
+            console.log('🖱️ Target has data-editable:', e.target.hasAttribute('data-editable'));
+            console.log('🖱️ data-editable value:', e.target.getAttribute('data-editable'));
+            
             // Check if clicked element is a chart title
             if (e.target.closest('#main-chart') && 
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
                 e.target.hasAttribute('data-editable')) {
                 e.stopPropagation();
-                console.log('Chart title clicked:', e.target.textContent);
+                console.log('🎯 Chart title clicked:', e.target.textContent);
                 openTitleEditModal();
+            } else if (e.target.closest('#main-chart') && (e.target.tagName === 'text' || e.target.tagName === 'TEXT')) {
+                console.log('🖱️ Text element in chart clicked but no data-editable attribute');
             }
         });
 
@@ -6010,48 +6068,87 @@
             }
         });
 
-        // Initialize chart title editing
+        // Initialize chart title editing with coordinated debouncing
         document.addEventListener('DOMContentLoaded', function() {
-            let attempts = 0;
-            const maxAttempts = 50;
+            // Centralized debouncing system
+            let titleUpdateTimeout = null;
+            let titleUpdateAttempts = 0;
+            const maxAttempts = 10; // Reduced from 50
+            let isProcessingTitleUpdate = false;
             
-            const titleCheckInterval = setInterval(() => {
-                attempts++;
-                
-                if (makeChartTitleEditable() || attempts >= maxAttempts) {
-                    clearInterval(titleCheckInterval);
-                    if (attempts >= maxAttempts) {
-                    }
+            function debouncedTitleUpdate(source = 'unknown', priority = 'normal') {
+                // Prevent overlapping calls
+                if (isProcessingTitleUpdate && priority !== 'high') {
+                    console.log('📝 Title update already in progress, skipping:', source);
+                    return;
                 }
-            }, 500);
+                
+                clearTimeout(titleUpdateTimeout);
+                titleUpdateTimeout = setTimeout(() => {
+                    isProcessingTitleUpdate = true;
+                    console.log('📝 Processing title update from:', source, 'attempt:', titleUpdateAttempts + 1);
+                    
+                    const result = makeChartTitleEditable();
+                    titleUpdateAttempts++;
+                    
+                    if (result) {
+                        console.log('✅ Title update successful from:', source);
+                        titleUpdateAttempts = 0;
+                        isProcessingTitleUpdate = false;
+                    } else if (titleUpdateAttempts < maxAttempts) {
+                        console.log('⚠️ Title update failed, will retry from:', source);
+                        isProcessingTitleUpdate = false;
+                        // Retry with longer delay
+                        debouncedTitleUpdate(source + '-retry', 'normal');
+                    } else {
+                        console.warn('❌ Title update failed after max attempts from:', source);
+                        titleUpdateAttempts = 0;
+                        isProcessingTitleUpdate = false;
+                    }
+                }, priority === 'high' ? 100 : 300);
+            }
             
-            // Also try when window loads and when charts are rendered
+            // Initial attempt
+            debouncedTitleUpdate('initial', 'normal');
+            
+            // Window load (reduced redundancy)
             window.addEventListener('load', () => {
-                setTimeout(makeChartTitleEditable, 1000);
-                setTimeout(makeChartTitleEditable, 3000);
+                debouncedTitleUpdate('window-load', 'normal');
             });
             
-            // Listen for chart rendering events
+            // Chart rendering events
             document.addEventListener('chartRendered', () => {
-                setTimeout(makeChartTitleEditable, 200);
+                debouncedTitleUpdate('chart-rendered', 'normal');
             });
             
-            // Also listen for DOM mutations to catch chart re-renders
+            // DOM mutations (more selective)
             const chartContainer = document.getElementById('main-chart');
             if (chartContainer) {
-                const observer = new MutationObserver(() => {
-                    // Debounce the re-enable function
-                    clearTimeout(window.titleEditableTimeout);
-                    window.titleEditableTimeout = setTimeout(() => {
-                        makeChartTitleEditable();
-                    }, 500);
+                const observer = new MutationObserver((mutations) => {
+                    // Only react to significant changes, not every text update
+                    const hasSignificantChange = mutations.some(mutation => 
+                        mutation.type === 'childList' && 
+                        (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)
+                    );
+                    
+                    if (hasSignificantChange) {
+                        debouncedTitleUpdate('mutation-observer', 'normal');
+                    }
                 });
                 
                 observer.observe(chartContainer, {
                     childList: true,
-                    subtree: true
+                    subtree: false // Reduced from true to avoid excessive triggers
                 });
             }
+            
+            // Custom events from spreadsheet editor
+            document.addEventListener('chartTitleUpdateNeeded', (e) => {
+                console.log('📝 Received chartTitleUpdateNeeded event from:', e.detail.source);
+                const dataRows = e.detail.dataRows || 0;
+                const priority = dataRows > 10 ? 'high' : 'normal'; // High priority for large datasets
+                debouncedTitleUpdate('spreadsheet-' + e.detail.source, priority);
+            });
         });
 
         // Close modal when clicking outside

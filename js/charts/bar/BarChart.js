@@ -3175,13 +3175,56 @@ class PulseBarChart {
         return valueColumns;
     }
     
+    // Helper method to parse numbers with thousand separators
+    parseNumber(value) {
+        if (value === null || value === undefined || value === '') {
+            return 0;
+        }
+        
+        let cleanValue = String(value).trim();
+        
+        // Remove currency symbols
+        cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
+        
+        // Handle percentage
+        if (cleanValue.endsWith('%')) {
+            cleanValue = cleanValue.slice(0, -1);
+            const num = parseFloat(cleanValue);
+            return isNaN(num) ? 0 : Math.trunc(num / 100);
+        }
+        
+        // Handle parentheses as negative
+        if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
+            cleanValue = '-' + cleanValue.slice(1, -1);
+        }
+        
+        // Handle thousands separators
+        if (cleanValue.includes(',')) {
+            // Standard and flexible thousands separator patterns
+            const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
+            const flexibleCommaRegex = /^-?\d+(,\d+)*(\.\d+)?$/;
+            
+            if (standardThousandsRegex.test(cleanValue) || flexibleCommaRegex.test(cleanValue)) {
+                cleanValue = cleanValue.replace(/,/g, '');
+            }
+        }
+        
+        const num = parseFloat(cleanValue);
+        if (isNaN(num)) {
+            return 0;
+        }
+        
+        // Return whole number (truncate decimals)
+        return Math.trunc(num);
+    }
+    
     // Helper method to get the primary value from any data row (for simple charts)
     getPrimaryValue(dataRow) {
         if (!dataRow) return 0;
         
         // Try to find a 'value' property first
         if (dataRow.value !== undefined && dataRow.value !== null) {
-            return Number(dataRow.value) || 0;
+            return this.parseNumber(dataRow.value);
         }
         
         // Look for value_* pattern columns in the data row itself
@@ -3191,13 +3234,16 @@ class PulseBarChart {
             // Sort to get the first value column (value, value_2, value_3, etc.)
             valueColumns.sort();
             const firstColumn = valueColumns[0];
-            return Number(dataRow[firstColumn]) || 0;
+            return this.parseNumber(dataRow[firstColumn]);
         }
         
         // Last resort: find any numeric property
         for (const key of Object.keys(dataRow)) {
-            if (key !== 'category' && key !== 'label' && typeof dataRow[key] === 'number') {
-                return Number(dataRow[key]) || 0;
+            if (key !== 'category' && key !== 'label') {
+                const parsed = this.parseNumber(dataRow[key]);
+                if (parsed !== 0) {
+                    return parsed;
+                }
             }
         }
         

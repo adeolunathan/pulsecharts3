@@ -186,9 +186,32 @@ class SpreadsheetEditor {
         // Global keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeydown(e));
         
-        // Cell interaction handlers
+        // Cell interaction handlers - use delegation for better reliability
         container.addEventListener('click', (e) => this.handleCellClick(e));
         container.addEventListener('dblclick', (e) => this.handleCellDoubleClick(e));
+        
+        // Store references for proper cleanup
+        this.globalClickHandler = (e) => {
+            if (container.contains(e.target) && !e.defaultPrevented) {
+                const cell = e.target.closest('.spreadsheet-cell') || e.target.closest('.header-cell');
+                if (cell && container.contains(cell)) {
+                    this.handleCellClick(e);
+                }
+            }
+        };
+        
+        this.globalDblClickHandler = (e) => {
+            if (container.contains(e.target) && !e.defaultPrevented) {
+                const cell = e.target.closest('.spreadsheet-cell') || e.target.closest('.header-cell');
+                if (cell && container.contains(cell)) {
+                    this.handleCellDoubleClick(e);
+                }
+            }
+        };
+        
+        // Add global listeners
+        document.addEventListener('click', this.globalClickHandler);
+        document.addEventListener('dblclick', this.globalDblClickHandler);
         
         // Keypress handler for immediate typing
         document.addEventListener('keypress', (e) => this.handleKeypress(e));
@@ -299,6 +322,12 @@ class SpreadsheetEditor {
 
     renderHeaders() {
         const thead = this.container.querySelector('.spreadsheet-header');
+        
+        // Remove existing event listeners before clearing
+        if (thead.clickHandler) {
+            thead.removeEventListener('click', thead.clickHandler);
+        }
+        
         thead.innerHTML = '';
         
         // Controls row (only for dynamic column charts)
@@ -337,20 +366,19 @@ class SpreadsheetEditor {
             
             thead.appendChild(controlRow);
             
-            // Setup control event listeners
-            thead.querySelectorAll('.column-type-toggle').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+            // Setup control event listeners with delegation
+            thead.clickHandler = (e) => {
+                if (e.target.classList.contains('column-type-toggle')) {
                     e.stopPropagation();
-                    this.toggleColumnType(btn.dataset.col);
-                });
-            });
-            
-            thead.querySelectorAll('.delete-column-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+                    this.toggleColumnType(e.target.dataset.col);
+                }
+                
+                if (e.target.classList.contains('delete-column-btn')) {
                     e.stopPropagation();
-                    this.deleteColumn(btn.dataset.col);
-                });
-            });
+                    this.deleteColumn(e.target.dataset.col);
+                }
+            };
+            thead.addEventListener('click', thead.clickHandler);
         }
         
         // Header cells row
@@ -391,6 +419,12 @@ class SpreadsheetEditor {
 
     renderRows() {
         const tbody = this.container.querySelector('.spreadsheet-tbody');
+        
+        // Remove existing event listeners before clearing
+        if (tbody.clickHandler) {
+            tbody.removeEventListener('click', tbody.clickHandler);
+        }
+        
         tbody.innerHTML = '';
         
         // Ensure we have at least one row
@@ -429,7 +463,10 @@ class SpreadsheetEditor {
                     padding: 8px 12px; min-height: 20px; background: transparent;
                     text-align: ${column.type === 'number' ? 'right' : 'left'};
                 `;
-                cellContent.textContent = this.formatCellValueSafe(row[column.id] || '', column.type);
+                const rawValue = row[column.id] || '';
+                const formattedValue = this.formatCellValueSafe(rawValue, column.type);
+                console.log('🏗️ Rendering cell - row:', rowIndex, 'column:', column.id, 'type:', column.type, 'raw value:', JSON.stringify(rawValue), 'formatted:', JSON.stringify(formattedValue));
+                cellContent.textContent = formattedValue;
                 
                 td.appendChild(cellContent);
                 tr.appendChild(td);
@@ -450,27 +487,43 @@ class SpreadsheetEditor {
             tbody.appendChild(tr);
         });
         
-        // Setup delete row button handlers
-        tbody.querySelectorAll('.delete-row-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Setup delete row button handlers with event delegation
+        tbody.clickHandler = (e) => {
+            if (e.target.classList.contains('delete-row-btn')) {
                 e.stopPropagation();
-                const rowIndex = parseInt(btn.dataset.row);
+                const rowIndex = parseInt(e.target.dataset.row);
                 this.deleteRow(rowIndex);
-            });
-        });
+            }
+        };
+        tbody.addEventListener('click', tbody.clickHandler);
     }
 
     formatCellValueSafe(value, type) {
+        console.log('🎨 formatCellValueSafe called with:', JSON.stringify(value), 'type:', type, 'value type:', typeof value);
+        
         if (type === 'number') {
-            return typeof value === 'number' ? value.toLocaleString() : (value || '0');
+            if (typeof value === 'number') {
+                // Display whole numbers without any decimal places
+                const result = Math.trunc(value).toLocaleString();
+                console.log('🎨 formatCellValueSafe: formatted number', value, '->', result);
+                return result;
+            }
+            const fallback = value || '0';
+            console.log('🎨 formatCellValueSafe: non-number value, returning fallback:', fallback);
+            return fallback;
         }
-        return String(value || '');
+        const result = String(value || '');
+        console.log('🎨 formatCellValueSafe: text value, returning:', JSON.stringify(result));
+        return result;
     }
 
     // Cell interaction methods
     handleCellClick(e) {
         const cell = e.target.closest('.spreadsheet-cell') || e.target.closest('.header-cell');
         if (!cell) return;
+        
+        // Prevent multiple event handling
+        e.stopPropagation();
         
         if (this.selectedCell === cell && !this.isEditing) {
             this.editCell(cell);
@@ -484,6 +537,7 @@ class SpreadsheetEditor {
         if (!cell) return;
         
         e.preventDefault();
+        e.stopPropagation();
         this.editCell(cell);
     }
 
@@ -902,11 +956,15 @@ class SpreadsheetEditor {
                 if (targetColIndex < this.columns.length) {
                     const targetCol = this.columns[targetColIndex];
                     const cleanValue = (value || '').trim();
+                    console.log('📋 Processing paste value:', JSON.stringify(value), 'cleaned:', JSON.stringify(cleanValue), 'column type:', targetCol.type, 'column id:', targetCol.id);
                     
                     if (targetCol.type === 'number') {
-                        this.data[targetRow][targetCol.id] = this.parseNumber(cleanValue);
+                        const parsedValue = this.parseNumber(cleanValue);
+                        this.data[targetRow][targetCol.id] = parsedValue;
+                        console.log('📋 Assigned number value:', parsedValue, 'to row', targetRow, 'col', targetCol.id);
                     } else {
                         this.data[targetRow][targetCol.id] = cleanValue;
+                        console.log('📋 Assigned text value:', JSON.stringify(cleanValue), 'to row', targetRow, 'col', targetCol.id);
                     }
                 }
             });
@@ -914,6 +972,11 @@ class SpreadsheetEditor {
         
         this.render();
         this.updateChart();
+        
+        // For paste operations, ensure title clickability (let centralized system handle retries)
+        setTimeout(() => {
+            this.ensureChartTitleClickable();
+        }, 300);
         
         console.log('✅ Pasted data successfully');
     }
@@ -993,38 +1056,92 @@ class SpreadsheetEditor {
     }
 
     parseNumber(value) {
+        console.log('🔢 parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
+        
         if (value === null || value === undefined || value === '') {
+            console.log('🔢 parseNumber: empty value, returning 0');
             return 0;
         }
         
         let cleanValue = String(value).trim();
+        console.log('🔢 parseNumber: initial cleanValue:', JSON.stringify(cleanValue));
         
         // Remove currency symbols
+        const beforeCurrency = cleanValue;
         cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
+        if (beforeCurrency !== cleanValue) {
+            console.log('🔢 parseNumber: removed currency symbols:', JSON.stringify(beforeCurrency), '->', JSON.stringify(cleanValue));
+        }
         
         // Handle percentage
         if (cleanValue.endsWith('%')) {
             cleanValue = cleanValue.slice(0, -1);
             const num = parseFloat(cleanValue);
-            return isNaN(num) ? 0 : num / 100;
+            const result = isNaN(num) ? 0 : Math.trunc(num / 100);
+            console.log('🔢 parseNumber: percentage value:', JSON.stringify(cleanValue), 'result:', result);
+            return result;
         }
         
         // Handle parentheses as negative
         if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
             cleanValue = '-' + cleanValue.slice(1, -1);
+            console.log('🔢 parseNumber: converted parentheses to negative:', JSON.stringify(cleanValue));
         }
         
-        // Handle thousands separators
+        // Handle thousands separators - be more careful
         if (cleanValue.includes(',')) {
-            if (/,\d{3}(?!\d)/.test(cleanValue)) {
-                cleanValue = cleanValue.replace(/,(?=\d{3}(?!\d))/g, '');
-            } else if (/^\d+,\d+$/.test(cleanValue)) {
-                cleanValue = cleanValue.replace(',', '.');
+            console.log('🔢 parseNumber: contains comma, original:', JSON.stringify(cleanValue));
+            
+            // Handle thousands separators with flexibility
+            // Standard format: 1,234,567 (1-3 digits, then groups of 3)
+            // Also support: 57,405 (any digits before comma, then any digits after)
+            const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
+            const flexibleCommaRegex = /^-?\d+(,\d+)*(\.\d+)?$/;
+            console.log('🔢 parseNumber: testing thousands separator regex against:', JSON.stringify(cleanValue));
+            const standardMatch = standardThousandsRegex.test(cleanValue);
+            const flexibleMatch = flexibleCommaRegex.test(cleanValue);
+            console.log('🔢 parseNumber: standard regex test result:', standardMatch);
+            console.log('🔢 parseNumber: flexible regex test result:', flexibleMatch);
+            
+            if (standardMatch || flexibleMatch) {
+                const before = cleanValue;
+                cleanValue = cleanValue.replace(/,/g, '');
+                console.log('🔢 parseNumber: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+            }
+            // European style (1.234.567,50) - but only if we detect this pattern
+            else {
+                const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
+                console.log('🔢 parseNumber: testing European format regex against:', JSON.stringify(cleanValue));
+                console.log('🔢 parseNumber: European regex test result:', europeanRegex.test(cleanValue));
+                
+                if (europeanRegex.test(cleanValue)) {
+                    const before = cleanValue;
+                    cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
+                    console.log('🔢 parseNumber: converted European format:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+                } else {
+                    console.log('🔢 parseNumber: comma found but no pattern matched - might be a different format');
+                    // Try removing commas anyway as a fallback
+                    const before = cleanValue;
+                    cleanValue = cleanValue.replace(/,/g, '');
+                    console.log('🔢 parseNumber: fallback comma removal:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+                }
             }
         }
         
+        // Parse the cleaned value
+        console.log('🔢 parseNumber: about to parse:', JSON.stringify(cleanValue));
         const num = parseFloat(cleanValue);
-        return isNaN(num) ? 0 : num;
+        console.log('🔢 parseNumber: parseFloat result:', num, 'isNaN:', isNaN(num));
+        
+        if (isNaN(num)) {
+            console.log('🔢 parseNumber: NaN detected, returning 0');
+            return 0;
+        }
+        
+        // Return whole number (truncate decimals completely)
+        const result = Math.trunc(num);
+        console.log('🔢 parseNumber: final result:', result);
+        return result;
     }
 
     async handlePasteDatasetButton() {
@@ -1082,6 +1199,11 @@ class SpreadsheetEditor {
         
         this.render();
         this.updateChart();
+        
+        // For full dataset paste operations, ensure title clickability (centralized system handles retries)
+        setTimeout(() => {
+            this.ensureChartTitleClickable();
+        }, 600);
         
         console.log('✅ Full dataset pasted successfully');
     }
@@ -1168,6 +1290,11 @@ class SpreadsheetEditor {
             if (chartData) {
                 const result = window.pulseApp.updateData(chartData, 'spreadsheet-editor');
                 console.log('✅ Chart update result:', result);
+                
+                // Ensure chart title remains clickable after update
+                setTimeout(() => {
+                    this.ensureChartTitleClickable();
+                }, 300);
             }
         } else {
             console.warn('⚠️ pulseApp.updateData not available');
@@ -1179,6 +1306,11 @@ class SpreadsheetEditor {
             if (chartData) {
                 this.chart.render(chartData);
                 console.log('✅ Chart updated via direct chart instance');
+                
+                // Ensure chart title remains clickable after direct render
+                setTimeout(() => {
+                    this.ensureChartTitleClickable();
+                }, 300);
             }
         }
     }
@@ -1211,7 +1343,36 @@ class SpreadsheetEditor {
         // Cleanup event listeners
         document.removeEventListener('keydown', this.handleKeydown);
         document.removeEventListener('keypress', this.handleKeypress);
+        
+        // Remove global listeners if they exist
+        if (this.globalClickHandler) {
+            document.removeEventListener('click', this.globalClickHandler);
+        }
+        if (this.globalDblClickHandler) {
+            document.removeEventListener('dblclick', this.globalDblClickHandler);
+        }
+        
         this.container.innerHTML = '';
+    }
+
+    // Ensure chart title remains clickable after chart updates
+    ensureChartTitleClickable() {
+        console.log('📝 ensureChartTitleClickable: Dispatching title update event for', this.data.length, 'rows');
+        
+        // Dispatch a custom event to notify the centralized system
+        try {
+            const event = new CustomEvent('chartTitleUpdateNeeded', {
+                detail: { 
+                    source: 'spreadsheet-editor',
+                    timestamp: Date.now(),
+                    dataRows: this.data.length
+                }
+            });
+            document.dispatchEvent(event);
+            console.log('📝 ensureChartTitleClickable: Dispatched chartTitleUpdateNeeded event');
+        } catch (error) {
+            console.warn('Failed to dispatch chartTitleUpdateNeeded event:', error);
+        }
     }
 }
 

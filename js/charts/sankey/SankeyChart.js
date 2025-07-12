@@ -75,6 +75,54 @@ class PulseSankeyChart {
         }
     }
 
+    // Parse number with support for comma-separated thousands (e.g., "57,405")
+    parseNumber(value) {
+        if (value === null || value === undefined || value === '') {
+            return 0;
+        }
+        
+        let cleanValue = String(value).trim();
+        
+        // Remove currency symbols
+        cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
+        
+        // Handle percentage
+        if (cleanValue.endsWith('%')) {
+            cleanValue = cleanValue.slice(0, -1);
+            const num = parseFloat(cleanValue);
+            return isNaN(num) ? 0 : Math.trunc(num / 100);
+        }
+        
+        // Handle parentheses as negative
+        if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
+            cleanValue = '-' + cleanValue.slice(1, -1);
+        }
+        
+        // Handle thousands separators
+        if (cleanValue.includes(',')) {
+            // Standard format: 1,234,567 or flexible: 57,405
+            const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
+            const flexibleCommaRegex = /^-?\d+(,\d+)*(\.\d+)?$/;
+            
+            if (standardThousandsRegex.test(cleanValue) || flexibleCommaRegex.test(cleanValue)) {
+                cleanValue = cleanValue.replace(/,/g, '');
+            }
+            // European style (1.234.567,50)
+            else {
+                const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
+                if (europeanRegex.test(cleanValue)) {
+                    cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
+                } else {
+                    // Fallback: just remove commas
+                    cleanValue = cleanValue.replace(/,/g, '');
+                }
+            }
+        }
+        
+        const num = parseFloat(cleanValue);
+        return isNaN(num) ? 0 : Math.trunc(num);
+    }
+
     getLayerInfo() {
         if (!this.nodes || this.nodes.length === 0) {
             return {
@@ -798,6 +846,9 @@ class PulseSankeyChart {
             .attr('font-weight', '1000')
             .attr('font-family', this.getFontFamily())
             .attr('fill', this.config.titleColor)
+            .attr('data-editable', 'true')
+            .style('cursor', 'pointer')
+            .style('transition', 'fill 0.2s ease')
             .text(titleText);
     }
 
@@ -5843,9 +5894,9 @@ class PulseSankeyChart {
         const createNode = () => {
             const name = nameInput.node().value.trim();
             const valueText = valueInput.node().value.trim();
-            const value = valueText === '' ? 0 : parseFloat(valueText) || 0;
+            const value = valueText === '' ? 0 : this.parseNumber(valueText) || 0;
             const previousValueText = previousValueInput.node().value.trim();
-            const previousValue = previousValueText === '' ? 0 : parseFloat(previousValueText) || 0;
+            const previousValue = previousValueText === '' ? 0 : this.parseNumber(previousValueText) || 0;
             
             if (!name) {
                 alert('Please enter a node name');
@@ -6495,9 +6546,9 @@ class PulseSankeyChart {
         const createNode = () => {
             const name = nameInput.node().value.trim();
             const valueText = valueInput.node().value.trim();
-            const value = valueText === '' ? 0 : parseFloat(valueText) || 0;
+            const value = valueText === '' ? 0 : this.parseNumber(valueText) || 0;
             const previousValueText = previousValueInput.node().value.trim();
-            const previousValue = previousValueText === '' ? 0 : parseFloat(previousValueText) || 0;
+            const previousValue = previousValueText === '' ? 0 : this.parseNumber(previousValueText) || 0;
             
             if (!name) {
                 alert('Please enter a node name');
@@ -6945,8 +6996,8 @@ class PulseSankeyChart {
                 flows: spreadsheetData.slice(1).map(row => ({
                     source: row[0] || '',
                     target: row[1] || '',
-                    value: parseFloat(row[2]) || 0,
-                    previousValue: parseFloat(row[3]) || 0,  // Previous value is at index 3
+                    value: this.parseNumber(row[2]) || 0,
+                    previousValue: this.parseNumber(row[3]) || 0,  // Previous value is at index 3
                     description: row[4] || ''  // Description is at index 4 (not 5)
                 }))
             };

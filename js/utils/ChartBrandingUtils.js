@@ -26,6 +26,7 @@
         const titleText = `${company} ${period} ${statementLabel}`;
 
         headerGroup.append('text')
+            .attr('class', 'main-chart-title')
             .attr('x', this.config.width / 2)
             .attr('y', 60)
             .attr('text-anchor', 'middle')
@@ -34,6 +35,9 @@
             .attr('font-family', this.getFontFamily ? this.getFontFamily() : 'Inter, sans-serif')
             .attr('fill', this.config.titleColor)
             .attr('letter-spacing', '0.5px')
+            .attr('data-editable', 'true')
+            .style('cursor', 'pointer')
+            .style('transition', 'fill 0.2s ease')
             .text(titleText);
 
         console.log(`📊 Rendered ${statementLabel} title: ${titleText}`);

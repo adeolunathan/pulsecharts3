@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Data Flow</title>
+</head>
+<body>
+    <h1>Debug Data Flow Test</h1>
+    <div id="output"></div>
+    
+    <script>
+        // Simulate the data flow from paste to chart
+        
+        // Step 1: Simulate paste data processing (as it happens in processPasteData)
+        function simulateParseNumber(value) {
+            console.log('🔢 parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
+            
+            if (value === null || value === undefined || value === '') {
+                console.log('🔢 parseNumber: empty value, returning 0');
+                return 0;
+            }
+            
+            let cleanValue = String(value).trim();
+            console.log('🔢 parseNumber: initial cleanValue:', JSON.stringify(cleanValue));
+            
+            // Remove currency symbols
+            const beforeCurrency = cleanValue;
+            cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
+            if (beforeCurrency !== cleanValue) {
+                console.log('🔢 parseNumber: removed currency symbols:', JSON.stringify(beforeCurrency), '->', JSON.stringify(cleanValue));
+            }
+            
+            // Handle percentage
+            if (cleanValue.endsWith('%')) {
+                cleanValue = cleanValue.slice(0, -1);
+                const num = parseFloat(cleanValue);
+                const result = isNaN(num) ? 0 : Math.trunc(num / 100);
+                console.log('🔢 parseNumber: percentage value:', JSON.stringify(cleanValue), 'result:', result);
+                return result;
+            }
+            
+            // Handle parentheses as negative
+            if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
+                cleanValue = '-' + cleanValue.slice(1, -1);
+                console.log('🔢 parseNumber: converted parentheses to negative:', JSON.stringify(cleanValue));
+            }
+            
+            // Handle thousands separators - be more careful
+            if (cleanValue.includes(',')) {
+                console.log('🔢 parseNumber: contains comma, original:', JSON.stringify(cleanValue));
+                
+                // Handle thousands separators with flexibility
+                // Standard format: 1,234,567 (1-3 digits, then groups of 3)
+                // Also support: 57,405 (any digits before comma, then any digits after)
+                const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
+                const flexibleCommaRegex = /^-?\d+(,\d+)*(\.\d+)?$/;
+                console.log('🔢 parseNumber: testing thousands separator regex against:', JSON.stringify(cleanValue));
+                const standardMatch = standardThousandsRegex.test(cleanValue);
+                const flexibleMatch = flexibleCommaRegex.test(cleanValue);
+                console.log('🔢 parseNumber: standard regex test result:', standardMatch);
+                console.log('🔢 parseNumber: flexible regex test result:', flexibleMatch);
+                
+                if (standardMatch || flexibleMatch) {
+                    const before = cleanValue;
+                    cleanValue = cleanValue.replace(/,/g, '');
+                    console.log('🔢 parseNumber: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+                }
+                // European style (1.234.567,50) - but only if we detect this pattern
+                else {
+                    const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
+                    console.log('🔢 parseNumber: testing European format regex against:', JSON.stringify(cleanValue));
+                    console.log('🔢 parseNumber: European regex test result:', europeanRegex.test(cleanValue));
+                    
+                    if (europeanRegex.test(cleanValue)) {
+                        const before = cleanValue;
+                        cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
+                        console.log('🔢 parseNumber: converted European format:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+                    } else {
+                        console.log('🔢 parseNumber: comma found but no pattern matched - might be a different format');
+                        // Try removing commas anyway as a fallback
+                        const before = cleanValue;
+                        cleanValue = cleanValue.replace(/,/g, '');
+                        console.log('🔢 parseNumber: fallback comma removal:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
+                    }
+                }
+            }
+            
+            // Parse the cleaned value
+            console.log('🔢 parseNumber: about to parse:', JSON.stringify(cleanValue));
+            const num = parseFloat(cleanValue);
+            console.log('🔢 parseNumber: parseFloat result:', num, 'isNaN:', isNaN(num));
+            
+            if (isNaN(num)) {
+                console.log('🔢 parseNumber: NaN detected, returning 0');
+                return 0;
+            }
+            
+            // Return whole number (truncate decimals completely)
+            const result = Math.trunc(num);
+            console.log('🔢 parseNumber: final result:', result);
+            return result;
+        }
+        
+        // Step 2: Simulate the data structure after paste processing
+        function simulatePasteProcessing(pastedText) {
+            console.log('\n=== SIMULATING PASTE PROCESSING ===');
+            console.log('Pasted text:', JSON.stringify(pastedText));
+            
+            // Parse the pasted data (simulate parseClipboardData)
+            const lines = pastedText.split('\n');
+            const dataLine = lines[0].split('\t'); // Assume tab-separated
+            
+            console.log('Parsed line:', dataLine);
+            
+            // Simulate the spreadsheet data structure
+            const simulatedData = [{
+                category: dataLine[0],
+                value: simulateParseNumber(dataLine[1]) // This should work correctly
+            }];
+            
+            console.log('Simulated spreadsheet data:', simulatedData);
+            
+            return simulatedData;
+        }
+        
+        // Step 3: Simulate getChartFormattedData (what gets sent to the chart)
+        function simulateGetChartFormattedData(spreadsheetData) {
+            console.log('\n=== SIMULATING getChartFormattedData ===');
+            console.log('Input spreadsheet data:', spreadsheetData);
+            
+            const categoryCol = { id: 'category', type: 'text' };
+            const valueColumns = [{ id: 'value', type: 'number' }];
+            
+            // This is the exact logic from BarSpreadsheetEditor.getBarChartFormattedData()
+            const validData = spreadsheetData.filter(row => {
+                const hasCategory = row[categoryCol.id] && row[categoryCol.id].trim();
+                const hasValues = valueColumns.some(col => {
+                    const value = row[col.id];
+                    return value !== undefined && value !== null && value !== '';
+                });
+                return hasCategory && hasValues;
+            });
+            
+            const chartData = {
+                metadata: { title: "Chart Data", chartType: "bar", source: "bar-spreadsheet-editor" },
+                categories: validData.map(row => row[categoryCol.id]),
+                values: validData.map(row => row[valueColumns[0].id]), // This is where the issue might be
+                labels: validData.map(row => row[categoryCol.id])
+            };
+            
+            console.log('Chart formatted data:', chartData);
+            return chartData;
+        }
+        
+        // Step 4: Test the entire flow
+        const testPasteText = "Product A\t57,405";
+        console.log('🚀 Testing complete data flow...');
+        
+        const spreadsheetData = simulatePasteProcessing(testPasteText);
+        const chartData = simulateGetChartFormattedData(spreadsheetData);
+        
+        console.log('\n=== FINAL RESULT ===');
+        console.log('Expected value: 57405');
+        console.log('Actual value:', chartData.values[0]);
+        console.log('Correct?', chartData.values[0] === 57405);
+        
+        // Display results
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <h3>Test Results:</h3>
+            <p><strong>Input:</strong> "${testPasteText}"</p>
+            <p><strong>Expected:</strong> 57405</p>
+            <p><strong>Actual:</strong> ${chartData.values[0]}</p>
+            <p><strong>Status:</strong> ${chartData.values[0] === 57405 ? '✅ CORRECT' : '❌ INCORRECT'}</p>
+            <h3>Chart Data:</h3>
+            <pre>${JSON.stringify(chartData, null, 2)}</pre>
+        `;
+    </script>
+</body>
+</html>
