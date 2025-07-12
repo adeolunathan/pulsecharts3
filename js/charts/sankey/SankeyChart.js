@@ -5824,7 +5824,19 @@ class PulseSankeyChart {
         const valueInput = formContainer
             .append('input')
             .attr('type', 'number')
-            .attr('placeholder', 'Value (optional)')
+            .attr('placeholder', 'Current Value (optional)')
+            .style('width', '100%')
+            .style('padding', '6px 8px')
+            .style('border', '1px solid #e5e7eb')
+            .style('border-radius', '4px')
+            .style('font-size', '11px')
+            .style('margin-bottom', '6px')
+            .style('box-sizing', 'border-box');
+            
+        const previousValueInput = formContainer
+            .append('input')
+            .attr('type', 'number')
+            .attr('placeholder', 'Previous Value (optional)')
             .style('width', '100%')
             .style('padding', '6px 8px')
             .style('border', '1px solid #e5e7eb')
@@ -5835,7 +5847,10 @@ class PulseSankeyChart {
         // Create function
         const createNode = () => {
             const name = nameInput.node().value.trim();
-            const value = parseFloat(valueInput.node().value) || 50;
+            const valueText = valueInput.node().value.trim();
+            const value = valueText === '' ? 0 : parseFloat(valueText) || 0;
+            const previousValueText = previousValueInput.node().value.trim();
+            const previousValue = previousValueText === '' ? 0 : parseFloat(previousValueText) || 0;
             
             if (!name) {
                 alert('Please enter a node name');
@@ -5851,11 +5866,11 @@ class PulseSankeyChart {
             
             // Close modal and create node
             this.container.select('.enhanced-color-picker').remove();
-            this.createConnectedNodeWithOrientation(name, value, selectedOrientation, parentNode, this.modalSelectedColor);
+            this.createConnectedNodeWithOrientation(name, value, selectedOrientation, parentNode, this.modalSelectedColor, previousValue);
         };
         
         // Add Enter key support
-        [nameInput, valueInput].forEach(input => {
+        [nameInput, valueInput, previousValueInput].forEach(input => {
             input.on('keydown', function(event) {
                 if (event.key === 'Enter') {
                     createNode();
@@ -6484,7 +6499,10 @@ class PulseSankeyChart {
         // Create node function
         const createNode = () => {
             const name = nameInput.node().value.trim();
-            const value = parseFloat(valueInput.node().value) || 50;
+            const valueText = valueInput.node().value.trim();
+            const value = valueText === '' ? 0 : parseFloat(valueText) || 0;
+            const previousValueText = previousValueInput.node().value.trim();
+            const previousValue = previousValueText === '' ? 0 : parseFloat(previousValueText) || 0;
             
             if (!name) {
                 alert('Please enter a node name');
@@ -6500,7 +6518,7 @@ class PulseSankeyChart {
             
             // Close modal and create node with selected color
             this.container.select('.enhanced-color-picker').remove();
-            this.createConnectedNodeWithOrientation(name, value, selectedOrientation, parentNode, this.modalSelectedColor);
+            this.createConnectedNodeWithOrientation(name, value, selectedOrientation, parentNode, this.modalSelectedColor, previousValue);
         };
 
         // Node creation form
@@ -6539,6 +6557,30 @@ class PulseSankeyChart {
             .append('input')
             .attr('type', 'number')
             .attr('placeholder', 'Flow value (optional)')
+            .style('width', '100%')
+            .style('padding', '8px 12px')
+            .style('border', '2px solid #e5e7eb')
+            .style('border-radius', '8px')
+            .style('font-size', '12px')
+            .style('box-sizing', 'border-box')
+            .style('transition', 'border-color 0.2s ease')
+            .on('focus', function() {
+                d3.select(this).style('border-color', '#10b981');
+            })
+            .on('blur', function() {
+                d3.select(this).style('border-color', '#e5e7eb');
+            })
+            .on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    createNode();
+                }
+            });
+            
+        // Previous Value input
+        const previousValueInput = formContainer
+            .append('input')
+            .attr('type', 'number')
+            .attr('placeholder', 'Previous value (optional)')
             .style('width', '100%')
             .style('padding', '8px 12px')
             .style('border', '2px solid #e5e7eb')
@@ -6609,7 +6651,7 @@ class PulseSankeyChart {
         return Array.from(colors).slice(0, 8); // Limit to 8 colors for clean UI
     }
     
-    createConnectedNodeWithOrientation(name, value, orientation, parentNode, customColor = null) {
+    createConnectedNodeWithOrientation(name, value, orientation, parentNode, customColor = null, previousValue = 0) {
         // Calculate position based on orientation - place on adjacent layer
         let newDepth, nodeX;
         
@@ -6645,12 +6687,13 @@ class PulseSankeyChart {
         const newNode = {
             id: name,
             depth: newDepth,
-            value: value || 50,
+            value: value,
+            previousValue: previousValue,
             category: 'user_created',
             description: `Connected to ${parentNode.id}`,
             x: nodeX,
             y: nodeY,
-            height: Math.max(20, (value || 50) / 20),
+            height: Math.max(20, value > 0 ? value / 20 : 5),
             manuallyPositioned: true,
             manualY: nodeY,
             sourceLinks: [],
@@ -6669,7 +6712,7 @@ class PulseSankeyChart {
         const newLink = {
             source: orientation === 'left' ? newNode : parentNode,
             target: orientation === 'left' ? parentNode : newNode,
-            value: value || 50,
+            value: value,
             type: 'user_created',
             description: `Flow ${orientation === 'left' ? 'from' : 'to'} ${name}`
         };
@@ -6781,22 +6824,10 @@ class PulseSankeyChart {
     gentleSpreadsheetSync() {
         // Sync to spreadsheet without triggering chart re-render
         try {
-            // Debug: Log what's available
-            console.log('🔍 Spreadsheet sync debug:', {
-                unifiedDataEditor: !!window.unifiedDataEditor,
-                unifiedDataEditorType: window.unifiedDataEditor?.chartType,
-                spreadsheetController: !!window.spreadsheetController,
-                flowData: typeof flowData !== 'undefined',
-                flowDataFlows: typeof flowData !== 'undefined' ? flowData?.flows?.length : 'N/A',
-                renderFlowTable: typeof renderFlowTable,
-                BusinessFlow: typeof BusinessFlow
-            });
-            
             // First try: Modern UnifiedSpreadsheetEditor
             if (window.unifiedDataEditor && 
                 window.unifiedDataEditor.chartType === 'sankey' &&
                 typeof window.unifiedDataEditor.render === 'function') {
-                console.log('📊 Syncing data to UnifiedSpreadsheetEditor...');
                 
                 // Direct sync: update spreadsheet data without triggering chart updates
                 if (this.data && this.data.flows) {
@@ -6812,8 +6843,6 @@ class PulseSankeyChart {
                     // Update spreadsheet data directly without triggering loadInitialData
                     window.unifiedDataEditor.data = spreadsheetData;
                     window.unifiedDataEditor.render();
-                    
-                    console.log(`✅ Updated UnifiedSpreadsheetEditor with ${spreadsheetData.length} flows`);
                     return;
                 }
             }
@@ -6821,7 +6850,6 @@ class PulseSankeyChart {
             // Second try: Legacy SpreadsheetController with flowData
             if (window.spreadsheetController && typeof flowData !== 'undefined' && 
                 typeof BusinessFlow !== 'undefined' && this.data && this.data.flows) {
-                console.log('📊 Syncing data to legacy SpreadsheetController...');
                 
                 // Update the legacy flowData.flows array with proper BusinessFlow instances
                 flowData.flows = this.data.flows.map(flow => new BusinessFlow({
@@ -6846,15 +6874,12 @@ class PulseSankeyChart {
                 } else if (typeof window.spreadsheetController.rebuildTable === 'function') {
                     window.spreadsheetController.rebuildTable();
                 }
-                
-                console.log(`✅ Updated legacy spreadsheet with ${this.data.flows.length} BusinessFlow instances`);
                 return;
             }
             
             // Third try: Direct call to renderFlowTable if available
             if (typeof renderFlowTable === 'function' && typeof flowData !== 'undefined' && 
                 typeof BusinessFlow !== 'undefined' && this.data && this.data.flows) {
-                console.log('📊 Syncing via renderFlowTable function...');
                 
                 // Update flowData first with proper BusinessFlow instances
                 flowData.flows = this.data.flows.map(flow => new BusinessFlow({
@@ -6875,20 +6900,14 @@ class PulseSankeyChart {
                 
                 // Call renderFlowTable to refresh display
                 renderFlowTable();
-                
-                console.log(`✅ Updated spreadsheet via renderFlowTable with ${this.data.flows.length} BusinessFlow instances`);
                 return;
             }
             
             // Fallback: Update PulseApp data for future sync
             if (window.pulseApp) {
-                console.log('📊 Updating PulseApp current data for future sync');
                 window.pulseApp.currentData = this.data;
-                console.log('✅ PulseApp data updated');
                 return;
             }
-            
-            console.log('ℹ️ No spreadsheet system available, data will sync when system initializes');
         } catch (error) {
             console.warn('⚠️ Gentle spreadsheet sync failed:', error.message);
         }
