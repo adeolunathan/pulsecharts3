@@ -77,6 +77,13 @@ class PulseSankeyChart {
 
     // Parse number with support for comma-separated thousands (e.g., "57,405")
     parseNumber(value) {
+        // Use the centralized robust number parser
+        if (window.robustParseNumber) {
+            return window.robustParseNumber(value);
+        }
+        
+        // Fallback to original logic if robust parser not available
+        console.log('⚠️ SANKEY: Robust parser not available, using fallback');
         if (value === null || value === undefined || value === '') {
             return 0;
         }
@@ -994,6 +1001,14 @@ class PulseSankeyChart {
         this.config.titleColor = color;
         if (this.svg) {
             this.svg.selectAll('.main-chart-title').style('fill', color);
+        }
+    }
+
+    updateTitleSizeFallback(size) {
+        console.warn('⚠️ Using fallback title size update');
+        this.config.titleSize = size;
+        if (this.svg) {
+            this.svg.selectAll('.main-chart-title').style('font-size', size + 'px');
         }
     }
 
@@ -4826,6 +4841,15 @@ class PulseSankeyChart {
                 ChartBrandingUtils.updateTitleColor.call(this, newConfig.titleColor);
             } else {
                 this.updateTitleColorFallback(newConfig.titleColor);
+            }
+        }
+
+        // Handle title size change specifically
+        if (newConfig.titleSize !== undefined && oldConfig.titleSize !== newConfig.titleSize) {
+            if (window.ChartBrandingUtils && window.ChartBrandingUtils.updateTitleSize) {
+                ChartBrandingUtils.updateTitleSize.call(this, newConfig.titleSize);
+            } else {
+                this.updateTitleSizeFallback(newConfig.titleSize);
             }
         }
         

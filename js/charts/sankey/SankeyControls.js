@@ -109,6 +109,23 @@ class SankeyControlModule {
                         description: "Font family for all chart text"
                     },
                     {
+                        id: "titleSize",
+                        type: "slider",
+                        label: "Title Size",
+                        min: 14,
+                        max: 50,
+                        default: 40,
+                        step: 1,
+                        description: "Size of the chart title"
+                    },
+                    {
+                        id: "titleColor",
+                        type: "color_picker",
+                        label: "Title Color",
+                        default: "#1f2937",
+                        description: "Color of the chart title"
+                    },
+                    {
                         id: "globalFontSize",
                         type: "slider",
                         label: "Label/Value Font Size",
@@ -589,13 +606,38 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle titleFont specially
+        // Handle titleFont specially - use isolation system
         if (controlId === 'titleFont') {
             console.log('🔤 🚨 SANKEY DEBUG: titleFont control changed to:', value, 'chart instance:', chart);
-            chart.updateConfig({ titleFont: value });
+            if (window.TitleControlIsolation) {
+                window.TitleControlIsolation.applyTitleFont(chart, value);
+            } else {
+                chart.updateConfig({ titleFont: value });
+            }
             return;
         }
 
+        // Handle titleSize specially - use isolation system
+        if (controlId === 'titleSize') {
+            console.log('🔤 🚨 SANKEY DEBUG: titleSize control changed to:', value, 'chart instance:', chart);
+            if (window.TitleControlIsolation) {
+                window.TitleControlIsolation.applyTitleSize(chart, value);
+            } else {
+                chart.updateConfig({ titleSize: value });
+            }
+            return;
+        }
+
+        // Handle titleColor specially - use isolation system
+        if (controlId === 'titleColor') {
+            console.log('🔤 🚨 SANKEY DEBUG: titleColor control changed to:', value, 'chart instance:', chart);
+            if (window.TitleControlIsolation) {
+                window.TitleControlIsolation.applyTitleColor(chart, value);
+            } else {
+                chart.updateConfig({ titleColor: value });
+            }
+            return;
+        }
 
         // Handle globalFontSize specially
         if (controlId === 'globalFontSize') {
@@ -915,6 +957,16 @@ class SankeyControlModule {
         // Handle titleFont specially
         if (controlId === 'titleFont') {
             return chart && chart.config ? chart.config.titleFont : 'Inter';
+        }
+
+        // Handle titleSize specially
+        if (controlId === 'titleSize') {
+            return chart && chart.config ? chart.config.titleSize : 40;
+        }
+
+        // Handle titleColor specially
+        if (controlId === 'titleColor') {
+            return chart && chart.config ? chart.config.titleColor : '#1f2937';
         }
         
         

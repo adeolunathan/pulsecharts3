@@ -1056,6 +1056,13 @@ class SpreadsheetEditor {
     }
 
     parseNumber(value) {
+        // Use the centralized robust number parser
+        if (window.robustParseNumber) {
+            return window.robustParseNumber(value);
+        }
+        
+        // Fallback to original logic if robust parser not available
+        console.log('⚠️ SPREADSHEET: Robust parser not available, using fallback');
         console.log('🔢 🚨 SANKEY DEBUG: parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
         
         if (value === null || value === undefined || value === '') {

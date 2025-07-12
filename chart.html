@@ -25,6 +25,9 @@
     
     <!-- Load Global Chart Config first -->
     <script src="js/utils/GlobalChartConfig.js"></script>
+    <!-- Load IIFE utilities early for centralized solutions -->
+    <script src="js/utils/RobustNumberParser.js"></script>
+    <script src="js/utils/TitleControlIsolation.js"></script>
     <!-- Load ChartZoom early to ensure availability -->
     <script src="js/utils/ChartZoom.js"></script>
     <!-- Load ChartColorPicker early to ensure availability -->
@@ -4161,7 +4164,7 @@
                     newValue = selectedOption.value;
                 } else {
                     if (type === 'number') {
-                        newValue = parseFloat(editor.value) || 0;
+                        newValue = this.parseNumber(editor.value);
                         // Format numbers with commas for display
                         content.textContent = newValue > 0 ? newValue.toLocaleString() : (newValue === 0 ? '0' : '');
                     } else {
@@ -4830,9 +4833,7 @@
                     const standardMatch = standardThousandsRegex.test(cleanValue);
                     const flexibleMatch = flexibleCommaRegex.test(cleanValue);
                     const anyCommaMatch = anyCommaRegex.test(cleanValue);
-                    console.log('🔢 🚨 OLD CONTROLLER DEBUG: standard regex test result:', standardMatch);
-                    console.log('🔢 🚨 OLD CONTROLLER DEBUG: flexible regex test result:', flexibleMatch);
-                    console.log('🔢 🚨 OLD CONTROLLER DEBUG: anyComma regex test result:', anyCommaMatch);
+                    // Regex test results (removed noisy logging)
                     
                     if (standardMatch || flexibleMatch || anyCommaMatch) {
                         const before = cleanValue;
@@ -5078,7 +5079,7 @@
                 // Type conversion based on cell type
                 let processedValue = value;
                 if (type === 'number') {
-                    processedValue = parseFloat(value) || 0;
+                    processedValue = this.parseNumber(value);
                 } else {
                     processedValue = value.toString();
                 }
@@ -5585,7 +5586,7 @@
         }
 
         function makeChartTitleEditable() {
-            console.log('📝 makeChartTitleEditable: Starting...');
+            console.log('📝 🚨 SANKEY DEBUG: makeChartTitleEditable: Starting...');
             
             // Find ALL potential title elements and make them editable
             const chartContainer = document.querySelector('#main-chart');
@@ -5665,7 +5666,7 @@
                 }
             });
             
-            console.log('📝 makeChartTitleEditable: Made', titlesFound, 'title elements editable');
+            console.log('📝 🚨 SANKEY DEBUG: makeChartTitleEditable: Made', titlesFound, 'title elements editable');
             
             // If no titles found, create a default one
             if (titlesFound === 0) {

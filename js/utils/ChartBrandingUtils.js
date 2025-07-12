@@ -440,6 +440,22 @@
     }
 
     /**
+     * Update title size
+     */
+    function updateTitleSize(size) {
+        console.log('🔤 🚨 SANKEY DEBUG: ChartBrandingUtils.updateTitleSize called with:', size, 'chart type:', this.constructor.name);
+        this.config.titleSize = size;
+        if (this.svg) {
+            // Update only the chart title element
+            const titleElements = this.svg.selectAll('.main-chart-title');
+            console.log('🔤 🚨 SANKEY DEBUG: Found title elements for size update:', titleElements.size(), 'applying size:', size + 'px');
+            titleElements.style('font-size', size + 'px');
+            
+            console.log(`🔤 Title size updated to ${size}px`);
+        }
+    }
+
+    /**
      * Clear brand logo
      */
     function clearBrand() {
@@ -468,6 +484,7 @@
         updateBackgroundColor,
         updateTitleFont,
         updateTitleColor,
+        updateTitleSize,
         clearBrand
     };
 
