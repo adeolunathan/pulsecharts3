@@ -3027,17 +3027,15 @@
                 }
                 
 
-                // Initialize SpreadsheetController for Sankey flow builder (OLD SYSTEM)
-                console.log('⚠️ Initializing OLD SpreadsheetController for main flow table');
+                // Initialize SpreadsheetController for Sankey flow builder
+                console.log('📊 Initializing SpreadsheetController for main flow table');
                 window.spreadsheetController = new SpreadsheetController();
-                console.log('⚠️ OLD SpreadsheetController active - this handles the main flow table');
-                console.log('💡 To use the NEW unified editor with paste functionality, click the "Chart Builder" tab!');
                 
                 // Auto-select first cell in main flow table to enable paste immediately
                 setTimeout(() => {
                     const firstCell = document.querySelector('#main-flow-table .spreadsheet-cell');
                     if (firstCell && window.spreadsheetController && !window.spreadsheetController.selectedCell) {
-                        console.log('📋 OLD SpreadsheetController: Auto-selecting first cell to enable paste');
+                        console.log('📋 SpreadsheetController: Auto-selecting first cell to enable paste');
                         window.spreadsheetController.selectCell(firstCell);
                     }
                 }, 500);
