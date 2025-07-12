@@ -5631,45 +5631,41 @@
         function makeChartTitleEditable() {
             console.log('📝 🚨 SANKEY DEBUG: makeChartTitleEditable: Starting...');
             
-            // Find ALL potential title elements and make them editable
+            // Find ONLY actual title elements with the correct class - NO HEURISTICS
             const chartContainer = document.querySelector('#main-chart');
             if (!chartContainer) {
                 console.log('📝 makeChartTitleEditable: No chart container found');
                 return false;
             }
             
-            // Get all text elements in the chart
-            const allTextElements = chartContainer.querySelectorAll('text');
-            console.log('📝 makeChartTitleEditable: Found', allTextElements.length, 'text elements');
+            // Get ONLY elements with the main-chart-title class
+            const titleElements = chartContainer.querySelectorAll('.main-chart-title');
+            console.log('📝 makeChartTitleEditable: Found', titleElements.length, 'actual title elements');
+            
+            if (titleElements.length === 0) {
+                console.log('📝 makeChartTitleEditable: No .main-chart-title elements found');
+                return false;
+            }
             
             let titlesFound = 0;
             
-            allTextElements.forEach((textElement, index) => {
+            titleElements.forEach((textElement, index) => {
                 const text = textElement.textContent || '';
-                const isLargeText = text.length > 15; // Increased from 10 to be more selective
-                const hasMainTitleKeywords = /Statement|Corp|Inc|Q[1-4]|202[3-5]|Income|Balance|TechFlow/i.test(text);
-                const isCentered = textElement.getAttribute('text-anchor') === 'middle';
-                const hasLargeFontSize = parseInt(textElement.getAttribute('font-size') || '0') > 30; // Increased from 20 to be more selective
-                const isInHeader = textElement.closest('.chart-header'); // More specific selection
+                console.log(`📝 🚨 SANKEY DEBUG: Making title ${index} editable:`, text.substring(0, 50), 'classes:', textElement.className);
                 
-                // EXCLUDE node labels and other chart elements
-                const isNodeLabel = textElement.classList.contains('node-label') || 
-                                    textElement.classList.contains('node-value') ||
-                                    textElement.closest('.node-text-group') ||
-                                    textElement.hasAttribute('data-node-id') ||
-                                    textElement.classList.contains('bar-label') ||
-                                    textElement.classList.contains('axis-label');
-                
-                // Check if it's actually the main chart title class
-                const isActualTitle = textElement.classList.contains('main-chart-title') ||
-                                      textElement.closest('.chart-header');
-                
-                // Much more restrictive criteria - only the main chart title, exclude node labels
-                const isMainTitle = !isNodeLabel && 
-                                    (isActualTitle || (isLargeText && hasMainTitleKeywords && (isCentered || hasLargeFontSize || isInHeader)));
-                
-                if (isMainTitle) {
-                    console.log(`📝 🚨 SANKEY DEBUG: Making MAIN title ${index} editable:`, text.substring(0, 50), 'classes:', textElement.className, 'isNodeLabel:', isNodeLabel, 'isActualTitle:', isActualTitle);
+                // Use the isolation system instead of direct manipulation
+                if (window.TitleControlIsolation) {
+                    // Let the isolation system handle all title styling
+                    console.log('📝 Using TitleControlIsolation system for title setup');
+                    
+                    // Restore custom title text if it exists
+                    if (window.customChartTitle && textElement.textContent !== window.customChartTitle) {
+                        textElement.textContent = window.customChartTitle;
+                        console.log('📝 Restored custom title:', window.customChartTitle);
+                    }
+                } else {
+                    // Fallback to direct manipulation if isolation system not available
+                    console.log('📝 Fallback: Direct title manipulation');
                     
                     // Restore custom title text if it exists
                     if (window.customChartTitle && textElement.textContent !== window.customChartTitle) {
@@ -5684,30 +5680,38 @@
                         console.log('📝 Restored custom font size:', window.customTitleFontSize);
                     }
                     if (window.customTitleColor) {
-                        textElement.style.setProperty('--custom-color', window.customTitleColor);
                         textElement.style.fill = window.customTitleColor;
                         textElement.setAttribute('fill', window.customTitleColor);
-                        textElement.setAttribute('data-custom-color', window.customTitleColor);
                         console.log('📝 Restored custom title color:', window.customTitleColor);
                     }
-                    
-                    // Always apply/reapply styling to ensure title remains editable
-                    const beforeEditable = textElement.getAttribute('data-editable');
-                    textElement.setAttribute('data-editable', 'true');
-                    textElement.style.cursor = 'pointer';
-                    textElement.style.transition = 'fill 0.2s ease';
-                    
-                    console.log('📝 makeChartTitleEditable: Set data-editable from', beforeEditable, 'to true on MAIN title:', index);
-                    titlesFound++;
-                } else {
-                    // For debugging: remove data-editable from elements that shouldn't have it
-                    if (textElement.hasAttribute('data-editable')) {
-                        console.log(`📝 🚨 SANKEY DEBUG: REMOVING data-editable from non-title element ${index}:`, text.substring(0, 30), 'classes:', textElement.className, 'isNodeLabel:', isNodeLabel);
-                        textElement.removeAttribute('data-editable');
-                        textElement.style.cursor = '';
-                    }
+                }
+                
+                // Always ensure title is properly marked as editable
+                const beforeEditable = textElement.getAttribute('data-editable');
+                textElement.setAttribute('data-editable', 'true');
+                textElement.style.cursor = 'pointer';
+                textElement.style.transition = 'fill 0.2s ease';
+                
+                console.log('📝 makeChartTitleEditable: Set data-editable from', beforeEditable, 'to true on title:', index);
+                titlesFound++;
+            });
+            
+            // CLEANUP: Remove data-editable from any node labels that might have it
+            const allTextElements = chartContainer.querySelectorAll('text:not(.main-chart-title)');
+            let cleanedCount = 0;
+            allTextElements.forEach((textElement, index) => {
+                if (textElement.hasAttribute('data-editable')) {
+                    const text = textElement.textContent || '';
+                    console.log(`📝 🚨 CLEANUP: REMOVING data-editable from non-title element:`, text.substring(0, 30), 'classes:', textElement.className);
+                    textElement.removeAttribute('data-editable');
+                    textElement.style.cursor = '';
+                    cleanedCount++;
                 }
             });
+            
+            if (cleanedCount > 0) {
+                console.log(`📝 🚨 CLEANUP: Removed data-editable from ${cleanedCount} non-title elements`);
+            }
             
             console.log('📝 🚨 SANKEY DEBUG: makeChartTitleEditable: Made', titlesFound, 'title elements editable');
             
