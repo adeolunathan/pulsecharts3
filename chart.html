@@ -4813,52 +4813,40 @@
             }
 
             parseNumber(value) {
-                console.log('🔢 🚨 OLD CONTROLLER DEBUG: parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
                 
                 // Use the centralized robust number parser if available
                 if (window.robustParseNumber) {
-                    console.log('🔢 OLD CONTROLLER: Using centralized robust parser');
                     const result = window.robustParseNumber(value);
-                    console.log('🔢 🚨 OLD CONTROLLER DEBUG: Robust parser result:', result, 'original input was:', JSON.stringify(value));
                     return result;
                 }
                 
                 // Fallback to original logic if robust parser not available
-                console.log('⚠️ OLD CONTROLLER: Robust parser not available, using fallback');
                 
                 if (value === null || value === undefined || value === '') {
-                    console.log('🔢 OLD CONTROLLER: empty value, returning 0');
                     return 0;
                 }
                 
                 let cleanValue = String(value).trim();
-                console.log('🔢 OLD CONTROLLER: initial cleanValue:', JSON.stringify(cleanValue));
                 
                 // Remove currency symbols
                 const beforeCurrency = cleanValue;
                 cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
-                if (beforeCurrency !== cleanValue) {
-                    console.log('🔢 OLD CONTROLLER: removed currency symbols:', JSON.stringify(beforeCurrency), '->', JSON.stringify(cleanValue));
-                }
                 
                 // Handle percentage
                 if (cleanValue.endsWith('%')) {
                     cleanValue = cleanValue.slice(0, -1);
                     const num = parseFloat(cleanValue);
                     const result = isNaN(num) ? 0 : Math.floor(num / 100);
-                    console.log('🔢 OLD CONTROLLER: percentage value:', JSON.stringify(cleanValue), 'result:', result);
                     return result;
                 }
                 
                 // Handle parentheses as negative
                 if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
                     cleanValue = '-' + cleanValue.slice(1, -1);
-                    console.log('🔢 OLD CONTROLLER: converted parentheses to negative:', JSON.stringify(cleanValue));
                 }
                 
                 // Handle thousands separators - be more careful
                 if (cleanValue.includes(',')) {
-                    console.log('🔢 OLD CONTROLLER: contains comma, original:', JSON.stringify(cleanValue));
                     
                     // Handle thousands separators with flexibility
                     // Standard format: 1,234,567 (1-3 digits, then groups of 3)
@@ -4866,7 +4854,6 @@
                     const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
                     const flexibleCommaRegex = /^-?\d+(,\d+)+(\.\d+)?$/; // Fixed: require at least one comma group
                     const anyCommaRegex = /^-?\d+([,\d]+)*(\.\d+)?$/; // Accept any comma pattern
-                    console.log('🔢 🚨 OLD CONTROLLER DEBUG: testing thousands separator regex against:', JSON.stringify(cleanValue));
                     const standardMatch = standardThousandsRegex.test(cleanValue);
                     const flexibleMatch = flexibleCommaRegex.test(cleanValue);
                     const anyCommaMatch = anyCommaRegex.test(cleanValue);
@@ -4875,41 +4862,30 @@
                     if (standardMatch || flexibleMatch || anyCommaMatch) {
                         const before = cleanValue;
                         cleanValue = cleanValue.replace(/,/g, '');
-                        console.log('🔢 🚨 OLD CONTROLLER DEBUG: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                     }
                     // European style (1.234.567,50) - but only if we detect this pattern
                     else {
                         const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
-                        console.log('🔢 OLD CONTROLLER: testing European format regex against:', JSON.stringify(cleanValue));
-                        console.log('🔢 OLD CONTROLLER: European regex test result:', europeanRegex.test(cleanValue));
                         
                         if (europeanRegex.test(cleanValue)) {
                             const before = cleanValue;
                             cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
-                            console.log('🔢 OLD CONTROLLER: converted European format:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                         } else {
-                            console.log('🔢 OLD CONTROLLER: comma found but no pattern matched - might be a different format');
                             // Try removing commas anyway as a fallback
-                            const before = cleanValue;
                             cleanValue = cleanValue.replace(/,/g, '');
-                            console.log('🔢 OLD CONTROLLER: fallback comma removal:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                         }
                     }
                 }
                 
                 // Parse the cleaned value
-                console.log('🔢 🚨 OLD CONTROLLER DEBUG: about to parse:', JSON.stringify(cleanValue));
                 const num = parseFloat(cleanValue);
-                console.log('🔢 🚨 OLD CONTROLLER DEBUG: parseFloat result:', num, 'isNaN:', isNaN(num), 'type:', typeof num);
                 
                 if (isNaN(num)) {
-                    console.log('🔢 OLD CONTROLLER: NaN detected, returning 0');
                     return 0;
                 }
                 
                 // Return whole number (floor decimals for consistent behavior)
                 const result = Math.floor(num);
-                console.log('🔢 🚨 OLD CONTROLLER DEBUG: parseNumber final result:', result, 'original input was:', JSON.stringify(value));
                 return result;
             }
 
@@ -4920,12 +4896,9 @@
                 if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
                     if (this.selectedCell) {
                         event.preventDefault();
-                        console.log('📋 OLD SpreadsheetController: Copy detected');
                         this.copyCells();
                     }
                 } else if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-                    console.log('📋 OLD SpreadsheetController: 🚨 CTRL+V DETECTED 🚨');
-                    console.log('📋 OLD SpreadsheetController: Selected cell:', this.selectedCell);
                     
                     // Handle paste if we have ANY selected cell OR if we're in the flow table area
                     const shouldHandle = this.selectedCell || document.querySelector('.flow-table:hover');

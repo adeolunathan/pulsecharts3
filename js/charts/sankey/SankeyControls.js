@@ -916,9 +916,9 @@ class SankeyControlModule {
                 selected: false
             };
 
-            // Re-render chart to show logo
-            if (chart.render && chart.data) {
-                chart.render(chart.data);
+            // Update just the logo without full re-render to preserve user changes
+            if (window.ChartBrandingUtils && window.ChartBrandingUtils.renderBrandLogo) {
+                window.ChartBrandingUtils.renderBrandLogo.call(chart);
             }
 
             console.log('✅ Brand logo uploaded successfully');
@@ -941,9 +941,9 @@ class SankeyControlModule {
         if (chart.data && chart.data.metadata && chart.data.metadata.brandLogo) {
             delete chart.data.metadata.brandLogo;
             
-            // Re-render chart to remove logo
-            if (chart.render && chart.data) {
-                chart.render(chart.data);
+            // Remove just the logo without full re-render to preserve user changes
+            if (chart.svg) {
+                chart.svg.selectAll('.chart-brand-logo').remove();
             }
             
             console.log('✅ Brand logo cleared successfully');
@@ -1869,7 +1869,10 @@ class SankeyControlModule {
             });
             
             this.chart.showNotification(`Assigned ${affectedNodes.length} nodes to category "${category}"`);
-            this.chart.render(this.chart.data); // Re-render to update colors
+            // Update just node colors without full re-render to preserve user changes
+            if (this.chart.rerenderWithNewColors) {
+                this.chart.rerenderWithNewColors();
+            }
             
             modal.remove();
         };

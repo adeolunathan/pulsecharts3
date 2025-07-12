@@ -5294,7 +5294,7 @@ class PulseSankeyChart {
                 .on('end', () => {
                     
                     // Log final state
-                    const finalTransform = d3.zoomTransform(this.svg.node());
+                    d3.zoomTransform(this.svg.node());
                 });
             
         } catch (error) {
@@ -5334,7 +5334,7 @@ class PulseSankeyChart {
             
             
         // Center Chart Button
-        const centerButton = toggleContainer
+        toggleContainer
             .append('button')
             .attr('class', 'center-chart-btn')
             .style('padding', '4px 8px')
@@ -5354,7 +5354,7 @@ class PulseSankeyChart {
             .on('click', () => this.centerChart());
             
         // Normal Mode Button (to exit special modes)
-        const normalButton = toggleContainer
+        toggleContainer
             .append('button')
             .attr('class', 'normal-mode-btn')
             .style('padding', '4px 8px')
@@ -5376,7 +5376,6 @@ class PulseSankeyChart {
     }
     
     setInteractionMode(mode) {
-        const previousMode = this.interactionMode.mode;
         this.interactionMode.mode = mode;
         
         // Update button appearances
@@ -5414,7 +5413,6 @@ class PulseSankeyChart {
     }
     
     updateNodeInteractionMode() {
-        const mode = this.interactionMode.mode;
         
         this.chart.selectAll('.sankey-node')
             .style('cursor', 'pointer');
@@ -5428,7 +5426,7 @@ class PulseSankeyChart {
     
     // ===== ENHANCED COLOR PICKER WITH ADD NODE FUNCTIONALITY =====
     
-    showEnhancedColorPicker(event, nodeData, mode = 'edit') {
+    showEnhancedColorPicker(nodeData, mode = 'edit') {
         // Remove any existing enhanced color picker
         this.container.select('.enhanced-color-picker').remove();
         
@@ -5627,7 +5625,7 @@ class PulseSankeyChart {
     
     showCreateNodeModal(parentNode) {
         // Show create modal starting with step 1
-        this.showEnhancedColorPicker(null, parentNode, 'create');
+        this.showEnhancedColorPicker(parentNode, 'create');
     }
     
     showCompleteNodeCreationModal(parentNode) {
@@ -5837,7 +5835,7 @@ class PulseSankeyChart {
             
         // Left and Right buttons
         ['left', 'right'].forEach(orientation => {
-            const btn = orientationGrid
+            orientationGrid
                 .append('button')
                 .attr('class', 'orientation-btn')
                 .attr('data-orientation', orientation)
@@ -6413,7 +6411,7 @@ class PulseSankeyChart {
             .on('click', () => {
                 // Proceed to step 2
                 this.modalStep = 2;
-                this.showEnhancedColorPicker(null, nodeData, 'create');
+                this.showEnhancedColorPicker(nodeData, 'create');
             });
     }
     
@@ -6485,7 +6483,7 @@ class PulseSankeyChart {
             .style('gap', '6px');
             
         // Left orientation button
-        const leftBtn = orientationGrid
+        orientationGrid
             .append('button')
             .attr('class', 'orientation-btn')
             .attr('data-orientation', 'left')
@@ -6745,7 +6743,6 @@ class PulseSankeyChart {
             depth: newDepth,
             value: value,
             previousValue: previousValue,
-            category: 'user_created',
             description: `Connected to ${parentNode.id}`,
             x: nodeX,
             y: nodeY,
@@ -6833,7 +6830,7 @@ class PulseSankeyChart {
         const minSpacing = 60;
         
         // Find a non-overlapping position
-        while (this.hasOverlapAtPosition(nodeY, nodeX, nodesAtSameDepth, 40)) {
+        while (this.hasOverlapAtPosition(nodeY, nodesAtSameDepth, 40)) {
             nodeY += minSpacing;
         }
         
@@ -6844,7 +6841,7 @@ class PulseSankeyChart {
         return { x: nodeX, y: nodeY };
     }
     
-    hasOverlapAtPosition(y, x, existingNodes, nodeHeight) {
+    hasOverlapAtPosition(y, existingNodes, nodeHeight) {
         const minSpacing = 20;
         
         return existingNodes.some(node => {
@@ -7082,13 +7079,11 @@ class PulseSankeyChart {
         const magneticThreshold = 35; // Balanced magnetic snap distance
         
         let finalX = constrainedX;
-        let shouldSnapToLayer = false;
         
         if (nearestLayer && Math.abs(constrainedX - nearestLayer.x) < magneticThreshold) {
             // Show strong magnetic feedback
             this.showMagneticFeedback(nearestLayer.x, true);
             finalX = nearestLayer.x;
-            shouldSnapToLayer = true;
             
             // Update node depth if snapping to a different layer
             if (nearestLayer.depth !== draggedNode.depth) {
@@ -7232,7 +7227,6 @@ class PulseSankeyChart {
     calculateLayerFromX(x) {
         // Calculate which layer this X position corresponds to with enhanced snapping
         const layerPositions = [...new Set(this.nodes.map(n => n.x))].sort((a, b) => a - b);
-        const depths = [...new Set(this.nodes.map(n => n.depth))].sort((a, b) => a - b);
         
         // Create a map of X positions to depth values
         const xToDepthMap = new Map();
@@ -7245,7 +7239,6 @@ class PulseSankeyChart {
         // Find the closest layer position with snapping threshold
         let closestLayerX = layerPositions[0];
         let minDistance = Math.abs(x - layerPositions[0]);
-        const snapThreshold = 50; // Snap within 50px
         
         layerPositions.forEach((layerX) => {
             const distance = Math.abs(x - layerX);
@@ -7270,7 +7263,6 @@ class PulseSankeyChart {
     
     moveNodeToLayer(node, newLayer, newY, element) {
         // Update node layer
-        const oldLayer = node.depth;
         node.depth = newLayer;
         
         // Calculate new X position based on layer

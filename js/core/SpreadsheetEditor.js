@@ -229,7 +229,6 @@ class SpreadsheetEditor {
         
         // Global paste listener
         document.addEventListener('paste', (e) => {
-            console.log('📋 🚨 GLOBAL PASTE EVENT DETECTED 🚨');
             
             const shouldHandlePaste = 
                 this.selectedCell ||
@@ -696,7 +695,6 @@ class SpreadsheetEditor {
     // Keyboard navigation and shortcuts
     handleKeydown(e) {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') {
-            console.log('📋 🚨 CTRL+V/CMD+V DETECTED 🚨');
             
             const shouldHandlePaste = 
                 this.selectedCell ||

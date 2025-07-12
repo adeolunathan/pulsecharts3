@@ -207,7 +207,6 @@ class ChartBranding {
         }
 
         // Right side attribution - always show
-        console.log('🏷️ Branding debug:', {hasCustom: logoInfo.hasCustom, isBackend: logoInfo.isBackend});
     }
 
     /**
