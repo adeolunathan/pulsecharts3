@@ -2328,7 +2328,7 @@
                     <input type="number" class="cell-editor" style="display: none;">
                 </td>
                 <td class="spreadsheet-cell" data-col="previousValue" data-row="${index}" data-type="number">
-                    <div class="cell-content">${flow.previousValue ? flow.previousValue.toLocaleString() : ''}</div>
+                    <div class="cell-content">${isEmpty ? '' : (typeof flow.previousValue === 'number' ? flow.previousValue.toLocaleString() : '')}</div>
                     <input type="number" class="cell-editor" style="display: none;" placeholder="0">
                 </td>
                 <td class="variance-cell">

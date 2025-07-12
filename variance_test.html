@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BusinessFlow Variance Test</title>
+</head>
+<body>
+    <h1>BusinessFlow Variance Methods Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Copy the BusinessFlow class from chart.html
+        let flowIdCounter = 0;
+        
+        class BusinessFlow {
+            constructor(options = {}) {
+                this.id = options.id || `flow_${++flowIdCounter}`;
+                this.source = options.source || '';
+                this.target = options.target || '';
+                this.value = options.value || 0;
+                this.previousValue = options.previousValue || 0;
+                this.flowType = options.flowType || 'revenue_flow';
+                this.sourceLayer = options.sourceLayer || 0;
+                this.targetLayer = options.targetLayer || 1;
+                this.sourceOrder = options.sourceOrder || 1;
+                this.targetOrder = options.targetOrder || 1;
+                this.sourceCategory = options.sourceCategory || 'revenue';
+                this.targetCategory = options.targetCategory || 'revenue';
+                this.description = options.description || '';
+            }
+            
+            // Calculate variance between current and previous period
+            getVariance() {
+                if (this.previousValue === 0) {
+                    return this.value > 0 ? { amount: this.value, percentage: 100, trend: 'new' } : { amount: 0, percentage: 0, trend: 'none' };
+                }
+                
+                const amount = this.value - this.previousValue;
+                const percentage = (amount / Math.abs(this.previousValue)) * 100;
+                let trend = 'none';
+                
+                if (percentage > 0.1) trend = 'up';
+                else if (percentage < -0.1) trend = 'down';
+                
+                return { amount, percentage, trend };
+            }
+            
+            // Get formatted variance display
+            getVarianceDisplay() {
+                const variance = this.getVariance();
+                if (variance.trend === 'none') return '→ 0%';
+                if (variance.trend === 'new') return ''; // Return empty string for new items
+                
+                const symbol = variance.trend === 'up' ? '▲' : '▼';
+                const sign = variance.percentage > 0 ? '+' : '';
+                return `${symbol} ${sign}${variance.percentage.toFixed(1)}%`;
+            }
+        }
+
+        // Test cases
+        function runTests() {
+            const results = document.getElementById('test-results');
+            let testResults = '<h2>Test Results:</h2>';
+
+            // Test 1: Standard increase
+            const flow1 = new BusinessFlow({
+                source: "Revenue",
+                target: "Profit",
+                value: 100,
+                previousValue: 80
+            });
+            const variance1 = flow1.getVariance();
+            const display1 = flow1.getVarianceDisplay();
+            testResults += `<p><strong>Test 1 - Standard increase (100 vs 80):</strong><br>
+                Variance: amount=${variance1.amount}, percentage=${variance1.percentage.toFixed(1)}%, trend=${variance1.trend}<br>
+                Display: "${display1}"</p>`;
+
+            // Test 2: Standard decrease
+            const flow2 = new BusinessFlow({
+                source: "Revenue",
+                target: "Profit", 
+                value: 80,
+                previousValue: 100
+            });
+            const variance2 = flow2.getVariance();
+            const display2 = flow2.getVarianceDisplay();
+            testResults += `<p><strong>Test 2 - Standard decrease (80 vs 100):</strong><br>
+                Variance: amount=${variance2.amount}, percentage=${variance2.percentage.toFixed(1)}%, trend=${variance2.trend}<br>
+                Display: "${display2}"</p>`;
+
+            // Test 3: New item (previous value 0)
+            const flow3 = new BusinessFlow({
+                source: "New Revenue",
+                target: "Profit",
+                value: 50,
+                previousValue: 0
+            });
+            const variance3 = flow3.getVariance();
+            const display3 = flow3.getVarianceDisplay();
+            testResults += `<p><strong>Test 3 - New item (50 vs 0):</strong><br>
+                Variance: amount=${variance3.amount}, percentage=${variance3.percentage.toFixed(1)}%, trend=${variance3.trend}<br>
+                Display: "${display3}"</p>`;
+
+            // Test 4: No change
+            const flow4 = new BusinessFlow({
+                source: "Revenue",
+                target: "Profit",
+                value: 100,
+                previousValue: 100
+            });
+            const variance4 = flow4.getVariance();
+            const display4 = flow4.getVarianceDisplay();
+            testResults += `<p><strong>Test 4 - No change (100 vs 100):</strong><br>
+                Variance: amount=${variance4.amount}, percentage=${variance4.percentage.toFixed(1)}%, trend=${variance4.trend}<br>
+                Display: "${display4}"</p>`;
+
+            // Test 5: Very small change (should be "none")
+            const flow5 = new BusinessFlow({
+                source: "Revenue", 
+                target: "Profit",
+                value: 100.05,
+                previousValue: 100
+            });
+            const variance5 = flow5.getVariance();
+            const display5 = flow5.getVarianceDisplay();
+            testResults += `<p><strong>Test 5 - Very small change (100.05 vs 100):</strong><br>
+                Variance: amount=${variance5.amount}, percentage=${variance5.percentage.toFixed(1)}%, trend=${variance5.trend}<br>
+                Display: "${display5}"</p>`;
+
+            // Test 6: Negative values
+            const flow6 = new BusinessFlow({
+                source: "Expenses",
+                target: "Total Expenses",
+                value: -80,
+                previousValue: -100
+            });
+            const variance6 = flow6.getVariance();
+            const display6 = flow6.getVarianceDisplay();
+            testResults += `<p><strong>Test 6 - Negative values (-80 vs -100):</strong><br>
+                Variance: amount=${variance6.amount}, percentage=${variance6.percentage.toFixed(1)}%, trend=${variance6.trend}<br>
+                Display: "${display6}"</p>`;
+
+            // Test 7: From profit example data
+            const flow7 = new BusinessFlow({
+                source: "Subscription Revenue",
+                target: "Total Revenue", 
+                value: 300,
+                previousValue: 305
+            });
+            const variance7 = flow7.getVariance();
+            const display7 = flow7.getVarianceDisplay();
+            testResults += `<p><strong>Test 7 - Example from code (300 vs 305):</strong><br>
+                Variance: amount=${variance7.amount}, percentage=${variance7.percentage.toFixed(1)}%, trend=${variance7.trend}<br>
+                Display: "${display7}"</p>`;
+
+            results.innerHTML = testResults;
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

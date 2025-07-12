@@ -1418,18 +1418,13 @@ class PulseSankeyChart {
         // PRESERVE POSITIONS: Restore previous positions and mark as manually positioned
         this.nodes.forEach(node => {
             const preserved = preservedPositions.get(node.id);
-            if (preserved && (preserved.manuallyPositioned || preserved.y !== undefined)) {
-                // Validate preserved Y position before using it
-                if (typeof preserved.y === 'number' && !isNaN(preserved.y)) {
-                    // Restore Y position (preserve user's positioning)
-                    node.y = preserved.y;
-                    node.manualY = preserved.y;
-                    node.manuallyPositioned = true;
-                    // Save to metadata for persistence
-                    this.saveManualPositionToMetadata(node);
-                } else {
-                    console.warn(`⚠️ Skipping invalid preserved position for ${node.id}: Y=${preserved.y}`);
-                }
+            if (preserved && preserved.manuallyPositioned && typeof preserved.y === 'number' && !isNaN(preserved.y)) {
+                // Restore Y position (preserve user's positioning)
+                node.y = preserved.y;
+                node.manualY = preserved.y;
+                node.manuallyPositioned = true;
+                // Save to metadata for persistence
+                this.saveManualPositionToMetadata(node);
             }
         });
 
@@ -6713,6 +6708,7 @@ class PulseSankeyChart {
             source: orientation === 'left' ? newNode : parentNode,
             target: orientation === 'left' ? parentNode : newNode,
             value: value,
+            previousValue: previousValue || 0,
             type: 'user_created',
             description: `Flow ${orientation === 'left' ? 'from' : 'to'} ${name}`
         };
@@ -6801,13 +6797,30 @@ class PulseSankeyChart {
         // Gently update the internal data structure to reflect current nodes and links
         // without triggering full re-renders or layout recalculations
         try {
-            // Build flows from current links
-            const flows = this.links.map(link => ({
-                source: link.source?.id || link.source,
-                target: link.target?.id || link.target,
-                value: link.value || 0,
-                description: link.description || ''
-            }));
+            // Create a map of existing flows to preserve previousValue data
+            const existingFlowsMap = new Map();
+            if (this.data && this.data.flows) {
+                this.data.flows.forEach(flow => {
+                    const key = `${flow.source}->${flow.target}`;
+                    existingFlowsMap.set(key, flow);
+                });
+            }
+            
+            // Build flows from current links, preserving existing previousValue data
+            const flows = this.links.map(link => {
+                const sourceId = link.source?.id || link.source;
+                const targetId = link.target?.id || link.target;
+                const key = `${sourceId}->${targetId}`;
+                const existingFlow = existingFlowsMap.get(key);
+                
+                return {
+                    source: sourceId,
+                    target: targetId,
+                    value: link.value || 0,
+                    previousValue: existingFlow ? existingFlow.previousValue : (link.previousValue || 0),
+                    description: link.description || (existingFlow ? existingFlow.description : '')
+                };
+            });
             
             // Update data structure
             this.data = {
@@ -6815,7 +6828,7 @@ class PulseSankeyChart {
                 flows: flows
             };
             
-            console.log(`✅ Updated internal data structure with ${flows.length} flows:`, flows);
+            console.log(`✅ Updated internal data structure with ${flows.length} flows, preserving previousValue data:`, flows);
         } catch (error) {
             console.warn('⚠️ Failed to update internal data structure:', error.message);
         }
@@ -6933,7 +6946,8 @@ class PulseSankeyChart {
                     source: row[0] || '',
                     target: row[1] || '',
                     value: parseFloat(row[2]) || 0,
-                    description: row[5] || ''  // Description is at index 5
+                    previousValue: parseFloat(row[3]) || 0,  // Previous value is at index 3
+                    description: row[4] || ''  // Description is at index 4 (not 5)
                 }))
             };
             
