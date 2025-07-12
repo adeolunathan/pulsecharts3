@@ -19,100 +19,79 @@
      * @returns {number} - Parsed number (whole numbers only)
      */
     function robustParseNumber(value) {
-        console.log('🔢 🚨 ROBUST PARSER: robustParseNumber called with:', JSON.stringify(value), 'type:', typeof value);
         
         if (value === null || value === undefined || value === '') {
-            console.log('🔢 robustParseNumber: empty value, returning 0');
             return 0;
         }
         
         // If already a number, return it as whole number
         if (typeof value === 'number') {
             const result = Math.floor(value);
-            console.log('🔢 robustParseNumber: already number, floored to:', result);
             return result;
         }
         
         let cleanValue = String(value).trim();
-        console.log('🔢 robustParseNumber: initial cleanValue:', JSON.stringify(cleanValue));
         
         // Remove currency symbols - comprehensive list
         const beforeCurrency = cleanValue;
         cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
-        if (beforeCurrency !== cleanValue) {
-            console.log('🔢 robustParseNumber: removed currency symbols:', JSON.stringify(beforeCurrency), '->', JSON.stringify(cleanValue));
-        }
         
         // Handle percentage
         if (cleanValue.endsWith('%')) {
             cleanValue = cleanValue.slice(0, -1);
             const num = parseFloat(cleanValue);
             const result = isNaN(num) ? 0 : Math.floor(num / 100);
-            console.log('🔢 robustParseNumber: percentage value:', JSON.stringify(cleanValue), 'result:', result);
             return result;
         }
         
         // Handle parentheses as negative
         if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
             cleanValue = '-' + cleanValue.slice(1, -1);
-            console.log('🔢 robustParseNumber: converted parentheses to negative:', JSON.stringify(cleanValue));
         }
         
         // Handle thousands separators - FIXED LOGIC
         if (cleanValue.includes(',')) {
-            console.log('🔢 🚨 ROBUST PARSER: contains comma, original:', JSON.stringify(cleanValue));
             
             // Enhanced regex patterns for comma handling
             const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
             const flexibleCommaRegex = /^-?\d+(,\d+)+(\.\d+)?$/; // At least one comma group
             const anyCommaWithDigitsRegex = /^-?\d+([,\d]*\d)?(\.\d+)?$/; // Any comma pattern ending with digit
             
-            console.log('🔢 🚨 ROBUST PARSER: testing regex patterns against:', JSON.stringify(cleanValue));
             
             const standardMatch = standardThousandsRegex.test(cleanValue);
             const flexibleMatch = flexibleCommaRegex.test(cleanValue);
             const anyCommaMatch = anyCommaWithDigitsRegex.test(cleanValue);
             
-            console.log('🔢 🚨 ROBUST PARSER: standardMatch:', standardMatch, 'flexibleMatch:', flexibleMatch, 'anyCommaMatch:', anyCommaMatch);
             
             // If any comma pattern matches, remove commas
             if (standardMatch || flexibleMatch || anyCommaMatch) {
                 const before = cleanValue;
                 cleanValue = cleanValue.replace(/,/g, '');
-                console.log('🔢 🚨 ROBUST PARSER: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
             }
             // European style handling (1.234.567,50)
             else {
                 const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
-                console.log('🔢 robustParseNumber: testing European format regex against:', JSON.stringify(cleanValue));
                 
                 if (europeanRegex.test(cleanValue)) {
                     const before = cleanValue;
                     cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
-                    console.log('🔢 robustParseNumber: converted European format:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                 } else {
                     // Fallback: remove all commas anyway
-                    console.log('🔢 robustParseNumber: comma found but no pattern matched - fallback comma removal');
                     const before = cleanValue;
                     cleanValue = cleanValue.replace(/,/g, '');
-                    console.log('🔢 robustParseNumber: fallback comma removal:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                 }
             }
         }
         
         // Parse the cleaned value
-        console.log('🔢 🚨 ROBUST PARSER: about to parse final value:', JSON.stringify(cleanValue));
         const num = parseFloat(cleanValue);
-        console.log('🔢 🚨 ROBUST PARSER: parseFloat result:', num, 'isNaN:', isNaN(num), 'type:', typeof num);
         
         if (isNaN(num)) {
-            console.log('🔢 robustParseNumber: NaN detected, returning 0');
             return 0;
         }
         
         // Return whole number (floor decimals for consistent behavior)
         const result = Math.floor(num);
-        console.log('🔢 🚨 ROBUST PARSER: final result:', result, 'original input was:', JSON.stringify(value));
         return result;
     }
 
@@ -220,11 +199,6 @@
     window.robustParseFloat = robustParseFloat;
     window.robustParseInt = robustParseInt;
 
-    console.log('✅ RobustNumberParser IIFE loaded successfully');
-    console.log('🔧 Available methods: parseNumber, parseFloat, parseInt, test');
-    console.log('🔧 Global shortcuts: robustParseNumber, robustParseFloat, robustParseInt');
 
-    // Run initial test
-    testRobustParser();
 
 })();

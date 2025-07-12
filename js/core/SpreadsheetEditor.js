@@ -465,7 +465,6 @@ class SpreadsheetEditor {
                 `;
                 const rawValue = row[column.id] || '';
                 const formattedValue = this.formatCellValueSafe(rawValue, column.type);
-                console.log('🏗️ Rendering cell - row:', rowIndex, 'column:', column.id, 'type:', column.type, 'raw value:', JSON.stringify(rawValue), 'formatted:', JSON.stringify(formattedValue));
                 cellContent.textContent = formattedValue;
                 
                 td.appendChild(cellContent);
@@ -499,21 +498,17 @@ class SpreadsheetEditor {
     }
 
     formatCellValueSafe(value, type) {
-        console.log('🎨 🚨 SANKEY DEBUG: formatCellValueSafe called with:', JSON.stringify(value), 'type:', type, 'value type:', typeof value);
         
         if (type === 'number') {
             if (typeof value === 'number') {
                 // Display numbers exactly as stored, with locale formatting but no truncation
                 const result = value.toLocaleString();
-                console.log('🎨 🚨 SANKEY DEBUG: formatCellValueSafe formatted number', value, '->', result);
                 return result;
             }
             const fallback = value || '0';
-            console.log('🎨 formatCellValueSafe: non-number value, returning fallback:', fallback);
             return fallback;
         }
         const result = String(value || '');
-        console.log('🎨 formatCellValueSafe: text value, returning:', JSON.stringify(result));
         return result;
     }
 
@@ -1062,42 +1057,32 @@ class SpreadsheetEditor {
         }
         
         // Fallback to original logic if robust parser not available
-        console.log('⚠️ SPREADSHEET: Robust parser not available, using fallback');
-        console.log('🔢 🚨 SANKEY DEBUG: parseNumber called with:', JSON.stringify(value), 'type:', typeof value);
         
         if (value === null || value === undefined || value === '') {
-            console.log('🔢 parseNumber: empty value, returning 0');
             return 0;
         }
         
         let cleanValue = String(value).trim();
-        console.log('🔢 parseNumber: initial cleanValue:', JSON.stringify(cleanValue));
         
         // Remove currency symbols
         const beforeCurrency = cleanValue;
         cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
-        if (beforeCurrency !== cleanValue) {
-            console.log('🔢 parseNumber: removed currency symbols:', JSON.stringify(beforeCurrency), '->', JSON.stringify(cleanValue));
-        }
         
         // Handle percentage
         if (cleanValue.endsWith('%')) {
             cleanValue = cleanValue.slice(0, -1);
             const num = parseFloat(cleanValue);
             const result = isNaN(num) ? 0 : Math.floor(num / 100);
-            console.log('🔢 parseNumber: percentage value:', JSON.stringify(cleanValue), 'result:', result);
             return result;
         }
         
         // Handle parentheses as negative
         if (cleanValue.startsWith('(') && cleanValue.endsWith(')')) {
             cleanValue = '-' + cleanValue.slice(1, -1);
-            console.log('🔢 parseNumber: converted parentheses to negative:', JSON.stringify(cleanValue));
         }
         
         // Handle thousands separators - be more careful
         if (cleanValue.includes(',')) {
-            console.log('🔢 parseNumber: contains comma, original:', JSON.stringify(cleanValue));
             
             // Handle thousands separators with flexibility
             // Standard format: 1,234,567 (1-3 digits, then groups of 3)
@@ -1105,52 +1090,37 @@ class SpreadsheetEditor {
             const standardThousandsRegex = /^-?\d{1,3}(,\d{3})*(\.\d+)?$/;
             const flexibleCommaRegex = /^-?\d+(,\d+)+(\.\d+)?$/; // Fixed: require at least one comma group
             const anyCommaRegex = /^-?\d+([,\d]+)*(\.\d+)?$/; // Accept any comma pattern
-            console.log('🔢 🚨 SANKEY DEBUG: testing thousands separator regex against:', JSON.stringify(cleanValue));
             const standardMatch = standardThousandsRegex.test(cleanValue);
             const flexibleMatch = flexibleCommaRegex.test(cleanValue);
             const anyCommaMatch = anyCommaRegex.test(cleanValue);
-            console.log('🔢 🚨 SANKEY DEBUG: standard regex test result:', standardMatch);
-            console.log('🔢 🚨 SANKEY DEBUG: flexible regex test result:', flexibleMatch);
-            console.log('🔢 🚨 SANKEY DEBUG: anyComma regex test result:', anyCommaMatch);
             
             if (standardMatch || flexibleMatch || anyCommaMatch) {
                 const before = cleanValue;
                 cleanValue = cleanValue.replace(/,/g, '');
-                console.log('🔢 🚨 SANKEY DEBUG: removed thousands separators:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
             }
             // European style (1.234.567,50) - but only if we detect this pattern
             else {
                 const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
-                console.log('🔢 parseNumber: testing European format regex against:', JSON.stringify(cleanValue));
-                console.log('🔢 parseNumber: European regex test result:', europeanRegex.test(cleanValue));
                 
                 if (europeanRegex.test(cleanValue)) {
                     const before = cleanValue;
                     cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
-                    console.log('🔢 parseNumber: converted European format:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                 } else {
-                    console.log('🔢 parseNumber: comma found but no pattern matched - might be a different format');
                     // Try removing commas anyway as a fallback
-                    const before = cleanValue;
                     cleanValue = cleanValue.replace(/,/g, '');
-                    console.log('🔢 parseNumber: fallback comma removal:', JSON.stringify(before), '->', JSON.stringify(cleanValue));
                 }
             }
         }
         
         // Parse the cleaned value
-        console.log('🔢 🚨 SANKEY DEBUG: about to parse:', JSON.stringify(cleanValue));
         const num = parseFloat(cleanValue);
-        console.log('🔢 🚨 SANKEY DEBUG: parseFloat result:', num, 'isNaN:', isNaN(num), 'type:', typeof num);
         
         if (isNaN(num)) {
-            console.log('🔢 parseNumber: NaN detected, returning 0');
             return 0;
         }
         
         // Return whole number (floor decimals for consistent behavior)
         const result = Math.floor(num);
-        console.log('🔢 🚨 SANKEY DEBUG: parseNumber final result:', result, 'original input was:', JSON.stringify(value));
         return result;
     }
 
@@ -1367,7 +1337,6 @@ class SpreadsheetEditor {
 
     // Ensure chart title remains clickable after chart updates
     ensureChartTitleClickable() {
-        console.log('📝 🚨 SANKEY DEBUG: ensureChartTitleClickable: Dispatching title update event for', this.data.length, 'rows');
         
         // Dispatch a custom event to notify the centralized system
         try {

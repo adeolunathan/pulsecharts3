@@ -284,10 +284,10 @@
         if (window.ChartBrandingUtils) {
             console.log('🔄 TITLE ISOLATION: Intercepting ChartBrandingUtils title functions');
             
-            // Store original functions
-            const originalUpdateTitleFont = window.ChartBrandingUtils.updateTitleFont;
-            const originalUpdateTitleSize = window.ChartBrandingUtils.updateTitleSize;
-            const originalUpdateTitleColor = window.ChartBrandingUtils.updateTitleColor;
+            // Store original functions (these are kept for potential future restoration)
+            // const originalUpdateTitleFont = window.ChartBrandingUtils.updateTitleFont;
+            // const originalUpdateTitleSize = window.ChartBrandingUtils.updateTitleSize;
+            // const originalUpdateTitleColor = window.ChartBrandingUtils.updateTitleColor;
             
             // Replace with isolated versions
             window.ChartBrandingUtils.updateTitleFont = function(fontFamily) {
