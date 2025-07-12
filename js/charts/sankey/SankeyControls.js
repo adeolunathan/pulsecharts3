@@ -195,11 +195,11 @@ class SankeyControlModule {
                         id: "nodeHeightScale", 
                         type: "slider", 
                         label: "Node Height Scale", 
-                        min: 0, 
-                        max: 0.1, 
+                        min: 0.001, 
+                        max: 1.0, 
                         default: 0.05, 
                         step: 0.001, 
-                        description: "Scale factor for node heights" 
+                        description: "Scale factor for node heights - smaller values for large data sets" 
                     },
                     { 
                         id: "linkWidthScale", 
@@ -790,6 +790,16 @@ class SankeyControlModule {
         // Handle brand logo clear
         if (controlId === 'clearBrand') {
             this.handleClearBrand(chart);
+            return;
+        }
+
+        // Handle nodeHeightScale specially - ensure chart fits container after scaling
+        if (controlId === 'nodeHeightScale') {
+            chart.updateConfig({ [controlId]: value });
+            // Ensure chart fits within fixed container after height scaling
+            if (chart.ensureChartFitsContainer) {
+                chart.ensureChartFitsContainer();
+            }
             return;
         }
 

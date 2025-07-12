@@ -1228,54 +1228,48 @@ class PulseSankeyChart {
             .attr('opacity', 0.6)     // 60% opacity
             .text('PULSE ANALYTICS');
         
-        // Calculate actual content height and resize SVG dynamically
-        this.adjustSVGHeightToContent();
+        // Ensure chart fits within fixed container dimensions
+        this.ensureChartFitsContainer();
         
         return this;
     }
 
-    // Adjust SVG height to match actual content
-    adjustSVGHeightToContent() {
+    // Ensure chart content fits within fixed container dimensions
+    ensureChartFitsContainer() {
         try {
-            // Calculate the maximum Y position of all chart content
-            let maxContentY = 0;
+            // Keep container dimensions fixed - no dynamic resizing
+            const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
             
-            // Check node positions if available
+            // Check if nodes extend beyond container
             if (this.nodes && this.nodes.length > 0) {
-                maxContentY = Math.max(maxContentY, ...this.nodes.map(n => n.y + (n.height || 0)));
+                const maxNodeY = Math.max(...this.nodes.map(n => n.y + (n.height || 0)));
+                
+                // If content exceeds container, scale down node heights proportionally
+                if (maxNodeY > availableHeight) {
+                    const scaleFactor = availableHeight / (maxNodeY + 50); // 50px buffer
+                    console.log(`📏 Scaling nodes by ${scaleFactor.toFixed(3)} to fit container`);
+                    
+                    // Apply scaling to all nodes
+                    this.nodes.forEach(node => {
+                        node.y *= scaleFactor;
+                        node.height *= scaleFactor;
+                    });
+                    
+                    // Re-render nodes and links with new dimensions
+                    this.renderNodes();
+                    this.renderLinks();
+                    this.renderLabels();
+                }
             }
             
-            // Check link positions if available
-            if (this.links && this.links.length > 0) {
-                const linkMaxY = this.links.reduce((max, link) => {
-                    const sourceY = (link.sourceY || 0) + (link.sourceHeight || 0);
-                    const targetY = (link.targetY || 0) + (link.targetHeight || 0);
-                    return Math.max(max, sourceY, targetY);
-                }, 0);
-                maxContentY = Math.max(maxContentY, linkMaxY);
-            }
-            
-            // Add margins and footer space
-            const topMargin = this.config.margin.top || 60;
-            const footerSpace = 100; // Space for logo and attribution
-            const actualContentHeight = maxContentY + topMargin + footerSpace;
-            
-            // Only resize if the content height is significantly different from current height
-            if (actualContentHeight > 0 && Math.abs(actualContentHeight - this.config.height) > 20) {
+            // Ensure SVG maintains fixed dimensions
+            this.svg
+                .attr('width', this.config.width)
+                .attr('height', this.config.height)
+                .attr('viewBox', `0 0 ${this.config.width} ${this.config.height}`);
                 
-                // Update SVG dimensions
-                this.svg
-                    .attr('height', actualContentHeight)
-                    .attr('viewBox', `0 0 ${this.config.width} ${actualContentHeight}`);
-                
-                // Update configuration for future reference
-                this.config.height = actualContentHeight;
-                
-                // Reposition footer elements to the new bottom
-                this.repositionFooterElements(actualContentHeight);
-            }
         } catch (error) {
-            console.warn('⚠️ Error adjusting SVG height:', error);
+            console.warn('⚠️ Error ensuring chart fits container:', error);
         }
     }
 
@@ -1330,34 +1324,26 @@ class PulseSankeyChart {
     autoScaleNodeHeight(data) {
         if (!data || !data.nodes) return;
 
-        // ========== CONFIGURATION SECTION - CHANGE THESE NUMBERS ==========
-        const BILLION_THRESHOLD = 1000;      // Values ≥ this are treated as billions (e.g., 3000 = 3B)
-        const BILLION_SCALE = 0.04;          // Scale for billion-range values (smaller scale for big numbers)
-        const MILLION_SCALE = 0.5;          // Scale for million-range values (bigger scale for smaller numbers)
-        // =====================================================================
-
         const values = data.nodes.map(node => Math.abs(node.value || 0)).filter(v => v > 0);
         if (values.length === 0) return;
 
         const maxValue = Math.max(...values);
-        let optimalScale;
-
-        // Simple logic: bigger numbers need smaller scale, smaller numbers need bigger scale
-        if (maxValue >= BILLION_THRESHOLD) {
-            // User input like 3000+ → treat as billions → use smaller scale
-            optimalScale = BILLION_SCALE;
-        } else {
-            // User input like 300 → treat as millions → use bigger scale  
-            optimalScale = MILLION_SCALE;
-        }
-
+        const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom - 100; // 100px buffer
+        
+        // Smart scaling: aim for the largest node to be ~20% of available height
+        const targetMaxNodeHeight = availableHeight * 0.2;
+        const optimalScale = targetMaxNodeHeight / maxValue;
+        
+        // Clamp the scale to reasonable bounds
+        const clampedScale = Math.max(0.001, Math.min(1.0, optimalScale));
+        
         // Only auto-scale if user hasn't manually adjusted nodeHeightScale
         const defaultScales = [0.65, 0.05, 0.01, 0.00008, 0.00000008, 0.0002, 0.15];
         const isDefaultScale = defaultScales.some(scale => Math.abs(this.config.nodeHeightScale - scale) < 0.0001);
         
-        
         if (isDefaultScale) {
-            this.config.nodeHeightScale = optimalScale;
+            this.config.nodeHeightScale = clampedScale;
+            console.log(`🎯 Auto-scaled nodeHeightScale to ${clampedScale.toFixed(6)} for max value ${maxValue}`);
         }
     }
 

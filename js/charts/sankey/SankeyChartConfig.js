@@ -23,7 +23,7 @@ window.SankeyChartConfig = (function() {
             rightmostSpacing: 0.7,
             autoCenter: true,
             autoMiddleAlign: true,
-            nodeHeightScale: 0.65,
+            nodeHeightScale: 0.05,
             linkWidthScale: 0.65,
             nodeOpacity: 1.0,
             linkOpacity: 1.0,
