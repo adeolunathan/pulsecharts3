@@ -676,6 +676,14 @@ async function initializePulseApp() {
         pulseApp.isInitialized = true;
         window.pulseApp = pulseApp;
         
+        // Initialize Chart Library for save/load functionality
+        if (typeof ChartLibrary !== 'undefined') {
+            window.chartLibrary = new ChartLibrary();
+            console.log('📚 Chart Library initialized successfully');
+        } else {
+            console.warn('⚠️ ChartLibrary class not available');
+        }
+        
         // Now do the actual initialization in background
         pulseApp.initialize();
         
