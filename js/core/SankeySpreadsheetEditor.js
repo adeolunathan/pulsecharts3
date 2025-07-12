@@ -242,4 +242,3 @@ Marketing	Customer Acquisition	150000	120000	New customer acquisition`;
 
 // Export for use
 window.SankeySpreadsheetEditor = SankeySpreadsheetEditor;
-console.log('🚀 SankeySpreadsheetEditor loaded successfully');

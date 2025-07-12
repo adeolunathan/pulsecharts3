@@ -1357,4 +1357,3 @@ class SpreadsheetEditor {
 
 // Export for use
 window.SpreadsheetEditor = SpreadsheetEditor;
-console.log('🚀 SpreadsheetEditor base class loaded successfully');

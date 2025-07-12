@@ -103,5 +103,3 @@ class UnifiedSpreadsheetEditor {
 
 // Export for use
 window.UnifiedSpreadsheetEditor = UnifiedSpreadsheetEditor;
-console.log('🚀 UnifiedSpreadsheetEditor factory loaded successfully');
-console.log('📋 UnifiedSpreadsheetEditor class:', UnifiedSpreadsheetEditor);

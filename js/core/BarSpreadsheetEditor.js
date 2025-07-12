@@ -407,4 +407,3 @@ Phones	$2,100.00	$2,250.50`;
 
 // Export for use
 window.BarSpreadsheetEditor = BarSpreadsheetEditor;
-console.log('🚀 BarSpreadsheetEditor loaded successfully');

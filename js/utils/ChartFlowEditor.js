@@ -555,13 +555,11 @@
     };
 
     // Debug: Confirm ChartFlowEditor is loaded
-    console.log('✅ ChartFlowEditor utility loaded successfully');
     
     // Verify export worked
     if (typeof window.ChartFlowEditor === 'undefined') {
         console.error('❌ ChartFlowEditor export failed - window.ChartFlowEditor is undefined');
     } else {
-        console.log('✅ ChartFlowEditor exported successfully with', Object.keys(window.ChartFlowEditor).length, 'functions');
     }
 
 })();

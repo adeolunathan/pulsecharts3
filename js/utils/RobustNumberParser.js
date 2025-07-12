@@ -33,7 +33,6 @@
         let cleanValue = String(value).trim();
         
         // Remove currency symbols - comprehensive list
-        const beforeCurrency = cleanValue;
         cleanValue = cleanValue.replace(/[$€£¥₹₽₿₩₽₴₸₺₼₾₨₦₡₱₪₡]/g, '');
         
         // Handle percentage
@@ -65,7 +64,6 @@
             
             // If any comma pattern matches, remove commas
             if (standardMatch || flexibleMatch || anyCommaMatch) {
-                const before = cleanValue;
                 cleanValue = cleanValue.replace(/,/g, '');
             }
             // European style handling (1.234.567,50)
@@ -73,11 +71,9 @@
                 const europeanRegex = /^-?\d{1,3}(\.\d{3})*(,\d+)?$/;
                 
                 if (europeanRegex.test(cleanValue)) {
-                    const before = cleanValue;
                     cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
                 } else {
                     // Fallback: remove all commas anyway
-                    const before = cleanValue;
                     cleanValue = cleanValue.replace(/,/g, '');
                 }
             }
@@ -101,7 +97,6 @@
      * @returns {number} - Parsed number (preserves decimals)
      */
     function robustParseFloat(value) {
-        const parsed = robustParseNumber(value);
         // For floating point version, don't floor the result
         if (value === null || value === undefined || value === '') {
             return 0;
@@ -148,7 +143,7 @@
      * @param {number} radix - Number base (optional, defaults to 10)
      * @returns {number} - Parsed integer
      */
-    function robustParseInt(value, radix = 10) {
+    function robustParseInt(value) {
         // For integers, use the robust parser and then ensure it's an integer
         const parsed = robustParseNumber(value);
         return Math.floor(parsed);

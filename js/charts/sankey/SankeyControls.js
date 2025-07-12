@@ -277,7 +277,6 @@ class SankeyControlModule {
             }
         };
         
-        console.log('🎨 Defined capabilities with appearance section:', capabilities);
         return capabilities;
     }
 
@@ -299,7 +298,6 @@ class SankeyControlModule {
         
         const detectedCategories = this.analyzeDataCategories(chart.data);
         
-        console.log(`🎨 Detected categories for ${this.statementType} statement:`, detectedCategories);
         
         // Update the colors section with detected categories
         this.capabilities.colors.controls = this.generateColorControls(detectedCategories, chart);
@@ -608,7 +606,6 @@ class SankeyControlModule {
 
         // Handle titleFont specially - use isolation system
         if (controlId === 'titleFont') {
-            console.log('🔤 🚨 SANKEY DEBUG: titleFont control changed to:', value, 'chart instance:', chart);
             if (window.TitleControlIsolation) {
                 window.TitleControlIsolation.applyTitleFont(chart, value);
             } else {
@@ -619,7 +616,6 @@ class SankeyControlModule {
 
         // Handle titleSize specially - use isolation system
         if (controlId === 'titleSize') {
-            console.log('🔤 🚨 SANKEY DEBUG: titleSize control changed to:', value, 'chart instance:', chart);
             if (window.TitleControlIsolation) {
                 window.TitleControlIsolation.applyTitleSize(chart, value);
             } else {
@@ -630,7 +626,6 @@ class SankeyControlModule {
 
         // Handle titleColor specially - use isolation system
         if (controlId === 'titleColor') {
-            console.log('🔤 🚨 SANKEY DEBUG: titleColor control changed to:', value, 'chart instance:', chart);
             if (window.TitleControlIsolation) {
                 window.TitleControlIsolation.applyTitleColor(chart, value);
             } else {
@@ -1066,7 +1061,6 @@ class SankeyControlModule {
         defaults.leftmostGroupGap = 40;
         defaults.rightmostGroupGap = 40;
 
-        console.log(`📋 Enhanced control module defaults generated for ${this.statementType}:`, defaults);
         return defaults;
     }
 
@@ -1264,7 +1258,6 @@ class SankeyControlModule {
      * ENHANCED: Dynamic control initialization with statement awareness
      */
     initializeDynamicControls(chart) {
-        console.log(`🔧 Initializing dynamic color controls for ${chart.statementType || 'income'} statement`);
         this.initializeDynamicColors(chart);
     }
 

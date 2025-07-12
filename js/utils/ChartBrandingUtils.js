@@ -40,7 +40,6 @@
             .style('transition', 'fill 0.2s ease')
             .text(titleText);
 
-        console.log(`📊 Rendered ${statementLabel} title: ${titleText}`);
     }
 
     /**
@@ -412,14 +411,12 @@
      * Update title font
      */
     function updateTitleFont(fontFamily) {
-        console.log('🔤 🚨 SANKEY DEBUG: ChartBrandingUtils.updateTitleFont called with:', fontFamily, 'chart type:', this.constructor.name);
         this.config.titleFont = fontFamily;
         if (this.svg) {
             const fontStack = this.getFontFamily ? this.getFontFamily() : fontFamily;
             
             // Update only the chart title element
             const titleElements = this.svg.selectAll('.main-chart-title');
-            console.log('🔤 🚨 SANKEY DEBUG: Found title elements:', titleElements.size(), 'applying font:', fontStack);
             titleElements.style('font-family', fontStack);
             
             console.log(`🔤 Title font updated to ${fontFamily}`);
@@ -443,12 +440,10 @@
      * Update title size
      */
     function updateTitleSize(size) {
-        console.log('🔤 🚨 SANKEY DEBUG: ChartBrandingUtils.updateTitleSize called with:', size, 'chart type:', this.constructor.name);
         this.config.titleSize = size;
         if (this.svg) {
             // Update only the chart title element
             const titleElements = this.svg.selectAll('.main-chart-title');
-            console.log('🔤 🚨 SANKEY DEBUG: Found title elements for size update:', titleElements.size(), 'applying size:', size + 'px');
             titleElements.style('font-size', size + 'px');
             
             console.log(`🔤 Title size updated to ${size}px`);
@@ -489,14 +484,11 @@
     };
 
     // Debug: Confirm ChartBrandingUtils is loaded
-    console.log('✅ ChartBrandingUtils utility loaded successfully');
-    console.log('🔍 d3 available:', typeof d3);
     
     // Verify export worked
     if (typeof window.ChartBrandingUtils === 'undefined') {
         console.error('❌ ChartBrandingUtils export failed - window.ChartBrandingUtils is undefined');
     } else {
-        console.log('✅ ChartBrandingUtils exported successfully with', Object.keys(window.ChartBrandingUtils).length, 'functions');
     }
 
 })();

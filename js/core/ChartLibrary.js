@@ -16,7 +16,6 @@ class ChartLibrary {
         this.addSaveButton();
         this.setupEventListeners();
         
-        console.log('📚 ChartLibrary initialized successfully');
     }
 
     // Save functionality
@@ -587,4 +586,3 @@ class ChartLibrary {
 
 // Export for use
 window.ChartLibrary = ChartLibrary;
-console.log('🚀 ChartLibrary loaded successfully');

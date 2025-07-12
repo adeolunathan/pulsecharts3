@@ -25,7 +25,6 @@
 
         // Check if statement type is explicitly provided in metadata
         if (data.metadata && data.metadata.statementType) {
-            console.log(`📊 Statement type from metadata: ${data.metadata.statementType}`);
             return data.metadata.statementType;
         }
 
@@ -59,7 +58,6 @@
             return nodes;
         }
 
-        console.log('📊 Calculating financial metrics without revenue aggregation');
         
         // Update each node with basic financial metrics (no revenue-based calculations)
         nodes.forEach(node => {
@@ -76,7 +74,6 @@
             node.isExpenseType = node.category === 'expense';
         });
         
-        console.log('📊 Financial metrics calculated (generic approach - no revenue aggregation)');
         return nodes;
     }
 
@@ -326,7 +323,5 @@
     };
 
     // Debug: Confirm FinancialDataProcessor is loaded
-    console.log('✅ FinancialDataProcessor utility loaded successfully');
-    console.log('📊 Available functions:', Object.keys(window.FinancialDataProcessor).length);
 
 })();

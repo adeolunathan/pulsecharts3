@@ -274,14 +274,11 @@
     };
 
     // Debug: Confirm ChartColorPicker is loaded
-    console.log('✅ ChartColorPicker utility loaded successfully');
-    console.log('🔍 d3 available:', typeof d3);
     
     // Verify export worked
     if (typeof window.ChartColorPicker === 'undefined') {
         console.error('❌ ChartColorPicker export failed - window.ChartColorPicker is undefined');
     } else {
-        console.log('✅ ChartColorPicker exported successfully with', Object.keys(window.ChartColorPicker).length, 'functions');
     }
 
 })();

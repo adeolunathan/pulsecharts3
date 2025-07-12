@@ -18,10 +18,8 @@
      * @param {string} fontFamily - Font family to apply
      */
     function applyTitleFont(chart, fontFamily) {
-        console.log('🔤 🚨 TITLE ISOLATION: applyTitleFont called with:', fontFamily, 'chart type:', chart.constructor.name);
         
         if (!chart || !chart.svg) {
-            console.error('❌ TITLE ISOLATION: No chart or SVG available for title font update');
             return;
         }
 
@@ -35,10 +33,8 @@
         
         // Apply with strict selector isolation
         const titleElements = chart.svg.selectAll('.main-chart-title');
-        console.log('🔤 🚨 TITLE ISOLATION: Found title elements:', titleElements.size(), 'applying font:', fontStack);
         
         if (titleElements.size() === 0) {
-            console.warn('⚠️ TITLE ISOLATION: No .main-chart-title elements found, scheduling retry');
             scheduleRetry(() => applyTitleFont(chart, fontFamily), 'titleFont');
             return;
         }
@@ -47,13 +43,11 @@
         titleElements.each(function() {
             const element = d3.select(this);
             element.style('font-family', fontStack);
-            console.log('🔤 TITLE ISOLATION: Applied font to title element:', this);
         });
 
         // Verify no node labels were affected
         verifyNodeLabelsUnchanged(chart, 'font-family', fontStack);
         
-        console.log(`✅ TITLE ISOLATION: Title font updated to ${fontFamily} successfully`);
     }
 
     /**
@@ -62,10 +56,8 @@
      * @param {number} size - Font size in pixels
      */
     function applyTitleSize(chart, size) {
-        console.log('🔤 🚨 TITLE ISOLATION: applyTitleSize called with:', size, 'chart type:', chart.constructor.name);
         
         if (!chart || !chart.svg) {
-            console.error('❌ TITLE ISOLATION: No chart or SVG available for title size update');
             return;
         }
 
@@ -76,10 +68,8 @@
 
         // Apply with strict selector isolation
         const titleElements = chart.svg.selectAll('.main-chart-title');
-        console.log('🔤 🚨 TITLE ISOLATION: Found title elements for size update:', titleElements.size(), 'applying size:', size + 'px');
         
         if (titleElements.size() === 0) {
-            console.warn('⚠️ TITLE ISOLATION: No .main-chart-title elements found, scheduling retry');
             scheduleRetry(() => applyTitleSize(chart, size), 'titleSize');
             return;
         }
@@ -88,13 +78,11 @@
         titleElements.each(function() {
             const element = d3.select(this);
             element.style('font-size', size + 'px');
-            console.log('🔤 TITLE ISOLATION: Applied size to title element:', this);
         });
 
         // Verify no node labels were affected
         verifyNodeLabelsUnchanged(chart, 'font-size', size + 'px');
         
-        console.log(`✅ TITLE ISOLATION: Title size updated to ${size}px successfully`);
     }
 
     /**
@@ -103,10 +91,8 @@
      * @param {string} color - Color to apply
      */
     function applyTitleColor(chart, color) {
-        console.log('🔤 🚨 TITLE ISOLATION: applyTitleColor called with:', color, 'chart type:', chart.constructor.name);
         
         if (!chart || !chart.svg) {
-            console.error('❌ TITLE ISOLATION: No chart or SVG available for title color update');
             return;
         }
 
@@ -117,10 +103,8 @@
 
         // Apply with strict selector isolation
         const titleElements = chart.svg.selectAll('.main-chart-title');
-        console.log('🔤 🚨 TITLE ISOLATION: Found title elements for color update:', titleElements.size(), 'applying color:', color);
         
         if (titleElements.size() === 0) {
-            console.warn('⚠️ TITLE ISOLATION: No .main-chart-title elements found, scheduling retry');
             scheduleRetry(() => applyTitleColor(chart, color), 'titleColor');
             return;
         }
@@ -129,13 +113,11 @@
         titleElements.each(function() {
             const element = d3.select(this);
             element.style('fill', color);
-            console.log('🔤 TITLE ISOLATION: Applied color to title element:', this);
         });
 
         // Verify no node labels were affected
         verifyNodeLabelsUnchanged(chart, 'fill', color);
         
-        console.log(`✅ TITLE ISOLATION: Title color updated to ${color} successfully`);
     }
 
     /**
@@ -167,21 +149,17 @@
                     
                     // Check if node label accidentally has title styling
                     if (actualValue === value) {
-                        console.error(`❌ TITLE ISOLATION: Node label contamination detected! Selector "${selector}" has title ${property}: ${value}`);
                         issuesFound++;
                         
                         // Try to fix by clearing the contaminated property
                         element.style(property, null);
-                        console.log(`🔧 TITLE ISOLATION: Cleared contaminated ${property} from node label`);
                     }
                 });
             }
         });
 
         if (issuesFound > 0) {
-            console.error(`❌ TITLE ISOLATION: Found ${issuesFound} node label contamination issues`);
         } else {
-            console.log('✅ TITLE ISOLATION: Node labels verified clean, no contamination detected');
         }
     }
 
@@ -190,25 +168,21 @@
      * @param {Function} operation - Operation to retry
      * @param {string} operationType - Type of operation for logging
      */
-    function scheduleRetry(operation, operationType) {
+    function scheduleRetry(operation) {
         let attempts = 0;
         const maxAttempts = 5;
         const retryInterval = 200; // 200ms between attempts
 
         const retry = () => {
             attempts++;
-            console.log(`🔄 TITLE ISOLATION: Retry attempt ${attempts}/${maxAttempts} for ${operationType}`);
             
             try {
                 operation();
-                console.log(`✅ TITLE ISOLATION: Retry successful for ${operationType} on attempt ${attempts}`);
             } catch (error) {
-                console.warn(`⚠️ TITLE ISOLATION: Retry ${attempts} failed for ${operationType}:`, error);
                 
                 if (attempts < maxAttempts) {
                     setTimeout(retry, retryInterval);
                 } else {
-                    console.error(`❌ TITLE ISOLATION: All retries exhausted for ${operationType}`);
                 }
             }
         };
@@ -222,15 +196,12 @@
      */
     function ensureTitleIsolation(chart) {
         if (!chart || !chart.svg) {
-            console.warn('⚠️ TITLE ISOLATION: No chart or SVG available for title isolation check');
             return;
         }
 
         const titleElements = chart.svg.selectAll('.main-chart-title');
-        console.log('🔍 TITLE ISOLATION: Found', titleElements.size(), 'title elements during isolation check');
 
         if (titleElements.size() === 0) {
-            console.warn('⚠️ TITLE ISOLATION: No title elements found, chart may need re-rendering');
             return;
         }
 
@@ -248,10 +219,8 @@
                 element.style('cursor', 'pointer');
             }
             
-            console.log('🔍 TITLE ISOLATION: Verified title element isolation:', this);
         });
 
-        console.log('✅ TITLE ISOLATION: Title element isolation verified');
     }
 
     /**
@@ -259,8 +228,7 @@
      */
     function setupGlobalTitleEventHandler() {
         // Listen for custom events that indicate title updates are needed
-        document.addEventListener('chartTitleUpdateNeeded', (event) => {
-            console.log('📝 🚨 TITLE ISOLATION: Received chartTitleUpdateNeeded event:', event.detail);
+        document.addEventListener('chartTitleUpdateNeeded', () => {
             
             // Find the current chart instance
             const chart = window.pulseApp?.currentChart || window.currentChart;
@@ -270,11 +238,9 @@
                     ensureTitleIsolation(chart);
                 }, 100);
             } else {
-                console.warn('⚠️ TITLE ISOLATION: No current chart available for title update');
             }
         });
 
-        console.log('👂 TITLE ISOLATION: Global title event handler registered');
     }
 
     /**
@@ -282,7 +248,6 @@
      */
     function interceptChartBrandingUtils() {
         if (window.ChartBrandingUtils) {
-            console.log('🔄 TITLE ISOLATION: Intercepting ChartBrandingUtils title functions');
             
             // Store original functions (these are kept for potential future restoration)
             // const originalUpdateTitleFont = window.ChartBrandingUtils.updateTitleFont;
@@ -291,23 +256,18 @@
             
             // Replace with isolated versions
             window.ChartBrandingUtils.updateTitleFont = function(fontFamily) {
-                console.log('🔤 🚨 TITLE ISOLATION: Intercepted ChartBrandingUtils.updateTitleFont:', fontFamily);
                 applyTitleFont(this, fontFamily);
             };
             
             window.ChartBrandingUtils.updateTitleSize = function(size) {
-                console.log('🔤 🚨 TITLE ISOLATION: Intercepted ChartBrandingUtils.updateTitleSize:', size);
                 applyTitleSize(this, size);
             };
             
             window.ChartBrandingUtils.updateTitleColor = function(color) {
-                console.log('🔤 🚨 TITLE ISOLATION: Intercepted ChartBrandingUtils.updateTitleColor:', color);
                 applyTitleColor(this, color);
             };
             
-            console.log('✅ TITLE ISOLATION: ChartBrandingUtils title functions intercepted successfully');
         } else {
-            console.warn('⚠️ TITLE ISOLATION: ChartBrandingUtils not available for interception');
         }
     }
 
@@ -321,8 +281,6 @@
         scheduleRetry
     };
 
-    console.log('✅ TitleControlIsolation IIFE loaded successfully');
-    console.log('🔧 Available methods: applyTitleFont, applyTitleSize, applyTitleColor, verifyNodeLabelsUnchanged, ensureTitleIsolation');
 
     // Setup global event handling
     setupGlobalTitleEventHandler();

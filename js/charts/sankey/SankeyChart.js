@@ -7724,7 +7724,6 @@ class PulseSankeyChart {
             }
         }
         
-        console.log('✅ Loaded categories from metadata');
     }
 
     // Removed hub category functions - no longer supporting hub categories
@@ -7761,7 +7760,6 @@ class PulseSankeyChart {
     positionNodesByCategory() {
         if (!this.nodes || this.nodes.length === 0) return;
         
-        console.log(`📊 Applying category properties to ${this.nodes.length} nodes (no special positioning)`);
         
         // Apply category-based properties to all nodes equally
         this.nodes.forEach(node => {
@@ -7774,7 +7772,6 @@ class PulseSankeyChart {
             node.layerPreference = 'auto'; // All nodes use auto positioning
         });
         
-        console.log(`✅ Applied generic category properties to ${this.nodes.length} nodes`);
     }
 
     /**
@@ -7800,7 +7797,6 @@ class PulseSankeyChart {
             this.data.metadata.nodeCategories[nodeId] = categoryName;
         }
         
-        console.log('✅ Saved categories to metadata');
     }
 
     /**
@@ -7825,7 +7821,6 @@ class PulseSankeyChart {
         
         if (migrationCount > 0) {
             this.saveCategoriesToMetadata();
-            console.log(`✅ Migrated ${migrationCount} legacy category assignments`);
         }
     }
 

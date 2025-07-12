@@ -1113,7 +1113,6 @@
 
             // Mark table as initialized
             table.resizeInitialized = true;
-            console.log('📏 Truly independent column resizing initialized');
         }
 
         // Initialize column resizing when table is ready
@@ -1368,13 +1367,11 @@
         function initializeCategoryButtons() {
             // Category buttons have been moved to the color picker modal
             // This function is kept for compatibility but no longer needed
-            console.log('Category buttons are now in the color picker modal');
         }
 
         function resetAllCategoryButtons() {
             // Category buttons have been moved to the color picker modal
             // This function is kept for compatibility but no longer needed
-            console.log('Category buttons are now in the color picker modal');
         }
 
         function updateFlowProperty(index, property, value) {
@@ -2925,7 +2922,6 @@
                 }
                 
                 initState.isInitialized = true;
-                console.log('🚀 Single initialization starting...');
                 
                 // Basic UI setup
                 setupBasicUI();
@@ -3034,14 +3030,12 @@
                 
 
                 // Initialize SpreadsheetController for Sankey flow builder
-                console.log('📊 Initializing SpreadsheetController for main flow table');
                 window.spreadsheetController = new SpreadsheetController();
                 
                 // Auto-select first cell in main flow table to enable paste immediately
                 setTimeout(() => {
                     const firstCell = document.querySelector('#main-flow-table .spreadsheet-cell');
                     if (firstCell && window.spreadsheetController && !window.spreadsheetController.selectedCell) {
-                        console.log('📋 SpreadsheetController: Auto-selecting first cell to enable paste');
                         window.spreadsheetController.selectCell(firstCell);
                     }
                 }, 500);
@@ -5629,7 +5623,6 @@
         }
 
         function makeChartTitleEditable() {
-            console.log('📝 🚨 SANKEY DEBUG: makeChartTitleEditable: Starting...');
             
             // Find ONLY actual title elements with the correct class - NO HEURISTICS
             const chartContainer = document.querySelector('#main-chart');
@@ -5640,7 +5633,6 @@
             
             // Get ONLY elements with the main-chart-title class
             const titleElements = chartContainer.querySelectorAll('.main-chart-title');
-            console.log('📝 makeChartTitleEditable: Found', titleElements.length, 'actual title elements');
             
             if (titleElements.length === 0) {
                 console.log('📝 makeChartTitleEditable: No .main-chart-title elements found');
@@ -5651,12 +5643,10 @@
             
             titleElements.forEach((textElement, index) => {
                 const text = textElement.textContent || '';
-                console.log(`📝 🚨 SANKEY DEBUG: Making title ${index} editable:`, text.substring(0, 50), 'classes:', textElement.className);
                 
                 // Use the isolation system instead of direct manipulation
                 if (window.TitleControlIsolation) {
                     // Let the isolation system handle all title styling
-                    console.log('📝 Using TitleControlIsolation system for title setup');
                     
                     // Restore custom title text if it exists
                     if (window.customChartTitle && textElement.textContent !== window.customChartTitle) {
@@ -5692,7 +5682,6 @@
                 textElement.style.cursor = 'pointer';
                 textElement.style.transition = 'fill 0.2s ease';
                 
-                console.log('📝 makeChartTitleEditable: Set data-editable from', beforeEditable, 'to true on title:', index);
                 titlesFound++;
             });
             
@@ -5713,7 +5702,6 @@
                 console.log(`📝 🚨 CLEANUP: Removed data-editable from ${cleanedCount} non-title elements`);
             }
             
-            console.log('📝 🚨 SANKEY DEBUG: makeChartTitleEditable: Made', titlesFound, 'title elements editable');
             
             // If no titles found, create a default one
             if (titlesFound === 0) {
@@ -6255,13 +6243,11 @@
                 clearTimeout(titleUpdateTimeout);
                 titleUpdateTimeout = setTimeout(() => {
                     isProcessingTitleUpdate = true;
-                    console.log('📝 Processing title update from:', source, 'attempt:', titleUpdateAttempts + 1);
                     
                     const result = makeChartTitleEditable();
                     titleUpdateAttempts++;
                     
                     if (result) {
-                        console.log('✅ Title update successful from:', source);
                         titleUpdateAttempts = 0;
                         isProcessingTitleUpdate = false;
                     } else if (titleUpdateAttempts < maxAttempts) {

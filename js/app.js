@@ -36,23 +36,17 @@ class PulseApplication {
 
     async initialize() {
         try {
-            console.log('🔧 Initializing Enhanced Pulse Analytics Platform');
-            console.log('🏁 Starting initialization process...');
             this.setStatus('Initializing...', 'loading');
             
             // Initialize data manager
-            console.log('📊 Creating data manager...');
             this.dataManager = new PulseDataManager();
             
             // Initialize data bridge connection
-            console.log('🌉 Initializing data bridge...');
             this.initializeDataBridge();
             
             // Initialize with default chart type
-            console.log('📈 Initializing chart type...');
             try {
                 await this.initializeChartType('sankey');
-                console.log('✅ Chart type initialized');
             } catch (chartError) {
                 console.error('❌ Chart initialization failed:', chartError);
                 console.log('⏩ Continuing without chart initialization');
@@ -77,7 +71,6 @@ class PulseApplication {
             this.isInitialized = true;
             this.isInitializing = false;
             
-            console.log('✅ Enhanced Platform initialized successfully');
             
         } catch (error) {
             console.error('❌ Initialization failed:', error);
@@ -102,7 +95,6 @@ class PulseApplication {
                 this.handleDataBridgeUpdate(event.detail);
             });
             
-            console.log('🌉 Connected to Data Bridge');
         } else {
             console.warn('⚠️ Data Bridge not available');
         }
@@ -112,7 +104,6 @@ class PulseApplication {
     handleDataBridgeUpdate(detail) {
         const { data, source } = detail;
         
-        console.log(`🔄 Received data update from ${source}`);
         
         // Only update if the source is not this app (avoid loops)
         if (source !== 'app' && source !== 'app-initial') {
@@ -120,7 +111,6 @@ class PulseApplication {
             
             // Re-render chart if available
             if (this.chart && data) {
-                console.log('🎨 Re-rendering chart with updated data');
                 this.chart.render(data);
                 
                 // Update dynamic controls if needed
@@ -154,7 +144,6 @@ class PulseApplication {
         
         // Check if this is a chart type selection (handled by chart.html flow builder)
         if (urlParams.has('type')) {
-            console.log('📊 Chart type parameter detected, skipping default dataset load');
             return true; // Prevent default dataset loading
         }
         
@@ -201,7 +190,6 @@ class PulseApplication {
             throw new Error(`Chart type '${chartType}' not found in registry`);
         }
 
-        console.log(`🎯 Initializing ${chartType} chart with controls`);
 
         this.controlModule = new chartDefinition.controlModuleClass();
         this.chart = new chartDefinition.chartClass('main-chart');
@@ -218,10 +206,8 @@ class PulseApplication {
         
         // Fire event to notify that controls have been generated
         window.dispatchEvent(new CustomEvent('controlsGenerated'));
-        console.log('🎛️ Fired controlsGenerated event for horizontal menu');
         
         this.currentChartType = chartType;
-        console.log(`✅ ${chartType} chart and controls initialized with proper defaults`);
     }
 
     async switchChartType(newChartType) {
@@ -686,7 +672,6 @@ async function initializePulseApp() {
         // Initialize Chart Library for save/load functionality
         if (typeof ChartLibrary !== 'undefined') {
             window.chartLibrary = new ChartLibrary();
-            console.log('📚 Chart Library initialized successfully');
         } else {
             console.warn('⚠️ ChartLibrary class not available');
         }
