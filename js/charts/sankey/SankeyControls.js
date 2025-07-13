@@ -155,7 +155,7 @@ class SankeyControlModule {
                     {
                         id: "bulkAssignment",
                         type: "button",
-                        label: "",
+                        label: "Bulk Category Assignment",
                         action: this.openBulkAssignmentModal.bind(this)
                     }
                 ]
