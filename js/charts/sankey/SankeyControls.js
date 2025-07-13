@@ -609,9 +609,31 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle globalFontSize specially
+        // Handle globalFontSize specially - direct update like titleSize to avoid re-renders
         if (controlId === 'globalFontSize') {
-            chart.updateConfig({ globalFontSize: value });
+            // Update the config directly
+            chart.config.globalFontSize = value;
+            
+            // Update existing labels directly without triggering updateConfig
+            if (chart.chart) {
+                // Update all text elements in node-text-group
+                chart.chart.selectAll('.node-text-group text')
+                    .transition()
+                    .duration(200)
+                    .attr('font-size', function() {
+                        // Determine the base size based on text content position
+                        const element = d3.select(this);
+                        const y = parseFloat(element.attr('y'));
+                        
+                        // Based on the renderLabels logic: labels are at negative y, values at positive y
+                        const baseSize = (y < 0) ? 12 : 11; // Labels are 12px, values are 11px
+                        
+                        // Use chart's getFontSize method for consistent scaling
+                        return chart.getFontSize(baseSize) + 'px';
+                    });
+            }
+            
+            console.log(`✅ Updated globalFontSize to ${value}px without chart reset`);
             return;
         }
 

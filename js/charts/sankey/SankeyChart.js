@@ -55,11 +55,81 @@ class PulseSankeyChart {
             selectionBox: null
         };
         
+        // Comprehensive Chart State Persistence System
+        this.statePersistence = {
+            // Visual State
+            categoryAssignments: new Map(),      // Node ID -> category name
+            categoryColors: new Map(),           // Category -> color
+            nodeCustomColors: new Map(),         // Node ID -> custom color overrides
+            linkCustomColors: new Map(),         // Link ID -> custom color overrides
+            
+            // Layout State  
+            nodePositions: new Map(),            // Node ID -> {x, y} manual positions
+            layerSpacing: [],                    // Custom layer spacing values
+            manualPositions: new Map(),          // Node ID -> manual position data
+            
+            // UI State
+            chartConfig: {},                     // All chart configuration
+            controlValues: new Map(),            // Control ID -> current value
+            selectedNodes: new Set(),            // Currently selected nodes
+            
+            // Data State
+            originalData: null,                  // Original loaded data
+            modifiedData: null,                  // User-modified data
+            dataTimestamp: null,                 // When data was last modified
+            
+            // Persistence Metadata
+            lastSaved: null,                     // Last save timestamp
+            version: '1.0',                      // State schema version
+            chartId: null,                       // Unique chart identifier
+            autoSave: true,                      // Auto-save enabled
+            
+            // Flags
+            preserveOnRender: true,              // Preserve state during renders
+            suppressSave: false                  // Temporarily disable saving
+        };
+        
         
         this.config = SankeyChartConfig.getInitialConfig();
         this.initializeChart();
         this.initializeInteractiveMode();
         this.initializeKeyboardShortcuts();
+    }
+
+    /**
+     * Initialize comprehensive state persistence system
+     */
+    initializeStatePersistence() {
+        // Generate unique chart ID for this instance
+        this.statePersistence.chartId = this.generateChartId();
+        
+        // Try to restore previous state
+        this.restoreCompleteState();
+        
+        // Set up auto-save
+        if (this.statePersistence.autoSave) {
+            this.setupAutoSave();
+        }
+        
+        console.log(`🔧 Initialized state persistence for chart ${this.statePersistence.chartId}`);
+    }
+
+    generateChartId() {
+        return `pulse_chart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    setupAutoSave() {
+        // Save state every 30 seconds and on significant changes
+        setInterval(() => {
+            if (!this.statePersistence.suppressSave) {
+                this.saveCompleteState();
+            }
+        }, 30000);
+
+        // Save on window beforeunload
+        window.addEventListener('beforeunload', () => {
+            this.saveCompleteState();
+        });
     }
 
 
@@ -4955,24 +5025,7 @@ class PulseSankeyChart {
                     .attr('fill-opacity', newConfig.linkOpacity);
             }
             
-            // Handle font size changes - direct update without re-rendering
-            if (newConfig.globalFontSize !== undefined) {
-                // Update existing labels directly
-                this.chart.selectAll('.node-label')
-                    .transition()
-                    .duration(200)
-                    .style('font-size', newConfig.globalFontSize + 'px');
-                this.chart.selectAll('.node-value')
-                    .transition()
-                    .duration(200)
-                    .style('font-size', newConfig.globalFontSize + 'px');
-                    
-                // IMPORTANT: Also update the internal getFontSize method to return the new size
-                // so future label operations use the correct font size
-                if (this.config) {
-                    this.config.globalFontSize = newConfig.globalFontSize;
-                }
-            }
+            // globalFontSize is now handled directly by SankeyControls to avoid conflicts
             
             // Handle text distance changes (requires label repositioning)
             if (newConfig.textDistanceLeftmost !== undefined || 
@@ -7672,6 +7725,249 @@ class PulseSankeyChart {
         }
         
         console.log(`✅ Removed category assignment from node '${nodeId}'`);
+    }
+
+    /**
+     * COMPREHENSIVE STATE PERSISTENCE SYSTEM
+     * Captures and restores all chart state including data, configurations, and customizations
+     */
+
+    /**
+     * Capture complete chart state (focused on non-category data)
+     */
+    captureCompleteState() {
+        if (this.statePersistence.suppressSave) return;
+
+        try {
+            // Don't duplicate category management - that's handled by existing category system
+            // Focus on UI state, layout, and config that isn't already persisted
+
+            // Layout State
+            this.statePersistence.nodePositions.clear();
+            this.statePersistence.manualPositions.clear();
+            
+            if (this.nodes) {
+                this.nodes.forEach(node => {
+                    if (node.x !== undefined && node.y !== undefined) {
+                        this.statePersistence.nodePositions.set(node.id, { x: node.x, y: node.y });
+                    }
+                    if (node.manualPosition) {
+                        this.statePersistence.manualPositions.set(node.id, node.manualPosition);
+                    }
+                });
+            }
+
+            // UI State - Chart Configuration
+            this.statePersistence.chartConfig = { ...this.config };
+            
+            // Layer spacing - handle both array and non-array cases
+            if (this.config.layerSpacing && Array.isArray(this.config.layerSpacing)) {
+                this.statePersistence.layerSpacing = [...this.config.layerSpacing];
+            } else {
+                this.statePersistence.layerSpacing = [];
+            }
+
+            // Selection state
+            this.statePersistence.selectedNodes = new Set(this.selectionManager.selectedNodes);
+
+            // Data State
+            if (this.data) {
+                this.statePersistence.originalData = JSON.parse(JSON.stringify(this.data));
+                this.statePersistence.dataTimestamp = Date.now();
+            }
+
+            // Custom colors
+            this.statePersistence.nodeCustomColors.clear();
+            this.statePersistence.linkCustomColors.clear();
+            
+            if (this.customColors && typeof this.customColors === 'object') {
+                for (const [id, color] of Object.entries(this.customColors)) {
+                    this.statePersistence.nodeCustomColors.set(id, color);
+                }
+            }
+
+            this.statePersistence.lastSaved = Date.now();
+            
+            console.log(`💾 Captured complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
+            
+        } catch (error) {
+            console.error('❌ Error capturing chart state:', error);
+        }
+    }
+
+    /**
+     * Save complete state to storage
+     */
+    saveCompleteState() {
+        this.captureCompleteState();
+        
+        try {
+            const stateData = {
+                // Convert Maps to Objects for JSON serialization
+                categoryAssignments: Object.fromEntries(this.statePersistence.categoryAssignments),
+                categoryColors: Object.fromEntries(this.statePersistence.categoryColors),
+                nodeCustomColors: Object.fromEntries(this.statePersistence.nodeCustomColors),
+                linkCustomColors: Object.fromEntries(this.statePersistence.linkCustomColors),
+                nodePositions: Object.fromEntries(this.statePersistence.nodePositions),
+                manualPositions: Object.fromEntries(this.statePersistence.manualPositions),
+                
+                chartConfig: this.statePersistence.chartConfig,
+                layerSpacing: this.statePersistence.layerSpacing,
+                selectedNodes: Array.from(this.statePersistence.selectedNodes),
+                
+                originalData: this.statePersistence.originalData,
+                dataTimestamp: this.statePersistence.dataTimestamp,
+                
+                lastSaved: this.statePersistence.lastSaved,
+                version: this.statePersistence.version,
+                chartId: this.statePersistence.chartId
+            };
+
+            // Save to localStorage
+            const storageKey = `pulse_chart_state_${this.statePersistence.chartId}`;
+            localStorage.setItem(storageKey, JSON.stringify(stateData));
+            
+            // Also save to metadata for cross-session persistence  
+            if (this.data && this.data.metadata) {
+                this.data.metadata.chartState = stateData;
+                this.saveCategoriesToMetadata();
+            }
+
+            console.log(`💾 Saved complete chart state to storage`);
+            
+        } catch (error) {
+            console.error('❌ Error saving chart state:', error);
+        }
+    }
+
+    /**
+     * Restore complete state from storage
+     */
+    restoreCompleteState() {
+        try {
+            let stateData = null;
+
+            // Try to load from current data metadata first
+            if (this.data && this.data.metadata && this.data.metadata.chartState) {
+                stateData = this.data.metadata.chartState;
+                console.log(`📁 Loading chart state from data metadata`);
+            } else {
+                // Try to load from localStorage
+                const storageKey = `pulse_chart_state_${this.statePersistence.chartId}`;
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                    stateData = JSON.parse(stored);
+                    console.log(`📁 Loading chart state from localStorage`);
+                }
+            }
+
+            if (!stateData) {
+                console.log(`📝 No previous chart state found, starting fresh`);
+                return;
+            }
+
+            // Restore visual state
+            if (stateData.categoryAssignments) {
+                this.statePersistence.categoryAssignments = new Map(Object.entries(stateData.categoryAssignments));
+                // Apply to category manager
+                for (const [nodeId, categoryName] of this.statePersistence.categoryAssignments) {
+                    this.categoryManager.nodeCategories.set(nodeId, categoryName);
+                }
+            }
+
+            if (stateData.categoryColors) {
+                this.statePersistence.categoryColors = new Map(Object.entries(stateData.categoryColors));
+                // Apply to category definitions
+                for (const [categoryName, color] of this.statePersistence.categoryColors) {
+                    const category = this.getAllCategories()[categoryName];
+                    if (category) {
+                        category.color = color;
+                    }
+                }
+            }
+
+            // Restore layout state
+            if (stateData.nodePositions) {
+                this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
+            }
+
+            if (stateData.manualPositions) {
+                this.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
+            }
+
+            // Restore UI state
+            if (stateData.chartConfig) {
+                this.config = { ...this.config, ...stateData.chartConfig };
+                this.statePersistence.chartConfig = stateData.chartConfig;
+            }
+
+            if (stateData.layerSpacing && Array.isArray(stateData.layerSpacing)) {
+                this.statePersistence.layerSpacing = stateData.layerSpacing;
+                this.config.layerSpacing = [...stateData.layerSpacing];
+            }
+
+            if (stateData.selectedNodes) {
+                this.statePersistence.selectedNodes = new Set(stateData.selectedNodes);
+                this.selectionManager.selectedNodes = new Set(stateData.selectedNodes);
+            }
+
+            // Restore custom colors
+            if (stateData.nodeCustomColors) {
+                this.statePersistence.nodeCustomColors = new Map(Object.entries(stateData.nodeCustomColors));
+                this.customColors = { ...Object.fromEntries(this.statePersistence.nodeCustomColors) };
+            }
+
+            console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
+            
+            // Only apply restoration immediately during initialization
+            // Not during ongoing operations
+            
+        } catch (error) {
+            console.error('❌ Error restoring chart state:', error);
+        }
+    }
+
+    /**
+     * Force a complete state preservation during critical operations
+     */
+    preserveStateForOperation(operation) {
+        console.log(`🔒 Preserving state for operation: ${operation}`);
+        this.captureCompleteState();
+        
+        // Temporarily disable auto-save during the operation
+        this.statePersistence.suppressSave = true;
+        
+        // Re-enable after the operation (but don't auto-restore)
+        setTimeout(() => {
+            this.statePersistence.suppressSave = false;
+        }, 100);
+    }
+
+    /**
+     * Apply restored state to the chart (only for positions, not colors/categories)
+     */
+    applyRestoredState() {
+        if (!this.statePersistence.preserveOnRender) return;
+
+        // Only restore positions and layout, NOT colors or categories
+        // Colors/categories are already handled by the category system
+        if (this.nodes && this.statePersistence.nodePositions.size > 0) {
+            this.nodes.forEach(node => {
+                const savedPos = this.statePersistence.nodePositions.get(node.id);
+                if (savedPos) {
+                    node.x = savedPos.x;
+                    node.y = savedPos.y;
+                }
+                
+                const manualPos = this.statePersistence.manualPositions.get(node.id);
+                if (manualPos) {
+                    node.manualPosition = manualPos;
+                }
+            });
+        }
+
+        // DON'T rerender colors here - that would overwrite user changes
+        console.log(`🔄 Applied restored layout state to chart`);
     }
 
     /**

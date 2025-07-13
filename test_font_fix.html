@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Font Size Fix Test</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/charts/sankey/SankeyChart.js"></script>
+    <script src="js/charts/sankey/SankeyControls.js"></script>
+    <script src="js/charts/sankey/SankeyConfig.js"></script>
+    <script src="js/core/ControlPanel.js"></script>
+    <script src="js/core/DataManager.js"></script>
+    <script src="js/charts/sankey/FinancialDataProcessor.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chart-container { border: 1px solid #ccc; }
+        #controls { margin-top: 20px; }
+        #test-log { background: #f0f0f0; padding: 10px; margin-top: 20px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Font Size Fix Test</h1>
+    <div id="chart-container"></div>
+    <div id="controls">
+        <label>Global Font Size: <input type="range" id="fontSizeSlider" min="8" max="24" value="12" step="1"></label>
+        <span id="fontSizeValue">12px</span>
+    </div>
+    <div id="test-log"></div>
+
+    <script>
+        // Simple test with mock data
+        const testData = {
+            nodes: [
+                { id: "Revenue", depth: 0, value: 1000, x: 50, y: 100, height: 40 },
+                { id: "Profit", depth: 1, value: 500, x: 200, y: 150, height: 30 }
+            ],
+            links: [
+                { source: "Revenue", target: "Profit", value: 500 }
+            ]
+        };
+
+        // Create chart instance
+        const chart = new PulseSankeyChart('chart-container');
+        const controls = new SankeyControlModule();
+        
+        // Load test data
+        chart.render(testData);
+
+        // Test slider
+        const slider = document.getElementById('fontSizeSlider');
+        const valueDisplay = document.getElementById('fontSizeValue');
+        const log = document.getElementById('test-log');
+
+        function logMessage(msg) {
+            log.innerHTML += new Date().toLocaleTimeString() + ': ' + msg + '<br>';
+            log.scrollTop = log.scrollHeight;
+        }
+
+        slider.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            valueDisplay.textContent = value + 'px';
+            
+            logMessage(`Setting globalFontSize to ${value}px`);
+            
+            // Test the control handler
+            controls.handleControlChange('globalFontSize', value, chart);
+            
+            // Check if text elements updated
+            const textElements = chart.chart.selectAll('.node-text-group text');
+            logMessage(`Found ${textElements.size()} text elements`);
+            
+            textElements.each(function() {
+                const fontSize = d3.select(this).attr('font-size');
+                logMessage(`Text element font-size: ${fontSize}`);
+            });
+        });
+
+        logMessage('Test initialized. Move the slider to test font size changes.');
+    </script>
+</body>
+</html>
