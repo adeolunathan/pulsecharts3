@@ -4726,14 +4726,44 @@ class PulseSankeyChart {
             link.colorCategory = newCategory;
         });
         
-        console.log(`🎨 Auto-colored ${linksToColor.length} links for ${node.depth === 0 ? 'revenue segment' : 'other'} node '${node.id}'`);
+        const nodeType = this.isAggregationNode(node, this.links) ? 'aggregation' : (node.depth === 0 ? 'revenue segment' : 'other');
+        console.log(`🎨 Auto-colored ${linksToColor.length} links for ${nodeType} node '${node.id}'${linksToColor.length === 0 ? ' (node-only coloring)' : ''}`);
     }
 
-    // Simple depth-based automatic link assignment
+    // Smart link assignment that avoids conflicts with aggregation nodes
     getLinksToColor(node, links) {
+        // Check if this is an aggregation node (receives from multiple same-category sources)
+        if (this.isAggregationNode(node, links)) {
+            // Aggregation nodes get node-only coloring (no links colored)
+            return [];
+        }
+        
         return node.depth === 0 
             ? links.filter(link => link.source.id === node.id)  // Outgoing links for depth 0
             : links.filter(link => link.target.id === node.id); // Incoming links for others
+    }
+
+    // Detect aggregation nodes to avoid link coloring conflicts
+    isAggregationNode(node, links) {
+        // Get incoming links to this node
+        const incomingLinks = links.filter(link => link.target.id === node.id);
+        
+        // If less than 2 incoming links, not an aggregation
+        if (incomingLinks.length < 2) {
+            return false;
+        }
+        
+        // Check if multiple incoming links come from same-category sources
+        const sourceCategories = incomingLinks.map(link => {
+            const sourceNode = this.nodes.find(n => n.id === link.source.id);
+            return sourceNode?.category;
+        }).filter(cat => cat); // Remove undefined categories
+        
+        // If multiple sources have the same category, this is likely an aggregation node
+        const uniqueCategories = new Set(sourceCategories);
+        const hasRepeatedCategories = sourceCategories.length > uniqueCategories.size;
+        
+        return hasRepeatedCategories;
     }
 
     // Re-render with new colors (optimized for color-only updates)
