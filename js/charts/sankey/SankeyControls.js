@@ -148,14 +148,14 @@ class SankeyControlModule {
             },
 
             categoryManagement: {
-                title: "Category Management",
-                icon: "🏷️",
-                collapsed: true,
+                title: "",
+                icon: "",
+                collapsed: false,
                 controls: [
                     {
                         id: "bulkAssignment",
                         type: "button",
-                        label: "Bulk Category Assignment",
+                        label: "Bulk Assignment",
                         action: this.openBulkAssignmentModal.bind(this)
                     }
                 ]
@@ -1261,11 +1261,39 @@ class SankeyControlModule {
 
 
     /**
+     * Get category pill HTML with color
+     */
+    getCategoryPill(category) {
+        if (!category) {
+            return '<span class="node-uncategorized">(uncategorized)</span>';
+        }
+        
+        // Get category color
+        let categoryColor = '#6b7280'; // default gray
+        const categoryManager = this.chart.categoryManager;
+        
+        if (categoryManager.userCategories.has(category)) {
+            categoryColor = categoryManager.userCategories.get(category).color;
+        } else if (categoryManager.defaultCategories[category]) {
+            categoryColor = categoryManager.defaultCategories[category].color;
+        }
+        
+        return `<span class="category-pill" style="background-color: ${categoryColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500;">${category}</span>`;
+    }
+
+    /**
      * Open bulk assignment modal
      */
     openBulkAssignmentModal() {
-        if (!this.chart || !this.chart.nodes) {
-            console.warn('No chart or node data available');
+        if (!this.chart) {
+            console.error('❌ No chart instance available for bulk assignment');
+            alert('No chart available. Please ensure a chart is loaded first.');
+            return;
+        }
+        
+        if (!this.chart.nodes || this.chart.nodes.length === 0) {
+            console.error('❌ No node data available for bulk assignment');
+            alert('No nodes available. Please ensure chart data is loaded first.');
             return;
         }
         
@@ -1278,39 +1306,48 @@ class SankeyControlModule {
         
         // Build category options
         let categoryOptions = '<option value="">Select a category...</option>';
-        allCategories.forEach((data, name) => {
-            categoryOptions += `<option value="${name}">${data.icon || '🏷️'} ${name}</option>`;
+        allCategories.forEach((_, name) => {
+            categoryOptions += `<option value="${name}">${name}</option>`;
         });
         
         modal.innerHTML = `
             <div class="modal-backdrop">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>Bulk Category Assignment</h3>
+                        <h3>Assign Categories</h3>
                         <button class="close-modal" onclick="this.closest('.bulk-assignment-modal').remove()">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label>Assign Category:</label>
+                            <label>Category:</label>
                             <select id="bulkCategory">
                                 ${categoryOptions}
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Assignment Method:</label>
-                            <div class="radio-group">
-                                <label><input type="radio" name="assignmentMethod" value="selected" checked> Selected nodes only</label>
-                                <label><input type="radio" name="assignmentMethod" value="pattern"> Nodes matching pattern</label>
-                                <label><input type="radio" name="assignmentMethod" value="all"> All uncategorized nodes</label>
+                        
+                        <div class="nodes-section">
+                            <label>Select Nodes to Assign:</label>
+                            <div class="node-selection-container">
+                                <div class="selection-controls">
+                                    <button type="button" class="btn-small select-all" onclick="this.parentElement.parentElement.querySelectorAll('.node-checkbox').forEach(cb => cb.checked = true); this.parentElement.parentElement.parentElement.querySelector('.preview-count').textContent = this.parentElement.parentElement.querySelectorAll('.node-checkbox:checked').length + ' nodes selected'">Select All</button>
+                                    <button type="button" class="btn-small select-none" onclick="this.parentElement.parentElement.querySelectorAll('.node-checkbox').forEach(cb => cb.checked = false); this.parentElement.parentElement.parentElement.querySelector('.preview-count').textContent = '0 nodes selected'">Select None</button>
+                                    <button type="button" class="btn-small select-uncategorized" onclick="this.parentElement.parentElement.querySelectorAll('.node-checkbox').forEach(cb => { cb.checked = cb.dataset.uncategorized === 'true'; }); this.parentElement.parentElement.parentElement.querySelector('.preview-count').textContent = this.parentElement.parentElement.querySelectorAll('.node-checkbox:checked').length + ' nodes selected'">Uncategorized Only</button>
+                                </div>
+                                <div class="node-list-scrollable">
+                                    ${this.chart.nodes.map(node => {
+                                        const nodeKey = node.id || node.name || node.label;
+                                        const currentCategory = this.chart.categoryManager.nodeCategories.get(nodeKey) || node.category;
+                                        const isUncategorized = !currentCategory;
+                                        return `
+                                        <label class="node-item">
+                                            <input type="checkbox" class="node-checkbox" value="${nodeKey}" data-uncategorized="${isUncategorized ? 'true' : 'false'}" onchange="this.closest('.nodes-section').querySelector('.preview-count').textContent = this.closest('.node-selection-container').querySelectorAll('.node-checkbox:checked').length + ' nodes selected'">
+                                            <span class="node-name">${node.name || node.label || node.id || 'Unnamed'}</span>
+                                            ${this.getCategoryPill(currentCategory)}
+                                        </label>`;
+                                    }).join('')}
+                                </div>
+                                <div class="preview-count">0 nodes selected</div>
                             </div>
-                        </div>
-                        <div class="form-group pattern-group" style="display: none;">
-                            <label>Name Pattern:</label>
-                            <input type="text" id="namePattern" placeholder="e.g., sales, marketing, etc.">
-                        </div>
-                        <div class="node-preview">
-                            <h4>Preview (0 nodes will be affected)</h4>
-                            <div class="node-list"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1341,129 +1378,187 @@ class SankeyControlModule {
                     background: white;
                     border-radius: 8px;
                     width: 90%;
-                    max-width: 600px;
-                    max-height: 90vh;
-                    overflow-y: auto;
-                }
-                .radio-group {
+                    max-width: 420px;
+                    max-height: 70vh;
+                    overflow: hidden;
                     display: flex;
                     flex-direction: column;
-                    gap: 8px;
                 }
-                .radio-group label {
+                .modal-header {
+                    padding: 16px 20px;
+                    border-bottom: 1px solid #eee;
                     display: flex;
+                    justify-content: space-between;
                     align-items: center;
+                }
+                .modal-header h3 {
+                    margin: 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+                .close-modal {
+                    background: none;
+                    border: none;
+                    font-size: 20px;
+                    cursor: pointer;
+                    color: #666;
+                }
+                .modal-body {
+                    padding: 16px 20px;
+                    flex: 1;
+                    overflow-y: auto;
+                }
+                .modal-footer {
+                    padding: 12px 20px;
+                    border-top: 1px solid #eee;
+                    display: flex;
+                    justify-content: flex-end;
                     gap: 8px;
-                    font-weight: normal;
                 }
-                .node-preview {
-                    margin-top: 15px;
-                    padding: 15px;
-                    background: #f8f9fa;
+                .form-group {
+                    margin-bottom: 16px;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 6px;
+                    font-weight: 500;
+                    font-size: 14px;
+                }
+                .form-group select {
+                    width: 100%;
+                    padding: 8px 12px;
+                    border: 1px solid #ddd;
                     border-radius: 4px;
+                    font-size: 14px;
                 }
-                .node-list {
+                .nodes-section {
+                    margin-top: 16px;
+                }
+                .selection-controls {
+                    display: flex;
+                    gap: 6px;
+                    margin-bottom: 8px;
+                }
+                .btn-small {
+                    padding: 4px 8px;
+                    font-size: 11px;
+                    border: 1px solid #ddd;
+                    border-radius: 3px;
+                    background: #f8f9fa;
+                    cursor: pointer;
+                }
+                .btn-small:hover {
+                    background: #e9ecef;
+                }
+                .node-selection-container {
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    background: #fafafa;
+                }
+                .node-list-scrollable {
                     max-height: 200px;
                     overflow-y: auto;
-                    margin-top: 10px;
+                    padding: 8px;
                 }
                 .node-item {
-                    padding: 5px;
+                    display: flex;
+                    align-items: center;
+                    padding: 6px 8px;
                     margin: 2px 0;
                     background: white;
                     border-radius: 3px;
-                    border-left: 3px solid #007bff;
+                    cursor: pointer;
+                    font-size: 13px;
+                }
+                .node-item:hover {
+                    background: #f8f9fa;
+                }
+                .node-checkbox {
+                    margin-right: 8px;
+                }
+                .node-name {
+                    font-weight: 500;
+                    flex: 1;
+                }
+                .node-category {
+                    color: #666;
+                    font-size: 11px;
+                }
+                .node-uncategorized {
+                    color: #999;
+                    font-size: 11px;
+                    font-style: italic;
+                }
+                .preview-count {
+                    padding: 8px;
+                    text-align: center;
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: #666;
+                    border-top: 1px solid #eee;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .btn-secondary {
+                    background: #6c757d;
+                    color: white;
+                }
+                .btn-primary {
+                    background: #007bff;
+                    color: white;
                 }
             </style>
         `;
         
-        document.body.appendChild(modal);
-        
-        // Set up event listeners for preview updates
-        const updatePreview = () => {
-            const method = document.querySelector('input[name="assignmentMethod"]:checked').value;
-            const pattern = document.getElementById('namePattern').value.toLowerCase();
-            const patternGroup = document.querySelector('.pattern-group');
-            
-            // Show/hide pattern input
-            patternGroup.style.display = method === 'pattern' ? 'block' : 'none';
-            
-            // Get affected nodes
-            let affectedNodes = [];
-            
-            if (method === 'selected') {
-                // Get selected nodes from chart
-                affectedNodes = this.chart.getSelectedNodes();
-            } else if (method === 'pattern' && pattern) {
-                affectedNodes = this.chart.nodes.filter(node => 
-                    node.name.toLowerCase().includes(pattern)
-                );
-            } else if (method === 'all') {
-                affectedNodes = this.chart.nodes.filter(node => 
-                    !this.chart.categoryManager.nodeCategories.has(node.id)
-                );
-            }
-            
-            // Update preview
-            const preview = document.querySelector('.node-preview h4');
-            const nodeList = document.querySelector('.node-list');
-            
-            preview.textContent = `Preview (${affectedNodes.length} nodes will be affected)`;
-            
-            nodeList.innerHTML = affectedNodes.slice(0, 10).map(node => `
-                <div class="node-item">${node.name}</div>
-            `).join('');
-            
-            if (affectedNodes.length > 10) {
-                nodeList.innerHTML += `<div class="node-item">... and ${affectedNodes.length - 10} more</div>`;
-            }
-        };
-        
-        // Bind event listeners
-        document.querySelectorAll('input[name="assignmentMethod"]').forEach(radio => {
-            radio.addEventListener('change', updatePreview);
+        // Close any open menus/dropdowns before showing modal - but preserve their functionality
+        document.querySelectorAll('.menu-section.open').forEach(menu => {
+            menu.classList.remove('open');
+        });
+        document.querySelectorAll('.dropdown-content[style*="display: block"]').forEach(dropdown => {
+            dropdown.style.display = 'none';
         });
         
-        document.getElementById('namePattern').addEventListener('input', updatePreview);
-        
-        // Initial preview
-        updatePreview();
+        document.body.appendChild(modal);
         
         // Set up global function for applying assignment
         window.applyBulkAssignment = () => {
             const category = document.getElementById('bulkCategory').value;
-            const method = document.querySelector('input[name="assignmentMethod"]:checked').value;
-            const pattern = document.getElementById('namePattern').value.toLowerCase();
             
             if (!category) {
                 alert('Please select a category');
                 return;
             }
             
-            let affectedNodes = [];
+            // Get selected nodes from checkboxes
+            const selectedCheckboxes = modal.querySelectorAll('.node-checkbox:checked');
+            const affectedNodes = Array.from(selectedCheckboxes).map(checkbox => {
+                const nodeValue = checkbox.value;
+                return this.chart.nodes.find(node => (node.id || node.name) === nodeValue);
+            }).filter(node => node);
             
-            if (method === 'selected') {
-                // Get selected nodes from chart
-                affectedNodes = this.chart.getSelectedNodes();
-            } else if (method === 'pattern' && pattern) {
-                affectedNodes = this.chart.nodes.filter(node => 
-                    node.name.toLowerCase().includes(pattern)
-                );
-            } else if (method === 'all') {
-                affectedNodes = this.chart.nodes.filter(node => 
-                    !this.chart.categoryManager.nodeCategories.has(node.id)
-                );
+            if (affectedNodes.length === 0) {
+                alert('Please select at least one node');
+                return;
             }
             
-            // Apply assignments
+            // Apply assignments to nodes
             affectedNodes.forEach(node => {
-                this.chart.categoryManager.nodeCategories.set(node.id, category);
+                const nodeKey = node.id || node.name;
+                this.chart.categoryManager.nodeCategories.set(nodeKey, category);
             });
             
-            this.chart.showNotification(`Assigned ${affectedNodes.length} nodes to category "${category}"`);
+            console.log(`✅ Assigned ${affectedNodes.length} nodes to category: ${category}`);
+            
             // Update just node colors without full re-render to preserve user changes
             if (this.chart.rerenderWithNewColors) {
                 this.chart.rerenderWithNewColors();
+            } else if (this.chart.updateConfig) {
+                this.chart.updateConfig({ updateColors: true });
             }
             
             modal.remove();

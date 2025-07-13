@@ -60,6 +60,9 @@ class SpreadsheetEditor {
                         ${this.config.allowDynamicColumns ? `
                         <button class="add-column-btn" style="padding: 6px 12px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Add new column">
                             ➕ Column
+                        </button>
+                        <button class="clear-all-btn" style="padding: 6px 12px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Clear all spreadsheet content">
+                            🗑️
                         </button>` : ''}
                         <button class="paste-btn" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Paste from clipboard (or use Ctrl+V)">
                             📋 Paste
@@ -69,9 +72,6 @@ class SpreadsheetEditor {
                         </button>
                         <button class="add-row-btn" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
                             ➕ Row
-                        </button>
-                        <button class="clear-btn" style="padding: 6px 12px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                            🗑 Clear
                         </button>
                         <button class="test-paste-btn" style="padding: 6px 12px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Test paste with sample data">
                             🧪 Test
@@ -116,13 +116,18 @@ class SpreadsheetEditor {
         container.querySelector('.paste-btn').addEventListener('click', () => this.handlePasteButton());
         container.querySelector('.paste-dataset-btn').addEventListener('click', () => this.handlePasteDatasetButton());
         container.querySelector('.add-row-btn').addEventListener('click', () => this.addRow());
-        container.querySelector('.clear-btn').addEventListener('click', () => this.clearData());
         container.querySelector('.test-paste-btn').addEventListener('click', () => this.testPaste());
         
         // Dynamic column button (only for charts that support it)
         const addColumnBtn = container.querySelector('.add-column-btn');
         if (addColumnBtn) {
             addColumnBtn.addEventListener('click', () => this.addColumn());
+        }
+        
+        // Clear all button (only when dynamic columns are enabled)
+        const clearAllBtn = container.querySelector('.clear-all-btn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => this.clearAllData());
         }
         
         // Enhanced focus management for paste functionality
@@ -1239,6 +1244,14 @@ class SpreadsheetEditor {
 
     clearData() {
         if (confirm('Clear all data?')) {
+            this.data = [this.createEmptyRow()];
+            this.render();
+            this.updateChart();
+        }
+    }
+
+    clearAllData() {
+        if (confirm('Clear all spreadsheet content?')) {
             this.data = [this.createEmptyRow()];
             this.render();
             this.updateChart();

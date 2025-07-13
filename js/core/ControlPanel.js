@@ -667,6 +667,13 @@ class PulseControlPanel {
                     } else {
                         console.warn('No resetZoom method available');
                     }
+                } else if (typeof config.action === 'function') {
+                    // Handle action as a function (e.g., bound method from control module)
+                    try {
+                        config.action();
+                    } catch (error) {
+                        console.error(`Error executing button action function:`, error);
+                    }
                 } else if (config.action && this.chart && typeof this.chart[config.action] === 'function') {
                     // Call the action method on the chart
                     this.chart[config.action]();
