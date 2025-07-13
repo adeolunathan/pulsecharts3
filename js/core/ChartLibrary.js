@@ -236,19 +236,41 @@ class ChartLibrary {
                         <input type="text" placeholder="Search charts..." id="search-charts" class="search-input">
                     </div>
                 </div>
+                <div class="bulk-actions" id="bulk-actions" style="display: none;">
+                    <div class="bulk-actions-content">
+                        <div class="selection-info">
+                            <span id="selected-count">0</span> charts selected
+                        </div>
+                        <div class="bulk-buttons">
+                            <button class="btn btn-sm btn-secondary" id="select-all-btn">Select All</button>
+                            <button class="btn btn-sm btn-secondary" id="deselect-all-btn">Deselect All</button>
+                            <button class="btn btn-sm btn-danger" id="bulk-delete-btn">Delete Selected</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="charts-list" id="charts-list">
                     <!-- Charts will be populated here -->
                 </div>
             </div>
             <div class="sidebar-footer">
-                <button class="btn btn-primary btn-block" id="save-chart-btn-footer">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                        <polyline points="17,21 17,13 7,13 7,21"/>
-                        <polyline points="7,3 7,8 15,8"/>
-                    </svg>
-                    Save Current Chart
-                </button>
+                <div class="footer-buttons">
+                    <button class="btn btn-secondary btn-block" id="new-chart-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="16"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        New Chart
+                    </button>
+                    <button class="btn btn-primary btn-block" id="save-chart-btn-footer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17,21 17,13 7,13 7,21"/>
+                            <polyline points="7,3 7,8 15,8"/>
+                        </svg>
+                        Save Current Chart
+                    </button>
+                </div>
             </div>
         `;
         
@@ -330,6 +352,11 @@ class ChartLibrary {
                 this.openSaveModal();
             }
             
+            // New Chart button
+            if (e.target.id === 'new-chart-btn') {
+                this.createNewChart();
+            }
+            
             // Export/Import buttons
             if (e.target.id === 'export-library-btn') {
                 this.exportCharts();
@@ -350,6 +377,11 @@ class ChartLibrary {
                 this.deleteChart(chartId);
             }
             
+            if (e.target.classList.contains('rename-chart-btn')) {
+                const chartId = e.target.dataset.chartId;
+                this.renameChart(chartId);
+            }
+            
             if (e.target.classList.contains('duplicate-chart-btn')) {
                 const chartId = e.target.dataset.chartId;
                 this.duplicateChart(chartId);
@@ -360,6 +392,19 @@ class ChartLibrary {
                 this.exportSingleChart(chartId);
             }
             
+            // Bulk action buttons
+            if (e.target.id === 'bulk-delete-btn') {
+                this.bulkDeleteCharts();
+            }
+            
+            if (e.target.id === 'select-all-btn') {
+                this.selectAllCharts();
+            }
+            
+            if (e.target.id === 'deselect-all-btn') {
+                this.deselectAllCharts();
+            }
+
             // More actions menu
             if (e.target.classList.contains('more-actions-btn')) {
                 const chartId = e.target.dataset.chartId;
@@ -392,6 +437,13 @@ class ChartLibrary {
         document.addEventListener('input', (e) => {
             if (e.target.id === 'search-charts') {
                 this.handleSearch(e.target.value);
+            }
+        });
+
+        // Bulk selection handlers
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('chart-checkbox')) {
+                this.updateBulkActions();
             }
         });
     }
@@ -519,19 +571,27 @@ class ChartLibrary {
 
         chartsList.innerHTML = sortedCharts.map(chart => `
             <div class="chart-item" data-chart-id="${chart.id}">
+                <div class="chart-selection">
+                    <input type="checkbox" class="chart-checkbox" data-chart-id="${chart.id}">
+                </div>
                 <div class="chart-info">
-                    <div class="chart-name">${this.escapeHtml(chart.name)}</div>
-                    <div class="chart-meta">
-                        <span class="chart-type-badge ${chart.chartType}">${this.formatChartType(chart.chartType)}</span>
-                        <span class="chart-date">${this.formatRelativeDate(chart.createdAt)}</span>
+                    <div class="chart-avatar">
+                        ${this.getChartTypeIcon(chart.chartType)}
+                    </div>
+                    <div class="chart-details">
+                        <div class="chart-name">${this.escapeHtml(chart.name)}</div>
+                        <div class="chart-meta">
+                            <span class="chart-type-badge ${chart.chartType}">${this.formatChartType(chart.chartType)}</span>
+                            <span class="chart-date">${this.formatRelativeDate(chart.createdAt)}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="chart-actions">
                     <button class="btn btn-primary btn-sm load-chart-btn" data-chart-id="${chart.id}" title="Load chart">
-                        📖 Load
+                        Load
                     </button>
                     <button class="btn btn-ghost btn-sm more-actions-btn" data-chart-id="${chart.id}" title="More actions">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="1"/>
                             <circle cx="19" cy="12" r="1"/>
                             <circle cx="5" cy="12" r="1"/>
@@ -548,6 +608,13 @@ class ChartLibrary {
                             <polyline points="10,9 9,9 8,9"/>
                         </svg>
                         Load Chart
+                    </button>
+                    <button class="menu-item rename-chart-btn" data-chart-id="${chart.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                        Rename
                     </button>
                     <button class="menu-item duplicate-chart-btn" data-chart-id="${chart.id}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -616,24 +683,12 @@ class ChartLibrary {
 
     getChartTypeIcon(chartType) {
         const icons = {
-            'sankey': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3h6l6 6-6 6H3V3z"/>
-                        <path d="M15 9l6-6v18l-6-6"/>
-                      </svg>`,
-            'bar': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                     <rect x="3" y="8" width="4" height="13"/>
-                     <rect x="9" y="4" width="4" height="17"/>
-                     <rect x="15" y="12" width="4" height="9"/>
-                   </svg>`,
-            'line': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="22,6 13,12 9,8 2,18"/>
-                    </svg>`,
-            'pie': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                     <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                     <path d="M22 12A10 10 0 0 0 12 2v10z"/>
-                   </svg>`
+            'sankey': '🌊',
+            'bar': '📊', 
+            'line': '📈',
+            'pie': '🥧'
         };
-        return icons[chartType] || icons.bar;
+        return icons[chartType] || '📊';
     }
 
     getDataStats(data) {
@@ -665,7 +720,7 @@ class ChartLibrary {
         return div.innerHTML;
     }
 
-    // New enhanced functionality
+    // Enhanced functionality
     handleSearch(query) {
         const chartItems = document.querySelectorAll('.chart-item');
         const searchTerm = query.toLowerCase().trim();
@@ -680,6 +735,102 @@ class ChartLibrary {
                 item.style.display = 'none';
             }
         });
+    }
+
+    // Rename chart functionality
+    renameChart(chartId) {
+        const chart = this.savedCharts.find(c => c.id === chartId);
+        if (!chart) return;
+
+        const newName = prompt('Enter new chart name:', chart.name);
+        if (newName && newName.trim() && newName.trim() !== chart.name) {
+            chart.name = newName.trim();
+            chart.updatedAt = new Date().toISOString();
+            this.saveSavedCharts();
+            this.refreshLibraryUI();
+            this.showNotification(`Chart renamed to "${chart.name}"`, 'success');
+        }
+    }
+
+    // Bulk selection functionality
+    updateBulkActions() {
+        const checkboxes = document.querySelectorAll('.chart-checkbox');
+        const selectedCheckboxes = document.querySelectorAll('.chart-checkbox:checked');
+        const bulkActions = document.getElementById('bulk-actions');
+        const selectedCount = document.getElementById('selected-count');
+
+        if (selectedCheckboxes.length > 0) {
+            bulkActions.style.display = 'block';
+            selectedCount.textContent = selectedCheckboxes.length;
+        } else {
+            bulkActions.style.display = 'none';
+        }
+    }
+
+    selectAllCharts() {
+        const checkboxes = document.querySelectorAll('.chart-checkbox');
+        checkboxes.forEach(cb => cb.checked = true);
+        this.updateBulkActions();
+    }
+
+    deselectAllCharts() {
+        const checkboxes = document.querySelectorAll('.chart-checkbox:checked');
+        checkboxes.forEach(cb => cb.checked = false);
+        this.updateBulkActions();
+    }
+
+    bulkDeleteCharts() {
+        const selectedCheckboxes = document.querySelectorAll('.chart-checkbox:checked');
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.chartId);
+        
+        if (selectedIds.length === 0) return;
+
+        const confirmMsg = `Are you sure you want to delete ${selectedIds.length} chart${selectedIds.length > 1 ? 's' : ''}?`;
+        if (confirm(confirmMsg)) {
+            selectedIds.forEach(chartId => {
+                const chartIndex = this.savedCharts.findIndex(c => c.id === chartId);
+                if (chartIndex !== -1) {
+                    this.savedCharts.splice(chartIndex, 1);
+                }
+            });
+            
+            this.saveSavedCharts();
+            this.refreshLibraryUI();
+            this.showNotification(`${selectedIds.length} chart${selectedIds.length > 1 ? 's' : ''} deleted`, 'info');
+        }
+    }
+
+    // New Chart functionality
+    createNewChart() {
+        if (this.hasUnsavedChanges()) {
+            const save = confirm('You have unsaved changes. Would you like to save the current chart before creating a new one?');
+            if (save) {
+                this.openSaveModal();
+                return;
+            }
+        }
+
+        // Clear current chart data
+        if (window.pulseApp && window.pulseApp.clearCurrentChart) {
+            window.pulseApp.clearCurrentChart();
+        } else if (window.pulseApp) {
+            // Fallback: try to clear data manually
+            window.pulseApp.currentData = null;
+            if (window.pulseApp.chart && window.pulseApp.chart.clear) {
+                window.pulseApp.chart.clear();
+            }
+        }
+
+        this.closeLibrary();
+        this.showNotification('New chart created. Start by loading data or using the data editor.', 'info');
+    }
+
+    // Check for unsaved changes (simplified check)
+    hasUnsavedChanges() {
+        if (!window.pulseApp || !window.pulseApp.currentData) return false;
+        
+        // Simple check - in a real implementation, you'd track modification state
+        return !!window.pulseApp.currentData;
     }
 
     duplicateChart(chartId) {
