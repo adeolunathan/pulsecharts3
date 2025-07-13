@@ -75,8 +75,13 @@ class PulseSankeyChart {
             
             // Data State
             originalData: null,                  // Original loaded data
-            modifiedData: null,                  // User-modified data
+            modifiedData: {                      // User-modified data structure
+                nodes: [],
+                links: [],
+                flows: []
+            },
             dataTimestamp: null,                 // When data was last modified
+            chartMetadata: {},                   // Chart metadata (title, company, period, currency, unit)
             
             // Persistence Metadata
             lastSaved: null,                     // Last save timestamp
@@ -7774,6 +7779,24 @@ class PulseSankeyChart {
             if (this.data) {
                 this.statePersistence.originalData = JSON.parse(JSON.stringify(this.data));
                 this.statePersistence.dataTimestamp = Date.now();
+                
+                // Chart Metadata (title, company, period, currency, unit)
+                if (this.data.metadata) {
+                    this.statePersistence.chartMetadata = {
+                        company: this.data.metadata.company || '',
+                        period: this.data.metadata.period || '',
+                        currency: this.data.metadata.currency || 'USD',
+                        unit: this.data.metadata.unit || 'millions',
+                        title: this.data.metadata.title || ''
+                    };
+                }
+                
+                // Data Structure Changes (nodes and links)
+                this.statePersistence.modifiedData = {
+                    nodes: this.data.nodes ? JSON.parse(JSON.stringify(this.data.nodes)) : [],
+                    links: this.data.links ? JSON.parse(JSON.stringify(this.data.links)) : [],
+                    flows: this.data.flows ? JSON.parse(JSON.stringify(this.data.flows)) : []
+                };
             }
 
             // Custom colors
@@ -7817,6 +7840,8 @@ class PulseSankeyChart {
                 
                 originalData: this.statePersistence.originalData,
                 dataTimestamp: this.statePersistence.dataTimestamp,
+                chartMetadata: this.statePersistence.chartMetadata,
+                modifiedData: this.statePersistence.modifiedData,
                 
                 lastSaved: this.statePersistence.lastSaved,
                 version: this.statePersistence.version,
@@ -7915,6 +7940,32 @@ class PulseSankeyChart {
             if (stateData.nodeCustomColors) {
                 this.statePersistence.nodeCustomColors = new Map(Object.entries(stateData.nodeCustomColors));
                 this.customColors = { ...Object.fromEntries(this.statePersistence.nodeCustomColors) };
+            }
+            
+            // Restore chart metadata (title, company, period, currency, unit)
+            if (stateData.chartMetadata && this.data && this.data.metadata) {
+                this.statePersistence.chartMetadata = stateData.chartMetadata;
+                // Apply to current data metadata
+                this.data.metadata.company = stateData.chartMetadata.company;
+                this.data.metadata.period = stateData.chartMetadata.period;
+                this.data.metadata.currency = stateData.chartMetadata.currency;
+                this.data.metadata.unit = stateData.chartMetadata.unit;
+                this.data.metadata.title = stateData.chartMetadata.title;
+            }
+            
+            // Restore modified data structure (nodes and links)
+            if (stateData.modifiedData && this.data) {
+                this.statePersistence.modifiedData = stateData.modifiedData;
+                // Apply data structure changes to current data
+                if (stateData.modifiedData.nodes && stateData.modifiedData.nodes.length > 0) {
+                    this.data.nodes = JSON.parse(JSON.stringify(stateData.modifiedData.nodes));
+                }
+                if (stateData.modifiedData.links && stateData.modifiedData.links.length > 0) {
+                    this.data.links = JSON.parse(JSON.stringify(stateData.modifiedData.links));
+                }
+                if (stateData.modifiedData.flows && stateData.modifiedData.flows.length > 0) {
+                    this.data.flows = JSON.parse(JSON.stringify(stateData.modifiedData.flows));
+                }
             }
 
             console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);

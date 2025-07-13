@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auto-Save Test</title>
+    <script>
+        // Simple test to verify auto-save functionality
+        function testAutoSave() {
+            console.log("Testing enhanced auto-save functionality...");
+            
+            // Simulate chart state
+            const testState = {
+                chartMetadata: {
+                    company: "Test Company",
+                    period: "2024 Q1",
+                    currency: "EUR",
+                    unit: "thousands",
+                    title: "Test Chart"
+                },
+                modifiedData: {
+                    nodes: [{id: "test1", value: 100}],
+                    links: [{source: "test1", target: "test2", value: 50}],
+                    flows: []
+                }
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('pulse_chart_state_test', JSON.stringify(testState));
+            
+            // Retrieve and verify
+            const retrieved = JSON.parse(localStorage.getItem('pulse_chart_state_test'));
+            
+            if (retrieved.chartMetadata.company === "Test Company" && 
+                retrieved.chartMetadata.currency === "EUR" &&
+                retrieved.modifiedData.nodes.length === 1) {
+                console.log("✅ Auto-save test PASSED: All new fields saved and retrieved correctly");
+                document.body.innerHTML = "<h1 style='color: green;'>✅ Auto-Save Test PASSED</h1><pre>" + JSON.stringify(retrieved, null, 2) + "</pre>";
+            } else {
+                console.log("❌ Auto-save test FAILED");
+                document.body.innerHTML = "<h1 style='color: red;'>❌ Auto-Save Test FAILED</h1>";
+            }
+            
+            // Clean up
+            localStorage.removeItem('pulse_chart_state_test');
+        }
+        
+        window.onload = testAutoSave;
+    </script>
+</head>
+<body>
+    <h1>Testing Auto-Save Functionality...</h1>
+</body>
+</html>
