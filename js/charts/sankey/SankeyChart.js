@@ -4705,24 +4705,35 @@ class PulseSankeyChart {
     updateLinkCategoriesForNode(node, newCategory) {
         if (!this.links || this.links.length === 0) return;
         
-        // Update all links that have this node as source or target
+        // Simple depth-based rule: depth 0 nodes color outgoing links, others color incoming links
+        const linksToColor = this.getLinksToColor(node, this.links);
+        
+        // Update metadata for all connected links
         this.links.forEach(link => {
             // Update source-related category metadata
             if (link.source && link.source.id === node.id) {
                 link.sourceCategory = newCategory;
-                // For revenue segments and other source nodes, also update colorCategory
-                // This ensures that outgoing links adopt the source node's category color
-                link.colorCategory = newCategory;
             }
             
             // Update target-related category metadata  
             if (link.target && link.target.id === node.id) {
                 link.targetCategory = newCategory;
-                // ALWAYS update colorCategory for incoming links to match target node's category
-                // This ensures that incoming links adopt the target node's category color
-                link.colorCategory = newCategory;
             }
         });
+        
+        // Apply category color only to appropriate links based on depth
+        linksToColor.forEach(link => {
+            link.colorCategory = newCategory;
+        });
+        
+        console.log(`🎨 Auto-colored ${linksToColor.length} links for ${node.depth === 0 ? 'revenue segment' : 'other'} node '${node.id}'`);
+    }
+
+    // Simple depth-based automatic link assignment
+    getLinksToColor(node, links) {
+        return node.depth === 0 
+            ? links.filter(link => link.source.id === node.id)  // Outgoing links for depth 0
+            : links.filter(link => link.target.id === node.id); // Incoming links for others
     }
 
     // Re-render with new colors (optimized for color-only updates)
