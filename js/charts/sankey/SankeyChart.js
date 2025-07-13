@@ -1668,6 +1668,19 @@ class PulseSankeyChart {
         });
     }
 
+    preserveManualPositions() {
+        if (!this.nodes) return;
+        
+        this.nodes.forEach(node => {
+            if (node.manuallyPositioned && node.manualY !== null && !isNaN(node.manualY)) {
+                // Ensure the manual position is applied immediately
+                node.y = node.manualY;
+                // Ensure the flag is preserved
+                node.manuallyPositioned = true;
+            }
+        });
+    }
+
     positionNodesAtDepth(nodes, availableHeight, maxDepth) {
         // PHASE 2: Apply category-based positioning metadata to nodes
         // (this is called during layout after positionNodesByCategory() in render())
@@ -2428,13 +2441,30 @@ class PulseSankeyChart {
     }
 
     renderNodes() {
-        const nodeGroups = this.chart.selectAll('.sankey-node')
-            .data(this.nodes)
-            .enter()
+        // Proper enter/update/exit pattern to preserve existing nodes
+        const nodeSelection = this.chart.selectAll('.sankey-node')
+            .data(this.nodes);
+
+        // Remove old nodes
+        nodeSelection.exit().remove();
+
+        // Create new node groups
+        const nodeGroups = nodeSelection.enter()
             .append('g')
-            .attr('class', 'sankey-node')
+            .attr('class', 'sankey-node');
+
+        // Ensure manual positions are preserved before updating transform
+        this.nodes.forEach(node => {
+            if (node.manuallyPositioned && node.manualY !== null) {
+                node.y = node.manualY;
+            }
+        });
+
+        // Update all nodes (both new and existing) with current positions
+        this.chart.selectAll('.sankey-node')
             .attr('transform', d => `translate(${d.x}, ${d.y})`);
 
+        // Only append rect to new nodes
         nodeGroups.append('rect')
             .attr('width', this.config.nodeWidth)
             .attr('height', d => d.height)
@@ -2466,7 +2496,14 @@ class PulseSankeyChart {
                 event.stopPropagation();
                 const currentColor = this.getNodeColor(d);
                 this.showColorPicker(event.currentTarget, currentColor);
-            })
+            });
+
+        // Update all rectangles (both new and existing) with current properties
+        this.chart.selectAll('.sankey-node rect')
+            .attr('width', this.config.nodeWidth)
+            .attr('height', d => d.height)
+            .attr('fill', d => this.statementType === 'balance' ? this.getHierarchicalColor(d.id) : this.getNodeColor(d))
+            .attr('fill-opacity', d => this.statementType === 'balance' ? this.getNodeOpacity(d) : this.config.nodeOpacity);
 
         this.addDragBehavior(nodeGroups);
         
@@ -3408,11 +3445,22 @@ class PulseSankeyChart {
     }
 
     getColorByCategory(category) {
+        // First check customColors (for legacy compatibility)
         if (this.customColors && this.customColors[category]) {
             return this.customColors[category];
         }
         
-        // Enhanced vibrant category colors
+        // Check user-created custom categories
+        if (this.categoryManager && this.categoryManager.userCategories.has(category)) {
+            return this.categoryManager.userCategories.get(category).color;
+        }
+        
+        // Check default categories
+        if (this.categoryManager && this.categoryManager.defaultCategories[category]) {
+            return this.categoryManager.defaultCategories[category].color;
+        }
+        
+        // Enhanced vibrant category colors (fallback)
         const defaultColors = {
             revenue: '#1e40af',    // Deep vibrant blue
             profit: '#059669',     // Vibrant emerald green
@@ -4769,6 +4817,9 @@ class PulseSankeyChart {
     updateConfig(newConfig) {
         const oldConfig = { ...this.config };
         this.config = { ...this.config, ...newConfig };
+        
+        // Preserve manual positions during any config update
+        this.preserveManualPositions();
         
         if (newConfig.leftmostSpacing !== undefined) {
             this.config.layerSpacing[0] = newConfig.leftmostSpacing;
@@ -7585,14 +7636,29 @@ class PulseSankeyChart {
             return false;
         }
         
+        // Store in category manager
         this.categoryManager.userCategories.set(name, {
             color: color,
             icon: icon || '📊',
             description: description || `Custom category: ${name}`
         });
         
+        // Also store in customColors for backward compatibility and link color inheritance
+        if (!this.customColors) {
+            this.customColors = {};
+        }
+        this.customColors[name] = color;
+        
+        // Update metadata
+        if (this.data && this.data.metadata) {
+            if (!this.data.metadata.colorPalette) {
+                this.data.metadata.colorPalette = {};
+            }
+            this.data.metadata.colorPalette[name] = color;
+        }
+        
         this.saveCategoriesToMetadata();
-        console.log(`✅ Created custom category '${name}'`);
+        console.log(`✅ Created custom category '${name}' with color ${color}`);
         return true;
     }
 
