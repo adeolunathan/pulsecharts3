@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "title": "SaaS Company Financial Flow",
-    "subtitle": "Q3 2025 Financial Performance",
+    "title": "Your Flow Title",
     "currency": "USD",
     "unit": "millions",
-    "company": "TechFlow SaaS Corp",
+    "company": "Your Company Name",
     "period": "Q3 2025",
+    "periodType": "Q/Q",
     "prepared_date": "2025-01-15"
   },
   "nodes": [

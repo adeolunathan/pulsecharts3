@@ -681,6 +681,7 @@
                 unit: "millions",
                 company: "Your Company",
                 period: "Current Period",
+                periodType: "Q/Q", // Initialize with default
                 colorPalette: {} // CRITICAL: Always preserve color palette
             },
             flows: []
@@ -761,6 +762,7 @@
                     unit: sankeyData.metadata?.unit || "millions",
                     company: sankeyData.metadata?.company || "Your Company",
                     period: sankeyData.metadata?.period || "Current Period",
+                    periodType: sankeyData.metadata?.periodType || "Q/Q",
                     comparisonMode: sankeyData.metadata?.comparisonMode || false,
                     // CRITICAL: Preserve the existing color palette
                     colorPalette: sankeyData.metadata?.colorPalette || flowData.metadata?.colorPalette || {}
@@ -1191,24 +1193,9 @@
             
             // Get period indicator (Y/Y or Q/Q) based on user selection
             getPeriodIndicator() {
-                // Use user-selected period type if available
-                if (flowData.metadata?.periodType) {
-                    return flowData.metadata.periodType;
-                }
-                
-                // Fallback to automatic detection for backward compatibility
-                const period = flowData.metadata?.period || '';
-                const periodLower = period.toLowerCase();
-                
-                // Check for quarter indicators
-                if (periodLower.includes('q1') || periodLower.includes('q2') || 
-                    periodLower.includes('q3') || periodLower.includes('q4') || 
-                    periodLower.includes('quarter')) {
-                    return 'Q/Q';
-                }
-                
-                // Default to Q/Q for quarterly periods, Y/Y otherwise
-                return 'Y/Y';
+                // Simple metadata access like units - no complex logic needed
+                const periodType = flowData.metadata?.periodType || 'Q/Q';
+                return periodType;
             }
         }
 
@@ -1877,8 +1864,8 @@
             // CRITICAL: Preserve existing colors
             const existingColors = { ...flowData.metadata.colorPalette };
             
-            flowData.metadata.company = "TechFlow Corporation";
-            flowData.metadata.title = "TechFlow Financial Flow";
+            flowData.metadata.company = "Your Company Name";
+            flowData.metadata.title = "Your Flow Title";
             
             // CRITICAL: Restore colors
             flowData.metadata.colorPalette = existingColors;
@@ -1890,10 +1877,6 @@
                     value: 300,
                     previousValue: 305,
                     flowType: "revenue_flow",
-                    sourceLayer: 0,
-                    targetLayer: 1,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
                     description: "Recurring subscription income"
                 }),
                 new BusinessFlow({
@@ -1902,10 +1885,6 @@
                     value: 60,
                     previousValue: 55,
                     flowType: "revenue_flow",
-                    sourceLayer: 0,
-                    targetLayer: 1,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
                     description: "Implementation and consulting"
                 }),
                 new BusinessFlow({
@@ -1914,10 +1893,6 @@
                     value: 135,
                     previousValue: 120,
                     flowType: "revenue_flow",
-                    sourceLayer: 0,
-                    targetLayer: 1,
-                    sourceCategory: "revenue",
-                    targetCategory: "revenue",
                     description: "Platform fees and other revenue"
                 }),
                 new BusinessFlow({
@@ -1926,10 +1901,6 @@
                     value: 340,
                     previousValue: 290,
                     flowType: "profit_flow",
-                    sourceLayer: 1,
-                    targetLayer: 2,
-                    sourceCategory: "revenue",
-                    targetCategory: "profit",
                     description: "Revenue after cost of revenue"
                 }),
                 new BusinessFlow({
@@ -1938,10 +1909,6 @@
                     value: 55,
                     previousValue: 50,
                     flowType: "expense_flow",
-                    sourceLayer: 1,
-                    targetLayer: 2,
-                    sourceCategory: "revenue",
-                    targetCategory: "expense",
                     description: "Direct costs to deliver services"
                 }),
                 new BusinessFlow({
@@ -1950,10 +1917,6 @@
                     value: 65,
                     previousValue: 55,
                     flowType: "profit_flow",
-                    sourceLayer: 2,
-                    targetLayer: 3,
-                    sourceCategory: "profit",
-                    targetCategory: "profit",
                     description: "Profit from core operations"
                 }),
                 new BusinessFlow({
@@ -1962,10 +1925,6 @@
                     value: 155,
                     previousValue: 140,
                     flowType: "expense_flow",
-                    sourceLayer: 2,
-                    targetLayer: 3,
-                    sourceCategory: "profit",
-                    targetCategory: "expense",
                     description: "Total operating expenses"
                 }),
                 new BusinessFlow({
@@ -1974,10 +1933,6 @@
                     value: 85,
                     previousValue: 75,
                     flowType: "expense_flow",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "expense",
-                    targetCategory: "expense",
                     description: "Customer acquisition expenses"
                 }),
                 new BusinessFlow({
@@ -1986,10 +1941,6 @@
                     value: 45,
                     previousValue: 40,
                     flowType: "expense_flow",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "expense",
-                    targetCategory: "expense",
                     description: "Research and development"
                 }),
                 new BusinessFlow({
@@ -1998,10 +1949,6 @@
                     value: 20,
                     previousValue: 18,
                     flowType: "expense_flow",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "expense",
-                    targetCategory: "expense",
                     description: "General and administrative"
                 }),
                 new BusinessFlow({
@@ -2010,10 +1957,6 @@
                     value: 50,
                     previousValue: 42,
                     flowType: "profit",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "profit",
-                    targetCategory: "profit",
                     description: "Final net income"
                 }),
                 new BusinessFlow({
@@ -2022,10 +1965,6 @@
                     value: 12,
                     previousValue: 10,
                     flowType: "expense_flow",
-                    sourceLayer: 3,
-                    targetLayer: 4,
-                    sourceCategory: "profit",
-                    targetCategory: "expense",
                     description: "Income tax expense"
                 })
             ];
@@ -2569,7 +2508,7 @@
             }
             
             // Set defaults if not found
-            flowData.metadata.company = flowData.metadata.company || 'TechFlow SaaS Corp';
+            flowData.metadata.company = flowData.metadata.company || 'Your Company Name';
             flowData.metadata.period = flowData.metadata.period || 'Q3 2025';
             flowData.metadata.currency = flowData.metadata.currency || 'USD ($)';
             flowData.metadata.unit = flowData.metadata.unit || 'Millions';
@@ -2611,7 +2550,7 @@
             console.log('🚀 Applying Flow Builder changes...');
             
             // Form fields removed - use existing metadata or defaults
-            flowData.metadata.company = flowData.metadata.company || 'TechFlow SaaS Corp';
+            flowData.metadata.company = flowData.metadata.company || 'Your Company Name';
             flowData.metadata.period = flowData.metadata.period || 'Q3 2025';
             flowData.metadata.currency = flowData.metadata.currency || 'USD ($)';
             flowData.metadata.unit = flowData.metadata.unit || 'Millions';
@@ -2859,6 +2798,9 @@
             
             // Preserve the comparison mode in metadata
             result.metadata.comparisonMode = comparisonMode;
+            
+            // Ensure periodType is preserved in result metadata
+            result.metadata.periodType = flowData.metadata?.periodType || 'Q/Q';
             
             // Determine chart type based on categories
             const isBalanceSheet = flowData.flows.some(flow => 
@@ -5804,60 +5746,47 @@
             let currency = 'USD ($)';
             let statementType = 'Income Statement';
             let units = 'Millions';
-            let periodType = 'Q/Q';
+            let periodType = 'Q/Q';  // Default only for modal display
             
-            // Try to get values from multiple sources
-            if (typeof flowData !== 'undefined' && flowData.metadata) {
-                companyName = flowData.metadata.company || companyName;
-                period = flowData.metadata.period || period;
-                currency = flowData.metadata.currency || currency;
-                units = flowData.metadata.unit || units;
-                periodType = flowData.metadata.periodType || periodType;
-            } else {
-                // Initialize flowData.metadata if it doesn't exist
-                if (typeof flowData !== 'undefined') {
-                    if (!flowData.metadata) {
-                        flowData.metadata = {};
-                    }
-                    // Set defaults if not already set
-                    flowData.metadata.company = flowData.metadata.company || companyName;
-                    flowData.metadata.period = flowData.metadata.period || period;
-                    flowData.metadata.currency = flowData.metadata.currency || currency;
-                    flowData.metadata.unit = flowData.metadata.unit || units;
-                    flowData.metadata.periodType = flowData.metadata.periodType || periodType;
+            // Try to get values from multiple sources, prioritizing chart instance data
+            let metadataSource = null;
+            
+            // First check chart instance data (most reliable)
+            if (window.chartInstance && window.chartInstance.data && window.chartInstance.data.metadata) {
+                metadataSource = window.chartInstance.data.metadata;
+            }
+            // Fallback to global flowData
+            else if (typeof flowData !== 'undefined' && flowData.metadata) {
+                metadataSource = flowData.metadata;
+            }
+            
+            // Apply values from metadata source
+            if (metadataSource) {
+                
+                companyName = metadataSource.company || companyName;
+                period = metadataSource.period || period;
+                currency = metadataSource.currency || currency;
+                units = metadataSource.unit || units;
+                periodType = metadataSource.periodType || periodType;
+                statementType = metadataSource.statementType || statementType;
+                
+            }
+            
+            // Ensure both flowData and chart instance have metadata initialized
+            if (typeof flowData !== 'undefined') {
+                if (!flowData.metadata) {
+                    flowData.metadata = {};
+                }
+            }
+            if (window.chartInstance && window.chartInstance.data) {
+                if (!window.chartInstance.data.metadata) {
+                    window.chartInstance.data.metadata = {};
                 }
             }
             
-            // Also check for chart-specific metadata as additional fallback
-            const app = window.pulseApp;
-            if (app && app.chart && app.chart.data && app.chart.data.metadata) {
-                const chartMeta = app.chart.data.metadata;
-                currency = chartMeta.currency || currency;
-                units = chartMeta.unit || chartMeta.units || units;
-                companyName = chartMeta.company || companyName;
-                period = chartMeta.period || period;
-                periodType = chartMeta.periodType || periodType;
-            }
+            // Skip additional chart metadata parsing to avoid conflicts
             
-            if (chartTitle && chartTitle.textContent) {
-                const titleText = chartTitle.textContent.trim();
-                // Try to parse existing title: "Company Period Statement Type"
-                if (titleText.includes('Income Statement')) {
-                    statementType = 'Income Statement';
-                    const parts = titleText.replace(' Income Statement', '').trim().split(' ');
-                    if (parts.length >= 2) {
-                        period = parts.pop(); // Last part is period
-                        companyName = parts.join(' '); // Rest is company name
-                    }
-                } else if (titleText.includes('Balance Sheet')) {
-                    statementType = 'Balance Sheet';
-                    const parts = titleText.replace(' Balance Sheet', '').trim().split(' ');
-                    if (parts.length >= 2) {
-                        period = parts.pop();
-                        companyName = parts.join(' ');
-                    }
-                }
-            }
+            // Skip title text parsing to avoid overriding saved metadata
             
             // Get current title styling
             let titleFontSize = 40;
@@ -5916,8 +5845,13 @@
             // Use setTimeout to ensure modal is rendered before setting values
             setTimeout(() => {
                 
-                if (modalCompanyName) modalCompanyName.value = companyName;
-                if (modalPeriod) modalPeriod.value = period;
+                
+                if (modalCompanyName) {
+                    modalCompanyName.value = companyName;
+                }
+                if (modalPeriod) {
+                    modalPeriod.value = period;
+                }
                 if (modalCurrency) {
                     // Normalize currency values to match dropdown options
                     const currencyMap = {
@@ -5929,7 +5863,9 @@
                     const normalizedCurrency = currencyMap[currency] || currency;
                     modalCurrency.value = normalizedCurrency;
                 }
-                if (modalStatementType) modalStatementType.value = statementType;
+                if (modalStatementType) {
+                    modalStatementType.value = statementType;
+                }
                 if (modalUnits) {
                     // Normalize units values to match dropdown options
                     const unitsMap = {
@@ -5941,7 +5877,9 @@
                     const normalizedUnits = unitsMap[units.toLowerCase()] || units;
                     modalUnits.value = normalizedUnits;
                 }
-                if (modalPeriodType) modalPeriodType.value = periodType;
+                if (modalPeriodType) {
+                    modalPeriodType.value = periodType;
+                }
                 if (modalTitleFontSize) {
                     modalTitleFontSize.value = titleFontSize;
                     if (modalTitleFontSizeValue) modalTitleFontSizeValue.textContent = titleFontSize + 'px';
@@ -6043,12 +5981,31 @@
             const titleColor = document.getElementById('modal-title-color')?.value || '#1f2937';
             
             // Update global metadata with all values
-            if (typeof flowData !== 'undefined' && flowData.metadata) {
+            if (typeof flowData !== 'undefined') {
+                if (!flowData.metadata) {
+                    flowData.metadata = {};
+                }
                 flowData.metadata.company = companyName;
                 flowData.metadata.period = period;
                 flowData.metadata.currency = currency;
                 flowData.metadata.unit = units;
                 flowData.metadata.periodType = periodType;
+                flowData.metadata.statementType = statementType;
+            }
+            
+            // CRITICAL: Also update the chart instance's internal data
+            const chart = window.chartInstance || window.pulseApp?.chart;
+            if (chart && chart.data) {
+                if (!chart.data.metadata) {
+                    chart.data.metadata = {};
+                }
+                chart.data.metadata.company = companyName;
+                chart.data.metadata.period = period;
+                chart.data.metadata.currency = currency;
+                chart.data.metadata.unit = units;
+                chart.data.metadata.periodType = periodType;
+                chart.data.metadata.statementType = statementType;
+                
             }
             
             // Create new title
@@ -6069,12 +6026,16 @@
                 chartTitle.setAttribute('data-editable', 'true');
                 chartTitle.style.cursor = 'pointer';
                 
-                console.log('Chart title updated to:', newTitle);
-                console.log('Title styling updated:', { fontSize: titleFontSize + 'px', color: titleColor });
-                console.log('Metadata updated:', { companyName, period, currency, units, periodType });
             }
             
-            // No chart re-render needed - all changes are applied live!
+            // Force regeneration of processed data with new periodType (like units switching)
+            const chartInstance = window.chartInstance || window.pulseApp?.chart;
+            if (chartInstance && flowData) {
+                // Regenerate the processed data structure to pick up new periodType
+                const freshData = generateNodesAndLinksFromFlows();
+                chartInstance.render(freshData);
+            }
+            
             // Just ensure title remains editable
             setTimeout(() => {
                 makeChartTitleEditable();
@@ -6118,7 +6079,6 @@
                 (e.target.tagName === 'text' || e.target.tagName === 'TEXT') &&
                 e.target.hasAttribute('data-editable')) {
                 e.stopPropagation();
-                console.log('🎯 Chart title clicked:', e.target.textContent);
                 openTitleEditModal();
             }
         });
