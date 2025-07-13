@@ -7,6 +7,10 @@ class ChartLibrary {
         this.savedCharts = this.loadSavedCharts();
         this.isLibraryOpen = false;
         
+        // Track current chart for Quick Save functionality
+        this.currentChartId = null;
+        this.hasUnsavedChanges = false;
+        
         this.init();
     }
 
@@ -15,10 +19,10 @@ class ChartLibrary {
         this.createLibrarySidebar();
         this.addSaveButton();
         this.setupEventListeners();
-        
+        // Dual save functionality initialized
     }
 
-    // Save functionality
+    // Save functionality (Save As - creates new chart)
     saveChart(name, data, config, chartType) {
         const chart = {
             id: this.generateId(),
@@ -34,8 +38,48 @@ class ChartLibrary {
         this.saveSavedCharts();
         this.refreshLibraryUI();
         
+        // Set as current chart after saving
+        this.currentChartId = chart.id;
+        this.hasUnsavedChanges = false;
+        
         console.log(`💾 Chart "${chart.name}" saved successfully`);
         return chart;
+    }
+
+    // Quick Save functionality - saves to existing chart without prompts
+    quickSaveChart() {
+        const currentChart = this.getCurrentChartData();
+        if (!currentChart) {
+            this.showNotification('No chart data available to save', 'error');
+            return false;
+        }
+
+        if (!this.currentChartId) {
+            // No current chart - open Save As modal instead
+            this.openSaveModal();
+            return false;
+        }
+
+        // Find existing chart and update it
+        const existingChart = this.savedCharts.find(c => c.id === this.currentChartId);
+        if (!existingChart) {
+            // Current chart ID not found - treat as Save As
+            this.openSaveModal();
+            return false;
+        }
+
+        // Update existing chart
+        existingChart.data = JSON.parse(JSON.stringify(currentChart.data));
+        existingChart.config = JSON.parse(JSON.stringify(currentChart.config));
+        existingChart.updatedAt = new Date().toISOString();
+
+        this.saveSavedCharts();
+        this.refreshLibraryUI();
+        this.hasUnsavedChanges = false;
+        
+        console.log(`💾 Quick saved chart "${existingChart.name}"`);
+        this.showQuickSaveFeedback();
+        return true;
     }
 
     // Load functionality
@@ -47,6 +91,10 @@ class ChartLibrary {
         }
 
         console.log(`📖 Loading chart "${chart.name}"`);
+        
+        // Set as current chart for Quick Save
+        this.currentChartId = chartId;
+        this.hasUnsavedChanges = false;
         
         // Update chart in the application
         if (window.pulseApp) {
@@ -255,13 +303,13 @@ class ChartLibrary {
                         </svg>
                         New Chart
                     </button>
-                    <button class="btn btn-primary btn-block" id="save-chart-btn-footer">
+                    <button class="btn btn-primary btn-block" id="save-as-btn-footer">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                             <polyline points="17,21 17,13 7,13 7,21"/>
                             <polyline points="7,3 7,8 15,8"/>
                         </svg>
-                        Save Current Chart
+                        Save as New Chart
                     </button>
                 </div>
             </div>
@@ -281,10 +329,13 @@ class ChartLibrary {
             const saveButtonContainer = document.createElement('div');
             saveButtonContainer.className = 'chart-library-controls';
             saveButtonContainer.innerHTML = `
-                <button class="btn btn-success" id="save-chart-btn" title="Save current chart">
-                    💾 Save Chart
+                <button class="btn btn-primary" id="quick-save-btn" title="Save (Ctrl+S)" style="margin-right: 4px;">
+                    💾 Save
                 </button>
-                <button class="btn btn-info" id="open-library-btn" title="Open chart library">
+                <button class="btn btn-success" id="save-as-btn" title="Save as new chart">
+                    💾 Save As
+                </button>
+                <button class="btn btn-info" id="open-library-btn" title="Open chart library" style="margin-left: 8px;">
                     📚 Library
                 </button>
             `;
@@ -308,10 +359,13 @@ class ChartLibrary {
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'chart-library-header-buttons';
             buttonContainer.innerHTML = `
-                <button class="btn btn-success header-btn" id="save-chart-btn" title="Save current chart">
+                <button class="btn btn-primary header-btn" id="quick-save-btn" title="Save (Ctrl+S)" style="margin-right: 4px;">
                     💾
                 </button>
-                <button class="btn btn-info header-btn" id="open-library-btn" title="Open chart library">
+                <button class="btn btn-success header-btn" id="save-as-btn" title="Save as new chart">
+                    💾+
+                </button>
+                <button class="btn btn-info header-btn" id="open-library-btn" title="Open chart library" style="margin-left: 4px;">
                     📚
                 </button>
             `;
@@ -321,8 +375,11 @@ class ChartLibrary {
             const floatingContainer = document.createElement('div');
             floatingContainer.className = 'chart-library-floating';
             floatingContainer.innerHTML = `
-                <button class="btn btn-success floating-btn" id="save-chart-btn" title="Save current chart">
+                <button class="btn btn-primary floating-btn" id="quick-save-btn" title="Save (Ctrl+S)" style="margin-bottom: 4px;">
                     💾
+                </button>
+                <button class="btn btn-success floating-btn" id="save-as-btn" title="Save as new chart" style="margin-bottom: 8px;">
+                    💾+
                 </button>
                 <button class="btn btn-info floating-btn" id="open-library-btn" title="Open chart library">
                     📚
@@ -340,9 +397,15 @@ class ChartLibrary {
 
     // Setup event listeners
     setupEventListeners() {
-        // Save button
+        // Save buttons
         document.addEventListener('click', (e) => {
-            if (e.target.id === 'save-chart-btn') {
+            // Quick Save button (Ctrl+S equivalent)
+            if (e.target.id === 'quick-save-btn') {
+                this.quickSaveChart();
+            }
+            
+            // Save As button (former save behavior)
+            if (e.target.id === 'save-as-btn') {
                 this.openSaveModal();
             }
             
@@ -365,8 +428,8 @@ class ChartLibrary {
                 this.closeLibrary();
             }
             
-            // Save chart button in footer
-            if (e.target.id === 'save-chart-btn-footer' || e.target.id === 'save-first-chart') {
+            // Save As button in footer
+            if (e.target.id === 'save-as-btn-footer' || e.target.id === 'save-first-chart') {
                 this.openSaveModal();
             }
             
@@ -457,10 +520,17 @@ class ChartLibrary {
             }
         });
 
-        // Save modal Enter key
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // Save modal Enter key
             if (e.key === 'Enter' && document.getElementById('chart-save-modal').style.display !== 'none') {
                 this.handleSaveConfirm();
+            }
+            
+            // Ctrl+S for Quick Save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                this.quickSaveChart();
             }
             
             if (e.key === 'Escape') {
@@ -1062,6 +1132,52 @@ class ChartLibrary {
         notification.querySelector('.notification-close').addEventListener('click', () => {
             notification.remove();
         });
+    }
+
+    // Quick Save visual feedback
+    showQuickSaveFeedback() {
+        // Create temporary feedback element
+        const feedback = document.createElement('div');
+        feedback.id = 'quick-save-feedback';
+        feedback.innerHTML = '✓ Saved';
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            z-index: 10000;
+            animation: quickSaveFade 2s ease-in-out forwards;
+        `;
+
+        // Add CSS animation if not already present
+        if (!document.getElementById('quick-save-styles')) {
+            const style = document.createElement('style');
+            style.id = 'quick-save-styles';
+            style.textContent = `
+                @keyframes quickSaveFade {
+                    0% { opacity: 0; transform: translateY(-10px); }
+                    15% { opacity: 1; transform: translateY(0); }
+                    85% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-10px); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(feedback);
+
+        // Remove after animation
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 2000);
     }
 
     // Public API

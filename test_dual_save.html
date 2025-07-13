@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dual Save Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .button-container { margin: 20px 0; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Dual Save Functionality Test</h1>
+        
+        <div id="test-results"></div>
+        
+        <h2>Test Scenario</h2>
+        <p>This test simulates the dual save functionality:</p>
+        <ul>
+            <li><strong>Quick Save (Save)</strong> - Updates existing chart without prompts</li>
+            <li><strong>Save As</strong> - Creates new chart with name prompt</li>
+            <li><strong>Ctrl+S</strong> - Keyboard shortcut for Quick Save</li>
+        </ul>
+
+        <div class="button-container">
+            <!-- These buttons simulate the new dual save interface -->
+            <button class="btn btn-primary" id="quick-save-btn" title="Save (Ctrl+S)">
+                💾 Save
+            </button>
+            <button class="btn btn-success" id="save-as-btn" title="Save as new chart">
+                💾 Save As
+            </button>
+            <button class="btn btn-info" id="open-library-btn" title="Open chart library">
+                📚 Library
+            </button>
+        </div>
+
+        <h3>Test Instructions</h3>
+        <ol>
+            <li>Click "Save As" to create your first chart (will prompt for name)</li>
+            <li>Click "Save" to update the existing chart (no prompt)</li>
+            <li>Press Ctrl+S to test keyboard shortcut</li>
+            <li>Click "Save As" again to create a new copy</li>
+        </ol>
+
+        <div id="feedback-area"></div>
+    </div>
+
+    <script>
+        // Simulate the dual save functionality for testing
+        let currentChartId = null;
+        let chartCounter = 0;
+        const savedCharts = [];
+
+        function quickSave() {
+            if (!currentChartId) {
+                // No current chart - redirect to Save As
+                showResult('No current chart. Opening Save As dialog...', 'error');
+                saveAs();
+                return;
+            }
+
+            // Update existing chart
+            const chart = savedCharts.find(c => c.id === currentChartId);
+            if (chart) {
+                chart.updatedAt = new Date().toISOString();
+                showResult(`✓ Quick saved "${chart.name}" successfully!`, 'success');
+                showQuickSaveFeedback();
+            } else {
+                showResult('Chart not found. Opening Save As dialog...', 'error');
+                saveAs();
+            }
+        }
+
+        function saveAs() {
+            const name = prompt('Enter chart name:');
+            if (!name) return;
+
+            chartCounter++;
+            const newChart = {
+                id: `chart_${chartCounter}`,
+                name: name,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            savedCharts.push(newChart);
+            currentChartId = newChart.id;
+            
+            showResult(`📊 Created new chart "${name}" successfully!`, 'success');
+        }
+
+        function showResult(message, type) {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => div.remove(), 5000);
+        }
+
+        function showQuickSaveFeedback() {
+            const feedback = document.createElement('div');
+            feedback.innerHTML = '✓ Saved';
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                z-index: 10000;
+                animation: quickSaveFade 2s ease-in-out forwards;
+            `;
+
+            // Add CSS animation
+            if (!document.getElementById('quick-save-styles')) {
+                const style = document.createElement('style');
+                style.id = 'quick-save-styles';
+                style.textContent = `
+                    @keyframes quickSaveFade {
+                        0% { opacity: 0; transform: translateY(-10px); }
+                        15% { opacity: 1; transform: translateY(0); }
+                        85% { opacity: 1; transform: translateY(0); }
+                        100% { opacity: 0; transform: translateY(-10px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 2000);
+        }
+
+        // Event listeners
+        document.getElementById('quick-save-btn').addEventListener('click', quickSave);
+        document.getElementById('save-as-btn').addEventListener('click', saveAs);
+        document.getElementById('open-library-btn').addEventListener('click', () => {
+            showResult(`Library contains ${savedCharts.length} chart(s)`, 'success');
+        });
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                quickSave();
+                showResult('Triggered Quick Save via Ctrl+S', 'success');
+            }
+        });
+
+        // Initial message
+        showResult('Test environment ready. Try the buttons above!', 'success');
+    </script>
+</body>
+</html>
