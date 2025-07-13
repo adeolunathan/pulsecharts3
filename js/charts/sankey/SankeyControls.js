@@ -1546,20 +1546,13 @@ class SankeyControlModule {
                 return;
             }
             
-            // Apply assignments to nodes
+            // Apply assignments to nodes using the proper method to trigger automatic link coloring
             affectedNodes.forEach(node => {
                 const nodeKey = node.id || node.name;
-                this.chart.categoryManager.nodeCategories.set(nodeKey, category);
+                this.chart.assignNodeToCategory(nodeKey, category);
             });
             
             console.log(`✅ Assigned ${affectedNodes.length} nodes to category: ${category}`);
-            
-            // Update just node colors without full re-render to preserve user changes
-            if (this.chart.rerenderWithNewColors) {
-                this.chart.rerenderWithNewColors();
-            } else if (this.chart.updateConfig) {
-                this.chart.updateConfig({ updateColors: true });
-            }
             
             modal.remove();
         };
