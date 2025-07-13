@@ -400,13 +400,29 @@ class ChartLibrary {
                 e.stopPropagation();
                 
                 const menuButton = e.target.classList.contains('more-actions-btn') ? e.target : e.target.closest('.more-actions-btn');
-                const chartId = menuButton.dataset.chartId;
+                let chartId = menuButton?.dataset?.chartId;
+                
+                // If no chartId on button, try to get from SVG or child elements
+                if (!chartId && menuButton) {
+                    const svgElement = menuButton.querySelector('svg');
+                    if (svgElement) {
+                        chartId = svgElement.dataset.chartId;
+                    }
+                }
+                
+                // Fallback: get from any child element with data-chart-id
+                if (!chartId && menuButton) {
+                    const elementWithId = menuButton.querySelector('[data-chart-id]');
+                    if (elementWithId) {
+                        chartId = elementWithId.dataset.chartId;
+                    }
+                }
                 
                 if (chartId) {
                     console.log('Menu button clicked for chart:', chartId);
                     this.toggleActionsMenu(chartId);
                 } else {
-                    console.error('No chart ID found on menu button');
+                    console.error('No chart ID found on menu button or its children');
                 }
             }
             
@@ -587,10 +603,10 @@ class ChartLibrary {
                         Load
                     </button>
                     <button class="btn btn-ghost btn-sm more-actions-btn" data-chart-id="${chart.id}" title="More actions">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-chart-id="${chart.id}">
-                            <circle cx="12" cy="12" r="1" data-chart-id="${chart.id}"/>
-                            <circle cx="19" cy="12" r="1" data-chart-id="${chart.id}"/>
-                            <circle cx="5" cy="12" r="1" data-chart-id="${chart.id}"/>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="19" cy="12" r="1"/>
+                            <circle cx="5" cy="12" r="1"/>
                         </svg>
                     </button>
                 </div>
@@ -866,23 +882,109 @@ class ChartLibrary {
     toggleActionsMenu(chartId) {
         console.log('Toggling menu for chart:', chartId);
         
-        // Close all other menus first
-        this.closeAllMenus();
-        
         const menu = document.getElementById(`actions-menu-${chartId}`);
         if (menu) {
             const isVisible = menu.style.display === 'block';
-            menu.style.display = isVisible ? 'none' : 'block';
-            console.log('Menu visibility changed to:', menu.style.display);
+            
+            // Close all other menus first
+            this.closeAllMenus();
+            
+            // If this menu was not visible, show it
+            if (!isVisible) {
+                // Move menu to body to escape overflow hidden containers
+                if (menu.parentElement !== document.body) {
+                    document.body.appendChild(menu);
+                }
+                
+                // Position the menu correctly
+                this.positionMenu(menu, chartId);
+                
+                menu.style.display = 'block';
+                menu.style.opacity = '1';
+                menu.style.visibility = 'visible';
+                menu.style.pointerEvents = 'auto';
+                
+                // Add menu-open class to parent chart-actions for visibility
+                const chartActions = menu.closest('.chart-actions');
+                if (chartActions) {
+                    chartActions.classList.add('menu-open');
+                }
+                console.log('Menu visibility changed to: block');
+            } else {
+                console.log('Menu was visible, now closed by closeAllMenus()');
+            }
         } else {
             console.error('Menu not found for chart:', chartId);
         }
+    }
+
+    positionMenu(menu, chartId) {
+        // Find the menu button for this chart
+        const menuButton = document.querySelector(`.more-actions-btn[data-chart-id="${chartId}"]`);
+        if (!menuButton) {
+            console.error('Menu button not found for positioning');
+            return;
+        }
+        
+        // Get button position and viewport dimensions
+        const buttonRect = menuButton.getBoundingClientRect();
+        const menuWidth = 180; // min-width from CSS
+        const menuHeight = 300; // estimated height
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const padding = 10; // padding from viewport edges
+        
+        // Calculate initial position (below and to the left of button)
+        let top = buttonRect.bottom + 8;
+        let left = buttonRect.left - menuWidth + buttonRect.width;
+        
+        // Adjust if menu would go off right edge of screen
+        if (left + menuWidth > viewportWidth - padding) {
+            left = buttonRect.left - menuWidth - 8; // Show to the left of button instead
+        }
+        
+        // Adjust if menu would go off left edge of screen
+        if (left < padding) {
+            left = padding;
+        }
+        
+        // Adjust if menu would go off bottom of screen
+        if (top + menuHeight > viewportHeight - padding) {
+            top = buttonRect.top - menuHeight - 8; // Show above button instead
+        }
+        
+        // Adjust if menu would go off top of screen
+        if (top < padding) {
+            top = padding;
+        }
+        
+        // Apply position
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+        menu.style.right = 'auto';
+        
+        console.log('Positioning menu near button:', {
+            buttonRect,
+            menuPosition: { top, left },
+            viewport: { width: viewportWidth, height: viewportHeight }
+        });
     }
 
     closeAllMenus() {
         const menus = document.querySelectorAll('.chart-actions-menu');
         menus.forEach(menu => {
             menu.style.display = 'none';
+            menu.style.opacity = '';
+            menu.style.visibility = '';
+            menu.style.pointerEvents = '';
+            menu.style.top = '';
+            menu.style.left = '';
+            menu.style.right = '';
+            // Remove menu-open class from parent chart-actions
+            const chartActions = menu.closest('.chart-actions');
+            if (chartActions) {
+                chartActions.classList.remove('menu-open');
+            }
         });
     }
 
