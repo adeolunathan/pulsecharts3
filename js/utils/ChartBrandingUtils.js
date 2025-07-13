@@ -12,12 +12,9 @@
     'use strict';
 
     /**
-     * Render chart title
+     * Render chart title using ChartTitleManager
      */
     function renderTitle() {
-        const headerGroup = this.svg.append('g')
-            .attr('class', 'chart-header');
-
         const company = this.data?.metadata?.company || 'Company';
         const period = this.data?.metadata?.period || 'Period';
         
@@ -25,21 +22,37 @@
         const statementLabel = this.statementType === 'balance' ? 'Balance Sheet' : 'Income Statement';
         const titleText = `${company} ${period} ${statementLabel}`;
 
-        headerGroup.append('text')
-            .attr('class', 'main-chart-title')
-            .attr('x', this.config.width / 2)
-            .attr('y', 60)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', (this.config.titleSize || 40) + 'px')
-            .attr('font-weight', '1000')
-            .attr('font-family', this.getFontFamily ? this.getFontFamily() : 'Inter, sans-serif')
-            .attr('fill', this.config.titleColor)
-            .attr('letter-spacing', '0.5px')
-            .attr('data-editable', 'true')
-            .style('cursor', 'pointer')
-            .style('transition', 'fill 0.2s ease')
-            .text(titleText);
+        // Use ChartTitleManager for consistent title creation
+        if (window.ChartTitleManager) {
+            window.ChartTitleManager.createTitle(this, titleText, {
+                y: 60,
+                fontSize: this.config.titleSize || 40,
+                fontWeight: '1000',
+                fontFamily: this.config.titleFont,
+                color: this.config.titleColor,
+                letterSpacing: '0.5px'
+            });
+        } else {
+            console.warn('ChartBrandingUtils: ChartTitleManager not available, using fallback');
+            // Fallback to original implementation
+            const headerGroup = this.svg.append('g')
+                .attr('class', 'chart-header');
 
+            headerGroup.append('text')
+                .attr('class', 'main-chart-title')
+                .attr('x', this.config.width / 2)
+                .attr('y', 60)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', (this.config.titleSize || 40) + 'px')
+                .attr('font-weight', '1000')
+                .attr('font-family', this.getFontFamily ? this.getFontFamily() : 'Inter, sans-serif')
+                .attr('fill', this.config.titleColor)
+                .attr('letter-spacing', '0.5px')
+                .attr('data-editable', 'true')
+                .style('cursor', 'pointer')
+                .style('transition', 'fill 0.2s ease')
+                .text(titleText);
+        }
     }
 
     /**
@@ -408,45 +421,48 @@
     }
 
     /**
-     * Update title font
+     * Update title font using ChartTitleManager
      */
     function updateTitleFont(fontFamily) {
-        this.config.titleFont = fontFamily;
-        if (this.svg) {
-            const fontStack = this.getFontFamily ? this.getFontFamily() : fontFamily;
-            
-            // Update only the chart title element
-            const titleElements = this.svg.selectAll('.main-chart-title');
-            titleElements.style('font-family', fontStack);
-            
-            console.log(`🔤 Title font updated to ${fontFamily}`);
+        if (window.ChartTitleManager) {
+            window.ChartTitleManager.updateFont(this, fontFamily);
+        } else {
+            // Fallback for compatibility
+            this.config.titleFont = fontFamily;
+            if (this.svg) {
+                const fontStack = this.getFontFamily ? this.getFontFamily() : fontFamily;
+                this.svg.selectAll('.main-chart-title').style('font-family', fontStack);
+            }
         }
     }
 
     /**
-     * Update title color
+     * Update title color using ChartTitleManager
      */
     function updateTitleColor(color) {
-        this.config.titleColor = color;
-        if (this.svg) {
-            // Update only the chart title element
-            this.svg.selectAll('.main-chart-title')
-                .style('fill', color);
+        if (window.ChartTitleManager) {
+            window.ChartTitleManager.updateColor(this, color);
+        } else {
+            // Fallback for compatibility
+            this.config.titleColor = color;
+            if (this.svg) {
+                this.svg.selectAll('.main-chart-title').style('fill', color);
+            }
         }
-        console.log(`🎨 Title color updated to ${color}`);
     }
 
     /**
-     * Update title size
+     * Update title size using ChartTitleManager
      */
     function updateTitleSize(size) {
-        this.config.titleSize = size;
-        if (this.svg) {
-            // Update only the chart title element
-            const titleElements = this.svg.selectAll('.main-chart-title');
-            titleElements.style('font-size', size + 'px');
-            
-            console.log(`🔤 Title size updated to ${size}px`);
+        if (window.ChartTitleManager) {
+            window.ChartTitleManager.updateSize(this, size);
+        } else {
+            // Fallback for compatibility
+            this.config.titleSize = size;
+            if (this.svg) {
+                this.svg.selectAll('.main-chart-title').style('font-size', size + 'px');
+            }
         }
     }
 

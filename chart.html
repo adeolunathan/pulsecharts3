@@ -27,7 +27,7 @@
     <script src="js/utils/GlobalChartConfig.js"></script>
     <!-- Load IIFE utilities early for centralized solutions -->
     <script src="js/utils/RobustNumberParser.js"></script>
-    <script src="js/utils/TitleControlIsolation.js"></script>
+    <script src="js/utils/ChartTitleManager.js"></script>
     <!-- Load ChartZoom early to ensure availability -->
     <script src="js/utils/ChartZoom.js"></script>
     <!-- Load ChartColorPicker early to ensure availability -->
@@ -2550,7 +2550,7 @@
 
         function updateMetadata() {
             // Form fields removed - metadata now extracted from chart title
-            const chartTitle = findChartTitle();
+            const chartTitle = window.ChartTitleManager ? window.ChartTitleManager.findTitleElement() : null;
             if (chartTitle && chartTitle.textContent) {
                 const titleText = chartTitle.textContent.trim();
                 if (titleText.includes('Income Statement')) {
@@ -4638,15 +4638,10 @@
                 debouncedRealTimeUpdate();
                 
                 // Ensure title control isolation after paste operations
-                if (window.TitleControlIsolation) {
-                    setTimeout(() => {
-                        const chart = window.pulseApp?.currentChart || window.currentChart;
-                        if (chart) {
-                            window.TitleControlIsolation.ensureTitleIsolation(chart);
-                            console.log('📝 Title isolation ensured after bulk paste operation');
-                        }
-                    }, 600); // Longer delay for bulk operations
-                }
+                // Title isolation handled by ChartTitleManager - no explicit isolation needed
+                setTimeout(() => {
+                    console.log('📝 Title management ensured after bulk paste operation');
+                }, 600); // Longer delay for bulk operations
                 
                 // Additional debug: log table state
                 
@@ -5555,7 +5550,12 @@
 
         // Chart Title Editing Functions with Modal
         function findChartTitle() {
-            // FIXED: Only target elements with the correct class, no text content matching
+            // Use ChartTitleManager if available, otherwise fallback to legacy method
+            if (window.ChartTitleManager) {
+                return window.ChartTitleManager.findTitleElement();
+            }
+            
+            // Legacy fallback
             const titleSelectors = [
                 '#main-chart .main-chart-title',  // Primary: correct class
                 '#main-chart text.chart-title',   // Secondary: legacy class
@@ -5597,8 +5597,8 @@
             titleElements.forEach((textElement, index) => {
                 const text = textElement.textContent || '';
                 
-                // Use the isolation system instead of direct manipulation
-                if (window.TitleControlIsolation) {
+                // Use ChartTitleManager instead of direct manipulation
+                if (window.ChartTitleManager) {
                     // Let the isolation system handle all title styling
                     
                     // Restore custom title text if it exists
@@ -5798,7 +5798,7 @@
 
         function openTitleEditModal() {
             // Parse current chart title to get existing values
-            const chartTitle = findChartTitle();
+            const chartTitle = window.ChartTitleManager ? window.ChartTitleManager.findTitleElement() : null;
             let companyName = 'TechFlow SaaS Corp';
             let period = 'Q3 2025';
             let currency = 'USD ($)';
@@ -5862,7 +5862,7 @@
             // Get current title styling
             let titleFontSize = 40;
             let titleColor = '#1f2937';
-            const currentTitle = findChartTitle();
+            const currentTitle = window.ChartTitleManager ? window.ChartTitleManager.findTitleElement() : null;
             if (currentTitle) {
                 const computedStyle = window.getComputedStyle(currentTitle);
                 titleFontSize = parseInt(computedStyle.fontSize) || 40;
@@ -5955,11 +5955,11 @@
                     const newSize = this.value + 'px';
                     modalTitleFontSizeValue.textContent = newSize;
                     
-                    // Live preview using isolation system
-                    if (window.TitleControlIsolation) {
+                    // Live preview using ChartTitleManager
+                    if (window.ChartTitleManager) {
                         const chart = window.pulseApp?.chart || window.pulseApp?.currentChart || window.currentChart;
                         if (chart) {
-                            window.TitleControlIsolation.applyTitleSize(chart, parseInt(this.value));
+                            window.ChartTitleManager.updateSize(chart, parseInt(this.value));
                         } else {
                             console.warn('⚠️ No chart instance found for title size update');
                         }
@@ -5979,11 +5979,11 @@
                 modalTitleColor.addEventListener('input', function() {
                     const newColor = this.value;
                     
-                    // Live preview using isolation system
-                    if (window.TitleControlIsolation) {
+                    // Live preview using ChartTitleManager
+                    if (window.ChartTitleManager) {
                         const chart = window.pulseApp?.chart || window.pulseApp?.currentChart || window.currentChart;
                         if (chart) {
-                            window.TitleControlIsolation.applyTitleColor(chart, newColor);
+                            window.ChartTitleManager.updateColor(chart, newColor);
                         } else {
                             console.warn('⚠️ No chart instance found for title color update');
                         }
@@ -6055,7 +6055,7 @@
             const newTitle = `${companyName} ${period} ${statementType}`;
             
             // Update chart title (styling already applied via live preview)
-            const chartTitle = findChartTitle();
+            const chartTitle = window.ChartTitleManager ? window.ChartTitleManager.findTitleElement() : null;
             if (chartTitle) {
                 // Store the title and styling for persistence
                 window.customChartTitle = newTitle;
@@ -6091,7 +6091,7 @@
         function cancelTitleEdit() {
             // Restore original title values if they exist
             if (window.originalTitleValues) {
-                const chartTitle = findChartTitle();
+                const chartTitle = window.ChartTitleManager ? window.ChartTitleManager.findTitleElement() : null;
                 if (chartTitle) {
                     chartTitle.textContent = window.originalTitleValues.text;
                     chartTitle.style.fontSize = window.originalTitleValues.fontSize + 'px';

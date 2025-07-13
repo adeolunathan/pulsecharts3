@@ -596,7 +596,7 @@ class SankeyControlModule {
      * ENHANCED: Control change handler with balance sheet group awareness
      */
     handleControlChange(controlId, value, chart) {
-        console.log(`🎛️ Sankey control change: ${controlId} = ${value}`);
+        // Title control changes handled with ChartTitleManager
 
         // Handle backgroundColor specially
         if (controlId === 'backgroundColor') {
@@ -604,30 +604,30 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle titleFont specially - use isolation system
+        // Handle titleFont specially - use ChartTitleManager
         if (controlId === 'titleFont') {
-            if (window.TitleControlIsolation) {
-                window.TitleControlIsolation.applyTitleFont(chart, value);
+            if (window.ChartTitleManager) {
+                window.ChartTitleManager.updateFont(chart, value);
             } else {
                 chart.updateConfig({ titleFont: value });
             }
             return;
         }
 
-        // Handle titleSize specially - use isolation system
+        // Handle titleSize specially - use ChartTitleManager
         if (controlId === 'titleSize') {
-            if (window.TitleControlIsolation) {
-                window.TitleControlIsolation.applyTitleSize(chart, value);
+            if (window.ChartTitleManager) {
+                window.ChartTitleManager.updateSize(chart, value);
             } else {
                 chart.updateConfig({ titleSize: value });
             }
             return;
         }
 
-        // Handle titleColor specially - use isolation system
+        // Handle titleColor specially - use ChartTitleManager
         if (controlId === 'titleColor') {
-            if (window.TitleControlIsolation) {
-                window.TitleControlIsolation.applyTitleColor(chart, value);
+            if (window.ChartTitleManager) {
+                window.ChartTitleManager.updateColor(chart, value);
             } else {
                 chart.updateConfig({ titleColor: value });
             }

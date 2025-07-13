@@ -915,25 +915,40 @@ window.BarControlModule = (function() {
                     console.warn('⚠️ No chart data available for bar padding change');
                 }
             }
-            // Handle font changes - apply to all text elements
+            // Handle titleFont specially - use ChartTitleManager
             else if (controlId === 'titleFont') {
-                console.log(`🔤 Font family changed to: ${value}`);
-                if (chart.applyFontFamilyToAllText) {
-                    chart.applyFontFamilyToAllText();
+                // Font family handled by ChartTitleManager
+                if (window.ChartTitleManager) {
+                    window.ChartTitleManager.updateFont(chart, value);
                 } else {
-                    // Fallback to just title
+                    // Fallback to direct manipulation
                     chart.svg.selectAll('.main-chart-title').style('font-family', chart.getFontFamily());
                 }
+                
+                // Also apply to all text elements if chart supports it
+                if (chart.applyFontFamilyToAllText) {
+                    chart.applyFontFamilyToAllText();
+                }
             }
-            // Handle title color changes
+            // Handle titleColor specially - use ChartTitleManager
             else if (controlId === 'titleColor') {
-                chart.svg.selectAll('.main-chart-title').style('fill', value);
+                if (window.ChartTitleManager) {
+                    window.ChartTitleManager.updateColor(chart, value);
+                } else {
+                    // Fallback to direct manipulation
+                    chart.svg.selectAll('.main-chart-title').style('fill', value);
+                }
             }
-            // Handle title size changes
+            // Handle titleSize specially - use ChartTitleManager
             else if (controlId === 'titleSize') {
-                chart.svg.selectAll('.main-chart-title')
-                    .interrupt() // Stop any ongoing transitions
-                    .style('font-size', value + 'px');
+                if (window.ChartTitleManager) {
+                    window.ChartTitleManager.updateSize(chart, value);
+                } else {
+                    // Fallback to direct manipulation
+                    chart.svg.selectAll('.main-chart-title')
+                        .interrupt() // Stop any ongoing transitions
+                        .style('font-size', value + 'px');
+                }
             }
             // Handle opacity changes
             else if (controlId === 'barOpacity') {
