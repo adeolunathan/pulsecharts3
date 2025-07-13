@@ -182,15 +182,18 @@ class PulseControlPanel {
             .attr('class', `menu-control-section ${section.collapsed ? 'collapsed' : ''}`)
             .attr('data-section', sectionKey);
 
-        // Add section header (collapsible within dropdown)
-        const header = sectionDiv
-            .append('div')
-            .attr('class', 'menu-section-header')
-            .on('click', () => this.toggleMenuSection(sectionKey));
+        // Add section header (collapsible within dropdown) - only if title is not empty
+        let header = null;
+        if (section.title && section.title.trim() !== '') {
+            header = sectionDiv
+                .append('div')
+                .attr('class', 'menu-section-header')
+                .on('click', () => this.toggleMenuSection(sectionKey));
 
-        header.append('span').attr('class', 'section-icon').text(section.icon || '⚙️');
-        header.append('h4').attr('class', 'section-title').text(section.title);
-        header.append('span').attr('class', 'toggle-icon').text(section.collapsed ? '▶' : '▼');
+            header.append('span').attr('class', 'section-icon').text(section.icon || '⚙️');
+            header.append('h4').attr('class', 'section-title').text(section.title);
+            header.append('span').attr('class', 'toggle-icon').text(section.collapsed ? '▶' : '▼');
+        }
 
         const content = sectionDiv
             .append('div')
@@ -483,8 +486,11 @@ class PulseControlPanel {
             .attr('class', 'control-item')
             .style('margin-bottom', '2px');
 
-        const header = controlDiv.append('div').attr('class', 'control-header');
-        header.append('label').attr('class', 'control-label').text(config.label);
+        // Skip header/label for button controls since buttons are self-labeling
+        if (config.type !== 'button') {
+            const header = controlDiv.append('div').attr('class', 'control-header');
+            header.append('label').attr('class', 'control-label').text(config.label);
+        }
 
         // Route to appropriate control creator
         switch (config.type) {
