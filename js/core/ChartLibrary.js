@@ -299,18 +299,43 @@ class ChartLibrary {
 
     // Create floating buttons if no toolbar found
     createFloatingButtons() {
-        const floatingContainer = document.createElement('div');
-        floatingContainer.className = 'chart-library-floating';
-        floatingContainer.innerHTML = `
-            <button class="btn btn-success floating-btn" id="save-chart-btn" title="Save current chart">
-                💾
-            </button>
-            <button class="btn btn-info floating-btn" id="open-library-btn" title="Open chart library">
-                📚
-            </button>
-        `;
+        // Remove any existing floating buttons first
+        this.removeExistingFloatingButtons();
         
-        document.body.appendChild(floatingContainer);
+        // Try to add to header first
+        const headerControls = document.querySelector('.header-controls');
+        if (headerControls) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'chart-library-header-buttons';
+            buttonContainer.innerHTML = `
+                <button class="btn btn-success header-btn" id="save-chart-btn" title="Save current chart">
+                    💾
+                </button>
+                <button class="btn btn-info header-btn" id="open-library-btn" title="Open chart library">
+                    📚
+                </button>
+            `;
+            headerControls.appendChild(buttonContainer);
+        } else {
+            // Fallback: Create floating buttons
+            const floatingContainer = document.createElement('div');
+            floatingContainer.className = 'chart-library-floating';
+            floatingContainer.innerHTML = `
+                <button class="btn btn-success floating-btn" id="save-chart-btn" title="Save current chart">
+                    💾
+                </button>
+                <button class="btn btn-info floating-btn" id="open-library-btn" title="Open chart library">
+                    📚
+                </button>
+            `;
+            document.body.appendChild(floatingContainer);
+        }
+    }
+
+    // Remove existing floating buttons to prevent duplicates
+    removeExistingFloatingButtons() {
+        const existingContainers = document.querySelectorAll('.chart-library-floating, .chart-library-header-buttons');
+        existingContainers.forEach(container => container.remove());
     }
 
     // Setup event listeners

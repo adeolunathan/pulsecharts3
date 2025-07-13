@@ -184,56 +184,51 @@
                         </button>
                         <div class="menu-dropdown" id="data-dropdown">
                             <div id="data-controls" class="dropdown-content">
-                                <!-- Data Management Overview -->
-                                <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
-                                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">💰 Data Management</h4>
-                                    <p style="margin: 0; color: #64748b; font-size: 14px;">Manage your financial flow data and chart exports</p>
-                                </div>
 
                                 <!-- Flow Actions -->
                                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">🚀 Flow Actions</h4>
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">Flow Actions</h4>
                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            🚀 Apply
+                                        <button class="btn-small" onclick="applyFlowChanges()" style="background: #22c55e; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Apply
                                         </button>
-                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            ✅ Validate
+                                        <button class="btn-small" onclick="validateFlows()" style="background: #f59e0b; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Validate
                                         </button>
-                                        <button class="btn-small" onclick="resetToChartData()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            🔄 Reset
+                                        <button class="btn-small" onclick="resetToChartData()" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Reset
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Export Options -->
                                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📤 Export Options</h4>
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">Export Options</h4>
                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            💾 Export CSV
+                                        <button class="btn-small" onclick="exportFlowsToCSV()" style="background: #06b6d4; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Export CSV
                                         </button>
-                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            📋 Template
+                                        <button class="btn-small" onclick="downloadTemplate()" style="background: #8b5cf6; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Template
                                         </button>
-                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            📤 Upload
+                                        <button class="btn-small" onclick="importFlowsFromCSV()" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Upload
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Chart Export -->
                                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">📊 Chart Export</h4>
+                                    <h4 style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">Chart Export</h4>
                                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                        <button class="btn-small" onclick="exportCurrentChart('png')" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            🖼️ PNG
+                                        <button class="btn-small" onclick="exportCurrentChart('png')" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            PNG
                                         </button>
-                                        <button class="btn-small" onclick="exportCurrentChart('svg')" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            ⚡ SVG
+                                        <button class="btn-small" onclick="exportCurrentChart('svg')" style="background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            SVG
                                         </button>
-                                        <button class="btn-small" onclick="exportCurrentChart('csv')" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                            📄 Data CSV
+                                        <button class="btn-small" onclick="exportCurrentChart('csv')" style="background: #f59e0b; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                                            Data CSV
                                         </button>
                                     </div>
                                 </div>

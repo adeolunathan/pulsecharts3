@@ -239,7 +239,7 @@ body {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
     visibility: hidden;
     opacity: 0;
-    z-index: 9999999;
+    z-index: 999;
     /* Remove any margins that could cause positioning issues */
     margin: 0;
     /* Ensure no overflow issues */
@@ -479,15 +479,16 @@ body {
 /* Button styling */
 .dropdown-content .control-button,
 .dropdown-content .file-upload-button {
-    padding: 8px 16px;
+    padding: 6px 12px;
     background: #f3f4f6;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 4px;
+    font-size: 12px;
     font-weight: 500;
     color: #374151;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin-bottom: 6px;
 }
 
 .dropdown-content .control-button:hover,
@@ -498,9 +499,15 @@ body {
 
 /* Professional spacing for groups */
 .dropdown-content .control-group {
-    margin-bottom: 20px;
-    padding-bottom: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #f3f4f6;
+}
+
+/* Improved spacing for control sections */
+.menu-control-section {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
 }
 
 .dropdown-content .control-group:last-child {
@@ -962,9 +969,10 @@ body {
 
 /* Compact button styling */
 .dropdown-content .control-button {
-    padding: 4px 8px;
-    font-size: 15px;
+    padding: 6px 12px;
+    font-size: 12px;
     border-radius: 4px;
+    font-weight: 500;
 }
 
 /* Compact file upload */
