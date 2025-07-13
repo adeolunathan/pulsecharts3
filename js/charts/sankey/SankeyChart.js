@@ -2381,18 +2381,30 @@ class PulseSankeyChart {
             return;
         }
 
-        const linkGroups = this.chart.selectAll('.sankey-link')
-            .data(this.links)
-            .enter()
+        // Properly handle enter/update/exit pattern for links
+        const linkSelection = this.chart.selectAll('.sankey-link')
+            .data(this.links);
+
+        // Remove old links
+        linkSelection.exit().remove();
+
+        // Create new link groups
+        const linkGroups = linkSelection.enter()
             .append('g')
             .attr('class', 'sankey-link');
 
+        // Append paths to new groups
         linkGroups.append('path')
+            .style('cursor', 'pointer')
+            .style('transition', 'all 0.2s ease');
+
+        // Update all links (both new and existing)
+        const allLinkPaths = this.chart.selectAll('.sankey-link path');
+        
+        allLinkPaths
             .attr('d', d => d.path)
             .attr('fill', d => this.getLinkColor(d))
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getLinkOpacity(d) : this.config.linkOpacity)
-            .style('cursor', 'pointer')
-            .style('transition', 'all 0.2s ease')
             .on('mouseover', (event, d) => {
                 d3.select(event.currentTarget)
                     .attr('fill-opacity', Math.min(1.0, this.config.linkOpacity + 0.2));
@@ -3331,20 +3343,19 @@ class PulseSankeyChart {
      * Category-based link colors for income statements
      */
     getLinkColor_Income(link) {
-        // Check for user-created nodes with custom colors
-        // Links should inherit the color from the node they originate from
-        if (link.source.userCreated || link.source.customColor) {
-            const sourceColor = this.getNodeColor(link.source);
-            return ChartUtils.lightenColor(sourceColor, 15);
-        }
+        // Always use target node color for consistency
+        // Priority: target custom color > target category color
         
         if (link.target.userCreated || link.target.customColor) {
             const targetColor = this.getNodeColor(link.target);
             return ChartUtils.lightenColor(targetColor, 15);
         }
         
-        // Category-based links use TARGET color
-        const targetCategory = link.colorCategory || link.targetCategory || link.target.category;
+        // ALWAYS get the current category from the category manager (most up-to-date)
+        const currentTargetCategory = this.getCategoryForNode(link.target.id);
+        
+        // Use current category first, then fallback to link metadata, then node category
+        const targetCategory = currentTargetCategory || link.colorCategory || link.targetCategory || link.target.category;
         
         let effectiveCategory = targetCategory;
         if (targetCategory === 'tax') {
@@ -3356,15 +3367,15 @@ class PulseSankeyChart {
     }
 
     getLinkColor_Balance(link) {
-        // ENHANCED: Check for user-created nodes with custom colors first
-        if (link.source.userCreated || link.source.customColor) {
-            const sourceColor = this.getNodeColor(link.source);
-            return ChartUtils.hexToRgba(sourceColor, 0.65);
-        }
-        
+        // Always prioritize target node color for consistency
         if (link.target.userCreated || link.target.customColor) {
             const targetColor = this.getNodeColor(link.target);
             return ChartUtils.hexToRgba(targetColor, 0.65);
+        }
+        
+        if (link.source.userCreated || link.source.customColor) {
+            const sourceColor = this.getNodeColor(link.source);
+            return ChartUtils.hexToRgba(sourceColor, 0.65);
         }
         
         const sourceColorGroup = this.colorGroups.get(link.source.id);
@@ -3375,20 +3386,18 @@ class PulseSankeyChart {
         
         let baseColor = '#95a5a6';
         
-        if (isToTotalAssets) {
-            if (sourceColorGroup && sourceColorGroup.baseColor) {
-                baseColor = sourceColorGroup.baseColor;
-            }
-        } else if (isFromTotalAssets) {
-            if (targetColorGroup && targetColorGroup.baseColor) {
-                baseColor = targetColorGroup.baseColor;
-            }
-        } else {
-            if (targetColorGroup && targetColorGroup.baseColor) {
-                baseColor = targetColorGroup.baseColor;
-            } else if (sourceColorGroup && sourceColorGroup.baseColor) {
-                baseColor = sourceColorGroup.baseColor;
-            }
+        // Always prioritize target color group first
+        if (targetColorGroup && targetColorGroup.baseColor) {
+            baseColor = targetColorGroup.baseColor;
+        } else if (sourceColorGroup && sourceColorGroup.baseColor) {
+            baseColor = sourceColorGroup.baseColor;
+        }
+        
+        // Special handling for total assets flows
+        if (isToTotalAssets && sourceColorGroup && sourceColorGroup.baseColor) {
+            baseColor = sourceColorGroup.baseColor;
+        } else if (isFromTotalAssets && targetColorGroup && targetColorGroup.baseColor) {
+            baseColor = targetColorGroup.baseColor;
         }
         
         if (isFromTotalAssets || isToTotalAssets) {
@@ -3618,36 +3627,6 @@ class PulseSankeyChart {
     }
     
 
-    rerenderWithNewColors() {
-        if (!this.chart) return;
-        
-        // Update node colors
-        this.chart.selectAll('.sankey-node rect')
-            .transition()
-            .duration(300)
-            .attr('fill', d => this.statementType === 'balance' ? this.getHierarchicalColor(d.id) : this.getNodeColor(d))
-            .attr('fill-opacity', d => this.statementType === 'balance' ? this.getNodeOpacity(d) : this.config.nodeOpacity);
-        
-        // Update link colors
-        this.chart.selectAll('.sankey-link path')
-            .transition()
-            .duration(300)
-            .attr('fill', d => this.getLinkColor(d))
-            .attr('fill-opacity', d => this.statementType === 'balance' ? this.getLinkOpacity(d) : this.config.linkOpacity);
-        
-        // Re-render labels with new colors (immediate update)
-        this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
-        this.renderLabels();
-        
-        // Reapply texture effects if enabled
-        if (this.config.textureEnabled) {
-            // Use setTimeout to ensure color transitions complete first
-            setTimeout(() => {
-                this.applyTextureEffects();
-            }, 300);
-        }
-        
-    }
 
     // Tooltip methods
     showNodeTooltip(event, d) {
@@ -4869,8 +4848,9 @@ class PulseSankeyChart {
                     .attr('fill-opacity', newConfig.linkOpacity);
             }
             
-            // Handle font size changes
+            // Handle font size changes - direct update without re-rendering
             if (newConfig.globalFontSize !== undefined) {
+                // Update existing labels directly
                 this.chart.selectAll('.node-label')
                     .transition()
                     .duration(200)
@@ -4879,6 +4859,12 @@ class PulseSankeyChart {
                     .transition()
                     .duration(200)
                     .style('font-size', newConfig.globalFontSize + 'px');
+                    
+                // IMPORTANT: Also update the internal getFontSize method to return the new size
+                // so future label operations use the correct font size
+                if (this.config) {
+                    this.config.globalFontSize = newConfig.globalFontSize;
+                }
             }
             
             // Handle text distance changes (requires label repositioning)
@@ -4895,15 +4881,15 @@ class PulseSankeyChart {
             );
             if (colorChanges.length > 0) {
                 // Re-apply node colors
-                this.chart.selectAll('.sankey-node rect').each((d) => {
+                this.chart.selectAll('.sankey-node rect').each(function(d) {
                     const color = this.getNodeColor(d);
                     d3.select(this).attr('fill', color);
-                });
+                }.bind(this));
                 // Re-apply link colors  
-                this.chart.selectAll('.sankey-link path').each((d) => {
+                this.chart.selectAll('.sankey-link path').each(function(d) {
                     const color = this.getLinkColor(d);
                     d3.select(this).attr('fill', color);
-                });
+                }.bind(this));
             }
             
             // Handle config changes that were moved out of layout recalc

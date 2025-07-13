@@ -12,7 +12,7 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['showBarLabels']
         },
@@ -22,7 +22,7 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
@@ -32,7 +32,7 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'showBarLabels'] // Uses dynamic colors from series
         },
@@ -41,7 +41,7 @@ window.BarControlModule = (function() {
                      'hoverColor', 'barOpacity', 'colorScheme',
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
-                     'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'enableHover', 'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['defaultBarColor', 'valueFormat', 'currencySymbol', 'decimalPlaces', 'showBarLabels'] // Always shows percentages
         },
@@ -51,7 +51,7 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['showBarLabels']
         },
@@ -61,7 +61,7 @@ window.BarControlModule = (function() {
                      'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor',
                      'showBarLabels', 'showValues', 'labelPosition', 'valuePosition', 'labelOffset', 'valueOffset', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['autoSort', 'colorScheme', 'showBarLabels'] // Waterfall has specific ordering and colors
         },
@@ -70,7 +70,7 @@ window.BarControlModule = (function() {
                      'defaultBarColor', 'hoverColor', 'barOpacity', 'colorScheme',
                      'showBarLabels', 'showValues', 'labelFontSize', 'valueFontSize', 'labelColor',
                      'valueFormat', 'currencySymbol', 'decimalPlaces', 'enableHover',
-                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize',
+                     'animationEasing', 'backgroundColor', 'titleFont', 'titleColor', 'titleSize', 'globalFontSize',
                      'chartWidthScale', 'autoFitContainer', 'leftMargin', 'rightMargin', 'topMargin', 'bottomMargin'],
             disabled: ['orientation', 'barCornerRadius', // No orientation or corners in polar
                       'showXAxis', 'showYAxis', 'showGrid', 'gridOpacity', 'axisColor', 'gridColor', // No traditional axes
@@ -299,6 +299,16 @@ window.BarControlModule = (function() {
                             default: 20,
                             step: 1,
                             description: "Size of the chart title"
+                        },
+                        {
+                            id: "globalFontSize",
+                            type: "slider",
+                            label: "Global Font Size",
+                            min: 8,
+                            max: 20,
+                            default: 12,
+                            step: 1,
+                            description: "Global font size for axis labels and other chart text"
                         }
                     ]
                 },
@@ -603,6 +613,7 @@ window.BarControlModule = (function() {
                 titleFont: 'Inter',
                 titleColor: '#1f2937',
                 titleSize: 20,
+                globalFontSize: 12,
                 // Layout controls
                 chartWidthScale: 0.85,
                 autoFitContainer: false,
@@ -998,6 +1009,15 @@ window.BarControlModule = (function() {
                     requestAnimationFrame(() => {
                         chart.applyCornerRadius();
                     });
+                }
+            }
+            // Handle globalFontSize - requires re-render for axis text consistency
+            else if (controlId === 'globalFontSize') {
+                console.log(`🔄 Global font size changed to: ${value}px - triggering re-render for axis consistency`);
+                if (chart.data && chart.data.length > 0) {
+                    chart.render();
+                } else {
+                    console.warn('⚠️ No chart data available for globalFontSize change');
                 }
             }
             // Handle font size changes that need immediate updates
