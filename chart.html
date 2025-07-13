@@ -1608,6 +1608,20 @@
                 return;
             }
             
+            // Add event listener for chart data changes to update spreadsheet
+            window.addEventListener('pulseDataChanged', (event) => {
+                const { data, source } = event.detail;
+                if (data && data.nodes && data.links && source !== 'chart-html') {
+                    // Convert chart data to flow format and update spreadsheet
+                    const existingColors = { ...flowData.metadata.colorPalette };
+                    flowData = convertSankeyDataToFlows(data);
+                    flowData.metadata.colorPalette = { ...existingColors, ...flowData.metadata.colorPalette };
+                    
+                    updateMetadataInputs();
+                    renderFlowTable();
+                    updateAllStats();
+                }
+            });
             
             // Get URL parameters once at the beginning
             const urlParams = getURLParameters();
