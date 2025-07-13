@@ -211,18 +211,11 @@ class ChartLibrary {
                         <div class="stats-label">Saved Charts</div>
                     </div>
                     <div class="library-actions">
-                        <button class="btn btn-ghost btn-sm" id="export-library-btn" title="Export library">
+                        <button class="btn btn-ghost btn-sm" id="export-library-btn" title="Export all charts as JSON file">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                 <polyline points="7,10 12,15 17,10"/>
                                 <line x1="12" y1="15" x2="12" y2="3"/>
-                            </svg>
-                        </button>
-                        <button class="btn btn-ghost btn-sm" id="import-library-btn" title="Import library">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="17,8 12,3 7,8"/>
-                                <line x1="12" y1="3" x2="12" y2="15"/>
                             </svg>
                         </button>
                     </div>
@@ -357,13 +350,9 @@ class ChartLibrary {
                 this.createNewChart();
             }
             
-            // Export/Import buttons
-            if (e.target.id === 'export-library-btn') {
+            // Export button
+            if (e.target.id === 'export-library-btn' || e.target.closest('#export-library-btn')) {
                 this.exportCharts();
-            }
-            
-            if (e.target.id === 'import-library-btn') {
-                this.triggerImport();
             }
             
             // Chart actions
@@ -405,14 +394,24 @@ class ChartLibrary {
                 this.deselectAllCharts();
             }
 
-            // More actions menu
-            if (e.target.classList.contains('more-actions-btn')) {
-                const chartId = e.target.dataset.chartId;
-                this.toggleActionsMenu(chartId);
+            // More actions menu - improved detection
+            if (e.target.classList.contains('more-actions-btn') || e.target.closest('.more-actions-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const menuButton = e.target.classList.contains('more-actions-btn') ? e.target : e.target.closest('.more-actions-btn');
+                const chartId = menuButton.dataset.chartId;
+                
+                if (chartId) {
+                    console.log('Menu button clicked for chart:', chartId);
+                    this.toggleActionsMenu(chartId);
+                } else {
+                    console.error('No chart ID found on menu button');
+                }
             }
             
             // Close menus when clicking outside
-            if (!e.target.closest('.chart-actions-menu') && !e.target.classList.contains('more-actions-btn')) {
+            if (!e.target.closest('.chart-actions-menu') && !e.target.closest('.more-actions-btn')) {
                 this.closeAllMenus();
             }
         });
@@ -575,9 +574,6 @@ class ChartLibrary {
                     <input type="checkbox" class="chart-checkbox" data-chart-id="${chart.id}">
                 </div>
                 <div class="chart-info">
-                    <div class="chart-avatar">
-                        ${this.getChartTypeIcon(chart.chartType)}
-                    </div>
                     <div class="chart-details">
                         <div class="chart-name">${this.escapeHtml(chart.name)}</div>
                         <div class="chart-meta">
@@ -591,10 +587,10 @@ class ChartLibrary {
                         Load
                     </button>
                     <button class="btn btn-ghost btn-sm more-actions-btn" data-chart-id="${chart.id}" title="More actions">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="1"/>
-                            <circle cx="19" cy="12" r="1"/>
-                            <circle cx="5" cy="12" r="1"/>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-chart-id="${chart.id}">
+                            <circle cx="12" cy="12" r="1" data-chart-id="${chart.id}"/>
+                            <circle cx="19" cy="12" r="1" data-chart-id="${chart.id}"/>
+                            <circle cx="5" cy="12" r="1" data-chart-id="${chart.id}"/>
                         </svg>
                     </button>
                 </div>
@@ -673,10 +669,10 @@ class ChartLibrary {
 
     formatChartType(chartType) {
         const types = {
-            'sankey': 'Sankey Flow',
-            'bar': 'Bar Chart',
-            'line': 'Line Chart',
-            'pie': 'Pie Chart'
+            'sankey': 'Sankey',
+            'bar': 'Bar',
+            'line': 'Line',
+            'pie': 'Pie'
         };
         return types[chartType] || chartType.charAt(0).toUpperCase() + chartType.slice(1);
     }
@@ -866,26 +862,20 @@ class ChartLibrary {
         this.showNotification(`Chart "${chart.name}" exported successfully`, 'success');
     }
 
-    triggerImport() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                this.importCharts(file);
-            }
-        };
-        input.click();
-    }
 
     toggleActionsMenu(chartId) {
+        console.log('Toggling menu for chart:', chartId);
+        
         // Close all other menus first
         this.closeAllMenus();
         
         const menu = document.getElementById(`actions-menu-${chartId}`);
         if (menu) {
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            const isVisible = menu.style.display === 'block';
+            menu.style.display = isVisible ? 'none' : 'block';
+            console.log('Menu visibility changed to:', menu.style.display);
+        } else {
+            console.error('Menu not found for chart:', chartId);
         }
     }
 
@@ -957,37 +947,30 @@ class ChartLibrary {
     }
 
     exportCharts() {
+        if (this.savedCharts.length === 0) {
+            this.showNotification('No charts to export', 'info');
+            return;
+        }
+        
         const dataStr = JSON.stringify(this.savedCharts, null, 2);
         const dataBlob = new Blob([dataStr], {type: 'application/json'});
         
         const link = document.createElement('a');
         link.href = URL.createObjectURL(dataBlob);
-        link.download = 'pulsecharts_library.json';
+        link.download = `pulsecharts_library_${new Date().toISOString().split('T')[0]}.json`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         
-        this.showNotification('Chart library exported successfully', 'success');
+        // Clean up the URL object
+        setTimeout(() => {
+            URL.revokeObjectURL(link.href);
+        }, 100);
+        
+        this.showNotification(`Exported ${this.savedCharts.length} charts successfully`, 'success');
     }
 
-    importCharts(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedCharts = JSON.parse(e.target.result);
-                if (Array.isArray(importedCharts)) {
-                    this.savedCharts.push(...importedCharts);
-                    this.saveSavedCharts();
-                    this.refreshLibraryUI();
-                    this.showNotification(`Imported ${importedCharts.length} charts successfully`, 'success');
-                } else {
-                    throw new Error('Invalid file format');
-                }
-            } catch (error) {
-                console.error('❌ Error importing charts:', error);
-                this.showNotification('Error importing charts - invalid file format', 'error');
-            }
-        };
-        reader.readAsText(file);
-    }
 
     // Update spreadsheet editor with loaded data
     updateSpreadsheetWithData(data, chartType) {
