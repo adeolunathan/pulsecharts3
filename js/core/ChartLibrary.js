@@ -191,19 +191,64 @@ class ChartLibrary {
         
         sidebar.innerHTML = `
             <div class="sidebar-header">
-                <h3>📚 Chart Library</h3>
-                <button class="sidebar-close" id="library-close-btn">×</button>
+                <div class="header-content">
+                    <div class="header-icon">📚</div>
+                    <div class="header-text">
+                        <h3>Chart Library</h3>
+                        <p>Manage your saved visualizations</p>
+                    </div>
+                </div>
+                <button class="sidebar-close" id="library-close-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
             <div class="sidebar-content">
                 <div class="library-stats">
-                    <span id="library-count">0 saved charts</span>
+                    <div class="stats-item">
+                        <div class="stats-number" id="library-count-number">0</div>
+                        <div class="stats-label">Saved Charts</div>
+                    </div>
+                    <div class="library-actions">
+                        <button class="btn btn-ghost btn-sm" id="export-library-btn" title="Export library">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7,10 12,15 17,10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-ghost btn-sm" id="import-library-btn" title="Import library">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17,8 12,3 7,8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" placeholder="Search charts..." id="search-charts" class="search-input">
+                    </div>
                 </div>
                 <div class="charts-list" id="charts-list">
                     <!-- Charts will be populated here -->
                 </div>
             </div>
             <div class="sidebar-footer">
-                <button class="btn btn-secondary btn-block" id="library-close-footer">Close Library</button>
+                <button class="btn btn-primary btn-block" id="save-chart-btn-footer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17,21 17,13 7,13 7,21"/>
+                        <polyline points="7,3 7,8 15,8"/>
+                    </svg>
+                    Save Current Chart
+                </button>
             </div>
         `;
         
@@ -280,6 +325,20 @@ class ChartLibrary {
                 this.closeLibrary();
             }
             
+            // Save chart button in footer
+            if (e.target.id === 'save-chart-btn-footer' || e.target.id === 'save-first-chart') {
+                this.openSaveModal();
+            }
+            
+            // Export/Import buttons
+            if (e.target.id === 'export-library-btn') {
+                this.exportCharts();
+            }
+            
+            if (e.target.id === 'import-library-btn') {
+                this.triggerImport();
+            }
+            
             // Chart actions
             if (e.target.classList.contains('load-chart-btn')) {
                 const chartId = e.target.dataset.chartId;
@@ -289,6 +348,27 @@ class ChartLibrary {
             if (e.target.classList.contains('delete-chart-btn')) {
                 const chartId = e.target.dataset.chartId;
                 this.deleteChart(chartId);
+            }
+            
+            if (e.target.classList.contains('duplicate-chart-btn')) {
+                const chartId = e.target.dataset.chartId;
+                this.duplicateChart(chartId);
+            }
+            
+            if (e.target.classList.contains('export-chart-btn')) {
+                const chartId = e.target.dataset.chartId;
+                this.exportSingleChart(chartId);
+            }
+            
+            // More actions menu
+            if (e.target.classList.contains('more-actions-btn')) {
+                const chartId = e.target.dataset.chartId;
+                this.toggleActionsMenu(chartId);
+            }
+            
+            // Close menus when clicking outside
+            if (!e.target.closest('.chart-actions-menu') && !e.target.classList.contains('more-actions-btn')) {
+                this.closeAllMenus();
             }
         });
 
@@ -305,6 +385,13 @@ class ChartLibrary {
                 if (this.isLibraryOpen) {
                     this.closeLibrary();
                 }
+            }
+        });
+
+        // Search functionality
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'search-charts') {
+                this.handleSearch(e.target.value);
             }
         });
     }
@@ -400,17 +487,26 @@ class ChartLibrary {
     // Refresh library UI
     refreshLibraryUI() {
         const chartsList = document.getElementById('charts-list');
-        const libraryCount = document.getElementById('library-count');
+        const libraryCountNumber = document.getElementById('library-count-number');
         
-        if (!chartsList || !libraryCount) return;
+        if (!chartsList || !libraryCountNumber) return;
 
-        libraryCount.textContent = `${this.savedCharts.length} saved chart${this.savedCharts.length !== 1 ? 's' : ''}`;
+        libraryCountNumber.textContent = this.savedCharts.length;
 
         if (this.savedCharts.length === 0) {
             chartsList.innerHTML = `
                 <div class="empty-library">
-                    <p>📊 No saved charts yet</p>
+                    <div class="empty-icon">📊</div>
+                    <h4>No saved charts yet</h4>
                     <p>Save your first chart to get started!</p>
+                    <button class="btn btn-primary" id="save-first-chart">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17,21 17,13 7,13 7,21"/>
+                            <polyline points="7,3 7,8 15,8"/>
+                        </svg>
+                        Save Current Chart
+                    </button>
                 </div>
             `;
             return;
@@ -426,16 +522,57 @@ class ChartLibrary {
                 <div class="chart-info">
                     <div class="chart-name">${this.escapeHtml(chart.name)}</div>
                     <div class="chart-meta">
-                        <span class="chart-type">${chart.chartType}</span>
-                        <span class="chart-date">${this.formatDate(chart.createdAt)}</span>
+                        <span class="chart-type-badge ${chart.chartType}">${this.formatChartType(chart.chartType)}</span>
+                        <span class="chart-date">${this.formatRelativeDate(chart.createdAt)}</span>
                     </div>
                 </div>
                 <div class="chart-actions">
-                    <button class="btn btn-sm btn-primary load-chart-btn" data-chart-id="${chart.id}" title="Load chart">
+                    <button class="btn btn-primary btn-sm load-chart-btn" data-chart-id="${chart.id}" title="Load chart">
                         📖 Load
                     </button>
-                    <button class="btn btn-sm btn-danger delete-chart-btn" data-chart-id="${chart.id}" title="Delete chart">
-                        🗑️
+                    <button class="btn btn-ghost btn-sm more-actions-btn" data-chart-id="${chart.id}" title="More actions">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="19" cy="12" r="1"/>
+                            <circle cx="5" cy="12" r="1"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="chart-actions-menu" id="actions-menu-${chart.id}" style="display: none;">
+                    <button class="menu-item load-chart-btn" data-chart-id="${chart.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10,9 9,9 8,9"/>
+                        </svg>
+                        Load Chart
+                    </button>
+                    <button class="menu-item duplicate-chart-btn" data-chart-id="${chart.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        Duplicate
+                    </button>
+                    <button class="menu-item export-chart-btn" data-chart-id="${chart.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Export
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button class="menu-item delete-chart-btn" data-chart-id="${chart.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3,6 5,6 21,6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                        Delete
                     </button>
                 </div>
             </div>
@@ -452,10 +589,160 @@ class ChartLibrary {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
 
+    formatRelativeDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffMinutes < 1) return 'Just now';
+        if (diffMinutes < 60) return `${diffMinutes}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
+    }
+
+    formatChartType(chartType) {
+        const types = {
+            'sankey': 'Sankey Flow',
+            'bar': 'Bar Chart',
+            'line': 'Line Chart',
+            'pie': 'Pie Chart'
+        };
+        return types[chartType] || chartType.charAt(0).toUpperCase() + chartType.slice(1);
+    }
+
+    getChartTypeIcon(chartType) {
+        const icons = {
+            'sankey': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3h6l6 6-6 6H3V3z"/>
+                        <path d="M15 9l6-6v18l-6-6"/>
+                      </svg>`,
+            'bar': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                     <rect x="3" y="8" width="4" height="13"/>
+                     <rect x="9" y="4" width="4" height="17"/>
+                     <rect x="15" y="12" width="4" height="9"/>
+                   </svg>`,
+            'line': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="22,6 13,12 9,8 2,18"/>
+                    </svg>`,
+            'pie': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                     <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                     <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                   </svg>`
+        };
+        return icons[chartType] || icons.bar;
+    }
+
+    getDataStats(data) {
+        if (!data) return '<span class="data-stat">No data</span>';
+        
+        let count = 0;
+        let type = '';
+        
+        if (data.flows) {
+            count = data.flows.length;
+            type = 'flows';
+        } else if (data.categories) {
+            count = data.categories.length;
+            type = 'categories';
+        } else if (data.values) {
+            count = data.values.length;
+            type = 'values';
+        } else if (data.nodes) {
+            count = data.nodes.length;
+            type = 'nodes';
+        }
+        
+        return `<span class="data-stat">${count} ${type}</span>`;
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // New enhanced functionality
+    handleSearch(query) {
+        const chartItems = document.querySelectorAll('.chart-item');
+        const searchTerm = query.toLowerCase().trim();
+        
+        chartItems.forEach(item => {
+            const chartName = item.querySelector('.chart-name').textContent.toLowerCase();
+            const chartType = item.querySelector('.chart-type-badge').textContent.toLowerCase();
+            
+            if (chartName.includes(searchTerm) || chartType.includes(searchTerm)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    duplicateChart(chartId) {
+        const chart = this.savedCharts.find(c => c.id === chartId);
+        if (!chart) return;
+
+        const duplicatedChart = {
+            ...chart,
+            id: this.generateId(),
+            name: `${chart.name} (Copy)`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        this.savedCharts.push(duplicatedChart);
+        this.saveSavedCharts();
+        this.refreshLibraryUI();
+        this.showNotification(`Chart "${duplicatedChart.name}" duplicated successfully`, 'success');
+    }
+
+    exportSingleChart(chartId) {
+        const chart = this.savedCharts.find(c => c.id === chartId);
+        if (!chart) return;
+
+        const dataStr = JSON.stringify(chart, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `${chart.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+        link.click();
+        
+        this.showNotification(`Chart "${chart.name}" exported successfully`, 'success');
+    }
+
+    triggerImport() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.importCharts(file);
+            }
+        };
+        input.click();
+    }
+
+    toggleActionsMenu(chartId) {
+        // Close all other menus first
+        this.closeAllMenus();
+        
+        const menu = document.getElementById(`actions-menu-${chartId}`);
+        if (menu) {
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    closeAllMenus() {
+        const menus = document.querySelectorAll('.chart-actions-menu');
+        menus.forEach(menu => {
+            menu.style.display = 'none';
+        });
     }
 
     // LocalStorage operations
