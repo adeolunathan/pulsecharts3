@@ -1103,6 +1103,12 @@ class ChartLibrary {
     updateSpreadsheetWithData(data, chartType) {
         console.log('📊 Updating spreadsheet with loaded data:', data);
         
+        // Ensure unified data editor exists
+        if (!window.unifiedDataEditor && window.pulseApp && window.pulseApp.chart) {
+            console.log('📝 Creating unified data editor for chart loading');
+            window.unifiedDataEditor = new UnifiedSpreadsheetEditor('unified-data-editor-container', window.pulseApp.chart, chartType);
+        }
+        
         // Try to find the active unified data editor
         if (window.unifiedDataEditor) {
             try {

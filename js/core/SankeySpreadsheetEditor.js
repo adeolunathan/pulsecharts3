@@ -19,7 +19,7 @@ class SankeySpreadsheetEditor extends SpreadsheetEditor {
             ],
             dataFormat: 'flows',
             title: '🌊 Sankey Flow Data Editor',
-            allowDynamicColumns: false
+            allowDynamicColumns: true
         };
     }
 

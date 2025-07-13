@@ -3380,27 +3380,39 @@ class PulseSankeyChart {
      * Category-based link colors for income statements
      */
     getLinkColor_Income(link) {
-        // Always use target node color for consistency
-        // Priority: target custom color > target category color
+        // Priority: custom colors > category colors
         
+        // Check for custom colors first
         if (link.target.userCreated || link.target.customColor) {
             const targetColor = this.getNodeColor(link.target);
             return ChartUtils.lightenColor(targetColor, 15);
         }
         
-        // ALWAYS get the current category from the category manager (most up-to-date)
+        if (link.source.userCreated || link.source.customColor) {
+            const sourceColor = this.getNodeColor(link.source);
+            return ChartUtils.lightenColor(sourceColor, 15);
+        }
+        
+        // Get current categories from the category manager (most up-to-date)
         const currentTargetCategory = this.getCategoryForNode(link.target.id);
+        const currentSourceCategory = this.getCategoryForNode(link.source.id);
         
-        // Use current category first, then fallback to link metadata, then node category
-        const targetCategory = currentTargetCategory || link.colorCategory || link.targetCategory || link.target.category;
+        // Use colorCategory from link metadata (set by updateLinkCategoriesForNode)
+        // Then fallback to current categories, then node properties
+        let effectiveCategory = link.colorCategory || 
+                              currentTargetCategory || 
+                              currentSourceCategory || 
+                              link.targetCategory || 
+                              link.sourceCategory || 
+                              link.target.category || 
+                              link.source.category;
         
-        let effectiveCategory = targetCategory;
-        if (targetCategory === 'tax') {
+        if (effectiveCategory === 'tax') {
             effectiveCategory = 'expense';
         }
         
-        const targetColor = this.getColorByCategory(effectiveCategory);
-        return ChartUtils.lightenColor(targetColor, 15);
+        const categoryColor = this.getColorByCategory(effectiveCategory);
+        return ChartUtils.lightenColor(categoryColor, 15);
     }
 
     getLinkColor_Balance(link) {
@@ -4698,6 +4710,9 @@ class PulseSankeyChart {
             // Update source-related category metadata
             if (link.source && link.source.id === node.id) {
                 link.sourceCategory = newCategory;
+                // For revenue segments and other source nodes, also update colorCategory
+                // This ensures that outgoing links adopt the source node's category color
+                link.colorCategory = newCategory;
             }
             
             // Update target-related category metadata  
@@ -4932,15 +4947,16 @@ class PulseSankeyChart {
             );
             if (colorChanges.length > 0) {
                 // Re-apply node colors
+                const chart = this;
                 this.chart.selectAll('.sankey-node rect').each(function(d) {
-                    const color = this.getNodeColor(d);
+                    const color = chart.getNodeColor(d);
                     d3.select(this).attr('fill', color);
-                }.bind(this));
+                });
                 // Re-apply link colors  
                 this.chart.selectAll('.sankey-link path').each(function(d) {
-                    const color = this.getLinkColor(d);
+                    const color = chart.getLinkColor(d);
                     d3.select(this).attr('fill', color);
-                }.bind(this));
+                });
             }
             
             // Handle config changes that were moved out of layout recalc
