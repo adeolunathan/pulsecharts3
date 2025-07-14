@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔍 X Coordinate Debugging Guide</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { max-width: 900px; margin: 0 auto; }
+        .test-step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .debug { background-color: #e7f3ff; border-color: #b3d9ff; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .critical { background-color: #f8d7da; border-color: #f5c6cb; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .code-sample { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 11px; white-space: pre-wrap; }
+        .highlight { background-color: #ffeb3b; padding: 2px 4px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 X Coordinate Debug Session</h1>
+        
+        <div class="test-step critical">
+            <h3>🚨 CURRENT ISSUE</h3>
+            <p><strong>Problem:</strong> Node moves UP (Y preserved) but not FORWARD (X not preserved)</p>
+            <p><strong>Expected:</strong> Both horizontal and vertical movement should be saved and restored exactly</p>
+        </div>
+
+        <div class="test-step debug">
+            <h3>🧪 Step-by-Step Debug Test</h3>
+            <p><strong>Please follow these steps and report what you see in the console:</strong></p>
+            
+            <h4>Phase 1: Drag Operation</h4>
+            <ol>
+                <li><strong>Open chart.html</strong> and load sample data</li>
+                <li><strong>Open browser console</strong> (F12 → Console tab)</li>
+                <li><strong>Pick a node</strong> and note its current position</li>
+                <li><strong>Drag the node</strong> both UP and FORWARD (diagonally)</li>
+                <li><strong>Watch console output</strong> during drag - you should see:
+                    <div class="code-sample">🏁 Drag ended for [nodeId]: final position (X, Y), manualX: X, manualY: Y</div>
+                </li>
+                <li><strong>Record these values:</strong>
+                    <ul>
+                        <li>Final X position: ___________</li>
+                        <li>Final Y position: ___________</li>
+                        <li>ManualX value: ___________</li>
+                        <li>ManualY value: ___________</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h4>Phase 2: Save Operation</h4>
+            <ol>
+                <li><strong>Use "Save As"</strong> to create a new chart</li>
+                <li><strong>Watch console output</strong> during save - you should see:
+                    <div class="code-sample">💾 Capturing [nodeId]: X=###, Y=###, manualX=###, manualY=###, manual=true</div>
+                </li>
+                <li><strong>Record captured values:</strong>
+                    <ul>
+                        <li>Captured X: ___________</li>
+                        <li>Captured Y: ___________</li>
+                        <li>Manual flag: ___________</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h4>Phase 3: Load Operation</h4>
+            <ol>
+                <li><strong>Refresh the browser</strong> (F5)</li>
+                <li><strong>Open Library</strong> and load your saved chart</li>
+                <li><strong>Watch console output</strong> during load - you should see multiple logs:
+                    <div class="code-sample">📦 Embedded chart state in data metadata for restoration
+📁 Loading chart state from data metadata
+🎯 Pre-marked [nodeId] as manually positioned for layout respect
+🔍 Layout check for [nodeId]: preserved=true, manuallyPositioned=true, x=###
+📍 Preserved X position for [nodeId]: ### (was ###)
+📍 Restoring [nodeId]: from (old_x,old_y) to (saved_x,saved_y)</div>
+                </li>
+                <li><strong>Record restoration values:</strong>
+                    <ul>
+                        <li>Preserved X from layout: ___________</li>
+                        <li>Final restored X: ___________</li>
+                        <li>Final restored Y: ___________</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-step warning">
+            <h3>🔍 Key Debug Points to Check</h3>
+            
+            <h4>1. Are X coordinates being captured correctly?</h4>
+            <p>In Phase 2, the captured X value should match the final position from Phase 1.</p>
+            <p><span class="highlight">If they don't match:</span> The issue is in the capture process</p>
+            
+            <h4>2. Are X coordinates being restored correctly?</h4>
+            <p>In Phase 3, the preserved X value should match the captured X from Phase 2.</p>
+            <p><span class="highlight">If they don't match:</span> The issue is in the restoration process</p>
+            
+            <h4>3. Is the layout preservation working?</h4>
+            <p>You should see "📍 Preserved X position" not "🧮 Calculated X position" for your dragged node.</p>
+            <p><span class="highlight">If you see calculated instead of preserved:</span> The manuallyPositioned flag is not working</p>
+            
+            <h4>4. Is there a timing issue?</h4>
+            <p>The restoration should happen immediately with no delays.</p>
+            <p><span class="highlight">If there are delays:</span> Something is overriding the positions after restoration</p>
+        </div>
+
+        <div class="test-step debug">
+            <h3>🎯 Expected vs Actual Results</h3>
+            
+            <h4>What Should Happen (Expected):</h4>
+            <ul>
+                <li>✅ Drag: Node moves to X=200, Y=100</li>
+                <li>✅ Save: Captures X=200, Y=100, manual=true</li>
+                <li>✅ Load: Preserves X=200, Y=100 exactly</li>
+                <li>✅ Result: Node appears at the exact same diagonal position</li>
+            </ul>
+            
+            <h4>What's Currently Happening (Actual):</h4>
+            <ul>
+                <li>🟡 Drag: Node moves to X=200, Y=100</li>
+                <li>❓ Save: Captures X=???, Y=100, manual=???</li>
+                <li>❓ Load: Preserves X=???, Y=100</li>
+                <li>❌ Result: Node appears at different X position (forward/backward movement lost)</li>
+            </ul>
+        </div>
+
+        <div class="test-step success">
+            <h3>📊 Report Your Findings</h3>
+            <p><strong>After completing the debug test, please report:</strong></p>
+            <ol>
+                <li><strong>Console logs</strong> from all three phases</li>
+                <li><strong>The specific values</strong> you recorded in each phase</li>
+                <li><strong>Which phase</strong> the X coordinates get lost (if you can identify it)</li>
+                <li><strong>Any error messages</strong> or unexpected behavior</li>
+            </ol>
+            
+            <p><strong>This will help identify the exact point where X coordinates are being lost!</strong></p>
+        </div>
+
+        <div class="test-step critical">
+            <h3>🔧 Debugging Enhancements Added</h3>
+            <p><strong>The following debug logging has been added to the code:</strong></p>
+            <ul>
+                <li><strong>Drag End Logging:</strong> Shows final position when drag ends</li>
+                <li><strong>Capture Logging:</strong> Shows what coordinates are being saved</li>
+                <li><strong>Layout Preservation Logging:</strong> Shows which nodes are preserved vs calculated</li>
+                <li><strong>Restoration Logging:</strong> Shows the complete restoration process</li>
+            </ul>
+            
+            <p><strong>With this enhanced logging, we can pinpoint exactly where the X coordinate issue occurs!</strong></p>
+        </div>
+    </div>
+</body>
+</html>

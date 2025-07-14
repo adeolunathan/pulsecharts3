@@ -154,7 +154,23 @@ class ChartLibrary {
                     console.log('📦 Embedded chart state in data metadata for restoration');
                 }
                 
-                // Load the chart data (with embedded state)
+                // CRITICAL: Pre-populate state BEFORE data loading to fix X coordinate timing
+                if (window.pulseApp.chart && chart.config && chart.config.chartState) {
+                    const stateData = chart.config.chartState;
+                    
+                    // Pre-populate the statePersistence maps before render
+                    if (stateData.nodePositions) {
+                        window.pulseApp.chart.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
+                        console.log(`🔧 Pre-loaded ${window.pulseApp.chart.statePersistence.nodePositions.size} node positions BEFORE render`);
+                    }
+                    
+                    if (stateData.manualPositions) {
+                        window.pulseApp.chart.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
+                        console.log(`🔧 Pre-loaded ${window.pulseApp.chart.statePersistence.manualPositions.size} manual position flags BEFORE render`);
+                    }
+                }
+                
+                // Load the chart data (with embedded state) - now state is available during render
                 window.pulseApp.updateData(chart.data, 'chart-library');
                 
                 // Apply configuration if chart supports it
@@ -162,14 +178,12 @@ class ChartLibrary {
                     window.pulseApp.chart.updateConfig(chart.config);
                 }
                 
-                // Trigger chart state restoration after data is loaded
+                // Trigger complete state restoration after data loading for colors and categories
                 if (window.pulseApp.chart && chart.config && chart.config.chartState) {
-                    setTimeout(() => {
-                        if (window.pulseApp.chart.restoreCompleteState) {
-                            console.log('🔄 Triggering built-in state restoration');
-                            window.pulseApp.chart.restoreCompleteState();
-                        }
-                    }, 100);
+                    if (window.pulseApp.chart.restoreCompleteState) {
+                        console.log('🔄 Triggering complete state restoration for colors and categories');
+                        window.pulseApp.chart.restoreCompleteState();
+                    }
                 }
 
                 // Update spreadsheet editor with the loaded data

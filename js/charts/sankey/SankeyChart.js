@@ -1500,16 +1500,32 @@ class PulseSankeyChart {
             height: this.config.height - this.config.margin.top - this.config.margin.bottom
         };
 
-        // PRESERVE POSITIONS: Save current positions before layout recalculation
+        // PRESERVE POSITIONS: Save current positions OR restore from saved state before layout recalculation
         const preservedPositions = new Map();
         if (this.nodes) {
             this.nodes.forEach(node => {
-                preservedPositions.set(node.id, {
-                    x: node.x,
-                    y: node.y,
-                    manuallyPositioned: node.manuallyPositioned || false,
-                    manualY: node.manualY
-                });
+                // Check if we have saved positions for this node from state restoration
+                const savedPos = this.statePersistence.nodePositions.get(node.id);
+                const savedManual = this.statePersistence.manualPositions.get(node.id);
+                
+                if (savedPos && savedManual) {
+                    // Use saved positions if available (from chart loading)
+                    preservedPositions.set(node.id, {
+                        x: savedPos.x,
+                        y: savedPos.y,
+                        manuallyPositioned: true,
+                        manualY: savedPos.y
+                    });
+                    console.log(`🔄 Using saved position for ${node.id}: (${savedPos.x}, ${savedPos.y})`);
+                } else {
+                    // Use current node positions (for normal operation)
+                    preservedPositions.set(node.id, {
+                        x: node.x,
+                        y: node.y,
+                        manuallyPositioned: node.manuallyPositioned || false,
+                        manualY: node.manualY
+                    });
+                }
             });
         }
 
@@ -1524,7 +1540,19 @@ class PulseSankeyChart {
             .range([0, dimensions.width - this.config.nodeWidth]);
 
         this.nodes.forEach(node => {
-            node.x = xScale(node.depth);
+            const preserved = preservedPositions.get(node.id);
+            console.log(`🔍 Layout check for ${node.id}: preserved=${!!preserved}, manuallyPositioned=${preserved?.manuallyPositioned}, x=${preserved?.x}`);
+            
+            if (preserved && preserved.manuallyPositioned && typeof preserved.x === 'number' && !isNaN(preserved.x)) {
+                // Restore X position for manually positioned nodes
+                node.x = preserved.x;
+                console.log(`📍 Preserved X position for ${node.id}: ${preserved.x} (was ${xScale(node.depth)})`);
+            } else {
+                // Use calculated position for non-manually positioned nodes
+                const calculatedX = xScale(node.depth);
+                node.x = calculatedX;
+                console.log(`🧮 Calculated X position for ${node.id}: ${calculatedX}`);
+            }
         });
 
         // ENHANCED: Apply proportional node heights for balance sheets
@@ -2641,6 +2669,7 @@ class PulseSankeyChart {
                 
                 
                 // Save manual position to metadata for persistence
+                console.log(`🏁 Drag ended for ${d.id}: final position (${d.x}, ${d.y}), manualX: ${d.manualX}, manualY: ${d.manualY}`);
                 self.saveManualPositionToMetadata(d);
             });
 
@@ -7751,6 +7780,7 @@ class PulseSankeyChart {
                 
                 this.nodes.forEach(node => {
                     if (node.x !== undefined && node.y !== undefined) {
+                        console.log(`💾 Capturing ${node.id}: X=${node.x}, Y=${node.y}, manualX=${node.manualX}, manualY=${node.manualY}, manual=${!!node.manuallyPositioned}`);
                         this.statePersistence.nodePositions.set(node.id, { x: node.x, y: node.y });
                         positionCount++;
                     }
@@ -7941,6 +7971,17 @@ class PulseSankeyChart {
             if (stateData.nodePositions) {
                 this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
                 console.log(`📍 Restored ${this.statePersistence.nodePositions.size} node positions from saved state`);
+                
+                // CRITICAL: Immediately mark nodes as manually positioned so calculateLayout respects them
+                if (this.nodes) {
+                    this.nodes.forEach(node => {
+                        const savedPos = this.statePersistence.nodePositions.get(node.id);
+                        if (savedPos) {
+                            node.manuallyPositioned = true;
+                            console.log(`🎯 Pre-marked ${node.id} as manually positioned for layout respect`);
+                        }
+                    });
+                }
             }
 
             if (stateData.manualPositions) {
@@ -8055,13 +8096,21 @@ class PulseSankeyChart {
             
             this.nodes.forEach(node => {
                 const savedPos = this.statePersistence.nodePositions.get(node.id);
+                const manualPos = this.statePersistence.manualPositions.get(node.id);
+                
                 if (savedPos) {
+                    console.log(`📍 Restoring ${node.id}: from (${node.x},${node.y}) to (${savedPos.x},${savedPos.y})`);
+                    
+                    // CRITICAL: Set manuallyPositioned flag FIRST so calculateLayout respects the position
+                    node.manuallyPositioned = true; // Treat all restored positions as manually positioned
+                    
+                    // Then set the actual coordinates
                     node.x = savedPos.x;
                     node.y = savedPos.y;
                     appliedCount++;
                 }
                 
-                const manualPos = this.statePersistence.manualPositions.get(node.id);
+                // Restore manual position flag if explicitly saved
                 if (manualPos) {
                     node.manuallyPositioned = manualPos;
                 }
