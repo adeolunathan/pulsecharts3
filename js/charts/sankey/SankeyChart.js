@@ -4845,23 +4845,17 @@ class PulseSankeyChart {
     rerenderWithNewColors() {
         if (!this.chart) return;
         
-        // Update node colors with smooth transition
+        // Update node colors immediately (no transition for immediate feedback)
         this.chart.selectAll('.sankey-node rect')
-            .transition()
-            .duration(300)
             .attr('fill', d => this.getNodeColor(d));
         
-        // Update link colors with smooth transition
+        // Update link colors immediately (no transition for immediate feedback)
         this.chart.selectAll('.sankey-link path')
-            .transition()
-            .duration(300)
             .attr('fill', d => this.getLinkColor(d))
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getLinkOpacity(d) : this.config.linkOpacity);
         
-        // Update node text colors if needed
+        // Update node text colors immediately
         this.chart.selectAll('.sankey-node text')
-            .transition()
-            .duration(300)
             .attr('fill', d => {
                 const bgColor = this.getNodeColor(d);
                 return ChartUtils.getContrastTextColor(bgColor);
@@ -7752,14 +7746,24 @@ class PulseSankeyChart {
             this.statePersistence.manualPositions.clear();
             
             if (this.nodes) {
+                let positionCount = 0;
+                let manualCount = 0;
+                
                 this.nodes.forEach(node => {
                     if (node.x !== undefined && node.y !== undefined) {
                         this.statePersistence.nodePositions.set(node.id, { x: node.x, y: node.y });
+                        positionCount++;
                     }
-                    if (node.manualPosition) {
-                        this.statePersistence.manualPositions.set(node.id, node.manualPosition);
+                    if (node.manuallyPositioned) {
+                        this.statePersistence.manualPositions.set(node.id, node.manuallyPositioned);
+                        manualCount++;
                     }
                 });
+                
+                console.log(`💾 Captured ${positionCount} node positions, ${manualCount} manual positions`);
+                if (positionCount === 0) {
+                    console.warn('⚠️ No node positions captured - nodes may not have x,y coordinates set');
+                }
             }
 
             // UI State - Chart Configuration
@@ -7936,10 +7940,12 @@ class PulseSankeyChart {
             // Restore layout state
             if (stateData.nodePositions) {
                 this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
+                console.log(`📍 Restored ${this.statePersistence.nodePositions.size} node positions from saved state`);
             }
 
             if (stateData.manualPositions) {
                 this.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
+                console.log(`🎯 Restored ${this.statePersistence.manualPositions.size} manual position flags`);
             }
 
             // Restore UI state
@@ -8005,17 +8011,15 @@ class PulseSankeyChart {
 
             console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
             
-            // Force a visual update to apply all restored state
+            // Force immediate visual update to apply all restored state
             // This ensures positions, colors, and categories are all applied correctly
-            setTimeout(() => {
-                if (this.rerenderWithNewColors) {
-                    this.rerenderWithNewColors();
-                    console.log('🎨 Applied restored state with color re-render');
-                } else {
-                    this.applyRestoredState();
-                    console.log('📍 Applied restored positions and layout');
-                }
-            }, 100);
+            if (this.rerenderWithNewColors) {
+                this.rerenderWithNewColors();
+                console.log('🎨 Applied restored state with immediate color re-render');
+            } else {
+                this.applyRestoredState();
+                console.log('📍 Applied restored positions and layout');
+            }
             
             // Only apply restoration immediately during initialization
             // Not during ongoing operations
@@ -8042,26 +8046,39 @@ class PulseSankeyChart {
     }
 
     /**
-     * Apply restored state to the chart (only for positions, not colors/categories)
+     * Apply restored state to the chart (positions and layout)
      */
     applyRestoredState() {
-        if (!this.statePersistence.preserveOnRender) return;
-
-        // Only restore positions and layout, NOT colors or categories
-        // Colors/categories are already handled by the category system
+        // Apply positions if available, regardless of preserveOnRender flag
         if (this.nodes && this.statePersistence.nodePositions.size > 0) {
+            let appliedCount = 0;
+            
             this.nodes.forEach(node => {
                 const savedPos = this.statePersistence.nodePositions.get(node.id);
                 if (savedPos) {
                     node.x = savedPos.x;
                     node.y = savedPos.y;
+                    appliedCount++;
                 }
                 
                 const manualPos = this.statePersistence.manualPositions.get(node.id);
                 if (manualPos) {
-                    node.manualPosition = manualPos;
+                    node.manuallyPositioned = manualPos;
                 }
             });
+            
+            console.log(`📍 Applied ${appliedCount}/${this.nodes.length} node positions to chart`);
+            
+            // Update the visual positions in the DOM
+            if (this.chart && appliedCount > 0) {
+                this.chart.selectAll('.sankey-node')
+                    .data(this.nodes)
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+                    
+                console.log(`🔄 Updated visual positions for ${appliedCount} nodes`);
+            }
+        } else {
+            console.log(`📍 No saved positions to restore (${this.statePersistence.nodePositions.size} in state, ${this.nodes ? this.nodes.length : 0} current nodes)`);
         }
         
         // Restore link color categories (this needs to happen after render when links are available)
@@ -8076,8 +8093,7 @@ class PulseSankeyChart {
             console.log(`🎨 Restored ${this.statePersistence.linkCustomColors.size} link color categories`);
         }
 
-        // DON'T rerender colors here - that would overwrite user changes
-        console.log(`🔄 Applied restored layout state to chart`);
+        console.log(`✅ Applied restored layout state to chart`);
     }
 
     /**

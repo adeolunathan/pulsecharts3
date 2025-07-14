@@ -169,7 +169,7 @@ class ChartLibrary {
                             console.log('🔄 Triggering built-in state restoration');
                             window.pulseApp.chart.restoreCompleteState();
                         }
-                    }, 1000);
+                    }, 100);
                 }
 
                 // Update spreadsheet editor with the loaded data
