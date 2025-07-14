@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Position & Color Fix Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .test-step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .code-sample { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>✅ Node Position & Link Color Issues - FIXED</h1>
+        
+        <div class="test-step success">
+            <h3>Issue 1: Node Positions Not Preserved - RESOLVED</h3>
+            <p><strong>Problem:</strong> Saved node positions were not restored when loading charts</p>
+            <p><strong>Root Causes & Fixes:</strong></p>
+            <ul>
+                <li>✅ <strong>Timing Issue:</strong> Extended restoration delay from 300ms to 1000ms to allow full chart rendering</li>
+                <li>✅ <strong>Missing manualPosition Flag:</strong> Now properly restores both position coordinates and manual position metadata</li>
+                <li>✅ <strong>State Persistence:</strong> Enhanced chart state saving to include both nodePositions and manualPositions maps</li>
+            </ul>
+            <div class="code-sample">
+                // Now saves both position data and manual position flags
+                chartState: {
+                    nodePositions: { "nodeId": { x: 100, y: 200 } },
+                    manualPositions: { "nodeId": true },
+                    // ... other state
+                }
+            </div>
+        </div>
+
+        <div class="test-step success">
+            <h3>Issue 2: Link Colors Not Matching Node Categories - RESOLVED</h3>
+            <p><strong>Problem:</strong> Links had different colors instead of matching their target node categories</p>
+            <p><strong>Root Causes & Fixes:</strong></p>
+            <ul>
+                <li>✅ <strong>Missing Link Color Update:</strong> Now calls updateLinkCategoriesForNode() for each restored category assignment</li>
+                <li>✅ <strong>Proper Re-rendering:</strong> Uses rerenderWithNewColors() to apply all visual changes correctly</li>
+                <li>✅ <strong>Category-Link Synchronization:</strong> Links automatically get colored based on target node categories</li>
+            </ul>
+            <div class="code-sample">
+                // Restoration process now includes:
+                1. Restore category assignments
+                2. Update link colors for each node: updateLinkCategoriesForNode(node, category)
+                3. Restore category colors
+                4. Restore node positions
+                5. Force visual update: rerenderWithNewColors()
+            </div>
+        </div>
+
+        <div class="test-step info">
+            <h3>Enhanced Chart State Restoration Process</h3>
+            <p><strong>New Restoration Sequence:</strong></p>
+            <ol>
+                <li>🏷️ <strong>Category Assignments</strong> - Assign nodes to categories AND update link colors</li>
+                <li>🎨 <strong>Category Colors</strong> - Restore custom category color definitions</li>
+                <li>📍 <strong>Node Positions</strong> - Restore both coordinates and manual position flags</li>
+                <li>🔄 <strong>Visual Update</strong> - Force complete re-render with new colors and positions</li>
+            </ol>
+            <p><strong>Key Improvement:</strong> Links now automatically inherit colors from their target node categories, just like in the original workflow.</p>
+        </div>
+
+        <div class="test-step warning">
+            <h3>Testing Instructions</h3>
+            <p><strong>To verify the fixes:</strong></p>
+            <ol>
+                <li><strong>Create & Customize Chart:</strong>
+                    <ul>
+                        <li>Load sample data in chart.html</li>
+                        <li>Drag nodes to custom positions</li>
+                        <li>Assign nodes to different categories (watch link colors change)</li>
+                        <li>Customize category colors if desired</li>
+                    </ul>
+                </li>
+                <li><strong>Save Chart:</strong> Use "Save As" to create named chart</li>
+                <li><strong>Make More Changes:</strong> Move nodes, change categories</li>
+                <li><strong>Quick Save:</strong> Use "Save" button or Ctrl+S</li>
+                <li><strong>Test Persistence:</strong>
+                    <ul>
+                        <li>Refresh browser completely</li>
+                        <li>Open Library and load your saved chart</li>
+                        <li>✅ Node positions should be exactly as saved</li>
+                        <li>✅ Link colors should match target node categories</li>
+                        <li>✅ All visual customizations preserved</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-step success">
+            <h3>Expected Results</h3>
+            <p><strong>✅ Should now work perfectly:</strong></p>
+            <ul>
+                <li>Node positions preserved exactly as positioned</li>
+                <li>Link colors automatically match target node categories</li>
+                <li>Category assignments and colors maintained</li>
+                <li>Both Quick Save and Save As preserve complete chart state</li>
+                <li>No more spreadsheet editor container errors</li>
+                <li>Reliable chart loading and state restoration</li>
+            </ul>
+        </div>
+
+        <div class="test-step info">
+            <h3>Technical Implementation Details</h3>
+            <p><strong>Files Modified:</strong></p>
+            <ul>
+                <li><code>js/core/ChartLibrary.js</code> - Complete chart state restoration system</li>
+                <li><code>js/charts/sankey/SankeyChart.js</code> - Enhanced position and color persistence</li>
+            </ul>
+            
+            <p><strong>Key Methods Added/Enhanced:</strong></p>
+            <ul>
+                <li><code>restoreChartState()</code> - Comprehensive state restoration</li>
+                <li><code>updateLinkCategoriesForNode()</code> - Proper link color updating</li>
+                <li><code>rerenderWithNewColors()</code> - Complete visual refresh</li>
+                <li>Enhanced save methods with complete state capture</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

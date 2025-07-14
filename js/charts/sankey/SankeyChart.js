@@ -7808,6 +7808,16 @@ class PulseSankeyChart {
                     this.statePersistence.nodeCustomColors.set(id, color);
                 }
             }
+            
+            // Capture link color categories
+            if (this.links) {
+                this.links.forEach(link => {
+                    if (link.colorCategory) {
+                        const linkId = `${link.source.id}_${link.target.id}`;
+                        this.statePersistence.linkCustomColors.set(linkId, link.colorCategory);
+                    }
+                });
+            }
 
             this.statePersistence.lastSaved = Date.now();
             
@@ -7898,6 +7908,18 @@ class PulseSankeyChart {
                 for (const [nodeId, categoryName] of this.statePersistence.categoryAssignments) {
                     this.categoryManager.nodeCategories.set(nodeId, categoryName);
                 }
+                
+                // Update link colors based on restored category assignments
+                // This ensures links get the correct colors after category restoration
+                if (this.nodes && this.links) {
+                    for (const [nodeId, categoryName] of this.statePersistence.categoryAssignments) {
+                        const node = this.nodes.find(n => n.id === nodeId);
+                        if (node && this.updateLinkCategoriesForNode) {
+                            this.updateLinkCategoriesForNode(node, categoryName);
+                        }
+                    }
+                    console.log('🔗 Updated link colors based on restored category assignments');
+                }
             }
 
             if (stateData.categoryColors) {
@@ -7942,6 +7964,19 @@ class PulseSankeyChart {
                 this.customColors = { ...Object.fromEntries(this.statePersistence.nodeCustomColors) };
             }
             
+            // Restore link color categories
+            if (stateData.linkCustomColors && this.links) {
+                this.statePersistence.linkCustomColors = new Map(Object.entries(stateData.linkCustomColors));
+                // Apply to current links
+                this.links.forEach(link => {
+                    const linkId = `${link.source.id}_${link.target.id}`;
+                    const savedColorCategory = this.statePersistence.linkCustomColors.get(linkId);
+                    if (savedColorCategory) {
+                        link.colorCategory = savedColorCategory;
+                    }
+                });
+            }
+            
             // Restore chart metadata (title, company, period, currency, unit)
             if (stateData.chartMetadata && this.data && this.data.metadata) {
                 this.statePersistence.chartMetadata = stateData.chartMetadata;
@@ -7969,6 +8004,18 @@ class PulseSankeyChart {
             }
 
             console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
+            
+            // Force a visual update to apply all restored state
+            // This ensures positions, colors, and categories are all applied correctly
+            setTimeout(() => {
+                if (this.rerenderWithNewColors) {
+                    this.rerenderWithNewColors();
+                    console.log('🎨 Applied restored state with color re-render');
+                } else {
+                    this.applyRestoredState();
+                    console.log('📍 Applied restored positions and layout');
+                }
+            }, 100);
             
             // Only apply restoration immediately during initialization
             // Not during ongoing operations
@@ -8015,6 +8062,18 @@ class PulseSankeyChart {
                     node.manualPosition = manualPos;
                 }
             });
+        }
+        
+        // Restore link color categories (this needs to happen after render when links are available)
+        if (this.links && this.statePersistence.linkCustomColors.size > 0) {
+            this.links.forEach(link => {
+                const linkId = `${link.source.id}_${link.target.id}`;
+                const savedColorCategory = this.statePersistence.linkCustomColors.get(linkId);
+                if (savedColorCategory) {
+                    link.colorCategory = savedColorCategory;
+                }
+            });
+            console.log(`🎨 Restored ${this.statePersistence.linkCustomColors.size} link color categories`);
         }
 
         // DON'T rerender colors here - that would overwrite user changes

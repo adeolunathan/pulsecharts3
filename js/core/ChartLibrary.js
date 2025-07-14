@@ -33,6 +33,19 @@ class ChartLibrary {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+        
+        // Include chart state (colors, categories, positions) if available
+        if (window.pulseApp.chart && window.pulseApp.chart.statePersistence) {
+            const state = window.pulseApp.chart.statePersistence;
+            chart.config.chartState = {
+                linkCustomColors: Object.fromEntries(state.linkCustomColors || new Map()),
+                nodeCustomColors: Object.fromEntries(state.nodeCustomColors || new Map()),
+                categoryAssignments: Object.fromEntries(state.categoryAssignments || new Map()),
+                categoryColors: Object.fromEntries(state.categoryColors || new Map()),
+                nodePositions: Object.fromEntries(state.nodePositions || new Map()),
+                manualPositions: Object.fromEntries(state.manualPositions || new Map())
+            };
+        }
 
         this.savedCharts.push(chart);
         this.saveSavedCharts();
@@ -54,10 +67,17 @@ class ChartLibrary {
             return false;
         }
 
+
         if (!this.currentChartId) {
-            // No current chart - open Save As modal instead
-            this.openSaveModal();
-            return false;
+            // No current chart - try to find most recently used chart of same type
+            const recentChart = this.findMostRecentChartOfType(currentChart.chartType);
+            if (recentChart && this.confirmQuickSaveToRecentChart(recentChart)) {
+                this.currentChartId = recentChart.id;
+            } else {
+                // No suitable chart found or user declined - open Save As modal
+                this.openSaveModal();
+                return false;
+            }
         }
 
         // Find existing chart and update it
@@ -72,6 +92,25 @@ class ChartLibrary {
         existingChart.data = JSON.parse(JSON.stringify(currentChart.data));
         existingChart.config = JSON.parse(JSON.stringify(currentChart.config));
         existingChart.updatedAt = new Date().toISOString();
+        
+        // Capture current chart state (colors, categories, positions) if available
+        if (window.pulseApp.chart && window.pulseApp.chart.statePersistence) {
+            // Force capture current state
+            if (window.pulseApp.chart.captureCompleteState) {
+                window.pulseApp.chart.captureCompleteState();
+            }
+            
+            // Save the chart state to the config
+            const state = window.pulseApp.chart.statePersistence;
+            existingChart.config.chartState = {
+                linkCustomColors: Object.fromEntries(state.linkCustomColors || new Map()),
+                nodeCustomColors: Object.fromEntries(state.nodeCustomColors || new Map()),
+                categoryAssignments: Object.fromEntries(state.categoryAssignments || new Map()),
+                categoryColors: Object.fromEntries(state.categoryColors || new Map()),
+                nodePositions: Object.fromEntries(state.nodePositions || new Map()),
+                manualPositions: Object.fromEntries(state.manualPositions || new Map())
+            };
+        }
 
         this.saveSavedCharts();
         this.refreshLibraryUI();
@@ -106,12 +145,31 @@ class ChartLibrary {
 
             // Wait for chart type switch to complete, then load data
             setTimeout(() => {
-                // Load the chart data
+                // Embed chart state in data metadata before loading
+                if (chart.config && chart.config.chartState) {
+                    if (!chart.data.metadata) {
+                        chart.data.metadata = {};
+                    }
+                    chart.data.metadata.chartState = chart.config.chartState;
+                    console.log('📦 Embedded chart state in data metadata for restoration');
+                }
+                
+                // Load the chart data (with embedded state)
                 window.pulseApp.updateData(chart.data, 'chart-library');
                 
                 // Apply configuration if chart supports it
                 if (window.pulseApp.chart && window.pulseApp.chart.updateConfig) {
                     window.pulseApp.chart.updateConfig(chart.config);
+                }
+                
+                // Trigger chart state restoration after data is loaded
+                if (window.pulseApp.chart && chart.config && chart.config.chartState) {
+                    setTimeout(() => {
+                        if (window.pulseApp.chart.restoreCompleteState) {
+                            console.log('🔄 Triggering built-in state restoration');
+                            window.pulseApp.chart.restoreCompleteState();
+                        }
+                    }, 1000);
                 }
 
                 // Update spreadsheet editor with the loaded data
@@ -614,6 +672,11 @@ class ChartLibrary {
             return;
         }
 
+        // Capture current chart state before saving
+        if (window.pulseApp.chart && window.pulseApp.chart.captureCompleteState) {
+            window.pulseApp.chart.captureCompleteState();
+        }
+        
         this.saveChart(name, currentChart.data, currentChart.config, currentChart.chartType);
         this.closeSaveModal();
         this.showNotification(`Chart "${name}" saved successfully!`, 'success');
@@ -1180,6 +1243,26 @@ class ChartLibrary {
         }, 2000);
     }
 
+    // Helper method to find the most recently used chart of a specific type
+    findMostRecentChartOfType(chartType) {
+        if (!this.savedCharts || this.savedCharts.length === 0) return null;
+        
+        const chartsOfType = this.savedCharts.filter(c => c.chartType === chartType);
+        if (chartsOfType.length === 0) return null;
+        
+        // Sort by updatedAt (most recent first)
+        chartsOfType.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        return chartsOfType[0];
+    }
+
+    // Confirm with user if they want to save to the most recent chart
+    confirmQuickSaveToRecentChart(chart) {
+        return confirm(`Save changes to "${chart.name}"?\n\nClick OK to update the existing chart, or Cancel to create a new chart.`);
+    }
+
+    // Note: Chart state restoration is now handled by embedding state in data.metadata.chartState
+    // and letting the chart's built-in restoreCompleteState() method handle it
+
     // Public API
     getSavedCharts() {
         return [...this.savedCharts];
@@ -1219,7 +1302,21 @@ class ChartLibrary {
     updateSpreadsheetWithData(data, chartType) {
         console.log('📊 Updating spreadsheet with loaded data:', data);
         
-        // Ensure unified data editor exists
+        // Check if spreadsheet editor container exists, if not, try to wait for it
+        const editorContainer = document.getElementById('unified-data-editor-container');
+        if (!editorContainer) {
+            // Try again after a short delay to allow DOM to load
+            setTimeout(() => {
+                const retryContainer = document.getElementById('unified-data-editor-container');
+                if (!retryContainer) {
+                    console.log('📝 Spreadsheet editor not available - this is normal for chart library loading');
+                    return;
+                }
+                this.updateSpreadsheetWithData(data, chartType);
+            }, 500);
+            return;
+        }
+        
         if (!window.unifiedDataEditor && window.pulseApp && window.pulseApp.chart) {
             console.log('📝 Creating unified data editor for chart loading');
             window.unifiedDataEditor = new UnifiedSpreadsheetEditor('unified-data-editor-container', window.pulseApp.chart, chartType);

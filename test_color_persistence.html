@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Color Persistence Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .test-step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .code-sample { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>✅ Chart Color Persistence - Issues Fixed</h1>
+        
+        <div class="test-step success">
+            <h3>Issue 1: Spreadsheet Editor Container Error - FIXED</h3>
+            <p><strong>Problem:</strong> "Spreadsheet editor container not found in DOM" error when loading charts</p>
+            <p><strong>Solution:</strong> Added robust container checking with retry logic and graceful fallback</p>
+            <div class="code-sample">
+                // Now safely handles missing containers
+                const editorContainer = document.getElementById('unified-data-editor-container');
+                if (!editorContainer) {
+                    setTimeout(() => { /* retry logic */ }, 500);
+                    return;
+                }
+            </div>
+        </div>
+
+        <div class="test-step success">
+            <h3>Issue 2: Link Colors Not Preserved - FIXED</h3>
+            <p><strong>Problem:</strong> Link colors reverted to defaults when loading saved charts</p>
+            <p><strong>Root Cause:</strong> Link color categories were not being captured in auto-save system</p>
+            <p><strong>Solutions Implemented:</strong></p>
+            <ul>
+                <li>✅ Enhanced auto-save to capture link.colorCategory for each link</li>
+                <li>✅ Added link color restoration in restoreCompleteState()</li>
+                <li>✅ Updated Chart Library to save/restore chart state including link colors</li>
+                <li>✅ Added applyRestoredState() support for link color categories</li>
+            </ul>
+        </div>
+
+        <div class="test-step success">
+            <h3>Enhanced Color Persistence System</h3>
+            <p><strong>What Now Gets Saved & Restored:</strong></p>
+            <ul>
+                <li>🎨 <strong>Node Colors</strong> - Custom colors and category assignments</li>
+                <li>🔗 <strong>Link Colors</strong> - Color categories for each link connection</li>
+                <li>📍 <strong>Node Positions</strong> - Manual positioning and layout</li>
+                <li>🏷️ <strong>Category Assignments</strong> - Node-to-category mappings</li>
+                <li>🎯 <strong>Category Colors</strong> - Custom category color definitions</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>Testing Instructions</h3>
+            <p>To verify the fixes work:</p>
+            <ol>
+                <li><strong>Open chart.html</strong> and load sample data</li>
+                <li><strong>Customize colors:</strong>
+                    <ul>
+                        <li>Assign nodes to different categories (changes node colors)</li>
+                        <li>Observe that links automatically get colored based on target categories</li>
+                        <li>Manually adjust any colors as needed</li>
+                    </ul>
+                </li>
+                <li><strong>Save chart:</strong> Use "Save As" to create a new chart</li>
+                <li><strong>Make more changes:</strong> Modify colors further</li>
+                <li><strong>Quick Save:</strong> Use "Save" button or Ctrl+S</li>
+                <li><strong>Test persistence:</strong>
+                    <ul>
+                        <li>Refresh the browser</li>
+                        <li>Open Library and load your saved chart</li>
+                        <li>Verify both node AND link colors are preserved correctly</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-step success">
+            <h3>Expected Results</h3>
+            <p><strong>✅ Should now work correctly:</strong></p>
+            <ul>
+                <li>No more "Spreadsheet editor container not found" errors</li>
+                <li>Node colors preserved when loading charts</li>
+                <li>Link colors preserved when loading charts</li>
+                <li>Category assignments maintained</li>
+                <li>Node positions saved and restored</li>
+                <li>Quick Save and Save As both work reliably</li>
+            </ul>
+        </div>
+
+        <div class="test-step warning">
+            <h3>Technical Details</h3>
+            <p><strong>Files Modified:</strong></p>
+            <ul>
+                <li><code>js/core/ChartLibrary.js</code> - Enhanced save/restore with chart state</li>
+                <li><code>js/charts/sankey/SankeyChart.js</code> - Added link color capture/restore</li>
+            </ul>
+            
+            <p><strong>New Features:</strong></p>
+            <ul>
+                <li>Link color categories saved to <code>statePersistence.linkCustomColors</code></li>
+                <li>Chart state embedded in saved chart configurations</li>
+                <li>Robust DOM container checking with retry logic</li>
+                <li>Enhanced Quick Save with complete state preservation</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

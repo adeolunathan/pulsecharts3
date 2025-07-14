@@ -319,12 +319,22 @@ class SpreadsheetEditor {
     }
 
     render() {
+        if (!this.container) {
+            console.error('❌ SpreadsheetEditor: Container is null in render()');
+            return;
+        }
+        
         this.renderHeaders();
         this.renderRows();
         this.updateStatus();
     }
 
     renderHeaders() {
+        if (!this.container) {
+            console.error('❌ SpreadsheetEditor: Container is null in renderHeaders()');
+            return;
+        }
+        
         const thead = this.container.querySelector('.spreadsheet-header');
         
         // Remove existing event listeners before clearing
