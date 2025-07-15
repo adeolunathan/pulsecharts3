@@ -78,7 +78,7 @@
         
         const logoImage = footerGroup.append('image')
             .attr('x', 2)  // Moved closer to left edge (was 10, now 2)
-            .attr('y', -100)  // Moved up slightly for larger logo
+            .attr('y', -120)  // Moved up slightly for larger logo
             .attr('width', hasBackendLogo ? 200 : 32)  // Much larger for backend logo: 72px
             .attr('height', hasBackendLogo ? 200 : 32)
             .attr('href', primaryLogoUrl)

@@ -2177,6 +2177,16 @@
 
         function resetToChartData() {
             loadCurrentChartData();
+            // Auto-close data menu with slight delay to ensure it happens after click
+            setTimeout(() => {
+                console.log('🔄 resetToChartData: Attempting to close dropdowns');
+                if (window.DropdownManager) {
+                    window.DropdownManager.closeAll();
+                    console.log('✅ resetToChartData: Dropdown closeAll called');
+                } else {
+                    console.warn('⚠️ resetToChartData: DropdownManager not available');
+                }
+            }, 50);
         }
 
         // Node highlighting functionality
@@ -2733,6 +2743,13 @@
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
             
             const sankeyData = generateNodesAndLinksFromFlows();
+            
+            // Auto-close data menu with slight delay
+            setTimeout(() => {
+                if (window.DropdownManager) {
+                    window.DropdownManager.closeAll();
+                }
+            }, 50);
             window.PulseDataBridge.setData(sankeyData, 'flow-builder');
             
             // Reset highlighting when chart data changes
@@ -2752,6 +2769,13 @@
             if (flowData.flows.length === 0) {
                 errors.push('No flows defined');
             }
+            
+            // Auto-close data menu with slight delay
+            setTimeout(() => {
+                if (window.DropdownManager) {
+                    window.DropdownManager.closeAll();
+                }
+            }, 50);
             
             flowData.flows.forEach((flow, index) => {
                 if (!flow.source || !flow.target) {
@@ -2811,6 +2835,13 @@
             link.download = `${flowData.metadata.company.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}-flows.csv`;
             link.click();
             URL.revokeObjectURL(url);
+            
+            // Auto-close data menu with slight delay
+            setTimeout(() => {
+                if (window.DropdownManager) {
+                    window.DropdownManager.closeAll();
+                }
+            }, 50);
         }
 
         function importFlowsFromCSV() {
@@ -3322,6 +3353,13 @@
             link.download = filename;
             link.click();
             URL.revokeObjectURL(url);
+            
+            // Auto-close data menu with slight delay
+            setTimeout(() => {
+                if (window.DropdownManager) {
+                    window.DropdownManager.closeAll();
+                }
+            }, 50);
         }
 
         // ===== CHART TYPE SELECTOR FUNCTIONALITY =====

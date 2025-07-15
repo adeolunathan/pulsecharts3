@@ -3232,7 +3232,13 @@ class PulseSankeyChart extends BaseChart {
     getNodeColor(node) {
         // PHASE 2: Enhanced color assignment with category-first logic
         
-        // 1. Check for node-specific custom color first (highest priority)
+        // 1. Check for independent color first (highest priority for color-only mode)
+        const independentColor = this.getIndependentNodeColor(node.id);
+        if (independentColor) {
+            return independentColor;
+        }
+        
+        // 2. Check for node-specific custom color 
         if (node.customColor) {
             return node.customColor;
         }
@@ -3412,9 +3418,14 @@ class PulseSankeyChart extends BaseChart {
      * Category-based link colors for income statements
      */
     getLinkColor_Income(link) {
-        // Priority: custom colors > category colors
+        // Priority: independent colors > custom colors > category colors
         
-        // Check for custom colors first
+        // Check for independent colors first (highest priority)
+        if (link.independentColor) {
+            return ChartUtils.lightenColor(link.independentColor, 15);
+        }
+        
+        // Check for custom colors
         if (link.target.userCreated || link.target.customColor) {
             const targetColor = this.getNodeColor(link.target);
             return ChartUtils.lightenColor(targetColor, 15);
@@ -3448,6 +3459,13 @@ class PulseSankeyChart extends BaseChart {
     }
 
     getLinkColor_Balance(link) {
+        // Priority: independent colors > custom colors > category colors
+        
+        // Check for independent colors first (highest priority)
+        if (link.independentColor) {
+            return ChartUtils.hexToRgba(link.independentColor, 0.65);
+        }
+        
         // Always prioritize target node color for consistency
         if (link.target.userCreated || link.target.customColor) {
             const targetColor = this.getNodeColor(link.target);
@@ -4770,9 +4788,19 @@ class PulseSankeyChart extends BaseChart {
             return [];
         }
         
-        return node.depth === 0 
-            ? links.filter(link => link.source.id === node.id)  // Outgoing links for depth 0
-            : links.filter(link => link.target.id === node.id); // Incoming links for others
+        // Special case: Revenue nodes at depth 1 should only change node color (not outgoing links)
+        if (node.depth === 1 && (node.category === 'revenue' || node.id.toLowerCase().includes('revenue'))) {
+            console.log(`🎯 Revenue node at depth 1 detected: '${node.id}' - node-only coloring`);
+            return [];
+        }
+        
+        // Depth 0 nodes: Color outgoing links
+        if (node.depth === 0) {
+            return links.filter(link => link.source.id === node.id);
+        }
+        
+        // All other nodes (depth > 1): Color incoming links
+        return links.filter(link => link.target.id === node.id);
     }
 
     // Detect aggregation nodes to avoid link coloring conflicts
@@ -7602,6 +7630,93 @@ class PulseSankeyChart extends BaseChart {
      */
     getCategoryForNode(nodeId) {
         return this.categoryManager.nodeCategories.get(nodeId) || null;
+    }
+
+    /**
+     * Set independent color for a node (color-only, no category)
+     * @param {string} nodeId - The node ID
+     * @param {string} color - The color to apply
+     */
+    setIndependentNodeColor(nodeId, color) {
+        if (!nodeId || !color) {
+            console.warn('⚠️ Invalid nodeId or color for independent color assignment');
+            return;
+        }
+
+        const node = this.nodes?.find(n => n.id === nodeId);
+        if (!node) {
+            console.warn(`⚠️ Node '${nodeId}' not found for independent color assignment`);
+            return;
+        }
+
+        // Store independent color (separate from category colors)
+        if (!this.independentNodeColors) {
+            this.independentNodeColors = {};
+        }
+        this.independentNodeColors[nodeId] = color;
+
+        // Apply color using same logic as category assignment but for color only
+        this.updateIndependentLinkColors(node, color);
+
+        // Re-render to apply changes
+        this.rerenderWithNewColors();
+
+        console.log(`🎨 Set independent color for node '${nodeId}': ${color}`);
+    }
+
+    /**
+     * Get independent color for a node
+     * @param {string} nodeId - The node ID
+     * @returns {string|null} The independent color or null
+     */
+    getIndependentNodeColor(nodeId) {
+        return this.independentNodeColors?.[nodeId] || null;
+    }
+
+    /**
+     * Remove independent color from a node
+     * @param {string} nodeId - The node ID
+     */
+    removeIndependentNodeColor(nodeId) {
+        if (this.independentNodeColors && this.independentNodeColors[nodeId]) {
+            delete this.independentNodeColors[nodeId];
+            
+            // Clear link colors for this node
+            const node = this.nodes?.find(n => n.id === nodeId);
+            if (node) {
+                this.updateIndependentLinkColors(node, null);
+            }
+            
+            this.rerenderWithNewColors();
+            console.log(`🔄 Removed independent color from node '${nodeId}'`);
+        }
+    }
+
+    /**
+     * Update link colors for independent node coloring (same logic as category assignment)
+     * @param {Object} node - The node object
+     * @param {string|null} color - The color to apply (null to clear)
+     */
+    updateIndependentLinkColors(node, color) {
+        if (!this.links || this.links.length === 0) return;
+
+        // Use the same link selection logic as category assignment
+        const linksToColor = this.getLinksToColor(node, this.links);
+
+        // Apply independent color only to appropriate links based on depth rules
+        linksToColor.forEach(link => {
+            if (color) {
+                link.independentColor = color;
+            } else {
+                delete link.independentColor;
+            }
+        });
+
+        const nodeType = this.isAggregationNode(node, this.links) ? 'aggregation' : 
+                        (node.depth === 0 ? 'revenue segment' : 
+                         (node.depth === 1 && (node.category === 'revenue' || node.id.toLowerCase().includes('revenue')) ? 'revenue depth 1' : 'other'));
+        
+        console.log(`🎨 Applied independent color to ${linksToColor.length} links for ${nodeType} node '${node.id}'${linksToColor.length === 0 ? ' (node-only coloring)' : ''}`);
     }
 
     /**

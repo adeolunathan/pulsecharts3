@@ -414,23 +414,32 @@ class CategoryAssignmentModal {
     }
 
     /**
-     * Save category assignment
+     * Save category assignment or color-only change based on active tab
      */
     save() {
-        // If no category was explicitly selected, use the current selection
-        const categoryToAssign = this.selectedCategory !== undefined ? this.selectedCategory : this.currentCategory;
+        console.log(`💾 Save clicked - Active tab: ${this.activeTab}`);
         
-        if (categoryToAssign === undefined || categoryToAssign === null) {
-            // No valid category, treat as remove category
-            console.log(`🗑️ No category selected for node '${this.node.id}', treating as remove category`);
-            this.chart.removeNodeFromCategory(this.node.id);
-        } else if (categoryToAssign === '') {
-            // Explicitly remove category
-            console.log(`🗑️ Removing category from node '${this.node.id}'`);
-            this.chart.removeNodeFromCategory(this.node.id);
+        if (this.activeTab === 'color') {
+            // Color-only tab: Just apply the independent color and close
+            console.log(`🎨 Color-only save for node '${this.node.id}' - no category assignment`);
+            // Color changes are already applied in real-time via handleColorChange/setIndependentColor
+            // No category assignment needed for color-only mode
         } else {
-            console.log(`✅ Assigning category '${categoryToAssign}' to node '${this.node.id}'`);
-            this.chart.assignNodeToCategory(this.node.id, categoryToAssign);
+            // Category tab: Handle category assignment
+            const categoryToAssign = this.selectedCategory !== undefined ? this.selectedCategory : this.currentCategory;
+            
+            if (categoryToAssign === undefined || categoryToAssign === null) {
+                // No valid category, treat as remove category
+                console.log(`🗑️ No category selected for node '${this.node.id}', treating as remove category`);
+                this.chart.removeNodeFromCategory(this.node.id);
+            } else if (categoryToAssign === '') {
+                // Explicitly remove category
+                console.log(`🗑️ Removing category from node '${this.node.id}'`);
+                this.chart.removeNodeFromCategory(this.node.id);
+            } else {
+                console.log(`✅ Assigning category '${categoryToAssign}' to node '${this.node.id}'`);
+                this.chart.assignNodeToCategory(this.node.id, categoryToAssign);
+            }
         }
         
         // Close modal

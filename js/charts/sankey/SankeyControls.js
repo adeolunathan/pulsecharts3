@@ -777,6 +777,29 @@ class SankeyControlModule {
             return;
         }
 
+        // Handle curveIntensity specially - direct path update without any re-render
+        if (controlId === 'curveIntensity') {
+            console.log(`🎛️ Setting curveIntensity to ${value} without re-render`);
+            chart.config.curveIntensity = value;
+            
+            // Update existing links directly by recalculating paths
+            if (chart.chart && chart.links) {
+                const linkSelection = chart.chart.selectAll('.sankey-link path');
+                console.log(`🔍 Found ${linkSelection.size()} links to update curve intensity`);
+                
+                // Update each link path with new curvature
+                linkSelection
+                    .transition()
+                    .duration(200)
+                    .attr('d', d => {
+                        // Recalculate path using the new curve intensity
+                        return chart.createSmoothPath(d, value);
+                    });
+            }
+            
+            console.log(`✅ Updated curveIntensity to ${value} without chart reset`);
+            return;
+        }
 
         // Handle brand logo upload
         if (controlId === 'brandUpload') {
