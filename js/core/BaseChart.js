@@ -238,11 +238,21 @@ class BaseChart {
                 }
             }
 
-            // Capture independent node colors from nodes with customColor property
+            // Capture independent node colors from chart instance
+            if (this.independentNodeColors && typeof this.independentNodeColors === 'object') {
+                console.log(`💾 Capturing ${Object.keys(this.independentNodeColors).length} independent node colors`);
+                for (const [nodeId, color] of Object.entries(this.independentNodeColors)) {
+                    this.statePersistence.independentNodeColors.set(nodeId, color);
+                    console.log(`💾 Captured independent color for ${nodeId}: ${color}`);
+                }
+            }
+            
+            // Fallback: Capture independent node colors from nodes with customColor property
             if (this.nodes) {
                 this.nodes.forEach(node => {
-                    if (node.customColor && !this.statePersistence.nodeCustomColors.has(node.id)) {
+                    if (node.customColor && !this.statePersistence.nodeCustomColors.has(node.id) && !this.statePersistence.independentNodeColors.has(node.id)) {
                         this.statePersistence.independentNodeColors.set(node.id, node.customColor);
+                        console.log(`💾 Captured independent color from node property for ${node.id}: ${node.customColor}`);
                     }
                 });
             }

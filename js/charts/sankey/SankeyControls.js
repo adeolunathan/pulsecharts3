@@ -720,60 +720,357 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle other controls with existing logic
-        if (controlId === 'leftmostGroupGap' || controlId === 'rightmostGroupGap') {
-            chart.updateConfig({ [controlId]: value });
-            return;
-        }
-
+        // Handle nodePadding specially - direct DOM update without re-render
         if (controlId === 'nodePadding') {
-            chart.updateConfig({ nodePadding: value });
+            console.log(`🎛️ Setting nodePadding to ${value} without re-render`);
+            chart.config.nodePadding = value;
+            
+            // For nodePadding changes, we need to adjust node positions but preserve colors
+            // This is a layout change that requires repositioning but preserves user customizations
+            if (chart.chart && chart.nodes) {
+                // Store current manual positions to preserve them
+                const manualPositions = new Map();
+                chart.nodes.forEach(node => {
+                    if (node.manuallyPositioned) {
+                        manualPositions.set(node.id, { x: node.x, y: node.y });
+                    }
+                });
+                
+                // Update node padding and re-layout nodes within each depth
+                chart.nodes.forEach(node => {
+                    // Only auto-adjust non-manually positioned nodes
+                    if (!node.manuallyPositioned) {
+                        // Calculate new Y position based on updated padding
+                        const nodesAtSameDepth = chart.nodes.filter(n => n.depth === node.depth && !n.manuallyPositioned);
+                        const nodeIndex = nodesAtSameDepth.findIndex(n => n.id === node.id);
+                        if (nodeIndex >= 0) {
+                            // Simple vertical redistribution with new padding
+                            const totalHeight = chart.config.height - chart.config.margin.top - chart.config.margin.bottom;
+                            const spacingBetweenNodes = value;
+                            const startY = chart.config.margin.top + (totalHeight - (nodesAtSameDepth.length * node.height + (nodesAtSameDepth.length - 1) * spacingBetweenNodes)) / 2;
+                            node.y = startY + nodeIndex * (node.height + spacingBetweenNodes);
+                        }
+                    }
+                });
+                
+                // Restore manual positions
+                manualPositions.forEach((pos, nodeId) => {
+                    const node = chart.nodes.find(n => n.id === nodeId);
+                    if (node) {
+                        node.x = pos.x;
+                        node.y = pos.y;
+                    }
+                });
+                
+                // Update visual positions
+                chart.chart.selectAll('.sankey-node')
+                    .transition()
+                    .duration(200)
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+                
+                // Update link paths with new node positions
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('d', d => chart.createSmoothPath(d, chart.config.curveIntensity));
+                
+                // Update text positions
+                chart.chart.selectAll('.node-text-group')
+                    .transition()
+                    .duration(200)
+                    .attr('transform', function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            // Extract current X position and update Y to new center
+                            const currentTransform = d3.select(this).attr('transform');
+                            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                            if (translateMatch) {
+                                const x = parseFloat(translateMatch[1]);
+                                return `translate(${x}, ${node.y + node.height/2})`;
+                            }
+                        }
+                        return d3.select(this).attr('transform');
+                    });
+            }
+            
+            console.log(`✅ Updated nodePadding to ${value} without chart reset`);
             return;
         }
 
-        // Handle unified text distance controls
+        // Handle leftmostGroupGap and rightmostGroupGap with direct updates
+        if (controlId === 'leftmostGroupGap' || controlId === 'rightmostGroupGap') {
+            console.log(`🎛️ Setting ${controlId} to ${value} without re-render`);
+            chart.config[controlId] = value;
+            
+            // For spacing changes, we need to update positions but not trigger full render
+            // This is a layout change that requires repositioning but preserves colors
+            if (chart.chart && chart.nodes) {
+                // Update node positions based on new gap settings
+                chart.nodes.forEach(node => {
+                    if (!node.manuallyPositioned) {
+                        // Recalculate horizontal positions with new gaps
+                        const maxDepth = Math.max(...chart.nodes.map(n => n.depth));
+                        const availableWidth = chart.config.width - chart.config.margin.left - chart.config.margin.right;
+                        const leftGap = chart.config.leftmostGroupGap || 0;
+                        const rightGap = chart.config.rightmostGroupGap || 0;
+                        const workingWidth = availableWidth - leftGap - rightGap;
+                        
+                        if (maxDepth > 0) {
+                            const horizontalSpacing = workingWidth / maxDepth;
+                            node.x = chart.config.margin.left + leftGap + (node.depth * horizontalSpacing);
+                        }
+                    }
+                });
+                
+                // Update visual positions
+                chart.chart.selectAll('.sankey-node')
+                    .transition()
+                    .duration(200)
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+                
+                // Update link paths
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('d', d => chart.createSmoothPath(d, chart.config.curveIntensity));
+                
+                // Update text positions
+                chart.chart.selectAll('.node-text-group')
+                    .transition()
+                    .duration(200)
+                    .attr('transform', function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            const currentTransform = d3.select(this).attr('transform');
+                            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                            if (translateMatch) {
+                                const currentY = parseFloat(translateMatch[2]);
+                                return `translate(${node.x + node.width/2}, ${currentY})`;
+                            }
+                        }
+                        return d3.select(this).attr('transform');
+                    });
+            }
+            
+            console.log(`✅ Updated ${controlId} to ${value} without chart reset`);
+            return;
+        }
+
+        // Handle textDistanceLeftmost with direct DOM updates - no re-render
         if (controlId === 'textDistanceLeftmost') {
+            console.log(`🎛️ Setting textDistanceLeftmost to ${value} without re-render`);
+            
+            // Update config
             const textDistance = chart.config.textDistance || {};
             textDistance.leftmost = value;
-            chart.updateConfig({ textDistance });
+            chart.config.textDistance = textDistance;
+            
+            // Update existing leftmost text groups directly
+            if (chart.chart) {
+                chart.chart.selectAll('.node-text-group')
+                    .filter(function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        return node && node.depth === 0; // leftmost nodes
+                    })
+                    .transition()
+                    .duration(200)
+                    .attr('transform', function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            return `translate(${node.x - value}, ${node.y + node.height/2})`;
+                        }
+                        return d3.select(this).attr('transform');
+                    });
+            }
+            
+            console.log(`✅ Updated textDistanceLeftmost to ${value} without chart reset`);
             return;
         }
         
+        // Handle textDistanceMiddle with direct DOM updates - no re-render
         if (controlId === 'textDistanceMiddle') {
+            console.log(`🎛️ Setting textDistanceMiddle to ${value} without re-render`);
+            
+            // Update config
             const textDistance = chart.config.textDistance || {};
             textDistance.middle = value;
-            chart.updateConfig({ textDistance });
+            chart.config.textDistance = textDistance;
+            
+            // Update existing middle text groups directly
+            if (chart.chart) {
+                const maxDepth = Math.max(...chart.nodes.map(n => n.depth));
+                
+                chart.chart.selectAll('.node-text-group')
+                    .filter(function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        return node && node.depth > 0 && node.depth < maxDepth; // middle nodes
+                    })
+                    .transition()
+                    .duration(200)
+                    .attr('transform', function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            // Determine if text should be above or below based on node position
+                            const centerY = chart.config.height / 2;
+                            const isTopNode = node.y + node.height/2 < centerY;
+                            
+                            if (isTopNode) {
+                                // Text above node
+                                return `translate(${node.x + node.width/2}, ${node.y - value})`;
+                            } else {
+                                // Text below node  
+                                return `translate(${node.x + node.width/2}, ${node.y + node.height + value})`;
+                            }
+                        }
+                        return d3.select(this).attr('transform');
+                    });
+            }
+            
+            console.log(`✅ Updated textDistanceMiddle to ${value} without chart reset`);
             return;
         }
         
+        // Handle textDistanceRightmost with direct DOM updates - no re-render
         if (controlId === 'textDistanceRightmost') {
+            console.log(`🎛️ Setting textDistanceRightmost to ${value} without re-render`);
+            
+            // Update config
             const textDistance = chart.config.textDistance || {};
             textDistance.rightmost = value;
-            chart.updateConfig({ textDistance });
+            chart.config.textDistance = textDistance;
+            
+            // Update existing rightmost text groups directly
+            if (chart.chart) {
+                const maxDepth = Math.max(...chart.nodes.map(n => n.depth));
+                
+                chart.chart.selectAll('.node-text-group')
+                    .filter(function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        return node && node.depth === maxDepth; // rightmost nodes
+                    })
+                    .transition()
+                    .duration(200)
+                    .attr('transform', function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            return `translate(${node.x + node.width + value}, ${node.y + node.height/2})`;
+                        }
+                        return d3.select(this).attr('transform');
+                    });
+            }
+            
+            console.log(`✅ Updated textDistanceRightmost to ${value} without chart reset`);
             return;
         }
 
+        // Handle linkWidthScale specially - direct DOM update without re-render  
         if (controlId === 'linkWidthScale') {
-            chart.updateConfig({ linkWidthScale: value });
-            if (chart.setLinkWidth) {
+            console.log(`🎛️ Setting linkWidthScale to ${value} without re-render`);
+            chart.config.linkWidthScale = value;
+            
+            // Update existing link widths directly
+            if (chart.chart && chart.setLinkWidth) {
                 chart.setLinkWidth(value);
             }
+            
+            console.log(`✅ Updated linkWidthScale to ${value} without chart reset`);
             return;
         }
 
-        // Layer spacing multipliers
-        if (controlId === 'leftmostSpacing') {
-            chart.updateConfig({ leftmostSpacing: value });
-            return;
-        }
-
-        if (controlId === 'middleSpacing') {
-            chart.updateConfig({ middleSpacing: value });
-            return;
-        }
-
-        if (controlId === 'rightmostSpacing') {
-            chart.updateConfig({ rightmostSpacing: value });
+        // Handle spacing multipliers with direct updates - no re-render
+        if (controlId === 'leftmostSpacing' || controlId === 'middleSpacing' || controlId === 'rightmostSpacing') {
+            console.log(`🎛️ Setting ${controlId} to ${value} without re-render`);
+            chart.config[controlId] = value;
+            
+            // For spacing multipliers, we need to update layer spacing but preserve colors
+            if (chart.chart && chart.nodes) {
+                // Update the layer spacing configuration
+                if (!chart.config.layerSpacing) {
+                    chart.config.layerSpacing = { 0: 0.8, 1: 1.0, 2: 1.0, 3: 0.9, 4: 0.7 };
+                }
+                
+                // Apply the multiplier to the appropriate layers
+                const maxDepth = Math.max(...chart.nodes.map(n => n.depth));
+                if (controlId === 'leftmostSpacing') {
+                    chart.config.layerSpacing[0] = value;
+                } else if (controlId === 'rightmostSpacing') {
+                    chart.config.layerSpacing[maxDepth] = value;
+                } else if (controlId === 'middleSpacing') {
+                    // Apply to all middle layers
+                    for (let depth = 1; depth < maxDepth; depth++) {
+                        chart.config.layerSpacing[depth] = value;
+                    }
+                }
+                
+                // Recalculate node positions within each depth with new spacing
+                const nodesByDepth = new Map();
+                chart.nodes.forEach(node => {
+                    if (!nodesByDepth.has(node.depth)) {
+                        nodesByDepth.set(node.depth, []);
+                    }
+                    nodesByDepth.get(node.depth).push(node);
+                });
+                
+                nodesByDepth.forEach((nodesAtDepth, depth) => {
+                    const spacingMultiplier = chart.config.layerSpacing[depth] || 1.0;
+                    const baseSpacing = chart.config.nodePadding || 50;
+                    const adjustedSpacing = baseSpacing * spacingMultiplier;
+                    
+                    // Only update non-manually positioned nodes
+                    const autoNodes = nodesAtDepth.filter(n => !n.manuallyPositioned);
+                    if (autoNodes.length > 0) {
+                        const totalHeight = chart.config.height - chart.config.margin.top - chart.config.margin.bottom;
+                        const totalNodeHeight = autoNodes.reduce((sum, node) => sum + node.height, 0);
+                        const totalSpacing = (autoNodes.length - 1) * adjustedSpacing;
+                        const startY = chart.config.margin.top + (totalHeight - totalNodeHeight - totalSpacing) / 2;
+                        
+                        autoNodes.forEach((node, index) => {
+                            const prevNodesHeight = autoNodes.slice(0, index).reduce((sum, n) => sum + n.height, 0);
+                            node.y = startY + prevNodesHeight + (index * adjustedSpacing);
+                        });
+                    }
+                });
+                
+                // Update visual positions
+                chart.chart.selectAll('.sankey-node')
+                    .transition()
+                    .duration(200)
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+                
+                // Update link paths
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('d', d => chart.createSmoothPath(d, chart.config.curveIntensity));
+                
+                // Update text positions
+                chart.chart.selectAll('.node-text-group')
+                    .transition()
+                    .duration(200)
+                    .attr('transform', function() {
+                        const nodeId = d3.select(this).attr('data-node-id');
+                        const node = chart.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            const currentTransform = d3.select(this).attr('transform');
+                            const translateMatch = currentTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                            if (translateMatch) {
+                                const x = parseFloat(translateMatch[1]);
+                                return `translate(${x}, ${node.y + node.height/2})`;
+                            }
+                        }
+                        return d3.select(this).attr('transform');
+                    });
+            }
+            
+            console.log(`✅ Updated ${controlId} to ${value} without chart reset`);
             return;
         }
 
@@ -813,13 +1110,94 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle nodeHeightScale specially - ensure chart fits container after scaling
+        // Handle nodeWidth specially - direct DOM update without re-render
+        if (controlId === 'nodeWidth') {
+            console.log(`🎛️ Setting nodeWidth to ${value} without re-render`);
+            chart.config.nodeWidth = value;
+            
+            // Update existing node widths directly
+            if (chart.chart) {
+                chart.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(200)
+                    .attr('width', value);
+                
+                // Update link positions since they depend on node width
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('d', d => {
+                        // Recalculate path with new node width
+                        return chart.createSmoothPath(d, chart.config.curveIntensity);
+                    });
+            }
+            
+            console.log(`✅ Updated nodeWidth to ${value} without chart reset`);
+            return;
+        }
+
+        // Handle nodeHeightScale specially - update data and DOM without re-render
         if (controlId === 'nodeHeightScale') {
-            chart.updateConfig({ [controlId]: value });
+            console.log(`🎛️ Setting nodeHeightScale to ${value} without re-render`);
+            chart.config.nodeHeightScale = value;
+            
+            // Update both underlying node data AND visual elements
+            if (chart.chart && chart.nodes) {
+                // 1. Update underlying node height data
+                chart.nodes.forEach(node => {
+                    node.height = Math.max(8, node.value * value);
+                });
+                
+                // 2. Update visual node rectangles
+                chart.chart.selectAll('.sankey-node rect')
+                    .transition()
+                    .duration(200)
+                    .attr('height', d => d.height);
+                
+                // 3. Update link paths with proper source/target heights
+                chart.chart.selectAll('.sankey-link path')
+                    .transition()
+                    .duration(200)
+                    .attr('d', d => {
+                        // Ensure links use updated node heights for proper path calculation
+                        if (d.source && d.target) {
+                            // Update link positions based on new node heights
+                            const sourceNode = chart.nodes.find(n => n.id === d.source.id);
+                            const targetNode = chart.nodes.find(n => n.id === d.target.id);
+                            if (sourceNode) d.source.height = sourceNode.height;
+                            if (targetNode) d.target.height = targetNode.height;
+                        }
+                        return chart.createSmoothPath(d, chart.config.curveIntensity);
+                    });
+                
+                // 4. Update text label positions if they depend on node heights
+                if (chart.chart.selectAll('.node-text-group').size() > 0) {
+                    chart.chart.selectAll('.node-text-group')
+                        .transition()
+                        .duration(200)
+                        .attr('transform', function() {
+                            const nodeId = d3.select(this).attr('data-node-id');
+                            const node = chart.nodes.find(n => n.id === nodeId);
+                            if (node) {
+                                // Extract current X position and update Y to new center
+                                const currentTransform = d3.select(this).attr('transform');
+                                const translateMatch = currentTransform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
+                                if (translateMatch) {
+                                    const x = parseFloat(translateMatch[1]);
+                                    return `translate(${x}, ${node.y + node.height/2})`;
+                                }
+                            }
+                            return d3.select(this).attr('transform');
+                        });
+                }
+            }
+            
             // Ensure chart fits within fixed container after height scaling
             if (chart.ensureChartFitsContainer) {
                 chart.ensureChartFitsContainer();
             }
+            
+            console.log(`✅ Updated nodeHeightScale to ${value} with proper link scaling`);
             return;
         }
 
@@ -1335,6 +1713,17 @@ class SankeyControlModule {
             alert('No chart available. Please ensure a chart is loaded first.');
             return;
         }
+        
+        // Auto-close data menu with slight delay to ensure it happens after click
+        setTimeout(() => {
+            console.log('🔄 openBulkAssignmentModal: Attempting to close dropdowns');
+            if (window.DropdownManager) {
+                window.DropdownManager.closeAll();
+                console.log('✅ openBulkAssignmentModal: Dropdown closeAll called');
+            } else {
+                console.warn('⚠️ openBulkAssignmentModal: DropdownManager not available');
+            }
+        }, 50);
         
         if (!this.chart.nodes || this.chart.nodes.length === 0) {
             console.error('❌ No node data available for bulk assignment');
