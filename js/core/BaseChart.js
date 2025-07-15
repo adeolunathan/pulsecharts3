@@ -1,0 +1,843 @@
+/* ===== BASE CHART - UNIFIED STATE PERSISTENCE FOUNDATION ===== */
+/* Extracted from working SankeyChart implementation */
+
+class BaseChart {
+    constructor(containerId) {
+        this.containerId = containerId;
+        this.container = d3.select(`#${containerId}`);
+        this.svg = null;
+        this.chart = null;
+        this.data = null;
+        this.config = {};
+        
+        // Custom color storage (standardized from Sankey)
+        this.customColors = {};
+        
+        // Initialize comprehensive state persistence system (extracted from Sankey)
+        this.initializeStatePersistence();
+    }
+
+    /**
+     * Initialize comprehensive state persistence system
+     * Extracted from SankeyChart.js lines 107-120
+     */
+    initializeStatePersistence() {
+        // Comprehensive Chart State Persistence System (extracted from SankeyChart lines 58-95)
+        this.statePersistence = {
+            // Visual State
+            categoryAssignments: new Map(),      // Node ID -> category name
+            categoryColors: new Map(),           // Category -> color
+            nodeCustomColors: new Map(),         // Node ID -> custom color overrides
+            linkCustomColors: new Map(),         // Link ID -> custom color overrides
+            
+            // Layout State  
+            nodePositions: new Map(),            // Node ID -> {x, y} manual positions
+            layerSpacing: [],                    // Custom layer spacing values
+            manualPositions: new Map(),          // Node ID -> manual position data
+            
+            // UI State
+            chartConfig: {},                     // All chart configuration
+            controlValues: new Map(),            // Control ID -> current value
+            selectedNodes: new Set(),            // Currently selected nodes
+            
+            // Data State
+            originalData: null,                  // Original loaded data
+            modifiedData: {                      // User-modified data structure
+                nodes: [],
+                links: [],
+                flows: []
+            },
+            dataTimestamp: null,                 // When data was last modified
+            chartMetadata: {},                   // Chart metadata (title, company, period, currency, unit)
+            
+            // Persistence Metadata
+            lastSaved: null,                     // Last save timestamp
+            version: '1.0',                      // State schema version
+            chartId: null,                       // Unique chart identifier
+            autoSave: true,                      // Auto-save enabled
+            
+            // Flags
+            preserveOnRender: true,              // Preserve state during renders
+            suppressSave: false                  // Temporarily disable saving
+        };
+
+        // Generate unique chart ID for this instance
+        this.statePersistence.chartId = this.generateChartId();
+        
+        // Try to restore previous state
+        this.restoreCompleteState();
+        
+        // Set up auto-save
+        if (this.statePersistence.autoSave) {
+            this.setupAutoSave();
+        }
+        
+        // Perform periodic cleanup to maintain storage health
+        BaseChart.cleanupOldChartStates(10);
+        
+        console.log(`🔧 Initialized state persistence for chart ${this.statePersistence.chartId}`);
+    }
+
+    /**
+     * Generate unique chart ID
+     * Extracted from SankeyChart.js lines 122-124
+     */
+    generateChartId() {
+        return `pulse_chart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    /**
+     * Setup auto-save functionality
+     * Enhanced with storage awareness and reduced frequency
+     */
+    setupAutoSave() {
+        // Reduce auto-save frequency to minimize storage pressure
+        // Save state every 2 minutes instead of 30 seconds
+        this.autoSaveInterval = setInterval(() => {
+            if (!this.statePersistence.suppressSave) {
+                // Only auto-save if there have been changes
+                if (this.hasUnsavedChanges()) {
+                    this.saveCompleteState();
+                }
+            }
+        }, 120000); // 2 minutes
+
+        // Save on window beforeunload (always save on exit)
+        this.beforeUnloadHandler = () => {
+            this.saveCompleteState();
+        };
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
+        
+        console.log('⏰ Auto-save configured: every 2 minutes + on page exit');
+    }
+
+    /**
+     * Check if there are unsaved changes to avoid unnecessary saves
+     */
+    hasUnsavedChanges() {
+        // Simple check - if last saved is more than 2 minutes ago and we have data
+        if (!this.statePersistence.lastSaved) {
+            return !!this.data; // Has data but never saved
+        }
+        
+        const timeSinceLastSave = Date.now() - this.statePersistence.lastSaved;
+        const hasRecentActivity = timeSinceLastSave > 30000; // 30 seconds since last activity
+        
+        return hasRecentActivity && !!this.data;
+    }
+
+    /**
+     * Capture complete chart state
+     * Extracted from SankeyChart.js lines 7766-7863
+     */
+    captureCompleteState() {
+        if (this.statePersistence.suppressSave) return;
+
+        try {
+            // Layout State
+            this.statePersistence.nodePositions.clear();
+            this.statePersistence.manualPositions.clear();
+            
+            if (this.nodes) {
+                let positionCount = 0;
+                let manualCount = 0;
+                
+                this.nodes.forEach(node => {
+                    if (node.x !== undefined && node.y !== undefined) {
+                        console.log(`💾 Capturing ${node.id}: X=${node.x}, Y=${node.y}, manualX=${node.manualX}, manualY=${node.manualY}, manual=${!!node.manuallyPositioned}`);
+                        this.statePersistence.nodePositions.set(node.id, { x: node.x, y: node.y });
+                        positionCount++;
+                    }
+                    if (node.manuallyPositioned) {
+                        this.statePersistence.manualPositions.set(node.id, node.manuallyPositioned);
+                        manualCount++;
+                    }
+                });
+                
+                console.log(`💾 Captured ${positionCount} node positions, ${manualCount} manual positions`);
+                if (positionCount === 0) {
+                    console.warn('⚠️ No node positions captured - nodes may not have x,y coordinates set');
+                }
+            }
+
+            // UI State - Chart Configuration
+            this.statePersistence.chartConfig = { ...this.config };
+            
+            // Layer spacing - handle both array and non-array cases
+            if (this.config.layerSpacing && Array.isArray(this.config.layerSpacing)) {
+                this.statePersistence.layerSpacing = [...this.config.layerSpacing];
+            } else {
+                this.statePersistence.layerSpacing = [];
+            }
+
+            // Selection state (if selectionManager exists)
+            if (this.selectionManager && this.selectionManager.selectedNodes) {
+                this.statePersistence.selectedNodes = new Set(this.selectionManager.selectedNodes);
+            }
+
+            // Data State
+            if (this.data) {
+                this.statePersistence.originalData = JSON.parse(JSON.stringify(this.data));
+                this.statePersistence.dataTimestamp = Date.now();
+                
+                // Chart Metadata (title, company, period, currency, unit)
+                if (this.data.metadata) {
+                    this.statePersistence.chartMetadata = {
+                        company: this.data.metadata.company || '',
+                        period: this.data.metadata.period || '',
+                        currency: this.data.metadata.currency || 'USD',
+                        unit: this.data.metadata.unit || 'millions',
+                        title: this.data.metadata.title || ''
+                    };
+                }
+                
+                // Data Structure Changes (nodes and links)
+                this.statePersistence.modifiedData = {
+                    nodes: this.data.nodes ? JSON.parse(JSON.stringify(this.data.nodes)) : [],
+                    links: this.data.links ? JSON.parse(JSON.stringify(this.data.links)) : [],
+                    flows: this.data.flows ? JSON.parse(JSON.stringify(this.data.flows)) : []
+                };
+            }
+
+            // Custom colors
+            this.statePersistence.nodeCustomColors.clear();
+            this.statePersistence.linkCustomColors.clear();
+            
+            if (this.customColors && typeof this.customColors === 'object') {
+                for (const [id, color] of Object.entries(this.customColors)) {
+                    this.statePersistence.nodeCustomColors.set(id, color);
+                }
+            }
+            
+            // Capture link color categories (if links exist)
+            if (this.links) {
+                this.links.forEach(link => {
+                    if (link.colorCategory) {
+                        const linkId = `${link.source.id}_${link.target.id}`;
+                        this.statePersistence.linkCustomColors.set(linkId, link.colorCategory);
+                    }
+                });
+            }
+
+            // Capture category assignments and colors (if categoryManager exists)
+            if (this.categoryManager) {
+                this.statePersistence.categoryAssignments.clear();
+                this.statePersistence.categoryColors.clear();
+                
+                if (this.categoryManager.nodeCategories) {
+                    for (const [nodeId, categoryName] of this.categoryManager.nodeCategories) {
+                        this.statePersistence.categoryAssignments.set(nodeId, categoryName);
+                    }
+                }
+                
+                // Capture category colors from getAllCategories if available
+                if (this.getAllCategories) {
+                    const allCategories = this.getAllCategories();
+                    for (const [categoryName, category] of Object.entries(allCategories)) {
+                        if (category.color) {
+                            this.statePersistence.categoryColors.set(categoryName, category.color);
+                        }
+                    }
+                }
+            }
+
+            this.statePersistence.lastSaved = Date.now();
+            
+            console.log(`💾 Captured complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
+            
+        } catch (error) {
+            console.error('❌ Error capturing chart state:', error);
+        }
+    }
+
+    /**
+     * Save complete state to localStorage and metadata
+     * Enhanced with intelligent storage management
+     */
+    saveCompleteState() {
+        this.captureCompleteState();
+        
+        try {
+            const stateData = {
+                // Convert Maps to Objects for JSON serialization
+                categoryAssignments: Object.fromEntries(this.statePersistence.categoryAssignments),
+                categoryColors: Object.fromEntries(this.statePersistence.categoryColors),
+                nodeCustomColors: Object.fromEntries(this.statePersistence.nodeCustomColors),
+                linkCustomColors: Object.fromEntries(this.statePersistence.linkCustomColors),
+                nodePositions: Object.fromEntries(this.statePersistence.nodePositions),
+                manualPositions: Object.fromEntries(this.statePersistence.manualPositions),
+                
+                chartConfig: this.statePersistence.chartConfig,
+                layerSpacing: this.statePersistence.layerSpacing,
+                selectedNodes: Array.from(this.statePersistence.selectedNodes),
+                
+                // Exclude large data objects to save space
+                dataTimestamp: this.statePersistence.dataTimestamp,
+                chartMetadata: this.statePersistence.chartMetadata,
+                
+                lastSaved: this.statePersistence.lastSaved,
+                version: this.statePersistence.version,
+                chartId: this.statePersistence.chartId
+            };
+
+            const stateJson = JSON.stringify(stateData);
+            const stateSize = stateJson.length;
+            
+            console.log(`💾 Attempting to save chart state (${this.formatBytes(stateSize)})`);
+
+            // Try to save to localStorage with intelligent error handling
+            const storageKey = `pulse_chart_state_${this.statePersistence.chartId}`;
+            this.saveToLocalStorageWithCleanup(storageKey, stateJson);
+            
+            // Always save to metadata for cross-session persistence (this is more reliable)
+            if (this.data && this.data.metadata) {
+                this.data.metadata.chartState = stateData;
+                if (this.saveCategoriesToMetadata) {
+                    this.saveCategoriesToMetadata();
+                }
+                console.log(`💾 Saved chart state to data metadata (primary storage)`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error saving chart state:', error);
+            // Even if localStorage fails, we still have metadata persistence
+            console.log('📝 Chart state preserved in data metadata despite localStorage error');
+        }
+    }
+
+    /**
+     * Save to localStorage with intelligent cleanup on quota exceeded
+     */
+    saveToLocalStorageWithCleanup(key, data) {
+        try {
+            localStorage.setItem(key, data);
+            console.log(`💾 Saved chart state to localStorage`);
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                console.log('🧹 localStorage quota exceeded - cleaning up old chart states...');
+                
+                // Find and remove old chart state entries
+                const chartStateKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const storageKey = localStorage.key(i);
+                    if (storageKey && storageKey.startsWith('pulse_chart_state_')) {
+                        chartStateKeys.push(storageKey);
+                    }
+                }
+                
+                // Sort by timestamp (older first) and remove oldest entries
+                chartStateKeys.sort();
+                const keysToRemove = Math.min(chartStateKeys.length - 1, 5); // Remove up to 5 old entries
+                
+                for (let i = 0; i < keysToRemove; i++) {
+                    const oldKey = chartStateKeys[i];
+                    localStorage.removeItem(oldKey);
+                    console.log(`🗑️ Removed old chart state: ${oldKey}`);
+                }
+                
+                // Try saving again after cleanup
+                try {
+                    localStorage.setItem(key, data);
+                    console.log(`✅ Saved chart state to localStorage after cleanup`);
+                } catch (retryError) {
+                    console.warn('⚠️ Still unable to save to localStorage after cleanup, relying on metadata storage');
+                    // Don't throw - metadata storage is still working
+                }
+            } else {
+                console.warn('⚠️ Unexpected error saving to localStorage:', error);
+                // Don't throw - metadata storage is still working
+            }
+        }
+    }
+
+    /**
+     * Restore complete state from localStorage or metadata
+     * Extracted from SankeyChart.js lines 7915-8071
+     */
+    restoreCompleteState() {
+        try {
+            let stateData = null;
+
+            // Try to load from current data metadata first
+            if (this.data && this.data.metadata && this.data.metadata.chartState) {
+                stateData = this.data.metadata.chartState;
+                console.log(`📁 Loading chart state from data metadata`);
+            } else {
+                // Try to load from localStorage
+                const storageKey = `pulse_chart_state_${this.statePersistence.chartId}`;
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                    stateData = JSON.parse(stored);
+                    console.log(`📁 Loading chart state from localStorage`);
+                }
+            }
+
+            if (!stateData) {
+                console.log(`📝 No previous chart state found, starting fresh`);
+                return;
+            }
+
+            // Restore visual state
+            if (stateData.categoryAssignments) {
+                this.statePersistence.categoryAssignments = new Map(Object.entries(stateData.categoryAssignments));
+                // Apply to category manager (if it exists)
+                if (this.categoryManager && this.categoryManager.nodeCategories) {
+                    for (const [nodeId, categoryName] of this.statePersistence.categoryAssignments) {
+                        this.categoryManager.nodeCategories.set(nodeId, categoryName);
+                    }
+                }
+                
+                // Update link colors based on restored category assignments (if method exists)
+                if (this.nodes && this.links && this.updateLinkCategoriesForNode) {
+                    for (const [nodeId, categoryName] of this.statePersistence.categoryAssignments) {
+                        const node = this.nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            this.updateLinkCategoriesForNode(node, categoryName);
+                        }
+                    }
+                    console.log('🔗 Updated link colors based on restored category assignments');
+                }
+            }
+
+            if (stateData.categoryColors) {
+                this.statePersistence.categoryColors = new Map(Object.entries(stateData.categoryColors));
+                // Apply to category definitions (if getAllCategories exists)
+                if (this.getAllCategories) {
+                    const allCategories = this.getAllCategories();
+                    for (const [categoryName, color] of this.statePersistence.categoryColors) {
+                        const category = allCategories[categoryName];
+                        if (category) {
+                            category.color = color;
+                        }
+                    }
+                }
+            }
+
+            // Restore layout state
+            if (stateData.nodePositions) {
+                this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
+                console.log(`📍 Restored ${this.statePersistence.nodePositions.size} node positions from saved state`);
+                
+                // CRITICAL: Immediately mark nodes as manually positioned so calculateLayout respects them
+                if (this.nodes) {
+                    this.nodes.forEach(node => {
+                        const savedPos = this.statePersistence.nodePositions.get(node.id);
+                        if (savedPos) {
+                            node.manuallyPositioned = true;
+                            console.log(`🎯 Pre-marked ${node.id} as manually positioned for layout respect`);
+                        }
+                    });
+                }
+            }
+
+            if (stateData.manualPositions) {
+                this.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
+                console.log(`🎯 Restored ${this.statePersistence.manualPositions.size} manual position flags`);
+            }
+
+            // Restore UI state
+            if (stateData.chartConfig) {
+                this.config = { ...this.config, ...stateData.chartConfig };
+                this.statePersistence.chartConfig = stateData.chartConfig;
+            }
+
+            if (stateData.layerSpacing && Array.isArray(stateData.layerSpacing)) {
+                this.statePersistence.layerSpacing = stateData.layerSpacing;
+                this.config.layerSpacing = [...stateData.layerSpacing];
+            }
+
+            if (stateData.selectedNodes) {
+                this.statePersistence.selectedNodes = new Set(stateData.selectedNodes);
+                if (this.selectionManager) {
+                    this.selectionManager.selectedNodes = new Set(stateData.selectedNodes);
+                }
+            }
+
+            // Restore custom colors
+            if (stateData.nodeCustomColors) {
+                this.statePersistence.nodeCustomColors = new Map(Object.entries(stateData.nodeCustomColors));
+                this.customColors = { ...Object.fromEntries(this.statePersistence.nodeCustomColors) };
+            }
+            
+            // Restore link color categories
+            if (stateData.linkCustomColors && this.links) {
+                this.statePersistence.linkCustomColors = new Map(Object.entries(stateData.linkCustomColors));
+                // Apply to current links
+                this.links.forEach(link => {
+                    const linkId = `${link.source.id}_${link.target.id}`;
+                    const savedColorCategory = this.statePersistence.linkCustomColors.get(linkId);
+                    if (savedColorCategory) {
+                        link.colorCategory = savedColorCategory;
+                    }
+                });
+            }
+            
+            // Restore chart metadata (title, company, period, currency, unit)
+            if (stateData.chartMetadata && this.data && this.data.metadata) {
+                this.statePersistence.chartMetadata = stateData.chartMetadata;
+                // Apply to current data metadata
+                this.data.metadata.company = stateData.chartMetadata.company;
+                this.data.metadata.period = stateData.chartMetadata.period;
+                this.data.metadata.currency = stateData.chartMetadata.currency;
+                this.data.metadata.unit = stateData.chartMetadata.unit;
+                this.data.metadata.title = stateData.chartMetadata.title;
+            }
+            
+            // Restore modified data structure (nodes and links)
+            if (stateData.modifiedData && this.data) {
+                this.statePersistence.modifiedData = stateData.modifiedData;
+                // Apply data structure changes to current data
+                if (stateData.modifiedData.nodes && stateData.modifiedData.nodes.length > 0) {
+                    this.data.nodes = JSON.parse(JSON.stringify(stateData.modifiedData.nodes));
+                }
+                if (stateData.modifiedData.links && stateData.modifiedData.links.length > 0) {
+                    this.data.links = JSON.parse(JSON.stringify(stateData.modifiedData.links));
+                }
+                if (stateData.modifiedData.flows && stateData.modifiedData.flows.length > 0) {
+                    this.data.flows = JSON.parse(JSON.stringify(stateData.modifiedData.flows));
+                }
+            }
+
+            console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
+            
+            // Force immediate visual update to apply all restored state
+            // This ensures positions, colors, and categories are all applied correctly
+            if (this.rerenderWithNewColors) {
+                this.rerenderWithNewColors();
+                console.log('🎨 Applied restored state with immediate color re-render');
+            } else {
+                this.applyRestoredState();
+                console.log('📍 Applied restored positions and layout');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error restoring chart state:', error);
+        }
+    }
+
+    /**
+     * Apply restored state to chart elements
+     * Extracted from SankeyChart.js lines 8092-8146
+     */
+    applyRestoredState() {
+        // Apply positions if available, regardless of preserveOnRender flag
+        if (this.nodes && this.statePersistence.nodePositions.size > 0) {
+            let appliedCount = 0;
+            
+            this.nodes.forEach(node => {
+                const savedPos = this.statePersistence.nodePositions.get(node.id);
+                const manualPos = this.statePersistence.manualPositions.get(node.id);
+                
+                if (savedPos) {
+                    console.log(`📍 Restoring ${node.id}: from (${node.x},${node.y}) to (${savedPos.x},${savedPos.y})`);
+                    
+                    // CRITICAL: Set manuallyPositioned flag FIRST so calculateLayout respects the position
+                    node.manuallyPositioned = true; // Treat all restored positions as manually positioned
+                    
+                    // Then set the actual coordinates
+                    node.x = savedPos.x;
+                    node.y = savedPos.y;
+                    appliedCount++;
+                }
+                
+                // Restore manual position flag if explicitly saved
+                if (manualPos) {
+                    node.manuallyPositioned = manualPos;
+                }
+            });
+            
+            console.log(`📍 Applied ${appliedCount}/${this.nodes.length} node positions to chart`);
+            
+            // Update the visual positions in the DOM
+            if (this.chart && appliedCount > 0) {
+                this.chart.selectAll('.sankey-node')
+                    .data(this.nodes)
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+                    
+                console.log(`🔄 Updated visual positions for ${appliedCount} nodes`);
+            }
+        } else {
+            console.log(`📍 No saved positions to restore (${this.statePersistence.nodePositions.size} in state, ${this.nodes ? this.nodes.length : 0} current nodes)`);
+        }
+        
+        // Restore link color categories (this needs to happen after render when links are available)
+        if (this.links && this.statePersistence.linkCustomColors.size > 0) {
+            this.links.forEach(link => {
+                const linkId = `${link.source.id}_${link.target.id}`;
+                const savedColorCategory = this.statePersistence.linkCustomColors.get(linkId);
+                if (savedColorCategory) {
+                    link.colorCategory = savedColorCategory;
+                }
+            });
+            console.log(`🎨 Restored ${this.statePersistence.linkCustomColors.size} link color categories`);
+        }
+
+        console.log(`✅ Applied restored layout state to chart`);
+    }
+
+    /**
+     * Preserve state for operations that might disrupt it
+     * Extracted from SankeyChart.js lines 8076-8087
+     */
+    preserveStateForOperation(operation) {
+        console.log(`🔒 Preserving state for operation: ${operation}`);
+        this.captureCompleteState();
+        
+        // Temporarily disable auto-save during the operation
+        this.statePersistence.suppressSave = true;
+        
+        // Re-enable after the operation (but don't auto-restore)
+        setTimeout(() => {
+            this.statePersistence.suppressSave = false;
+        }, 100);
+    }
+
+    /**
+     * Get current state data for serialization
+     * Used by ChartLibrary for unified persistence
+     * Optimized to reduce storage size
+     */
+    getStateData() {
+        this.captureCompleteState();
+        
+        // Optimize state data for storage efficiency
+        const stateData = {
+            categoryAssignments: Object.fromEntries(this.statePersistence.categoryAssignments),
+            categoryColors: Object.fromEntries(this.statePersistence.categoryColors),
+            nodeCustomColors: Object.fromEntries(this.statePersistence.nodeCustomColors),
+            linkCustomColors: Object.fromEntries(this.statePersistence.linkCustomColors),
+            nodePositions: Object.fromEntries(this.statePersistence.nodePositions),
+            manualPositions: Object.fromEntries(this.statePersistence.manualPositions),
+            chartConfig: this.optimizeConfig(this.statePersistence.chartConfig),
+            layerSpacing: this.statePersistence.layerSpacing,
+            selectedNodes: Array.from(this.statePersistence.selectedNodes),
+            dataTimestamp: this.statePersistence.dataTimestamp,
+            chartMetadata: this.statePersistence.chartMetadata,
+            lastSaved: this.statePersistence.lastSaved,
+            version: this.statePersistence.version,
+            chartId: this.statePersistence.chartId
+        };
+        
+        // Exclude large data objects for storage efficiency
+        // originalData and modifiedData can be very large and are usually not needed
+        // for state restoration since we re-load from the chart's current data
+        
+        const stateSize = JSON.stringify(stateData).length;
+        console.log(`📊 State data size: ${this.formatBytes(stateSize)}`);
+        
+        return stateData;
+    }
+
+    /**
+     * Optimize config object by removing default values and large objects
+     */
+    optimizeConfig(config) {
+        if (!config) return {};
+        
+        const optimized = {};
+        
+        // Only include non-default configuration values
+        for (const [key, value] of Object.entries(config)) {
+            // Skip undefined, null, or empty values
+            if (value === undefined || value === null || value === '') {
+                continue;
+            }
+            
+            // Skip large arrays or objects that are likely default
+            if (Array.isArray(value) && value.length === 0) {
+                continue;
+            }
+            
+            // Skip objects that are empty or likely default
+            if (typeof value === 'object' && Object.keys(value).length === 0) {
+                continue;
+            }
+            
+            optimized[key] = value;
+        }
+        
+        return optimized;
+    }
+
+    /**
+     * Format bytes for display
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Set state data from serialized state
+     * Used by ChartLibrary for unified persistence
+     */
+    setStateData(stateData) {
+        if (!stateData) return;
+
+        // Restore Maps from Objects
+        this.statePersistence.categoryAssignments = new Map(Object.entries(stateData.categoryAssignments || {}));
+        this.statePersistence.categoryColors = new Map(Object.entries(stateData.categoryColors || {}));
+        this.statePersistence.nodeCustomColors = new Map(Object.entries(stateData.nodeCustomColors || {}));
+        this.statePersistence.linkCustomColors = new Map(Object.entries(stateData.linkCustomColors || {}));
+        this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions || {}));
+        this.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions || {}));
+
+        // Restore other state
+        this.statePersistence.chartConfig = stateData.chartConfig || {};
+        this.statePersistence.layerSpacing = stateData.layerSpacing || [];
+        this.statePersistence.selectedNodes = new Set(stateData.selectedNodes || []);
+        this.statePersistence.originalData = stateData.originalData;
+        this.statePersistence.dataTimestamp = stateData.dataTimestamp;
+        this.statePersistence.chartMetadata = stateData.chartMetadata || {};
+        this.statePersistence.modifiedData = stateData.modifiedData || { nodes: [], links: [], flows: [] };
+        this.statePersistence.lastSaved = stateData.lastSaved;
+        this.statePersistence.version = stateData.version || '1.0';
+        this.statePersistence.chartId = stateData.chartId || this.generateChartId();
+
+        // Apply the restored state
+        this.applyRestoredState();
+    }
+
+    /**
+     * Standard chart interface methods - to be implemented by derived classes
+     */
+    render(data) {
+        throw new Error('render() must be implemented by derived chart class');
+    }
+
+    updateConfig(config) {
+        this.config = { ...this.config, ...config };
+        this.statePersistence.chartConfig = { ...this.config };
+    }
+
+    getInitialConfig() {
+        throw new Error('getInitialConfig() must be implemented by derived chart class');
+    }
+
+    exportToPNG() {
+        throw new Error('exportToPNG() must be implemented by derived chart class');
+    }
+
+    exportToSVG() {
+        throw new Error('exportToSVG() must be implemented by derived chart class');
+    }
+
+    exportDataToCSV() {
+        throw new Error('exportDataToCSV() must be implemented by derived chart class');
+    }
+
+    applyControlDefaults(controlModule) {
+        if (controlModule && controlModule.getDefaultConfig) {
+            const controlDefaults = controlModule.getDefaultConfig();
+            this.updateConfig(controlDefaults);
+        }
+    }
+
+    /**
+     * Clean up state persistence resources
+     */
+    destroy() {
+        // Save final state before cleanup
+        if (this.statePersistence && !this.statePersistence.suppressSave) {
+            this.saveCompleteState();
+        }
+        
+        // Clean up auto-save interval
+        if (this.autoSaveInterval) {
+            clearInterval(this.autoSaveInterval);
+            this.autoSaveInterval = null;
+        }
+        
+        // Remove event listeners
+        if (this.beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            this.beforeUnloadHandler = null;
+        }
+        
+        if (this.statePersistence) {
+            this.statePersistence.suppressSave = true;
+            
+            // Clear all Maps to prevent memory leaks
+            this.statePersistence.categoryAssignments.clear();
+            this.statePersistence.categoryColors.clear();
+            this.statePersistence.nodeCustomColors.clear();
+            this.statePersistence.linkCustomColors.clear();
+            this.statePersistence.nodePositions.clear();
+            this.statePersistence.manualPositions.clear();
+            this.statePersistence.selectedNodes.clear();
+            
+            this.statePersistence = null;
+        }
+        
+        this.customColors = null;
+        this.data = null;
+        this.config = null;
+        
+        console.log('🧹 BaseChart destroyed and cleaned up');
+    }
+
+    /**
+     * Static method to clean up old chart states from localStorage
+     * Can be called globally to manage storage across all charts
+     */
+    static cleanupOldChartStates(maxStates = 10) {
+        try {
+            const chartStateKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('pulse_chart_state_')) {
+                    chartStateKeys.push(key);
+                }
+            }
+            
+            if (chartStateKeys.length <= maxStates) {
+                return; // No cleanup needed
+            }
+            
+            // Sort by timestamp (older first) and remove excess
+            chartStateKeys.sort();
+            const toRemove = chartStateKeys.length - maxStates;
+            
+            for (let i = 0; i < toRemove; i++) {
+                localStorage.removeItem(chartStateKeys[i]);
+                console.log(`🗑️ Cleaned up old chart state: ${chartStateKeys[i]}`);
+            }
+            
+            console.log(`🧹 Cleaned up ${toRemove} old chart states, keeping ${maxStates} most recent`);
+        } catch (error) {
+            console.warn('⚠️ Error during chart state cleanup:', error);
+        }
+    }
+
+    /**
+     * Static method to get total storage usage by chart states
+     */
+    static getChartStateStorageUsage() {
+        try {
+            let totalSize = 0;
+            let stateCount = 0;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('pulse_chart_state_')) {
+                    totalSize += localStorage.getItem(key).length;
+                    stateCount++;
+                }
+            }
+            
+            return {
+                count: stateCount,
+                size: totalSize,
+                formattedSize: BaseChart.prototype.formatBytes(totalSize)
+            };
+        } catch (error) {
+            return { count: 0, size: 0, formattedSize: '0 B' };
+        }
+    }
+}
+
+// Export for use
+window.BaseChart = BaseChart;

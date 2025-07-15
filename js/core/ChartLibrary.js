@@ -24,6 +24,9 @@ class ChartLibrary {
 
     // Save functionality (Save As - creates new chart)
     saveChart(name, data, config, chartType) {
+        // Check storage space before creating chart
+        this.checkStorageSpace();
+        
         const chart = {
             id: this.generateId(),
             name: name.trim() || 'Untitled Chart',
@@ -35,16 +38,23 @@ class ChartLibrary {
         };
         
         // Include chart state (colors, categories, positions) if available
-        if (window.pulseApp.chart && window.pulseApp.chart.statePersistence) {
-            const state = window.pulseApp.chart.statePersistence;
-            chart.config.chartState = {
-                linkCustomColors: Object.fromEntries(state.linkCustomColors || new Map()),
-                nodeCustomColors: Object.fromEntries(state.nodeCustomColors || new Map()),
-                categoryAssignments: Object.fromEntries(state.categoryAssignments || new Map()),
-                categoryColors: Object.fromEntries(state.categoryColors || new Map()),
-                nodePositions: Object.fromEntries(state.nodePositions || new Map()),
-                manualPositions: Object.fromEntries(state.manualPositions || new Map())
-            };
+        // Enhanced to use BaseChart unified interface
+        if (window.pulseApp.chart) {
+            if (window.pulseApp.chart.getStateData) {
+                // Use BaseChart unified interface
+                chart.config.chartState = window.pulseApp.chart.getStateData();
+            } else if (window.pulseApp.chart.statePersistence) {
+                // Fallback to direct state persistence access for compatibility
+                const state = window.pulseApp.chart.statePersistence;
+                chart.config.chartState = {
+                    linkCustomColors: Object.fromEntries(state.linkCustomColors || new Map()),
+                    nodeCustomColors: Object.fromEntries(state.nodeCustomColors || new Map()),
+                    categoryAssignments: Object.fromEntries(state.categoryAssignments || new Map()),
+                    categoryColors: Object.fromEntries(state.categoryColors || new Map()),
+                    nodePositions: Object.fromEntries(state.nodePositions || new Map()),
+                    manualPositions: Object.fromEntries(state.manualPositions || new Map())
+                };
+            }
         }
 
         this.savedCharts.push(chart);
@@ -94,22 +104,29 @@ class ChartLibrary {
         existingChart.updatedAt = new Date().toISOString();
         
         // Capture current chart state (colors, categories, positions) if available
-        if (window.pulseApp.chart && window.pulseApp.chart.statePersistence) {
-            // Force capture current state
-            if (window.pulseApp.chart.captureCompleteState) {
-                window.pulseApp.chart.captureCompleteState();
+        // Enhanced to use BaseChart unified interface
+        if (window.pulseApp.chart) {
+            if (window.pulseApp.chart.getStateData) {
+                // Use BaseChart unified interface
+                existingChart.config.chartState = window.pulseApp.chart.getStateData();
+            } else if (window.pulseApp.chart.statePersistence) {
+                // Fallback to direct state persistence access for compatibility
+                // Force capture current state
+                if (window.pulseApp.chart.captureCompleteState) {
+                    window.pulseApp.chart.captureCompleteState();
+                }
+                
+                // Save the chart state to the config
+                const state = window.pulseApp.chart.statePersistence;
+                existingChart.config.chartState = {
+                    linkCustomColors: Object.fromEntries(state.linkCustomColors || new Map()),
+                    nodeCustomColors: Object.fromEntries(state.nodeCustomColors || new Map()),
+                    categoryAssignments: Object.fromEntries(state.categoryAssignments || new Map()),
+                    categoryColors: Object.fromEntries(state.categoryColors || new Map()),
+                    nodePositions: Object.fromEntries(state.nodePositions || new Map()),
+                    manualPositions: Object.fromEntries(state.manualPositions || new Map())
+                };
             }
-            
-            // Save the chart state to the config
-            const state = window.pulseApp.chart.statePersistence;
-            existingChart.config.chartState = {
-                linkCustomColors: Object.fromEntries(state.linkCustomColors || new Map()),
-                nodeCustomColors: Object.fromEntries(state.nodeCustomColors || new Map()),
-                categoryAssignments: Object.fromEntries(state.categoryAssignments || new Map()),
-                categoryColors: Object.fromEntries(state.categoryColors || new Map()),
-                nodePositions: Object.fromEntries(state.nodePositions || new Map()),
-                manualPositions: Object.fromEntries(state.manualPositions || new Map())
-            };
         }
 
         this.saveSavedCharts();
@@ -155,18 +172,26 @@ class ChartLibrary {
                 }
                 
                 // CRITICAL: Pre-populate state BEFORE data loading to fix X coordinate timing
+                // Enhanced to use BaseChart unified interface
                 if (window.pulseApp.chart && chart.config && chart.config.chartState) {
-                    const stateData = chart.config.chartState;
-                    
-                    // Pre-populate the statePersistence maps before render
-                    if (stateData.nodePositions) {
-                        window.pulseApp.chart.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
-                        console.log(`🔧 Pre-loaded ${window.pulseApp.chart.statePersistence.nodePositions.size} node positions BEFORE render`);
-                    }
-                    
-                    if (stateData.manualPositions) {
-                        window.pulseApp.chart.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
-                        console.log(`🔧 Pre-loaded ${window.pulseApp.chart.statePersistence.manualPositions.size} manual position flags BEFORE render`);
+                    if (window.pulseApp.chart.setStateData) {
+                        // Use BaseChart unified interface
+                        window.pulseApp.chart.setStateData(chart.config.chartState);
+                        console.log(`🔧 Pre-loaded state using BaseChart unified interface`);
+                    } else if (window.pulseApp.chart.statePersistence) {
+                        // Fallback to direct state persistence access for compatibility
+                        const stateData = chart.config.chartState;
+                        
+                        // Pre-populate the statePersistence maps before render
+                        if (stateData.nodePositions) {
+                            window.pulseApp.chart.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
+                            console.log(`🔧 Pre-loaded ${window.pulseApp.chart.statePersistence.nodePositions.size} node positions BEFORE render`);
+                        }
+                        
+                        if (stateData.manualPositions) {
+                            window.pulseApp.chart.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
+                            console.log(`🔧 Pre-loaded ${window.pulseApp.chart.statePersistence.manualPositions.size} manual position flags BEFORE render`);
+                        }
                     }
                 }
                 
@@ -179,6 +204,7 @@ class ChartLibrary {
                 }
                 
                 // Trigger complete state restoration after data loading for colors and categories
+                // Enhanced to use BaseChart unified interface
                 if (window.pulseApp.chart && chart.config && chart.config.chartState) {
                     if (window.pulseApp.chart.restoreCompleteState) {
                         console.log('🔄 Triggering complete state restoration for colors and categories');
@@ -687,8 +713,11 @@ class ChartLibrary {
         }
 
         // Capture current chart state before saving
-        if (window.pulseApp.chart && window.pulseApp.chart.captureCompleteState) {
-            window.pulseApp.chart.captureCompleteState();
+        // Enhanced to use BaseChart unified interface
+        if (window.pulseApp.chart) {
+            if (window.pulseApp.chart.captureCompleteState) {
+                window.pulseApp.chart.captureCompleteState();
+            }
         }
         
         this.saveChart(name, currentChart.data, currentChart.config, currentChart.chartType);
@@ -1173,10 +1202,285 @@ class ChartLibrary {
 
     saveSavedCharts() {
         try {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.savedCharts));
+            const chartsData = JSON.stringify(this.savedCharts);
+            const dataSize = new Blob([chartsData]).size;
+            
+            console.log(`💾 Attempting to save ${this.savedCharts.length} charts (${this.formatStorageSize(dataSize)})`);
+            
+            localStorage.setItem(this.storageKey, chartsData);
+            console.log(`✅ Successfully saved charts to localStorage`);
+            
         } catch (error) {
             console.error('❌ Error saving charts:', error);
-            this.showNotification('Error saving chart to local storage', 'error');
+            
+            if (error.name === 'QuotaExceededError') {
+                this.handleStorageQuotaExceeded();
+            } else {
+                this.showNotification('Error saving chart to local storage', 'error');
+            }
+        }
+    }
+
+    /**
+     * Handle localStorage quota exceeded error with intelligent cleanup
+     */
+    handleStorageQuotaExceeded() {
+        console.log('🧹 Storage quota exceeded - attempting cleanup...');
+        
+        // Get current storage usage
+        const storageInfo = this.getStorageInfo();
+        console.log('📊 Current storage usage:', storageInfo);
+        
+        // Show user-friendly error with options
+        const shouldCleanup = confirm(
+            `Storage is full! You have ${this.savedCharts.length} saved charts using ${storageInfo.chartsSize}.\n\n` +
+            `Options:\n` +
+            `• Click OK to automatically remove oldest charts and save\n` +
+            `• Click Cancel to export your charts first (recommended)\n\n` +
+            `Note: You can always re-import exported charts later.`
+        );
+        
+        if (shouldCleanup) {
+            this.performStorageCleanup();
+        } else {
+            this.showStorageFullDialog();
+        }
+    }
+
+    /**
+     * Perform intelligent storage cleanup
+     */
+    performStorageCleanup() {
+        const originalCount = this.savedCharts.length;
+        
+        // Strategy 1: Remove largest charts first (they're usually the most storage-intensive)
+        this.savedCharts.sort((a, b) => {
+            const sizeA = JSON.stringify(a).length;
+            const sizeB = JSON.stringify(b).length;
+            return sizeB - sizeA; // Largest first
+        });
+        
+        // Strategy 2: Remove oldest charts that haven't been updated recently
+        const now = Date.now();
+        const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000);
+        
+        let removedCount = 0;
+        let attempts = 0;
+        const maxAttempts = 5;
+        
+        while (attempts < maxAttempts && this.savedCharts.length > 0) {
+            // Remove oldest large charts or charts older than 30 days
+            const toRemove = this.savedCharts.filter(chart => {
+                const updatedAt = new Date(chart.updatedAt).getTime();
+                const chartSize = JSON.stringify(chart).length;
+                return updatedAt < oneMonthAgo || chartSize > 100000; // Remove if old or >100KB
+            });
+            
+            if (toRemove.length === 0) {
+                // If no old/large charts, remove oldest 25%
+                const removeCount = Math.max(1, Math.floor(this.savedCharts.length * 0.25));
+                toRemove.push(...this.savedCharts.slice(-removeCount));
+            }
+            
+            // Remove selected charts
+            toRemove.forEach(chart => {
+                const index = this.savedCharts.findIndex(c => c.id === chart.id);
+                if (index !== -1) {
+                    this.savedCharts.splice(index, 1);
+                    removedCount++;
+                }
+            });
+            
+            // Try to save again
+            try {
+                const chartsData = JSON.stringify(this.savedCharts);
+                localStorage.setItem(this.storageKey, chartsData);
+                
+                console.log(`✅ Storage cleanup successful: removed ${removedCount} charts, ${this.savedCharts.length} remaining`);
+                this.refreshLibraryUI();
+                this.showNotification(
+                    `Storage cleaned up! Removed ${removedCount} old charts. ${this.savedCharts.length} charts remaining.`,
+                    'success'
+                );
+                return;
+                
+            } catch (error) {
+                if (error.name !== 'QuotaExceededError') {
+                    throw error; // Different error, re-throw
+                }
+                attempts++;
+                console.log(`🧹 Cleanup attempt ${attempts}/${maxAttempts} - still need more space`);
+            }
+        }
+        
+        // If we get here, cleanup failed
+        console.error('❌ Storage cleanup failed after maximum attempts');
+        this.showNotification(
+            `Unable to free enough storage space. Please export and delete charts manually.`,
+            'error'
+        );
+        this.showStorageFullDialog();
+    }
+
+    /**
+     * Show dialog with storage management options
+     */
+    showStorageFullDialog() {
+        const storageInfo = this.getStorageInfo();
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'storage-full-dialog';
+        dialog.innerHTML = `
+            <div class="modal-overlay"></div>
+            <div class="modal-content storage-dialog">
+                <div class="modal-header">
+                    <h3>🚨 Storage Full</h3>
+                    <button class="modal-close" onclick="this.closest('.storage-full-dialog').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="storage-info">
+                        <h4>Current Storage Usage:</h4>
+                        <ul>
+                            <li><strong>${this.savedCharts.length}</strong> saved charts</li>
+                            <li><strong>${storageInfo.chartsSize}</strong> used by charts</li>
+                            <li><strong>${storageInfo.totalSize}</strong> total localStorage usage</li>
+                        </ul>
+                    </div>
+                    <div class="storage-actions">
+                        <h4>Recommended Actions:</h4>
+                        <button class="btn btn-primary" onclick="window.chartLibrary.exportCharts(); this.closest('.storage-full-dialog').remove();">
+                            📥 Export All Charts
+                        </button>
+                        <button class="btn btn-warning" onclick="window.chartLibrary.showBulkDeleteDialog(); this.closest('.storage-full-dialog').remove();">
+                            🗑️ Delete Old Charts
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.chartLibrary.showStorageOptimization(); this.closest('.storage-full-dialog').remove();">
+                            ⚙️ Optimize Storage
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <p><small>💡 Tip: Exported charts can be re-imported later without losing data.</small></p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(dialog);
+    }
+
+    /**
+     * Show bulk delete dialog for storage management
+     */
+    showBulkDeleteDialog() {
+        // Sort charts by size and age for easier selection
+        const chartsWithInfo = this.savedCharts.map(chart => ({
+            ...chart,
+            size: JSON.stringify(chart).length,
+            age: Date.now() - new Date(chart.updatedAt).getTime()
+        })).sort((a, b) => b.size - a.size); // Largest first
+        
+        this.openLibrary();
+        
+        // Auto-select large/old charts
+        setTimeout(() => {
+            chartsWithInfo.forEach(chart => {
+                if (chart.size > 50000 || chart.age > (7 * 24 * 60 * 60 * 1000)) { // >50KB or >7 days old
+                    const checkbox = document.querySelector(`input[data-chart-id="${chart.id}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                }
+            });
+            this.updateBulkActions();
+            
+            this.showNotification(
+                'Large and old charts have been pre-selected for deletion. Uncheck any you want to keep.',
+                'info'
+            );
+        }, 100);
+    }
+
+    /**
+     * Show storage optimization options
+     */
+    showStorageOptimization() {
+        alert(
+            'Storage Optimization Tips:\n\n' +
+            '• Export charts you don\'t use frequently\n' +
+            '• Delete duplicate or test charts\n' +
+            '• Large charts with many data points use more storage\n' +
+            '• Consider using fewer custom colors and positions\n\n' +
+            'Current storage is managed automatically, but manual cleanup gives you more control.'
+        );
+    }
+
+    /**
+     * Get detailed storage information
+     */
+    getStorageInfo() {
+        try {
+            const chartsData = JSON.stringify(this.savedCharts);
+            const chartsSize = new Blob([chartsData]).size;
+            
+            // Estimate total localStorage usage
+            let totalSize = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    totalSize += localStorage[key].length;
+                }
+            }
+            
+            return {
+                chartsCount: this.savedCharts.length,
+                chartsSize: this.formatStorageSize(chartsSize),
+                chartsBytes: chartsSize,
+                totalSize: this.formatStorageSize(totalSize),
+                totalBytes: totalSize,
+                availableSpace: this.formatStorageSize(Math.max(0, 5242880 - totalSize)) // 5MB typical limit
+            };
+        } catch (error) {
+            return {
+                chartsCount: this.savedCharts.length,
+                chartsSize: 'Unknown',
+                chartsBytes: 0,
+                totalSize: 'Unknown',
+                totalBytes: 0,
+                availableSpace: 'Unknown'
+            };
+        }
+    }
+
+    /**
+     * Format storage size for display
+     */
+    formatStorageSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Check storage space and warn user if getting close to limit
+     */
+    checkStorageSpace() {
+        try {
+            const storageInfo = this.getStorageInfo();
+            const usagePercentage = (storageInfo.totalBytes / 5242880) * 100; // 5MB typical limit
+            
+            if (usagePercentage > 80) {
+                console.warn(`⚠️ Storage usage at ${usagePercentage.toFixed(1)}% (${storageInfo.totalSize})`);
+                
+                if (usagePercentage > 90) {
+                    this.showNotification(
+                        `Storage almost full (${usagePercentage.toFixed(1)}%)! Consider exporting or deleting old charts.`,
+                        'warning'
+                    );
+                }
+            }
+        } catch (error) {
+            console.warn('Unable to check storage space:', error);
         }
     }
 
