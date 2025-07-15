@@ -28,12 +28,14 @@ class BaseChart {
             categoryAssignments: new Map(),      // Node ID -> category name
             categoryColors: new Map(),           // Category -> color
             nodeCustomColors: new Map(),         // Node ID -> custom color overrides
+            independentNodeColors: new Map(),    // Node ID -> independent colors (without category)
             linkCustomColors: new Map(),         // Link ID -> custom color overrides
             
             // Layout State  
             nodePositions: new Map(),            // Node ID -> {x, y} manual positions
             layerSpacing: [],                    // Custom layer spacing values
             manualPositions: new Map(),          // Node ID -> manual position data
+            zoomState: { k: 1, x: 0, y: 0 },     // Zoom and pan state (scale, x offset, y offset)
             
             // UI State
             chartConfig: {},                     // All chart configuration
@@ -160,6 +162,32 @@ class BaseChart {
                 }
             }
 
+            // Capture zoom and pan state
+            if (this.zoomState) {
+                this.statePersistence.zoomState = {
+                    k: this.zoomState.k || 1,
+                    x: this.zoomState.x || 0,
+                    y: this.zoomState.y || 0
+                };
+                console.log(`🔍 Captured zoom state: scale=${this.statePersistence.zoomState.k}, x=${this.statePersistence.zoomState.x}, y=${this.statePersistence.zoomState.y}`);
+            } else if (this.svg && window.d3) {
+                // Fallback: get zoom state from D3 transform if zoomState not available
+                try {
+                    const transform = d3.zoomTransform(this.svg.node());
+                    this.statePersistence.zoomState = {
+                        k: transform.k || 1,
+                        x: transform.x || 0,
+                        y: transform.y || 0
+                    };
+                    console.log(`🔍 Captured zoom state from D3 transform: scale=${this.statePersistence.zoomState.k}, x=${this.statePersistence.zoomState.x}, y=${this.statePersistence.zoomState.y}`);
+                } catch (error) {
+                    console.warn('⚠️ Unable to capture zoom state from D3 transform:', error);
+                    this.statePersistence.zoomState = { k: 1, x: 0, y: 0 };
+                }
+            } else {
+                this.statePersistence.zoomState = { k: 1, x: 0, y: 0 };
+            }
+
             // UI State - Chart Configuration
             this.statePersistence.chartConfig = { ...this.config };
             
@@ -201,12 +229,22 @@ class BaseChart {
 
             // Custom colors
             this.statePersistence.nodeCustomColors.clear();
+            this.statePersistence.independentNodeColors.clear();
             this.statePersistence.linkCustomColors.clear();
             
             if (this.customColors && typeof this.customColors === 'object') {
                 for (const [id, color] of Object.entries(this.customColors)) {
                     this.statePersistence.nodeCustomColors.set(id, color);
                 }
+            }
+
+            // Capture independent node colors from nodes with customColor property
+            if (this.nodes) {
+                this.nodes.forEach(node => {
+                    if (node.customColor && !this.statePersistence.nodeCustomColors.has(node.id)) {
+                        this.statePersistence.independentNodeColors.set(node.id, node.customColor);
+                    }
+                });
             }
             
             // Capture link color categories (if links exist)
@@ -263,9 +301,13 @@ class BaseChart {
                 categoryAssignments: Object.fromEntries(this.statePersistence.categoryAssignments),
                 categoryColors: Object.fromEntries(this.statePersistence.categoryColors),
                 nodeCustomColors: Object.fromEntries(this.statePersistence.nodeCustomColors),
+                independentNodeColors: Object.fromEntries(this.statePersistence.independentNodeColors),
                 linkCustomColors: Object.fromEntries(this.statePersistence.linkCustomColors),
                 nodePositions: Object.fromEntries(this.statePersistence.nodePositions),
                 manualPositions: Object.fromEntries(this.statePersistence.manualPositions),
+                
+                // Zoom and Pan State
+                zoomState: this.statePersistence.zoomState,
                 
                 chartConfig: this.statePersistence.chartConfig,
                 layerSpacing: this.statePersistence.layerSpacing,
@@ -458,6 +500,20 @@ class BaseChart {
                 this.statePersistence.nodeCustomColors = new Map(Object.entries(stateData.nodeCustomColors));
                 this.customColors = { ...Object.fromEntries(this.statePersistence.nodeCustomColors) };
             }
+
+            // Restore independent node colors and apply to nodes
+            if (stateData.independentNodeColors) {
+                this.statePersistence.independentNodeColors = new Map(Object.entries(stateData.independentNodeColors));
+                // Apply independent colors to nodes if they exist
+                if (this.nodes) {
+                    this.nodes.forEach(node => {
+                        const independentColor = this.statePersistence.independentNodeColors.get(node.id);
+                        if (independentColor) {
+                            node.customColor = independentColor;
+                        }
+                    });
+                }
+            }
             
             // Restore link color categories
             if (stateData.linkCustomColors && this.links) {
@@ -499,6 +555,15 @@ class BaseChart {
             }
 
             console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
+            
+            // Restore zoom state if available
+            if (stateData.zoomState && this.svg) {
+                this.statePersistence.zoomState = stateData.zoomState;
+                // Defer zoom application until after render is complete
+                setTimeout(() => {
+                    this.applyZoomState(stateData.zoomState);
+                }, 100);
+            }
             
             // Force immediate visual update to apply all restored state
             // This ensures positions, colors, and categories are all applied correctly
@@ -572,7 +637,72 @@ class BaseChart {
             console.log(`🎨 Restored ${this.statePersistence.linkCustomColors.size} link color categories`);
         }
 
+        // Apply zoom state if available (deferred to allow chart rendering to complete)
+        if (this.statePersistence.zoomState && this.svg) {
+            const zoomState = this.statePersistence.zoomState;
+            if (zoomState.k !== 1 || zoomState.x !== 0 || zoomState.y !== 0) {
+                setTimeout(() => {
+                    this.applyZoomState(zoomState);
+                }, 200);
+            }
+        }
+
         console.log(`✅ Applied restored layout state to chart`);
+    }
+
+    /**
+     * Apply zoom state to the chart
+     * Handles both ChartZoom utility and fallback D3 zoom behavior
+     */
+    applyZoomState(zoomState) {
+        if (!zoomState || !this.svg) {
+            return;
+        }
+
+        try {
+            // Update internal zoom state if chart has it
+            if (this.zoomState) {
+                this.zoomState.k = zoomState.k;
+                this.zoomState.x = zoomState.x;
+                this.zoomState.y = zoomState.y;
+            }
+
+            // Method 1: Use ChartZoom utility if available
+            if (window.ChartZoom && window.ChartZoom.setZoomLevel && this.zoom) {
+                const transform = d3.zoomIdentity
+                    .translate(zoomState.x, zoomState.y)
+                    .scale(zoomState.k);
+                
+                this.svg.call(this.zoom.transform, transform);
+                console.log(`🔍 Applied zoom state via ChartZoom: scale=${zoomState.k}, x=${zoomState.x}, y=${zoomState.y}`);
+                return;
+            }
+
+            // Method 2: Direct D3 zoom behavior application
+            if (this.zoom) {
+                const transform = d3.zoomIdentity
+                    .translate(zoomState.x, zoomState.y)
+                    .scale(zoomState.k);
+                
+                this.svg.call(this.zoom.transform, transform);
+                console.log(`🔍 Applied zoom state via D3: scale=${zoomState.k}, x=${zoomState.x}, y=${zoomState.y}`);
+                return;
+            }
+
+            // Method 3: Direct transform application to zoom container
+            const zoomContainer = this.zoomContainer || this.chartContainer;
+            if (zoomContainer) {
+                const transformString = `translate(${zoomState.x},${zoomState.y}) scale(${zoomState.k})`;
+                zoomContainer.attr('transform', transformString);
+                console.log(`🔍 Applied zoom state via transform: scale=${zoomState.k}, x=${zoomState.x}, y=${zoomState.y}`);
+                return;
+            }
+
+            console.warn('⚠️ No zoom mechanism available to apply zoom state');
+
+        } catch (error) {
+            console.error('❌ Error applying zoom state:', error);
+        }
     }
 
     /**
@@ -605,9 +735,11 @@ class BaseChart {
             categoryAssignments: Object.fromEntries(this.statePersistence.categoryAssignments),
             categoryColors: Object.fromEntries(this.statePersistence.categoryColors),
             nodeCustomColors: Object.fromEntries(this.statePersistence.nodeCustomColors),
+            independentNodeColors: Object.fromEntries(this.statePersistence.independentNodeColors),
             linkCustomColors: Object.fromEntries(this.statePersistence.linkCustomColors),
             nodePositions: Object.fromEntries(this.statePersistence.nodePositions),
             manualPositions: Object.fromEntries(this.statePersistence.manualPositions),
+            zoomState: this.statePersistence.zoomState,
             chartConfig: this.optimizeConfig(this.statePersistence.chartConfig),
             layerSpacing: this.statePersistence.layerSpacing,
             selectedNodes: Array.from(this.statePersistence.selectedNodes),
@@ -681,6 +813,7 @@ class BaseChart {
         this.statePersistence.categoryAssignments = new Map(Object.entries(stateData.categoryAssignments || {}));
         this.statePersistence.categoryColors = new Map(Object.entries(stateData.categoryColors || {}));
         this.statePersistence.nodeCustomColors = new Map(Object.entries(stateData.nodeCustomColors || {}));
+        this.statePersistence.independentNodeColors = new Map(Object.entries(stateData.independentNodeColors || {}));
         this.statePersistence.linkCustomColors = new Map(Object.entries(stateData.linkCustomColors || {}));
         this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions || {}));
         this.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions || {}));
@@ -696,6 +829,11 @@ class BaseChart {
         this.statePersistence.lastSaved = stateData.lastSaved;
         this.statePersistence.version = stateData.version || '1.0';
         this.statePersistence.chartId = stateData.chartId || this.generateChartId();
+
+        // Restore zoom state
+        if (stateData.zoomState) {
+            this.statePersistence.zoomState = stateData.zoomState;
+        }
 
         // Apply the restored state
         this.applyRestoredState();
@@ -764,6 +902,7 @@ class BaseChart {
             this.statePersistence.categoryAssignments.clear();
             this.statePersistence.categoryColors.clear();
             this.statePersistence.nodeCustomColors.clear();
+            this.statePersistence.independentNodeColors.clear();
             this.statePersistence.linkCustomColors.clear();
             this.statePersistence.nodePositions.clear();
             this.statePersistence.manualPositions.clear();
@@ -777,6 +916,90 @@ class BaseChart {
         this.config = null;
         
         console.log('🧹 BaseChart destroyed and cleaned up');
+    }
+
+    /**
+     * Set independent color for a node (without category assignment)
+     * This allows nodes to have colors independent of their category
+     */
+    setIndependentNodeColor(nodeId, color) {
+        if (!nodeId || !color) {
+            console.warn('⚠️ Invalid nodeId or color for independent coloring');
+            return;
+        }
+
+        // Store in state persistence
+        this.statePersistence.independentNodeColors.set(nodeId, color);
+        
+        // Apply to the actual node if it exists
+        if (this.nodes) {
+            const node = this.nodes.find(n => n.id === nodeId);
+            if (node) {
+                node.customColor = color;
+                console.log(`🎨 Set independent color for node ${nodeId}: ${color}`);
+                
+                // Trigger visual update if the chart supports it
+                if (this.rerenderWithNewColors) {
+                    this.rerenderWithNewColors();
+                } else if (this.updateNodeColor) {
+                    this.updateNodeColor(node, color);
+                }
+            }
+        }
+
+        // Mark as changed for auto-save
+        this.markStateChanged();
+    }
+
+    /**
+     * Get independent color for a node
+     */
+    getIndependentNodeColor(nodeId) {
+        return this.statePersistence.independentNodeColors.get(nodeId);
+    }
+
+    /**
+     * Remove independent color from a node
+     */
+    removeIndependentNodeColor(nodeId) {
+        this.statePersistence.independentNodeColors.delete(nodeId);
+        
+        // Remove from actual node if it exists
+        if (this.nodes) {
+            const node = this.nodes.find(n => n.id === nodeId);
+            if (node && node.customColor) {
+                delete node.customColor;
+                console.log(`🎨 Removed independent color for node ${nodeId}`);
+                
+                // Trigger visual update
+                if (this.rerenderWithNewColors) {
+                    this.rerenderWithNewColors();
+                }
+            }
+        }
+
+        this.markStateChanged();
+    }
+
+    /**
+     * Check if a node has an independent color (separate from category)
+     */
+    hasIndependentNodeColor(nodeId) {
+        return this.statePersistence.independentNodeColors.has(nodeId);
+    }
+
+    /**
+     * Get all nodes with independent colors
+     */
+    getNodesWithIndependentColors() {
+        return Array.from(this.statePersistence.independentNodeColors.entries());
+    }
+
+    /**
+     * Mark state as changed for auto-save purposes
+     */
+    markStateChanged() {
+        this.statePersistence.lastModified = Date.now();
     }
 
     /**

@@ -18,6 +18,9 @@ class CategoryAssignmentModal {
         // Debug log for troubleshooting
         console.log(`🔍 CategoryAssignmentModal for node '${this.node.id}', current category: ${this.currentCategory || 'none'}, userCreated: ${this.node.userCreated}`);
         
+        // Track the current active tab mode
+        this.activeTab = 'category'; // Start with category assignment
+        
         this.createModal();
         this.setupEventListeners();
     }
@@ -44,18 +47,55 @@ class CategoryAssignmentModal {
                     </div>
                     
                     <div class="md-modal-content">
-                        <div class="md-section">
-                            <div class="md-category-grid">
-                                ${this.renderMaterialCategoryChips()}
+                        <!-- Color Mode Tabs -->
+                        <div class="md-tabs">
+                            <button class="md-tab-btn active" id="tab-category" data-tab="category">
+                                🏷️ Assign Category
+                            </button>
+                            <button class="md-tab-btn" id="tab-color" data-tab="color">
+                                🎨 Set Color Only
+                            </button>
+                        </div>
+                        
+                        <!-- Category Assignment Tab -->
+                        <div class="md-tab-content active" id="content-category">
+                            <div class="md-section">
+                                <div class="md-section-title">Choose Category</div>
+                                <div class="md-category-grid">
+                                    ${this.renderMaterialCategoryChips()}
+                                </div>
+                            </div>
+                            
+                            <div class="md-section md-create-section">
+                                <div class="md-create-title">Create New Category</div>
+                                <div class="md-create-controls">
+                                    <input type="text" id="category-name-input" class="md-name-input" placeholder="Category name" maxlength="20">
+                                    <input type="color" id="category-color-input" class="md-color-input" value="#1e40af">
+                                    <button id="category-create-btn" class="md-add-btn" type="button">+</button>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="md-section md-create-section">
-                            <div class="md-create-title">Create Category</div>
-                            <div class="md-create-controls">
-                                <input type="text" id="category-name-input" class="md-name-input" placeholder="Name" maxlength="20">
-                                <input type="color" id="category-color-input" class="md-color-input" value="#1e40af">
-                                <button id="category-create-btn" class="md-add-btn" type="button">+</button>
+                        <!-- Independent Color Tab -->
+                        <div class="md-tab-content" id="content-color">
+                            <div class="md-section">
+                                <div class="md-section-title">Set Node Color</div>
+                                <div class="md-color-section">
+                                    <div class="md-color-preview-container">
+                                        <div class="md-color-preview" id="color-preview" style="background-color: ${this.getCurrentNodeColor()}"></div>
+                                        <span class="md-color-label">Current Color</span>
+                                    </div>
+                                    <input type="color" id="independent-color-input" class="md-color-picker" value="${this.getCurrentNodeColor()}">
+                                    <button class="md-color-reset-btn" id="color-reset-btn" type="button">
+                                        Reset to Default
+                                    </button>
+                                </div>
+                                <div class="md-color-presets">
+                                    <div class="md-presets-title">Quick Colors</div>
+                                    <div class="md-preset-colors">
+                                        ${this.renderColorPresets()}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -124,6 +164,20 @@ class CategoryAssignmentModal {
         return chipsHTML;
     }
 
+    /**
+     * Render color preset buttons for quick color selection
+     */
+    renderColorPresets() {
+        const presetColors = [
+            '#1e40af', '#dc2626', '#059669', '#7c3aed', '#f59e0b',
+            '#ef4444', '#22c55e', '#3b82f6', '#8b5cf6', '#f97316',
+            '#10b981', '#6366f1', '#f43f5e', '#14b8a6', '#a855f7'
+        ];
+        
+        return presetColors.map(color => 
+            `<button class="md-preset-color" data-color="${color}" style="background-color: ${color}" title="${color}"></button>`
+        ).join('');
+    }
 
     /**
      * Get color for a category
@@ -142,6 +196,32 @@ class CategoryAssignmentModal {
     }
 
     /**
+     * Get the current color of the node
+     */
+    getCurrentNodeColor() {
+        // Check for independent color first
+        if (this.chart.getIndependentNodeColor) {
+            const independentColor = this.chart.getIndependentNodeColor(this.node.id);
+            if (independentColor) {
+                return independentColor;
+            }
+        }
+        
+        // Check node's direct customColor property
+        if (this.node.customColor) {
+            return this.node.customColor;
+        }
+        
+        // Use chart's getNodeColor method as fallback
+        if (this.chart.getNodeColor) {
+            return this.chart.getNodeColor(this.node);
+        }
+        
+        // Final fallback to a default color
+        return '#6b7280';
+    }
+
+    /**
      * Setup event listeners
      */
     setupEventListeners() {
@@ -157,7 +237,11 @@ class CategoryAssignmentModal {
         // Keyboard events
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
         
-        // Setup chip listeners
+        // Tab switching between category and color modes
+        modal.querySelector('#tab-category').addEventListener('click', () => this.switchTab('category'));
+        modal.querySelector('#tab-color').addEventListener('click', () => this.switchTab('color'));
+        
+        // Setup chip listeners for category assignment
         this.setupChipListeners(modal);
         
         // Custom category creation
@@ -170,6 +254,27 @@ class CategoryAssignmentModal {
                 this.createCustomCategory();
             }
         });
+        
+        // Independent color input handling
+        const colorInput = modal.querySelector('#independent-color-input');
+        if (colorInput) {
+            colorInput.addEventListener('input', (e) => this.handleColorChange(e.target.value));
+            colorInput.addEventListener('change', (e) => this.handleColorChange(e.target.value));
+        }
+        
+        // Color preset selection
+        modal.querySelectorAll('.md-preset-color').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const color = e.target.getAttribute('data-color');
+                this.setIndependentColor(color);
+            });
+        });
+        
+        // Color reset functionality
+        const resetBtn = modal.querySelector('#color-reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => this.resetNodeColor());
+        }
         
         // Save button
         modal.querySelector('#category-save-btn').addEventListener('click', () => this.save());
@@ -890,9 +995,227 @@ class CategoryAssignmentModal {
             .md-snackbar-text {
                 flex: 1;
             }
+            
+            /* Tab Interface Styles */
+            .md-tabs {
+                display: flex;
+                border-bottom: 2px solid #e5e7eb;
+                margin-bottom: 16px;
+                background-color: #f8fafc;
+                border-radius: 8px 8px 0 0;
+                padding: 4px;
+                gap: 2px;
+            }
+            
+            .md-tab-btn {
+                flex: 1;
+                padding: 8px 16px;
+                border: none;
+                background: transparent;
+                color: #64748b;
+                font-size: 12px;
+                font-weight: 500;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+            }
+            
+            .md-tab-btn:hover {
+                background-color: #e2e8f0;
+                color: #475569;
+            }
+            
+            .md-tab-btn.active {
+                background-color: #6750a4;
+                color: #ffffff;
+                box-shadow: 0 2px 4px rgba(103, 80, 164, 0.2);
+            }
+            
+            .md-tab-content {
+                display: none;
+            }
+            
+            .md-tab-content.active {
+                display: block;
+            }
+            
+            /* Color-only mode specific styles */
+            .md-color-section {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                align-items: center;
+                padding: 16px;
+                background-color: #f8fafc;
+                border-radius: 8px;
+                margin-bottom: 16px;
+            }
+            
+            .md-color-preview-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .md-color-preview {
+                width: 48px;
+                height: 48px;
+                border-radius: 8px;
+                border: 2px solid #e2e8f0;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            
+            .md-color-label {
+                font-size: 12px;
+                color: #64748b;
+                font-weight: 500;
+            }
+            
+            .md-color-picker {
+                width: 100%;
+                height: 36px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                cursor: pointer;
+                background: none;
+            }
+            
+            .md-color-reset-btn {
+                padding: 6px 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                background-color: #ffffff;
+                color: #64748b;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+            }
+            
+            .md-color-reset-btn:hover {
+                background-color: #f1f5f9;
+                border-color: #94a3b8;
+            }
+            
+            .md-color-presets {
+                margin-top: 8px;
+            }
+            
+            .md-presets-title {
+                font-size: 11px;
+                font-weight: 600;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 8px;
+                text-align: center;
+            }
+            
+            .md-preset-colors {
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 6px;
+                justify-items: center;
+            }
+            
+            .md-preset-color {
+                width: 24px;
+                height: 24px;
+                border-radius: 4px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                cursor: pointer;
+                transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+            }
+            
+            .md-preset-color:hover {
+                transform: scale(1.1);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                border-color: #6750a4;
+            }
         `;
         
         document.head.appendChild(styles);
+    }
+
+    /**
+     * Switch between category and color tabs
+     */
+    switchTab(tabName) {
+        const modal = document.getElementById(this.modalId);
+        
+        // Update tab buttons
+        modal.querySelectorAll('.md-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        modal.querySelector(`#tab-${tabName}`).classList.add('active');
+        
+        // Update tab content
+        modal.querySelectorAll('.md-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        modal.querySelector(`#content-${tabName}`).classList.add('active');
+        
+        this.activeTab = tabName;
+        console.log(`🔄 Switched to ${tabName} tab`);
+    }
+
+    /**
+     * Handle color change from the independent color picker
+     */
+    handleColorChange(color) {
+        // Update the color preview
+        const preview = document.querySelector('#color-preview');
+        if (preview) {
+            preview.style.backgroundColor = color;
+        }
+        
+        // Update the color input
+        const colorInput = document.querySelector('#independent-color-input');
+        if (colorInput) {
+            colorInput.value = color;
+        }
+        
+        // Apply the color to the node
+        this.setIndependentColor(color);
+    }
+
+    /**
+     * Set independent color for the node
+     */
+    setIndependentColor(color) {
+        if (this.chart.setIndependentNodeColor) {
+            this.chart.setIndependentNodeColor(this.node.id, color);
+            console.log(`🎨 Set independent color for node ${this.node.id}: ${color}`);
+        }
+        
+        // Update the color preview and input
+        const preview = document.querySelector('#color-preview');
+        const colorInput = document.querySelector('#independent-color-input');
+        
+        if (preview) {
+            preview.style.backgroundColor = color;
+        }
+        if (colorInput) {
+            colorInput.value = color;
+        }
+    }
+
+    /**
+     * Reset node color to default
+     */
+    resetNodeColor() {
+        if (this.chart.removeIndependentNodeColor) {
+            this.chart.removeIndependentNodeColor(this.node.id);
+            console.log(`🔄 Reset color for node ${this.node.id}`);
+        }
+        
+        // Update the UI with the new default color
+        const newColor = this.getCurrentNodeColor();
+        this.handleColorChange(newColor);
     }
 }
 
