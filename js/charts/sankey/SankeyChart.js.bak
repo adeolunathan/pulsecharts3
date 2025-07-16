@@ -86,6 +86,7 @@ class PulseSankeyChart extends BaseChart {
         }
         
         // Fallback to original logic if robust parser not available
+        console.log('⚠️ SANKEY: Robust parser not available, using fallback');
         if (value === null || value === undefined || value === '') {
             return 0;
         }
@@ -369,6 +370,7 @@ class PulseSankeyChart extends BaseChart {
                     }
                     
                     // Mark that we've updated the data - table update will be handled by resetTableFromModal
+                    console.log('📊 Chart data updated, table sync will be handled by modal');
                 } else {
                     console.warn('⚠️ Could not execute reset sequence - missing functions');
                 }
@@ -425,6 +427,7 @@ class PulseSankeyChart extends BaseChart {
             node.value = Math.max(incomingTotal, outgoingTotal);
             node.previousValue = Math.max(incomingPrevious, outgoingPrevious);
             
+            console.log(`🔄 Recalculated node "${nodeId}": value=${node.value}, previousValue=${node.previousValue} (incoming: ${incomingTotal}, outgoing: ${outgoingTotal})`);
         });
     }
 
@@ -1247,6 +1250,7 @@ class PulseSankeyChart extends BaseChart {
                 // If content exceeds container, scale down node heights proportionally
                 if (maxNodeY > availableHeight) {
                     const scaleFactor = availableHeight / (maxNodeY + 50); // 50px buffer
+                    console.log(`📏 Scaling nodes by ${scaleFactor.toFixed(3)} to fit container`);
                     
                     // Apply scaling to all nodes
                     this.nodes.forEach(node => {
@@ -1439,6 +1443,7 @@ class PulseSankeyChart extends BaseChart {
                         manuallyPositioned: true,
                         manualY: savedPos.y
                     });
+                    console.log(`🔄 Using saved position for ${node.id}: (${savedPos.x}, ${savedPos.y})`);
                 } else {
                     // Use current node positions (for normal operation)
                     preservedPositions.set(node.id, {
@@ -1944,6 +1949,7 @@ class PulseSankeyChart extends BaseChart {
         }
         
         this.data.metadata.categoryPositioning[categoryName] = preference;
+        console.log(`✅ Set positioning preference for ${categoryName}: ${preference}`);
         return true;
     }
 
@@ -2587,6 +2593,7 @@ class PulseSankeyChart extends BaseChart {
                 
                 
                 // Save manual position to metadata for persistence
+                console.log(`🏁 Drag ended for ${d.id}: final position (${d.x}, ${d.y}), manualX: ${d.manualX}, manualY: ${d.manualY}`);
                 self.saveManualPositionToMetadata(d);
             });
 
@@ -4073,11 +4080,13 @@ class PulseSankeyChart extends BaseChart {
     // Show node details modal
     showNodeDetailsModal(node) {
         // TODO: Implement node details modal
+        console.log('Node details modal for:', node);
     }
 
     // Focus on node
     focusOnNode(node) {
         // TODO: Implement focus functionality (zoom, highlight, etc.)
+        console.log('Focus on node:', node.name);
     }
 
     // Show notification
@@ -4764,6 +4773,7 @@ class PulseSankeyChart extends BaseChart {
         });
         
         const nodeType = this.isAggregationNode(node, this.links) ? 'aggregation' : (node.depth === 0 ? 'revenue segment' : 'other');
+        console.log(`🎨 Auto-colored ${linksToColor.length} links for ${nodeType} node '${node.id}'${linksToColor.length === 0 ? ' (node-only coloring)' : ''}`);
     }
 
     // Smart link assignment that avoids conflicts with aggregation nodes
@@ -4776,6 +4786,7 @@ class PulseSankeyChart extends BaseChart {
         
         // Special case: Revenue nodes at depth 1 should only change node color (not outgoing links)
         if (node.depth === 1 && (node.category === 'revenue' || node.id.toLowerCase().includes('revenue'))) {
+            console.log(`🎯 Revenue node at depth 1 detected: '${node.id}' - node-only coloring`);
             return [];
         }
         
@@ -7011,6 +7022,7 @@ class PulseSankeyChart extends BaseChart {
                 flows: flows
             };
             
+            console.log(`✅ Updated internal data structure with ${flows.length} flows, preserving previousValue data:`, flows);
         } catch (error) {
             console.warn('⚠️ Failed to update internal data structure:', error.message);
         }
@@ -7146,6 +7158,7 @@ class PulseSankeyChart extends BaseChart {
                 });
                 window.dispatchEvent(spreadsheetUpdateEvent);
                 
+                console.log('✅ Gently synchronized chart data to spreadsheet');
             } catch (eventError) {
                 console.warn('⚠️ Could not notify spreadsheet:', eventError.message);
             }
@@ -7647,6 +7660,7 @@ class PulseSankeyChart extends BaseChart {
         // Capture state for auto-save
         this.captureCompleteState();
 
+        console.log(`🎨 Set independent color for node '${nodeId}': ${color}`);
     }
 
     /**
@@ -7677,6 +7691,7 @@ class PulseSankeyChart extends BaseChart {
             // Capture state for auto-save
             this.captureCompleteState();
             
+            console.log(`🔄 Removed independent color from node '${nodeId}'`);
         }
     }
 
@@ -7704,6 +7719,7 @@ class PulseSankeyChart extends BaseChart {
                         (node.depth === 0 ? 'revenue segment' : 
                          (node.depth === 1 && (node.category === 'revenue' || node.id.toLowerCase().includes('revenue')) ? 'revenue depth 1' : 'other'));
         
+        console.log(`🎨 Applied independent color to ${linksToColor.length} links for ${nodeType} node '${node.id}'${linksToColor.length === 0 ? ' (node-only coloring)' : ''}`);
     }
 
     /**
@@ -7754,8 +7770,10 @@ class PulseSankeyChart extends BaseChart {
             this.chart.selectAll('.node-text-group, .node-label, .node-value').remove();
             this.renderLabels();
             
+            console.log(`🔄 Updated node '${nodeId}' properties: category='${categoryName}', isExpenseType=${node.isExpenseType}, customColor removed`);
         }
         
+        console.log(`✅ Assigned node '${nodeId}' to category '${categoryName}'`);
     }
 
     /**
@@ -7786,8 +7804,10 @@ class PulseSankeyChart extends BaseChart {
             // Re-render with new colors to show the changes
             this.rerenderWithNewColors();
             
+            console.log(`🔄 Reset node '${nodeId}' properties: category=null, isExpenseType=false`);
         }
         
+        console.log(`✅ Removed category assignment from node '${nodeId}'`);
     }
 
     /**
@@ -7831,6 +7851,7 @@ class PulseSankeyChart extends BaseChart {
         }
         
         this.saveCategoriesToMetadata();
+        console.log(`✅ Created custom category '${name}' with color ${color}`);
         return true;
     }
 
@@ -7873,6 +7894,7 @@ class PulseSankeyChart extends BaseChart {
         });
         
         this.saveCategoriesToMetadata();
+        console.log(`✅ Deleted category '${categoryName}' and unassigned ${nodesToReassign.length} nodes`);
         return true;
     }
 

@@ -109,6 +109,7 @@ class BaseChart {
         };
         window.addEventListener('beforeunload', this.beforeUnloadHandler);
         
+        console.log('⏰ Auto-save configured: every 2 minutes + on page exit');
     }
 
     /**
@@ -144,6 +145,7 @@ class BaseChart {
                 
                 this.nodes.forEach(node => {
                     if (node.x !== undefined && node.y !== undefined) {
+                        console.log(`💾 Capturing ${node.id}: X=${node.x}, Y=${node.y}, manualX=${node.manualX}, manualY=${node.manualY}, manual=${!!node.manuallyPositioned}`);
                         this.statePersistence.nodePositions.set(node.id, { x: node.x, y: node.y });
                         positionCount++;
                     }
@@ -153,6 +155,7 @@ class BaseChart {
                     }
                 });
                 
+                console.log(`💾 Captured ${positionCount} node positions, ${manualCount} manual positions`);
                 if (positionCount === 0) {
                     console.warn('⚠️ No node positions captured - nodes may not have x,y coordinates set');
                 }
@@ -165,6 +168,7 @@ class BaseChart {
                     x: this.zoomState.x || 0,
                     y: this.zoomState.y || 0
                 };
+                console.log(`🔍 Captured zoom state: scale=${this.statePersistence.zoomState.k}, x=${this.statePersistence.zoomState.x}, y=${this.statePersistence.zoomState.y}`);
             } else if (this.svg && window.d3) {
                 // Fallback: get zoom state from D3 transform if zoomState not available
                 try {
@@ -174,6 +178,7 @@ class BaseChart {
                         x: transform.x || 0,
                         y: transform.y || 0
                     };
+                    console.log(`🔍 Captured zoom state from D3 transform: scale=${this.statePersistence.zoomState.k}, x=${this.statePersistence.zoomState.x}, y=${this.statePersistence.zoomState.y}`);
                 } catch (error) {
                     console.warn('⚠️ Unable to capture zoom state from D3 transform:', error);
                     this.statePersistence.zoomState = { k: 1, x: 0, y: 0 };
@@ -234,8 +239,10 @@ class BaseChart {
 
             // Capture independent node colors from chart instance
             if (this.independentNodeColors && typeof this.independentNodeColors === 'object') {
+                console.log(`💾 Capturing ${Object.keys(this.independentNodeColors).length} independent node colors`);
                 for (const [nodeId, color] of Object.entries(this.independentNodeColors)) {
                     this.statePersistence.independentNodeColors.set(nodeId, color);
+                    console.log(`💾 Captured independent color for ${nodeId}: ${color}`);
                 }
             }
             
@@ -244,6 +251,7 @@ class BaseChart {
                 this.nodes.forEach(node => {
                     if (node.customColor && !this.statePersistence.nodeCustomColors.has(node.id) && !this.statePersistence.independentNodeColors.has(node.id)) {
                         this.statePersistence.independentNodeColors.set(node.id, node.customColor);
+                        console.log(`💾 Captured independent color from node property for ${node.id}: ${node.customColor}`);
                     }
                 });
             }
@@ -282,6 +290,7 @@ class BaseChart {
 
             this.statePersistence.lastSaved = Date.now();
             
+            console.log(`💾 Captured complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
             
         } catch (error) {
             console.error('❌ Error capturing chart state:', error);
@@ -325,6 +334,7 @@ class BaseChart {
             const stateJson = JSON.stringify(stateData);
             const stateSize = stateJson.length;
             
+            console.log(`💾 Attempting to save chart state (${this.formatBytes(stateSize)})`);
 
             // Try to save to localStorage with intelligent error handling
             const storageKey = `pulse_chart_state_${this.statePersistence.chartId}`;
@@ -336,11 +346,13 @@ class BaseChart {
                 if (this.saveCategoriesToMetadata) {
                     this.saveCategoriesToMetadata();
                 }
+                console.log(`💾 Saved chart state to data metadata (primary storage)`);
             }
             
         } catch (error) {
             console.error('❌ Error saving chart state:', error);
             // Even if localStorage fails, we still have metadata persistence
+            console.log('📝 Chart state preserved in data metadata despite localStorage error');
         }
     }
 
@@ -350,8 +362,10 @@ class BaseChart {
     saveToLocalStorageWithCleanup(key, data) {
         try {
             localStorage.setItem(key, data);
+            console.log(`💾 Saved chart state to localStorage`);
         } catch (error) {
             if (error.name === 'QuotaExceededError') {
+                console.log('🧹 localStorage quota exceeded - cleaning up old chart states...');
                 
                 // Find and remove old chart state entries
                 const chartStateKeys = [];
@@ -369,11 +383,13 @@ class BaseChart {
                 for (let i = 0; i < keysToRemove; i++) {
                     const oldKey = chartStateKeys[i];
                     localStorage.removeItem(oldKey);
+                    console.log(`🗑️ Removed old chart state: ${oldKey}`);
                 }
                 
                 // Try saving again after cleanup
                 try {
                     localStorage.setItem(key, data);
+                    console.log(`✅ Saved chart state to localStorage after cleanup`);
                 } catch (retryError) {
                     console.warn('⚠️ Still unable to save to localStorage after cleanup, relying on metadata storage');
                     // Don't throw - metadata storage is still working
@@ -396,16 +412,19 @@ class BaseChart {
             // Try to load from current data metadata first
             if (this.data && this.data.metadata && this.data.metadata.chartState) {
                 stateData = this.data.metadata.chartState;
+                console.log(`📁 Loading chart state from data metadata`);
             } else {
                 // Try to load from localStorage
                 const storageKey = `pulse_chart_state_${this.statePersistence.chartId}`;
                 const stored = localStorage.getItem(storageKey);
                 if (stored) {
                     stateData = JSON.parse(stored);
+                    console.log(`📁 Loading chart state from localStorage`);
                 }
             }
 
             if (!stateData) {
+                console.log(`📝 No previous chart state found, starting fresh`);
                 return;
             }
 
@@ -427,6 +446,7 @@ class BaseChart {
                             this.updateLinkCategoriesForNode(node, categoryName);
                         }
                     }
+                    console.log('🔗 Updated link colors based on restored category assignments');
                 }
             }
 
@@ -447,6 +467,7 @@ class BaseChart {
             // Restore layout state
             if (stateData.nodePositions) {
                 this.statePersistence.nodePositions = new Map(Object.entries(stateData.nodePositions));
+                console.log(`📍 Restored ${this.statePersistence.nodePositions.size} node positions from saved state`);
                 
                 // CRITICAL: Immediately mark nodes as manually positioned so calculateLayout respects them
                 if (this.nodes) {
@@ -454,6 +475,7 @@ class BaseChart {
                         const savedPos = this.statePersistence.nodePositions.get(node.id);
                         if (savedPos) {
                             node.manuallyPositioned = true;
+                            console.log(`🎯 Pre-marked ${node.id} as manually positioned for layout respect`);
                         }
                     });
                 }
@@ -461,6 +483,7 @@ class BaseChart {
 
             if (stateData.manualPositions) {
                 this.statePersistence.manualPositions = new Map(Object.entries(stateData.manualPositions));
+                console.log(`🎯 Restored ${this.statePersistence.manualPositions.size} manual position flags`);
             }
 
             // Restore UI state
@@ -540,6 +563,7 @@ class BaseChart {
                 }
             }
 
+            console.log(`✅ Restored complete chart state (${this.statePersistence.categoryAssignments.size} categories, ${this.statePersistence.nodePositions.size} positions)`);
             
             // Restore zoom state if available
             if (stateData.zoomState && this.svg) {
@@ -554,8 +578,10 @@ class BaseChart {
             // This ensures positions, colors, and categories are all applied correctly
             if (this.rerenderWithNewColors) {
                 this.rerenderWithNewColors();
+                console.log('🎨 Applied restored state with immediate color re-render');
             } else {
                 this.applyRestoredState();
+                console.log('📍 Applied restored positions and layout');
             }
             
         } catch (error) {
@@ -577,6 +603,7 @@ class BaseChart {
                 const manualPos = this.statePersistence.manualPositions.get(node.id);
                 
                 if (savedPos) {
+                    console.log(`📍 Restoring ${node.id}: from (${node.x},${node.y}) to (${savedPos.x},${savedPos.y})`);
                     
                     // CRITICAL: Set manuallyPositioned flag FIRST so calculateLayout respects the position
                     node.manuallyPositioned = true; // Treat all restored positions as manually positioned
@@ -593,6 +620,7 @@ class BaseChart {
                 }
             });
             
+            console.log(`📍 Applied ${appliedCount}/${this.nodes.length} node positions to chart`);
             
             // Update the visual positions in the DOM
             if (this.chart && appliedCount > 0) {
@@ -600,8 +628,10 @@ class BaseChart {
                     .data(this.nodes)
                     .attr('transform', d => `translate(${d.x},${d.y})`);
                     
+                console.log(`🔄 Updated visual positions for ${appliedCount} nodes`);
             }
         } else {
+            console.log(`📍 No saved positions to restore (${this.statePersistence.nodePositions.size} in state, ${this.nodes ? this.nodes.length : 0} current nodes)`);
         }
         
         // Restore link color categories (this needs to happen after render when links are available)
@@ -613,6 +643,7 @@ class BaseChart {
                     link.colorCategory = savedColorCategory;
                 }
             });
+            console.log(`🎨 Restored ${this.statePersistence.linkCustomColors.size} link color categories`);
         }
 
         // Apply zoom state if available (deferred to allow chart rendering to complete)
@@ -625,6 +656,7 @@ class BaseChart {
             }
         }
 
+        console.log(`✅ Applied restored layout state to chart`);
     }
 
     /**
@@ -651,6 +683,7 @@ class BaseChart {
                     .scale(zoomState.k);
                 
                 this.svg.call(this.zoom.transform, transform);
+                console.log(`🔍 Applied zoom state via ChartZoom: scale=${zoomState.k}, x=${zoomState.x}, y=${zoomState.y}`);
                 return;
             }
 
@@ -661,6 +694,7 @@ class BaseChart {
                     .scale(zoomState.k);
                 
                 this.svg.call(this.zoom.transform, transform);
+                console.log(`🔍 Applied zoom state via D3: scale=${zoomState.k}, x=${zoomState.x}, y=${zoomState.y}`);
                 return;
             }
 
@@ -669,6 +703,7 @@ class BaseChart {
             if (zoomContainer) {
                 const transformString = `translate(${zoomState.x},${zoomState.y}) scale(${zoomState.k})`;
                 zoomContainer.attr('transform', transformString);
+                console.log(`🔍 Applied zoom state via transform: scale=${zoomState.k}, x=${zoomState.x}, y=${zoomState.y}`);
                 return;
             }
 
@@ -684,6 +719,7 @@ class BaseChart {
      * Extracted from SankeyChart.js lines 8076-8087
      */
     preserveStateForOperation(operation) {
+        console.log(`🔒 Preserving state for operation: ${operation}`);
         this.captureCompleteState();
         
         // Temporarily disable auto-save during the operation
@@ -728,6 +764,7 @@ class BaseChart {
         // for state restoration since we re-load from the chart's current data
         
         const stateSize = JSON.stringify(stateData).length;
+        console.log(`📊 State data size: ${this.formatBytes(stateSize)}`);
         
         return stateData;
     }
@@ -887,6 +924,7 @@ class BaseChart {
         this.data = null;
         this.config = null;
         
+        console.log('🧹 BaseChart destroyed and cleaned up');
     }
 
     /**
@@ -907,6 +945,7 @@ class BaseChart {
             const node = this.nodes.find(n => n.id === nodeId);
             if (node) {
                 node.customColor = color;
+                console.log(`🎨 Set independent color for node ${nodeId}: ${color}`);
                 
                 // Trigger visual update if the chart supports it
                 if (this.rerenderWithNewColors) {
@@ -939,6 +978,7 @@ class BaseChart {
             const node = this.nodes.find(n => n.id === nodeId);
             if (node && node.customColor) {
                 delete node.customColor;
+                console.log(`🎨 Removed independent color for node ${nodeId}`);
                 
                 // Trigger visual update
                 if (this.rerenderWithNewColors) {
@@ -995,8 +1035,10 @@ class BaseChart {
             
             for (let i = 0; i < toRemove; i++) {
                 localStorage.removeItem(chartStateKeys[i]);
+                console.log(`🗑️ Cleaned up old chart state: ${chartStateKeys[i]}`);
             }
             
+            console.log(`🧹 Cleaned up ${toRemove} old chart states, keeping ${maxStates} most recent`);
         } catch (error) {
             console.warn('⚠️ Error during chart state cleanup:', error);
         }
