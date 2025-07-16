@@ -170,10 +170,10 @@ class SankeyControlModule {
                         id: "nodeHeightScale", 
                         type: "slider", 
                         label: "Node Height Scale", 
-                        min: 0.001, 
-                        max: 1.0, 
+                        min: 0.005, 
+                        max: 0.2, 
                         default: 0.05, 
-                        step: 0.001, 
+                        step: 0.005, 
                         description: "Scale factor for node heights - smaller values for large data sets" 
                     },
                     { 
@@ -762,47 +762,17 @@ class SankeyControlModule {
                     }
                 });
                 
-                // Update visual positions
+                // Recalculate ALL link positioning properties based on new node positions
+                chart.calculateLinkPositions();
+                
+                // Update all visual elements instantly - NO TRANSITIONS
                 chart.chart.selectAll('.sankey-node')
-                    .transition()
-                    .duration(200)
                     .attr('transform', d => `translate(${d.x}, ${d.y})`);
                 
-                // Update link source/target coordinates before updating paths
-                if (chart.links) {
-                    chart.links.forEach(link => {
-                        // Update source coordinates
-                        if (link.source && typeof link.source === 'object') {
-                            const sourceNode = chart.nodes.find(n => n.id === link.source.id);
-                            if (sourceNode) {
-                                link.source.x = sourceNode.x;
-                                link.source.y = sourceNode.y;
-                                link.source.height = sourceNode.height;
-                            }
-                        }
-                        
-                        // Update target coordinates
-                        if (link.target && typeof link.target === 'object') {
-                            const targetNode = chart.nodes.find(n => n.id === link.target.id);
-                            if (targetNode) {
-                                link.target.x = targetNode.x;
-                                link.target.y = targetNode.y;
-                                link.target.height = targetNode.height;
-                            }
-                        }
-                    });
-                }
-                
-                // Update link paths with updated coordinates
                 chart.chart.selectAll('.sankey-link path')
-                    .transition()
-                    .duration(200)
                     .attr('d', d => chart.createSmoothPath(d, chart.config.curveIntensity));
                 
-                // Update text positions
                 chart.chart.selectAll('.node-text-group')
-                    .transition()
-                    .duration(200)
                     .attr('transform', function() {
                         const nodeId = d3.select(this).attr('data-node-id');
                         const node = chart.nodes.find(n => n.id === nodeId);
@@ -1171,68 +1141,35 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle nodeHeightScale specially - update data and DOM without re-render
+        // Handle nodeHeightScale specially - minimal updates to avoid duplication
         if (controlId === 'nodeHeightScale') {
-            console.log(`🎛️ Setting nodeHeightScale to ${value} without re-render`);
+            console.log(`🎛️ Setting nodeHeightScale to ${value} with minimal updates`);
             chart.config.nodeHeightScale = value;
             
             // Update both underlying node data AND visual elements
             if (chart.chart && chart.nodes) {
                 // 1. Update underlying node height data
                 chart.nodes.forEach(node => {
-                    node.height = Math.max(8, node.value * value);
+                    node.height = Math.max(1, node.value * value);
                 });
                 
-                // 2. Update visual node rectangles
+                // 2. Update node visuals instantly
                 chart.chart.selectAll('.sankey-node rect')
-                    .transition()
-                    .duration(200)
                     .attr('height', d => d.height);
                 
-                // 3. Update link paths with proper source/target heights
-                chart.chart.selectAll('.sankey-link path')
-                    .transition()
-                    .duration(200)
-                    .attr('d', d => {
-                        // Ensure links use updated node heights for proper path calculation
-                        if (d.source && d.target) {
-                            // Update link positions based on new node heights
-                            const sourceNode = chart.nodes.find(n => n.id === d.source.id);
-                            const targetNode = chart.nodes.find(n => n.id === d.target.id);
-                            if (sourceNode) d.source.height = sourceNode.height;
-                            if (targetNode) d.target.height = targetNode.height;
-                        }
-                        return chart.createSmoothPath(d, chart.config.curveIntensity);
-                    });
+                // 3. Recalculate link positions (this sets d.path property)
+                chart.calculateLinkPositions();
                 
-                // 4. Update text label positions if they depend on node heights
-                if (chart.chart.selectAll('.node-text-group').size() > 0) {
-                    chart.chart.selectAll('.node-text-group')
-                        .transition()
-                        .duration(200)
-                        .attr('transform', function() {
-                            const nodeId = d3.select(this).attr('data-node-id');
-                            const node = chart.nodes.find(n => n.id === nodeId);
-                            if (node) {
-                                // Extract current X position and update Y to new center
-                                const currentTransform = d3.select(this).attr('transform');
-                                const translateMatch = currentTransform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
-                                if (translateMatch) {
-                                    const x = parseFloat(translateMatch[1]);
-                                    return `translate(${x}, ${node.y + node.height/2})`;
-                                }
-                            }
-                            return d3.select(this).attr('transform');
-                        });
-                }
+                // 4. Update link paths using the calculated path property
+                chart.chart.selectAll('.sankey-link path')
+                    .attr('d', d => d.path);
+                
+                // 5. Update text labels using the exact same approach as drag handler
+                chart.chart.selectAll('.node-text-group').remove();
+                chart.renderLabels();
             }
             
-            // Ensure chart fits within fixed container after height scaling
-            if (chart.ensureChartFitsContainer) {
-                chart.ensureChartFitsContainer();
-            }
-            
-            console.log(`✅ Updated nodeHeightScale to ${value} with proper link scaling`);
+            console.log(`✅ Updated nodeHeightScale to ${value} with minimal updates`);
             return;
         }
 
