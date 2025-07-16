@@ -7660,6 +7660,9 @@ class PulseSankeyChart extends BaseChart {
 
         // Re-render to apply changes
         this.rerenderWithNewColors();
+        
+        // Capture state for auto-save
+        this.captureCompleteState();
 
         console.log(`🎨 Set independent color for node '${nodeId}': ${color}`);
     }
@@ -7688,6 +7691,10 @@ class PulseSankeyChart extends BaseChart {
             }
             
             this.rerenderWithNewColors();
+            
+            // Capture state for auto-save
+            this.captureCompleteState();
+            
             console.log(`🔄 Removed independent color from node '${nodeId}'`);
         }
     }

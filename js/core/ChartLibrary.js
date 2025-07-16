@@ -38,6 +38,11 @@ class ChartLibrary {
             updatedAt: new Date().toISOString()
         };
         
+        // Capture latest state before saving
+        if (window.pulseApp.chart && window.pulseApp.chart.captureCompleteState) {
+            window.pulseApp.chart.captureCompleteState();
+        }
+        
         // Include chart state (colors, categories, positions) if available
         // Enhanced to use BaseChart unified interface
         if (window.pulseApp.chart) {
@@ -308,155 +313,26 @@ class ChartLibrary {
             <div class="modal-overlay" id="save-modal-overlay"></div>
             <div class="modern-save-modal">
                 <div class="save-modal-header">
-                    <div class="header-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                            <polyline points="17,21 17,13 7,13 7,21"/>
-                            <polyline points="7,3 7,8 15,8"/>
-                        </svg>
-                    </div>
-                    <div class="header-content">
-                        <h2>Save Chart</h2>
-                        <p>Create a snapshot of your visualization</p>
-                    </div>
-                    <button class="modal-close-btn" id="save-modal-close">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 6L6 18M6 6l12 12"/>
-                        </svg>
-                    </button>
+                    <h2>Save Chart</h2>
                 </div>
                 
                 <div class="save-modal-body">
-                    <div class="chart-preview">
-                        <div class="preview-header">
-                            <div class="chart-type-badge" id="save-chart-type-badge">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                    <polyline points="7.5,4.21 12,6.81 16.5,4.21"/>
-                                    <polyline points="7.5,19.79 7.5,14.6 3,12"/>
-                                    <polyline points="21,12 16.5,14.6 16.5,19.79"/>
-                                </svg>
-                                <span id="save-chart-type">Sankey Chart</span>
-                            </div>
-                        </div>
-                        
-                        <div class="chart-stats">
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="3"/>
-                                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-                                    </svg>
-                                </div>
-                                <div class="stat-content">
-                                    <span class="stat-value" id="save-data-count">0</span>
-                                    <span class="stat-label">Data Points</span>
-                                </div>
-                            </div>
-                            
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                        <line x1="16" y1="2" x2="16" y2="6"/>
-                                        <line x1="8" y1="2" x2="8" y2="6"/>
-                                        <line x1="3" y1="10" x2="21" y2="10"/>
-                                    </svg>
-                                </div>
-                                <div class="stat-content">
-                                    <span class="stat-value" id="save-timestamp">Now</span>
-                                    <span class="stat-label">Created</span>
-                                </div>
-                            </div>
-                            
-                            <div class="stat-item">
-                                <div class="stat-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M9 19c-5 0-8-3-8-8s3-8 8-8 8 3 8 8-3 8-8 8"/>
-                                        <path d="M9 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6"/>
-                                        <path d="M17 9h.01"/>
-                                        <path d="M15 9h.01"/>
-                                        <path d="M13 9h.01"/>
-                                    </svg>
-                                </div>
-                                <div class="stat-content">
-                                    <span class="stat-value" id="save-file-size">~2KB</span>
-                                    <span class="stat-label">Est. Size</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-section">
-                        <div class="input-group">
-                            <label for="chart-name-input" class="input-label">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                                Chart Name
-                            </label>
-                            <input 
-                                type="text" 
-                                id="chart-name-input" 
-                                class="modern-input"
-                                placeholder="Enter a descriptive name for your chart..."
-                                maxlength="100"
-                                autocomplete="off"
-                                spellcheck="false"
-                            >
-                            <div class="input-helper">
-                                <span class="char-counter">
-                                    <span id="char-count">0</span>/100
-                                </span>
-                                <div class="input-suggestions">
-                                    <button type="button" class="suggestion-btn" data-suggestion="Financial Flow Analysis">💰 Financial Flow</button>
-                                    <button type="button" class="suggestion-btn" data-suggestion="Revenue Breakdown">📊 Revenue Analysis</button>
-                                    <button type="button" class="suggestion-btn" data-suggestion="Cost Structure">💸 Cost Structure</button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="save-options">
-                            <div class="option-item">
-                                <input type="checkbox" id="include-customizations" checked>
-                                <label for="include-customizations">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM10 17l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                    Include all customizations (colors, positions, categories)
-                                </label>
-                            </div>
-                            
-                            <div class="option-item">
-                                <input type="checkbox" id="auto-backup" checked>
-                                <label for="auto-backup">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="3"/>
-                                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-                                    </svg>
-                                    Enable auto-backup for this chart
-                                </label>
-                            </div>
-                        </div>
+                    <div class="input-group">
+                        <label for="chart-name-input">Chart Name</label>
+                        <input 
+                            type="text" 
+                            id="chart-name-input" 
+                            class="modern-input"
+                            placeholder="Enter chart name..."
+                            maxlength="80"
+                            autocomplete="off"
+                        >
                     </div>
                 </div>
                 
                 <div class="save-modal-footer">
-                    <button class="btn btn-ghost" id="save-cancel-btn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 6L6 18M6 6l12 12"/>
-                        </svg>
-                        Cancel
-                    </button>
-                    <button class="btn btn-primary" id="save-confirm-btn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                            <polyline points="17,21 17,13 7,13 7,21"/>
-                            <polyline points="7,3 7,8 15,8"/>
-                        </svg>
-                        Save Chart
-                    </button>
+                    <button class="btn btn-ghost" id="save-cancel-btn">Cancel</button>
+                    <button class="btn btn-primary" id="save-confirm-btn">Save Chart</button>
                 </div>
             </div>
         `;
@@ -480,14 +356,11 @@ class ChartLibrary {
         style.textContent = `
             .modern-save-modal {
                 position: relative;
-                background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-                border-radius: 24px;
-                box-shadow: 
-                    0 32px 64px rgba(0, 0, 0, 0.12),
-                    0 16px 32px rgba(0, 0, 0, 0.08),
-                    0 8px 16px rgba(0, 0, 0, 0.04);
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
                 width: 100%;
-                max-width: 520px;
+                max-width: 300px;
                 max-height: 90vh;
                 overflow: hidden;
                 backdrop-filter: blur(20px);
@@ -507,37 +380,18 @@ class ChartLibrary {
             }
 
             .save-modal-header {
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                padding: 24px 28px 20px;
+                padding: 16px 20px 12px;
                 border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+                text-align: center;
             }
 
-            .save-modal-header .header-icon {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 48px;
-                height: 48px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 16px;
-                color: white;
-                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
-            }
-
-            .save-modal-header .header-content {
-                flex: 1;
-            }
 
             .save-modal-header h2 {
                 margin: 0;
-                font-size: 24px;
-                font-weight: 700;
+                font-size: 18px;
+                font-weight: 600;
                 color: #1e293b;
                 line-height: 1.2;
-                letter-spacing: -0.025em;
             }
 
             .save-modal-header p {
@@ -547,135 +401,39 @@ class ChartLibrary {
                 font-weight: 500;
             }
 
-            .modal-close-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 40px;
-                height: 40px;
-                border: none;
-                background: rgba(148, 163, 184, 0.1);
-                border-radius: 12px;
-                color: #64748b;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-
-            .modal-close-btn:hover {
-                background: rgba(239, 68, 68, 0.1);
-                color: #ef4444;
-                transform: scale(1.05);
-            }
 
             .save-modal-body {
-                padding: 24px 28px;
-                max-height: 60vh;
-                overflow-y: auto;
+                padding: 16px 20px;
             }
 
-            .chart-preview {
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                border: 1px solid rgba(226, 232, 240, 0.8);
-                border-radius: 16px;
-                padding: 20px;
-                margin-bottom: 24px;
-            }
-
-            .chart-type-badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 8px 16px;
-                border-radius: 12px;
-                font-size: 14px;
-                font-weight: 600;
-                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            }
-
-            .chart-stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-                gap: 16px;
-                margin-top: 20px;
-            }
-
-            .stat-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 16px;
-                background: rgba(255, 255, 255, 0.8);
-                border: 1px solid rgba(226, 232, 240, 0.6);
-                border-radius: 12px;
-                backdrop-filter: blur(10px);
-            }
-
-            .stat-icon {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 36px;
-                height: 36px;
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-                border-radius: 10px;
-                color: #667eea;
-            }
-
-            .stat-content {
-                flex: 1;
-            }
-
-            .stat-value {
-                display: block;
-                font-size: 18px;
-                font-weight: 700;
-                color: #1e293b;
-                line-height: 1.2;
-            }
-
-            .stat-label {
-                display: block;
-                font-size: 12px;
-                color: #64748b;
-                font-weight: 500;
-                text-transform: uppercase;
-                letter-spacing: 0.025em;
-                margin-top: 2px;
-            }
 
             .form-section {
                 margin-top: 8px;
             }
 
             .input-group {
-                margin-bottom: 24px;
+                margin-bottom: 0;
             }
 
             .input-label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 14px;
-                font-weight: 600;
+                font-size: 13px;
+                font-weight: 500;
                 color: #374151;
-                margin-bottom: 8px;
-                cursor: pointer;
+                margin-bottom: 6px;
+                display: block;
             }
 
             .modern-input {
                 width: 100%;
-                padding: 16px;
-                font-size: 16px;
-                font-weight: 500;
+                padding: 10px 12px;
+                font-size: 14px;
                 color: #1e293b;
-                background: rgba(255, 255, 255, 0.8);
-                border: 2px solid rgba(226, 232, 240, 0.8);
-                border-radius: 12px;
+                background: #ffffff;
+                border: 1px solid rgba(226, 232, 240, 0.8);
+                border-radius: 6px;
                 outline: none;
                 transition: all 0.2s ease;
-                backdrop-filter: blur(10px);
+                box-sizing: border-box;
             }
 
             .modern-input:focus {
@@ -689,100 +447,27 @@ class ChartLibrary {
                 font-weight: 400;
             }
 
-            .input-helper {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-top: 8px;
-                flex-wrap: wrap;
-                gap: 12px;
-            }
-
             .char-counter {
                 font-size: 12px;
                 color: #64748b;
                 font-weight: 500;
+                margin-top: 8px;
             }
 
-            .input-suggestions {
-                display: flex;
-                gap: 8px;
-                flex-wrap: wrap;
-            }
-
-            .suggestion-btn {
-                padding: 6px 12px;
-                background: rgba(102, 126, 234, 0.1);
-                border: 1px solid rgba(102, 126, 234, 0.2);
-                border-radius: 8px;
-                color: #667eea;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-
-            .suggestion-btn:hover {
-                background: rgba(102, 126, 234, 0.15);
-                border-color: rgba(102, 126, 234, 0.3);
-                transform: translateY(-1px);
-            }
-
-            .save-options {
-                margin-top: 20px;
-            }
-
-            .option-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 16px;
-                background: rgba(248, 250, 252, 0.8);
-                border: 1px solid rgba(226, 232, 240, 0.6);
-                border-radius: 12px;
-                margin-bottom: 12px;
-                transition: all 0.2s ease;
-            }
-
-            .option-item:hover {
-                background: rgba(248, 250, 252, 0.95);
-                border-color: rgba(102, 126, 234, 0.2);
-            }
-
-            .option-item input[type="checkbox"] {
-                width: 20px;
-                height: 20px;
-                accent-color: #667eea;
-            }
-
-            .option-item label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                flex: 1;
-                font-size: 14px;
-                font-weight: 500;
-                color: #374151;
-                cursor: pointer;
-            }
 
             .save-modal-footer {
                 display: flex;
                 justify-content: flex-end;
-                gap: 12px;
-                padding: 20px 28px 24px;
+                gap: 8px;
+                padding: 12px 20px 16px;
                 border-top: 1px solid rgba(226, 232, 240, 0.6);
-                background: rgba(248, 250, 252, 0.5);
             }
 
             .btn {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 12px 24px;
-                font-size: 14px;
-                font-weight: 600;
-                border-radius: 12px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 500;
+                border-radius: 6px;
                 cursor: pointer;
                 transition: all 0.2s ease;
                 border: none;
@@ -833,16 +518,6 @@ class ChartLibrary {
                     color: #f1f5f9;
                 }
 
-                .chart-preview {
-                    background: linear-gradient(135deg, #334155 0%, #475569 100%);
-                    border-color: rgba(71, 85, 105, 0.4);
-                }
-
-                .stat-item,
-                .option-item {
-                    background: rgba(30, 41, 59, 0.6);
-                    border-color: rgba(71, 85, 105, 0.3);
-                }
 
                 .modern-input {
                     background: rgba(30, 41, 59, 0.6);
@@ -850,13 +525,6 @@ class ChartLibrary {
                     color: #f1f5f9;
                 }
 
-                .stat-value {
-                    color: #f1f5f9;
-                }
-
-                .option-item label {
-                    color: #e2e8f0;
-                }
             }
 
             /* Responsive design */
@@ -873,14 +541,6 @@ class ChartLibrary {
                     padding-right: 20px;
                 }
 
-                .chart-stats {
-                    grid-template-columns: 1fr;
-                }
-
-                .input-helper {
-                    flex-direction: column;
-                    align-items: flex-start;
-                }
 
                 .save-modal-footer {
                     flex-direction: column-reverse;
@@ -917,19 +577,6 @@ class ChartLibrary {
             });
         }
 
-        // Suggestion buttons
-        const suggestionBtns = document.querySelectorAll('.suggestion-btn');
-        suggestionBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const suggestion = btn.getAttribute('data-suggestion');
-                if (nameInput && suggestion) {
-                    nameInput.value = suggestion;
-                    nameInput.dispatchEvent(new Event('input'));
-                    nameInput.focus();
-                }
-            });
-        });
-
         // Auto-focus on input when modal opens
         nameInput?.focus();
     }
@@ -946,14 +593,11 @@ class ChartLibrary {
         style.textContent = `
             .modern-save-modal {
                 position: relative;
-                background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-                border-radius: 24px;
-                box-shadow: 
-                    0 32px 64px rgba(0, 0, 0, 0.12),
-                    0 16px 32px rgba(0, 0, 0, 0.08),
-                    0 8px 16px rgba(0, 0, 0, 0.04);
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
                 width: 100%;
-                max-width: 520px;
+                max-width: 300px;
                 max-height: 90vh;
                 overflow: hidden;
                 backdrop-filter: blur(20px);
@@ -973,37 +617,18 @@ class ChartLibrary {
             }
 
             .save-modal-header {
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                padding: 24px 28px 20px;
+                padding: 16px 20px 12px;
                 border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+                text-align: center;
             }
 
-            .save-modal-header .header-icon {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 48px;
-                height: 48px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 16px;
-                color: white;
-                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
-            }
-
-            .save-modal-header .header-content {
-                flex: 1;
-            }
 
             .save-modal-header h2 {
                 margin: 0;
-                font-size: 24px;
-                font-weight: 700;
+                font-size: 18px;
+                font-weight: 600;
                 color: #1e293b;
                 line-height: 1.2;
-                letter-spacing: -0.025em;
             }
 
             .save-modal-header p {
@@ -1013,135 +638,39 @@ class ChartLibrary {
                 font-weight: 500;
             }
 
-            .modal-close-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 40px;
-                height: 40px;
-                border: none;
-                background: rgba(148, 163, 184, 0.1);
-                border-radius: 12px;
-                color: #64748b;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-
-            .modal-close-btn:hover {
-                background: rgba(239, 68, 68, 0.1);
-                color: #ef4444;
-                transform: scale(1.05);
-            }
 
             .save-modal-body {
-                padding: 24px 28px;
-                max-height: 60vh;
-                overflow-y: auto;
+                padding: 16px 20px;
             }
 
-            .chart-preview {
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                border: 1px solid rgba(226, 232, 240, 0.8);
-                border-radius: 16px;
-                padding: 20px;
-                margin-bottom: 24px;
-            }
-
-            .chart-type-badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 8px 16px;
-                border-radius: 12px;
-                font-size: 14px;
-                font-weight: 600;
-                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            }
-
-            .chart-stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-                gap: 16px;
-                margin-top: 20px;
-            }
-
-            .stat-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 16px;
-                background: rgba(255, 255, 255, 0.8);
-                border: 1px solid rgba(226, 232, 240, 0.6);
-                border-radius: 12px;
-                backdrop-filter: blur(10px);
-            }
-
-            .stat-icon {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 36px;
-                height: 36px;
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-                border-radius: 10px;
-                color: #667eea;
-            }
-
-            .stat-content {
-                flex: 1;
-            }
-
-            .stat-value {
-                display: block;
-                font-size: 18px;
-                font-weight: 700;
-                color: #1e293b;
-                line-height: 1.2;
-            }
-
-            .stat-label {
-                display: block;
-                font-size: 12px;
-                color: #64748b;
-                font-weight: 500;
-                text-transform: uppercase;
-                letter-spacing: 0.025em;
-                margin-top: 2px;
-            }
 
             .form-section {
                 margin-top: 8px;
             }
 
             .input-group {
-                margin-bottom: 24px;
+                margin-bottom: 0;
             }
 
             .input-label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 14px;
-                font-weight: 600;
+                font-size: 13px;
+                font-weight: 500;
                 color: #374151;
-                margin-bottom: 8px;
-                cursor: pointer;
+                margin-bottom: 6px;
+                display: block;
             }
 
             .modern-input {
                 width: 100%;
-                padding: 16px;
-                font-size: 16px;
-                font-weight: 500;
+                padding: 10px 12px;
+                font-size: 14px;
                 color: #1e293b;
-                background: rgba(255, 255, 255, 0.8);
-                border: 2px solid rgba(226, 232, 240, 0.8);
-                border-radius: 12px;
+                background: #ffffff;
+                border: 1px solid rgba(226, 232, 240, 0.8);
+                border-radius: 6px;
                 outline: none;
                 transition: all 0.2s ease;
-                backdrop-filter: blur(10px);
+                box-sizing: border-box;
             }
 
             .modern-input:focus {
@@ -1155,100 +684,27 @@ class ChartLibrary {
                 font-weight: 400;
             }
 
-            .input-helper {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-top: 8px;
-                flex-wrap: wrap;
-                gap: 12px;
-            }
-
             .char-counter {
                 font-size: 12px;
                 color: #64748b;
                 font-weight: 500;
+                margin-top: 8px;
             }
 
-            .input-suggestions {
-                display: flex;
-                gap: 8px;
-                flex-wrap: wrap;
-            }
-
-            .suggestion-btn {
-                padding: 6px 12px;
-                background: rgba(102, 126, 234, 0.1);
-                border: 1px solid rgba(102, 126, 234, 0.2);
-                border-radius: 8px;
-                color: #667eea;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-
-            .suggestion-btn:hover {
-                background: rgba(102, 126, 234, 0.15);
-                border-color: rgba(102, 126, 234, 0.3);
-                transform: translateY(-1px);
-            }
-
-            .save-options {
-                margin-top: 20px;
-            }
-
-            .option-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 16px;
-                background: rgba(248, 250, 252, 0.8);
-                border: 1px solid rgba(226, 232, 240, 0.6);
-                border-radius: 12px;
-                margin-bottom: 12px;
-                transition: all 0.2s ease;
-            }
-
-            .option-item:hover {
-                background: rgba(248, 250, 252, 0.95);
-                border-color: rgba(102, 126, 234, 0.2);
-            }
-
-            .option-item input[type="checkbox"] {
-                width: 20px;
-                height: 20px;
-                accent-color: #667eea;
-            }
-
-            .option-item label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                flex: 1;
-                font-size: 14px;
-                font-weight: 500;
-                color: #374151;
-                cursor: pointer;
-            }
 
             .save-modal-footer {
                 display: flex;
                 justify-content: flex-end;
-                gap: 12px;
-                padding: 20px 28px 24px;
+                gap: 8px;
+                padding: 12px 20px 16px;
                 border-top: 1px solid rgba(226, 232, 240, 0.6);
-                background: rgba(248, 250, 252, 0.5);
             }
 
             .btn {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 12px 24px;
-                font-size: 14px;
-                font-weight: 600;
-                border-radius: 12px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 500;
+                border-radius: 6px;
                 cursor: pointer;
                 transition: all 0.2s ease;
                 border: none;
@@ -1299,16 +755,6 @@ class ChartLibrary {
                     color: #f1f5f9;
                 }
 
-                .chart-preview {
-                    background: linear-gradient(135deg, #334155 0%, #475569 100%);
-                    border-color: rgba(71, 85, 105, 0.4);
-                }
-
-                .stat-item,
-                .option-item {
-                    background: rgba(30, 41, 59, 0.6);
-                    border-color: rgba(71, 85, 105, 0.3);
-                }
 
                 .modern-input {
                     background: rgba(30, 41, 59, 0.6);
@@ -1316,13 +762,6 @@ class ChartLibrary {
                     color: #f1f5f9;
                 }
 
-                .stat-value {
-                    color: #f1f5f9;
-                }
-
-                .option-item label {
-                    color: #e2e8f0;
-                }
             }
 
             /* Responsive design */
@@ -1339,14 +778,6 @@ class ChartLibrary {
                     padding-right: 20px;
                 }
 
-                .chart-stats {
-                    grid-template-columns: 1fr;
-                }
-
-                .input-helper {
-                    flex-direction: column;
-                    align-items: flex-start;
-                }
 
                 .save-modal-footer {
                     flex-direction: column-reverse;
@@ -1585,7 +1016,7 @@ class ChartLibrary {
             }
             
             // Save modal events
-            if (e.target.id === 'save-modal-close' || e.target.id === 'save-modal-overlay' || e.target.id === 'save-cancel-btn') {
+            if (e.target.id === 'save-modal-overlay' || e.target.id === 'save-cancel-btn') {
                 this.closeSaveModal();
             }
             
@@ -1738,28 +1169,18 @@ class ChartLibrary {
 
         const modal = document.getElementById('chart-save-modal');
         const nameInput = document.getElementById('chart-name-input');
-        const chartType = document.getElementById('save-chart-type');
-        const dataCount = document.getElementById('save-data-count');
 
         // Populate modal with current chart info
-        nameInput.value = '';
-        chartType.textContent = currentChart.chartType.charAt(0).toUpperCase() + currentChart.chartType.slice(1);
-        
-        // Count data points
-        let count = 0;
-        if (currentChart.data) {
-            if (currentChart.data.flows) {
-                count = currentChart.data.flows.length;
-            } else if (currentChart.data.categories) {
-                count = currentChart.data.categories.length;
-            } else if (currentChart.data.values) {
-                count = currentChart.data.values.length;
-            }
+        if (nameInput) {
+            nameInput.value = '';
         }
-        dataCount.textContent = count;
 
-        modal.style.display = 'flex';
-        nameInput.focus();
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+        if (nameInput) {
+            nameInput.focus();
+        }
     }
 
     // Close save modal

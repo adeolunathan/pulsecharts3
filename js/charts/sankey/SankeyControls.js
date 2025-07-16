@@ -768,7 +768,32 @@ class SankeyControlModule {
                     .duration(200)
                     .attr('transform', d => `translate(${d.x}, ${d.y})`);
                 
-                // Update link paths with new node positions
+                // Update link source/target coordinates before updating paths
+                if (chart.links) {
+                    chart.links.forEach(link => {
+                        // Update source coordinates
+                        if (link.source && typeof link.source === 'object') {
+                            const sourceNode = chart.nodes.find(n => n.id === link.source.id);
+                            if (sourceNode) {
+                                link.source.x = sourceNode.x;
+                                link.source.y = sourceNode.y;
+                                link.source.height = sourceNode.height;
+                            }
+                        }
+                        
+                        // Update target coordinates
+                        if (link.target && typeof link.target === 'object') {
+                            const targetNode = chart.nodes.find(n => n.id === link.target.id);
+                            if (targetNode) {
+                                link.target.x = targetNode.x;
+                                link.target.y = targetNode.y;
+                                link.target.height = targetNode.height;
+                            }
+                        }
+                    });
+                }
+                
+                // Update link paths with updated coordinates
                 chart.chart.selectAll('.sankey-link path')
                     .transition()
                     .duration(200)
@@ -916,16 +941,24 @@ class SankeyControlModule {
                         const nodeId = d3.select(this).attr('data-node-id');
                         const node = chart.nodes.find(n => n.id === nodeId);
                         if (node) {
-                            // Determine if text should be above or below based on node position
-                            const centerY = chart.config.height / 2;
-                            const isTopNode = node.y + node.height/2 < centerY;
+                            // Follow the original positioning logic from renderMiddleLabels
+                            // Check if this is a manually positioned node with preserved label position
+                            let isTopNode;
+                            if (node.manuallyPositioned) {
+                                isTopNode = node.preserveLabelsAbove === true;
+                            } else {
+                                isTopNode = node.layerIndex === 0;
+                            }
+                            
+                            // X position: always centered on node (node.x + nodeWidth/2)
+                            const xPos = node.x + (chart.config.nodeWidth || 35) / 2;
                             
                             if (isTopNode) {
-                                // Text above node
-                                return `translate(${node.x + node.width/2}, ${node.y - value})`;
+                                // Text above node: node.y - textDistance
+                                return `translate(${xPos}, ${node.y - value})`;
                             } else {
-                                // Text below node  
-                                return `translate(${node.x + node.width/2}, ${node.y + node.height + value})`;
+                                // Text below node: node.y + node.height + textDistance
+                                return `translate(${xPos}, ${node.y + node.height + value})`;
                             }
                         }
                         return d3.select(this).attr('transform');
@@ -961,7 +994,9 @@ class SankeyControlModule {
                         const nodeId = d3.select(this).attr('data-node-id');
                         const node = chart.nodes.find(n => n.id === nodeId);
                         if (node) {
-                            return `translate(${node.x + node.width + value}, ${node.y + node.height/2})`;
+                            // Follow original positioning: node.x + nodeWidth + textDistance
+                            const nodeWidth = chart.config.nodeWidth || 35;
+                            return `translate(${node.x + nodeWidth + value}, ${node.y + node.height/2})`;
                         }
                         return d3.select(this).attr('transform');
                     });
