@@ -170,11 +170,11 @@ class SankeyControlModule {
                         id: "nodeHeightScale", 
                         type: "slider", 
                         label: "Node Height Scale", 
-                        min: 0.005, 
-                        max: 0.2, 
-                        default: 0.05, 
-                        step: 0.005, 
-                        description: "Scale factor for node heights - smaller values for large data sets" 
+                        min: 0, 
+                        max: 100, 
+                        default: 50, 
+                        step: 1, 
+                        description: "Scale factor for node heights - intuitive percentage-based control" 
                     },
                     { 
                         id: "linkWidthScale", 
@@ -1112,15 +1112,17 @@ class SankeyControlModule {
             return;
         }
 
-        // Handle nodeHeightScale specially - minimal updates to avoid duplication
+        // Handle nodeHeightScale specially - adaptive logarithmic scaling
         if (controlId === 'nodeHeightScale') {
-            chart.config.nodeHeightScale = value;
+            // Convert percentage (0-100) to adaptive logarithmic scale
+            const actualScale = this.convertPercentageToScale(value, chart);
+            chart.config.nodeHeightScale = actualScale;
             
             // Update both underlying node data AND visual elements
             if (chart.chart && chart.nodes) {
                 // 1. Update underlying node height data
                 chart.nodes.forEach(node => {
-                    node.height = Math.max(1, node.value * value);
+                    node.height = Math.max(1, node.value * actualScale);
                 });
                 
                 // 2. Update node visuals instantly
@@ -1144,6 +1146,67 @@ class SankeyControlModule {
 
         // Handle standard controls
         chart.updateConfig({ [controlId]: value });
+    }
+
+    /**
+     * Convert percentage (0-100) to adaptive logarithmic scale
+     * This provides smooth, intuitive control regardless of data size
+     */
+    convertPercentageToScale(percentage, chart) {
+        if (percentage === 0) return 0.00001; // Minimum visible scale
+        
+        // Get the maximum value in the dataset to determine appropriate scaling
+        const maxValue = chart.nodes ? Math.max(...chart.nodes.map(n => n.value || 0)) : 1000;
+        
+        // Calculate target height for comfortable visualization (between 20-400px)
+        const targetMinHeight = 20;
+        const targetMaxHeight = 400;
+        
+        // At 50% (middle), we want nodes to be around 100px for typical values
+        const targetMidHeight = 100;
+        
+        // Calculate the scale needed for the max value to hit target height
+        const baseScale = targetMidHeight / maxValue;
+        
+        // Use exponential scaling for smooth control
+        // percentage 0-100 maps to scale range with exponential curve
+        const normalizedPercentage = percentage / 100; // 0-1
+        const exponent = 3; // Exponential curve factor
+        
+        // Create exponential curve that gives fine control at lower values
+        const curveValue = Math.pow(normalizedPercentage, exponent);
+        
+        // Map to scale range (0.1x to 10x of base scale)
+        const minScale = baseScale * 0.01;
+        const maxScale = baseScale * 10;
+        
+        const actualScale = minScale + (maxScale - minScale) * curveValue;
+        
+        return Math.max(0.00001, actualScale);
+    }
+
+    /**
+     * Convert actual scale back to percentage for slider display
+     */
+    convertScaleToPercentage(scale, chart) {
+        if (scale <= 0.00001) return 0;
+        
+        // Reverse the conversion logic
+        const maxValue = chart.nodes ? Math.max(...chart.nodes.map(n => n.value || 0)) : 1000;
+        const targetMidHeight = 100;
+        const baseScale = targetMidHeight / maxValue;
+        
+        const minScale = baseScale * 0.01;
+        const maxScale = baseScale * 10;
+        
+        // Reverse the exponential curve
+        const normalizedScale = (scale - minScale) / (maxScale - minScale);
+        const clampedScale = Math.max(0, Math.min(1, normalizedScale));
+        
+        const exponent = 3;
+        const curveValue = Math.pow(clampedScale, 1 / exponent);
+        
+        return Math.round(curveValue * 100);
     }
 
     /**
@@ -1329,6 +1392,14 @@ class SankeyControlModule {
             return this.getCurrentColorForCategory(category, chart);
         }
 
+
+        // Handle nodeHeightScale specially - convert back to percentage
+        if (controlId === 'nodeHeightScale' && chart && chart.config) {
+            const currentScale = chart.config.nodeHeightScale;
+            if (currentScale !== undefined) {
+                return this.convertScaleToPercentage(currentScale, chart);
+            }
+        }
 
         if (chart && chart.config) {
             // Handle unified text distance configs
