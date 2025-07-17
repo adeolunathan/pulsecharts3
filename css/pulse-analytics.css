@@ -416,7 +416,7 @@ body {
 .dropdown-content input[type="range"]::-webkit-slider-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -429,7 +429,7 @@ body {
 .dropdown-content input[type="range"]::-webkit-slider-runnable-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -442,7 +442,7 @@ body {
     appearance: none !important;
     height: 16px !important;
     width: 16px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
@@ -454,20 +454,20 @@ body {
 
 /* Webkit hover effects */
 .dropdown-content input[type="range"]::-webkit-slider-thumb:hover {
-    background: #7c3aed !important;
+    background: #047857 !important;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
     transform: scale(1.1) !important;
 }
 
 .dropdown-content input[type="range"]::-webkit-slider-thumb:active {
-    background: #6d28d9 !important;
+    background: #065f46 !important;
     transform: scale(0.95) !important;
 }
 
 /* Firefox track styling */
 .dropdown-content input[type="range"]::-moz-range-track {
     height: 4px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -477,7 +477,7 @@ body {
 .dropdown-content input[type="range"]::-moz-range-thumb {
     height: 16px !important;
     width: 16px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
@@ -503,7 +503,7 @@ body {
 .dropdown-content .control-slider::-webkit-slider-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -515,7 +515,7 @@ body {
 .dropdown-content .control-slider::-webkit-slider-runnable-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -527,7 +527,7 @@ body {
     appearance: none !important;
     height: 16px !important;
     width: 16px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
@@ -538,19 +538,19 @@ body {
 }
 
 .dropdown-content .control-slider::-webkit-slider-thumb:hover {
-    background: #7c3aed !important;
+    background: #047857 !important;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
     transform: scale(1.1) !important;
 }
 
 .dropdown-content .control-slider::-webkit-slider-thumb:active {
-    background: #6d28d9 !important;
+    background: #065f46 !important;
     transform: scale(0.95) !important;
 }
 
 .dropdown-content .control-slider::-moz-range-track {
     height: 4px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -560,12 +560,58 @@ body {
 .dropdown-content .control-slider::-moz-range-thumb {
     height: 16px !important;
     width: 16px !important;
-    background: #8b5cf6 !important;
+    background: #059669 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
     -moz-appearance: none !important;
+}
+
+/* ===== SLIDER TOOLTIP - FORCE MAXIMUM VISIBILITY ===== */
+body .slider-tooltip,
+html body .slider-tooltip,
+div.slider-tooltip {
+    position: fixed !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    white-space: nowrap !important;
+    z-index: 2147483647 !important;
+    pointer-events: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+    font-family: Arial, sans-serif !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8) !important;
+    border: 2px solid #ffffff !important;
+    min-width: 40px !important;
+    text-align: center !important;
+    display: block !important;
+    visibility: visible !important;
+    transform: none !important;
+}
+
+body .slider-tooltip.visible,
+html body .slider-tooltip.visible,
+div.slider-tooltip.visible {
+    opacity: 1 !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+body .slider-tooltip::after,
+html body .slider-tooltip::after,
+div.slider-tooltip::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 100% !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    border: 6px solid transparent !important;
+    border-top-color: #000000 !important;
 }
 
 /* Color picker styling */
@@ -2164,29 +2210,6 @@ body {
     cursor: help;
 }
 
-.control-tooltip .tooltip-text {
-    visibility: hidden;
-    width: 200px;
-    background-color: #1f2937;
-    color: white;
-    text-align: center;
-    border-radius: 6px;
-    padding: 2px;
-    position: absolute;
-    z-index: 1000;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 15px;
-    line-height: 1.4;
-}
-
-.control-tooltip:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
 
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1400px) {

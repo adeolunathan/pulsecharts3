@@ -990,31 +990,31 @@ class PulseControlPanel {
      * Show tooltip above slider during drag
      */
     showSliderTooltip(sliderElement, value, config) {
+        console.log('🔧 Creating tooltip with value:', value);
+        
         // Remove any existing tooltip
         this.hideSliderTooltip();
         
         const tooltip = d3.select('body').append('div')
             .attr('class', 'slider-tooltip')
-            .style('position', 'fixed')
-            .style('background', 'rgba(0, 0, 0, 0.8)')
-            .style('color', 'white')
-            .style('padding', '6px 10px')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
-            .style('font-weight', '500')
-            .style('white-space', 'nowrap')
-            .style('z-index', '9999')
-            .style('pointer-events', 'none')
-            .style('opacity', '0')
-            .style('transition', 'opacity 0.15s ease')
             .text(this.formatValueClean(value, config));
         
+        console.log('🔧 Tooltip created:', tooltip.node());
+        
+        // Make visible immediately
+        tooltip.classed('visible', true);
+        console.log('🔧 Added visible class');
+        
+        // Position after making visible
         this.positionSliderTooltip(sliderElement, tooltip.node(), value, config);
         
-        // Make visible with a slight delay to ensure positioning is complete
+        // Check if it's actually visible
         setTimeout(() => {
-            tooltip.style('opacity', '1');
-        }, 10);
+            const computedStyle = window.getComputedStyle(tooltip.node());
+            console.log('🔧 Final opacity:', computedStyle.opacity);
+            console.log('🔧 Final display:', computedStyle.display);
+            console.log('🔧 Final position:', computedStyle.left, computedStyle.top);
+        }, 50);
     }
 
     /**
@@ -1025,6 +1025,8 @@ class PulseControlPanel {
         if (!tooltip.empty()) {
             tooltip.text(this.formatValueClean(value, config));
             this.positionSliderTooltip(sliderElement, tooltip.node(), value, config);
+        } else {
+            this.showSliderTooltip(sliderElement, value, config);
         }
     }
 
