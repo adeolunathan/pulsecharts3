@@ -4,9 +4,7 @@
 class SankeyControlModule {
     constructor() {
         this.capabilities = this.defineCapabilities();
-        this.dynamicColors = new Map(); // Store detected colors from data
         this.chart = null; // Reference to current chart
-        this.statementType = 'income'; // Track current statement type
     }
 
     defineCapabilities() {
@@ -138,14 +136,6 @@ class SankeyControlModule {
                 ]
             },
 
-            // Dynamic colors section - will be populated based on actual data
-            colors: {
-                title: "Node Colors", 
-                icon: "🎭",
-                collapsed: true,
-                controls: [], // Will be dynamically populated
-                isDynamic: true
-            },
 
             categoryManagement: {
                 title: "",
@@ -255,315 +245,18 @@ class SankeyControlModule {
         return capabilities;
     }
 
-    /**
-     * ENHANCED: Dynamically detect colors from chart data with statement type awareness
-     */
-    initializeDynamicColors(chart) {
-        if (!chart || !chart.data) {
-            console.warn('No chart data available for color initialization');
-            return;
-        }
 
-        this.chart = chart;
-        // Ensure the chart has detected its statement type
-        if (chart.detectStatementType) {
-            chart.detectStatementType(chart.data);
-        }
-        this.statementType = chart.statementType || 'income';
-        
-        const detectedCategories = this.analyzeDataCategories(chart.data);
-        
-        
-        // Update the colors section with detected categories
-        this.capabilities.colors.controls = this.generateColorControls(detectedCategories, chart);
-        
-        // Store dynamic colors
-        this.dynamicColors.clear();
-        detectedCategories.forEach(category => {
-            const currentColor = this.getCurrentColorForCategory(category, chart);
-            this.dynamicColors.set(category, currentColor);
-        });
-    }
 
-    /**
-     * ENHANCED: Analyze chart data to detect categories with balance sheet group awareness
-     */
-    analyzeDataCategories(data) {
-        const categories = new Set();
-        
-        if (this.statementType === 'balance') {
-            // For balance sheets, detect the actual color groups the chart uses
-            const balanceSheetGroups = this.detectBalanceSheetGroups(data);
-            balanceSheetGroups.forEach(group => categories.add(group));
-            
-        } else {
-            // Income statement - analyze nodes for categories
-            if (data.nodes) {
-                data.nodes.forEach(node => {
-                    if (node.category) {
-                        categories.add(node.category);
-                    }
-                });
-            }
-            
-            // Analyze links for additional categories
-            if (data.links) {
-                data.links.forEach(link => {
-                    if (link.colorCategory) {
-                        categories.add(link.colorCategory);
-                    }
-                    if (link.targetCategory) {
-                        categories.add(link.targetCategory);
-                    }
-                });
-            }
 
-            // Add standard income statement categories
-            const incomeCategories = ['revenue', 'profit', 'expense'];
-            incomeCategories.forEach(cat => {
-                if (this.hasNodesWithCategory(data, cat)) {
-                    categories.add(cat);
-                }
-            });
-        }
-        
-        // If no categories found, provide statement-specific defaults
-        if (categories.size === 0) {
-            if (this.statementType === 'balance') {
-                return ['Current Assets', 'Non-Current Assets', 'Current Liabilities', 'Non-Current Liabilities', 'Shareholders Equity', 'Total Assets'];
-            } else {
-                return ['revenue', 'profit', 'expense'];
-            }
-        }
-        
-        return Array.from(categories).sort();
-    }
 
-    /**
-     * Detect balance sheet color groups based on node names (matches chart logic)
-     */
-    detectBalanceSheetGroups(data) {
-        // For balance sheets, always provide all standard groups for color controls
-        // This ensures users can customize any balance sheet group color
-        const standardGroups = [
-            'Total Assets',
-            'Current Assets', 
-            'Non-Current Assets',
-            'Current Liabilities',
-            'Non-Current Liabilities', 
-            'Shareholders Equity'
-        ];
-        
-        return standardGroups;
-    }
 
-    /**
-     * Check if data has nodes with specific category
-     */
-    hasNodesWithCategory(data, category) {
-        return data.nodes.some(node => node.category === category);
-    }
 
-    /**
-     * Check if data has nodes with keywords related to category
-     */
-    hasNodesWithKeywords(data, category) {
-        const keywordMap = {
-            'current_asset': ['current asset', 'cash', 'receivable', 'inventory', 'prepaid'],
-            'non_current_asset': ['non-current asset', 'property', 'equipment', 'intangible', 'fixed asset'],
-            'current_liability': ['current liability', 'payable', 'current debt', 'accrued'],
-            'non_current_liability': ['non-current liability', 'long-term debt', 'bonds', 'notes'],
-            'asset': ['asset'],
-            'liability': ['liability'],
-            'equity': ['equity', 'stock', 'retained', 'capital']
-        };
-        
-        const keywords = keywordMap[category] || [];
-        return data.nodes.some(node => 
-            keywords.some(keyword => 
-                node.id && node.id.toLowerCase().includes(keyword.toLowerCase())
-            )
-        );
-    }
 
-    /**
-     * ENHANCED: Generate color controls with proper ID handling for balance sheet groups
-     */
-    generateColorControls(categories, chart) {
-        const controls = [];
-        
-        // Add color reset and preset controls first
-        controls.push({
-            id: "colorPresets",
-            type: "preset_controls",
-            label: "Color Presets",
-            description: "Quick color schemes and controls"
-        });
-        
-        // Add individual category controls with proper ordering
-        const orderedCategories = this.orderCategoriesForStatement(categories);
-        
-        orderedCategories.forEach((category, index) => {
-            const currentColor = this.getCurrentColorForCategory(category, chart);
-            const description = this.getCategoryDescription(category);
-            
-            // Generate proper control ID
-            const controlId = this.generateControlId(category);
-            
-            controls.push({
-                id: controlId,
-                type: "color",
-                label: this.formatCategoryLabel(category),
-                default: currentColor,
-                description: description,
-                category: category,
-                isDynamic: true
-            });
-        });
-        
-        // Remove revenue segment special handling - all nodes are treated equally
-        
-        return controls;
-    }
 
-    /**
-     * Generate proper control ID from category name
-     */
-    generateControlId(category) {
-        if (this.statementType === 'balance') {
-            // Convert "Non-Current Assets" to "nonCurrentAssetsColor"
-            // First remove hyphens and other non-alphanumeric chars, then handle spaces
-            const camelCase = category.replace(/[^a-zA-Z0-9\s]/g, '')  // Remove hyphens, etc.
-                                     .replace(/\s+(.)/g, (match, letter) => letter.toUpperCase())
-                                     .replace(/^\w/, c => c.toLowerCase());
-            return camelCase + 'Color';
-        } else {
-            // Income statement categories are already simple
-            return category + 'Color';
-        }
-    }
 
-    /**
-     * Order categories appropriately for each statement type
-     */
-    orderCategoriesForStatement(categories) {
-        const categoryArrays = categories instanceof Set ? Array.from(categories) : categories;
-        
-        if (this.statementType === 'balance') {
-            const balanceOrder = [
-                'Total Assets',
-                'Current Assets', 'Non-Current Assets',
-                'Current Liabilities', 'Non-Current Liabilities', 
-                'Shareholders Equity'
-            ];
-            return this.sortByCustomOrder(categoryArrays, balanceOrder);
-        } else {
-            const incomeOrder = ['revenue', 'profit', 'expense'];
-            return this.sortByCustomOrder(categoryArrays, incomeOrder);
-        }
-    }
 
-    /**
-     * Sort categories by custom order, with unmatched items at end
-     */
-    sortByCustomOrder(categories, order) {
-        const ordered = [];
-        const remaining = [...categories];
-        
-        // Add categories in specified order
-        order.forEach(orderItem => {
-            const index = remaining.indexOf(orderItem);
-            if (index !== -1) {
-                ordered.push(remaining.splice(index, 1)[0]);
-            }
-        });
-        
-        // Add any remaining categories
-        ordered.push(...remaining.sort());
-        
-        return ordered;
-    }
 
-    /**
-     * ENHANCED: Get current color for a category with statement-specific logic
-     */
-    getCurrentColorForCategory(category, chart) {
-        // Try to get from chart's custom colors
-        if (chart && chart.customColors && chart.customColors[category]) {
-            return chart.customColors[category];
-        }
-        
-        // Try to get from chart's data metadata
-        if (chart && chart.data && chart.data.metadata && chart.data.metadata.colorPalette && chart.data.metadata.colorPalette[category]) {
-            return chart.data.metadata.colorPalette[category];
-        }
-        
-        // Fallback to default colors
-        return this.getDefaultColorForCategory(category);
-    }
 
-    /**
-     * ENHANCED: Get default color for a category with balance sheet group awareness
-     */
-    getDefaultColorForCategory(category) {
-        // Enhanced vibrant color schemes
-        if (this.statementType === 'balance') {
-            const balanceSheetColors = {
-                'Total Assets': '#1e293b',           // Deep slate for Total Assets
-                'Current Assets': '#1e40af',         // Vibrant blue for current assets
-                'Non-Current Assets': '#7c3aed',     // Vibrant purple for non-current assets  
-                'Current Liabilities': '#dc2626',    // Sharp red for current liabilities
-                'Non-Current Liabilities': '#b91c1c', // Deep red for non-current liabilities
-                'Shareholders Equity': '#059669',     // Vibrant emerald for equity
-                default: '#6b7280'
-            };
-            return balanceSheetColors[category] || balanceSheetColors.default;
-        } else {
-            // Enhanced vibrant income statement colors
-            const incomeColors = {
-                revenue: '#1e40af',    // Deep vibrant blue
-                profit: '#059669',     // Vibrant emerald green
-                expense: '#dc2626',    // Sharp red
-                default: '#6b7280'
-            };
-            return incomeColors[category] || incomeColors.default;
-        }
-    }
-
-    /**
-     * ENHANCED: Format category label (no changes needed for balance sheet groups)
-     */
-    formatCategoryLabel(category) {
-        // Balance sheet group names are already properly formatted
-        if (this.statementType === 'balance') {
-            return category;
-        }
-        
-        // Income statement formatting
-        return category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1');
-    }
-
-    /**
-     * ENHANCED: Get description for balance sheet groups
-     */
-    getCategoryDescription(category) {
-        const descriptions = {
-            // Balance sheet group descriptions
-            'Total Assets': 'Total Assets line (balancing item)',
-            'Current Assets': 'Short-term assets (cash, receivables, inventory)',
-            'Non-Current Assets': 'Long-term assets (property, equipment, intangibles)',
-            'Current Liabilities': 'Short-term obligations',
-            'Non-Current Liabilities': 'Long-term debt and obligations',
-            'Shareholders Equity': 'Ownership equity components',
-            
-            // Income statement descriptions
-            revenue: 'Revenue and income flows',
-            profit: 'Profit and margin nodes',
-            expense: 'Operating expenses'
-        };
-        
-        return descriptions[category] || `${category} related items`;
-    }
 
     /**
      * ENHANCED: Control change handler with balance sheet group awareness
@@ -636,35 +329,7 @@ class SankeyControlModule {
 
         // Remove individual node color controls - all nodes use category-based colors
 
-        // Handle color controls with statement awareness
-        if (controlId.endsWith('Color')) {
-            // Extract category name from control ID
-            let category = controlId.replace('Color', '');
-            
-            // For balance sheet, convert from camelCase to proper group name
-            if (this.statementType === 'balance') {
-                const groupNameMap = {
-                    'totalAssets': 'Total Assets',
-                    'currentAssets': 'Current Assets', 
-                    'nonCurrentAssets': 'Non-Current Assets',
-                    'currentLiabilities': 'Current Liabilities',
-                    'nonCurrentLiabilities': 'Non-Current Liabilities',
-                    'shareholdersEquity': 'Shareholders Equity'
-                };
-                category = groupNameMap[category] || category;
-            } else {
-                category = category.toLowerCase();
-            }
-            
-            this.updateChartColor(chart, category, value);
-            this.dynamicColors.set(category, value);
-            return;
-        }
 
-        // Handle color presets
-        if (controlId === 'colorPresets') {
-            return;
-        }
 
         // Handle opacity controls with immediate visual feedback
         if (controlId === 'nodeOpacity') {
@@ -1158,9 +823,7 @@ class SankeyControlModule {
         // Get the maximum value in the dataset to determine appropriate scaling
         const maxValue = chart.nodes ? Math.max(...chart.nodes.map(n => n.value || 0)) : 1000;
         
-        // Calculate target height for comfortable visualization (between 20-400px)
-        const targetMinHeight = 20;
-        const targetMaxHeight = 400;
+        // Calculate target height for comfortable visualization
         
         // At 50% (middle), we want nodes to be around 100px for typical values
         const targetMidHeight = 100;
@@ -1209,67 +872,6 @@ class SankeyControlModule {
         return Math.round(curveValue * 100);
     }
 
-    /**
-     * ENHANCED: Update chart color with direct balance sheet group update
-     */
-    updateChartColor(chart, category, color) {
-        
-        if (!chart.customColors) {
-            chart.customColors = {};
-        }
-        
-        chart.customColors[category] = color;
-        
-        // Special handling for expense category applying to tax
-        if (category === 'expense') {
-            chart.customColors['tax'] = color;
-        }
-        
-        // Update chart data metadata
-        if (chart.data && chart.data.metadata) {
-            if (!chart.data.metadata.colorPalette) {
-                chart.data.metadata.colorPalette = {};
-            }
-            chart.data.metadata.colorPalette[category] = color;
-            if (category === 'expense') {
-                chart.data.metadata.colorPalette['tax'] = color;
-            }
-        }
-        
-        // Immediate color updates - directly update DOM elements with transitions
-        if (chart.chart) {
-            // For balance sheets, need to reassign color groups first
-            if (this.statementType === 'balance') {
-                // Force reassignment of color groups with new custom colors
-                if (chart.assignColorGroups) {
-                    chart.assignColorGroups();
-                }
-                
-                // Update nodes with new colors
-                chart.chart.selectAll('.sankey-node rect')
-                    .transition()
-                    .duration(150)
-                    .attr('fill', d => chart.getHierarchicalColor(d.id));
-                    
-                chart.chart.selectAll('.sankey-link path')
-                    .transition()
-                    .duration(150)
-                    .attr('fill', d => chart.getLinkColor(d));
-            } else {
-                // For income statements, update nodes and links directly
-                chart.chart.selectAll('.sankey-node rect')
-                    .transition()
-                    .duration(150)
-                    .attr('fill', d => chart.getNodeColor(d));
-                    
-                chart.chart.selectAll('.sankey-link path')
-                    .transition()
-                    .duration(150)
-                    .attr('fill', d => chart.getLinkColor(d));
-            }
-            
-        }
-    }
 
     // Removed updateChartNodeColor function - no longer supporting individual node colors
 
@@ -1370,27 +972,6 @@ class SankeyControlModule {
         }
         
         
-        if (controlId.endsWith('Color')) {
-            // Extract category name from control ID
-            let category = controlId.replace('Color', '');
-            
-            // For balance sheet, convert from camelCase back to proper group name
-            if (this.statementType === 'balance') {
-                const groupNameMap = {
-                    'totalAssets': 'Total Assets',
-                    'currentAssets': 'Current Assets', 
-                    'nonCurrentAssets': 'Non-Current Assets',
-                    'currentLiabilities': 'Current Liabilities',
-                    'nonCurrentLiabilities': 'Non-Current Liabilities',
-                    'shareholdersEquity': 'Shareholders Equity'
-                };
-                category = groupNameMap[category] || category;
-            } else {
-                category = category.toLowerCase();
-            }
-            
-            return this.getCurrentColorForCategory(category, chart);
-        }
 
 
         // Handle nodeHeightScale specially - convert back to percentage
@@ -1477,97 +1058,8 @@ class SankeyControlModule {
         return defaults;
     }
 
-    /**
-     * Get current colors from chart
-     */
-    getCurrentColors(chart) {
-        return chart.customColors || {};
-    }
 
-    /**
-     * ENHANCED: Apply color preset with statement-specific colors
-     */
-    applyColorPreset(chart, presetName) {
-        const categories = Array.from(this.dynamicColors.keys());
-        
-        const presets = {
-            default: (categories) => {
-                const colors = {};
-                categories.forEach(cat => {
-                    colors[cat] = this.getDefaultColorForCategory(cat);
-                });
-                return colors;
-            },
-            vibrant: (categories) => {
-                const vibrantColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
-                const colors = {};
-                categories.forEach((cat, index) => {
-                    colors[cat] = vibrantColors[index % vibrantColors.length];
-                });
-                return colors;
-            },
-            professional: (categories) => {
-                const professionalColors = ['#2c3e50', '#95a5a6', '#27ae60', '#e67e22', '#3498db', '#9b59b6', '#1abc9c', '#34495e'];
-                const colors = {};
-                categories.forEach((cat, index) => {
-                    colors[cat] = professionalColors[index % professionalColors.length];
-                });
-                return colors;
-            },
-            monochrome: (categories) => {
-                const monochromeColors = ['#2c3e50', '#7f8c8d', '#34495e', '#95a5a6', '#2c3e50', '#bdc3c7', '#ecf0f1', '#34495e'];
-                const colors = {};
-                categories.forEach((cat, index) => {
-                    colors[cat] = monochromeColors[index % monochromeColors.length];
-                });
-                return colors;
-            }
-        };
 
-        const preset = presets[presetName];
-        if (preset && chart.setCustomColors) {
-            const colors = preset(categories);
-            
-            // Handle tax special case
-            if (colors.expense) {
-                colors.tax = colors.expense;
-            }
-            
-            chart.setCustomColors(colors);
-            
-            // Update dynamic colors map
-            Object.entries(colors).forEach(([category, color]) => {
-                this.dynamicColors.set(category, color);
-            });
-            
-        }
-    }
-
-    /**
-     * Randomize all detected colors
-     */
-    randomizeColors(chart) {
-        const categories = Array.from(this.dynamicColors.keys());
-        const randomColors = {};
-        
-        categories.forEach(category => {
-            randomColors[category] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-        });
-        
-        if (randomColors.expense) {
-            randomColors.tax = randomColors.expense;
-        }
-        
-        if (chart.setCustomColors) {
-            chart.setCustomColors(randomColors);
-        }
-        
-        // Update dynamic colors map
-        Object.entries(randomColors).forEach(([category, color]) => {
-            this.dynamicColors.set(category, color);
-        });
-        
-    }
 
     // Enhanced validation, reset, and export methods
     validateConfig(config) {
@@ -1608,19 +1100,12 @@ class SankeyControlModule {
     exportConfig(config) {
         return JSON.stringify({
             chartType: 'sankey',
-            statementType: this.statementType,
             version: '2.6',
             config: config,
-            dynamicColors: Object.fromEntries(this.dynamicColors),
             timestamp: new Date().toISOString(),
             features: {
-                statementSpecificColors: true,
-                balanceSheetHierarchy: true,
-                totalAssetsDistinctColor: true,
-                dynamicColorDetection: true,
                 smartLabelPositioning: true,
                 layerSpecificSpacing: true,
-                enhancedColorCustomization: true,
                 groupSpacing: true
             }
         }, null, 2);
@@ -1634,18 +1119,6 @@ class SankeyControlModule {
                 throw new Error('Configuration is not for Sankey charts');
             }
             
-            // Restore statement type
-            if (imported.statementType) {
-                this.statementType = imported.statementType;
-            }
-            
-            // Restore dynamic colors if available
-            if (imported.dynamicColors) {
-                this.dynamicColors.clear();
-                Object.entries(imported.dynamicColors).forEach(([category, color]) => {
-                    this.dynamicColors.set(category, color);
-                });
-            }
             
             const validation = this.validateConfig(imported.config);
             if (!validation.valid) {
@@ -1659,27 +1132,8 @@ class SankeyControlModule {
         }
     }
 
-    // Enhanced dynamic layer support
-    hasDynamicControls() {
-        return true;
-    }
 
-    /**
-     * ENHANCED: Dynamic control initialization with statement awareness
-     */
-    initializeDynamicControls(chart) {
-        this.initializeDynamicColors(chart);
-    }
 
-    /**
-     * Update capabilities based on chart data
-     */
-    updateCapabilities(chart) {
-        if (chart && chart.data) {
-            this.statementType = chart.statementType || 'income';
-            this.initializeDynamicColors(chart);
-        }
-    }
 
 
 
