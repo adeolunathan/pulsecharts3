@@ -157,33 +157,49 @@ body {
     min-height: 48px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     /* Force horizontal layout even on small screens */
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
     overflow-y: visible;
-    /* Ensure all menu items stay visible */
-    width: 100%;
+    /* Keep menu items tightly grouped */
+    width: auto !important;
     box-sizing: border-box;
+    /* Don't force minimum width - let content determine width */
+    position: relative;
 }
 
 /* Menu sections container - Keep all menus on the left */
 .controls-menu-wrapper > .menu-section {
-    display: flex;
+    display: flex !important;
     align-items: center;
     /* Prevent any flex growth or shrinking */
-    flex: 0 0 auto;
-    min-width: max-content;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
     /* Ensure each menu button stays visible */
-    white-space: nowrap;
+    white-space: nowrap !important;
+    /* Force visibility */
+    visibility: visible !important;
+    opacity: 1 !important;
+    /* Override any gap from conflicting menu-section rules */
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Force all flex items to stay grouped on left */
-.controls-menu-wrapper::after {
-    content: '';
-    flex: 1;
-    min-width: 1px;
-}
+/* Remove the flex spacer - keep menu items tightly grouped */
 
 /* ===== MENU SECTIONS ===== */
+/* Base menu section for horizontal controls */
+.horizontal-controls-menu .menu-section {
+    position: relative;
+    display: flex !important;
+    align-items: center;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    /* Ensure proper stacking context */
+}
+
+/* Fallback for other menu sections */
 .menu-section {
     position: relative;
     display: inline-block;
@@ -191,7 +207,7 @@ body {
 }
 
 .menu-trigger {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
@@ -203,7 +219,12 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    white-space: nowrap;
+    white-space: nowrap !important;
+    min-width: 80px !important;
+    flex-shrink: 0 !important;
+    /* Force visibility */
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .menu-trigger:hover {
@@ -843,25 +864,79 @@ div.slider-tooltip::after {
     display: none; /* Legacy grid layout disabled */
 }
 
+/* ===== NUCLEAR OVERRIDE FOR MENU SPACING ISSUE ===== */
+/* Ultra-specific rule to override any possible conflicting styles */
+div.horizontal-controls-menu div.controls-menu-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: auto !important;
+}
+
+div.horizontal-controls-menu div.controls-menu-wrapper div.menu-section {
+    display: inline-block !important;
+    vertical-align: top !important;
+    margin: 0 2px 0 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    flex-basis: auto !important;
+    gap: 0 !important;
+}
+
+/* Also override the wrapper to not use flexbox */
+div.horizontal-controls-menu div.controls-menu-wrapper {
+    display: block !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: auto !important;
+    padding: 0 24px !important;
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
+
+/* Force horizontal scrolling at all screen sizes - no breakpoints needed */
+.controls-menu-wrapper::-webkit-scrollbar {
+    height: 4px;
+}
+
+.controls-menu-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+}
+
+.controls-menu-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.controls-menu-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
 @media (max-width: 1024px) {
-    .controls-menu-wrapper {
-        flex-wrap: nowrap !important;
-        gap: 2px;
-        padding: 0 16px;
-        min-height: 48px;
-        overflow-x: auto;
-        /* Force all menus to remain visible */
-        width: 100% !important;
-    }
+    /* Don't override wrapper settings - let base styles handle it */
     
     .menu-trigger {
-        padding: 8px 12px;
-        font-size: 15px;
+        padding: 6px 10px;
+        font-size: 14px;
     }
     
     .menu-trigger span {
-        display: none; /* Hide text on smaller screens */
+        display: inline; /* Keep text visible on all screen sizes */
     }
     
     .menu-actions {
@@ -886,16 +961,7 @@ div.slider-tooltip::after {
         padding: 8px 0;
     }
     
-    .controls-menu-wrapper {
-        gap: 2px;
-        padding: 0 12px;
-        /* Force horizontal scrolling instead of vertical stacking */
-        flex-wrap: nowrap !important;
-        overflow-x: auto;
-        width: 100% !important;
-        /* Ensure all menu sections are visible */
-        min-width: min-content;
-    }
+    /* Don't override wrapper settings - let base styles handle it */
     
     .menu-dropdown {
         min-width: 280px;
@@ -6484,4 +6550,41 @@ div.slider-tooltip::after {
         gap: 12px;
         align-items: flex-start;
     }
+}
+
+/* ===== FINAL NUCLEAR OVERRIDE FOR MENU SPACING - HIGHEST PRIORITY ===== */
+/* This should override any conflicting styles regardless of specificity */
+div#data-builder div.horizontal-controls-menu div.controls-menu-wrapper {
+    display: block \!important;
+    text-align: left \!important;
+    white-space: nowrap \!important;
+    overflow-x: auto \!important;
+    overflow-y: visible \!important;
+    width: auto \!important;
+    max-width: none \!important;
+    min-width: auto \!important;
+    padding: 0 24px \!important;
+    /* Reset any flex properties */
+    flex: none \!important;
+    justify-content: unset \!important;
+    align-items: unset \!important;
+    gap: unset \!important;
+}
+
+div#data-builder div.horizontal-controls-menu div.controls-menu-wrapper div.menu-section {
+    display: inline-block \!important;
+    vertical-align: top \!important;
+    margin: 0 4px 0 0 \!important;
+    padding: 0 \!important;
+    width: auto \!important;
+    min-width: auto \!important;
+    max-width: none \!important;
+    /* Reset any flex properties */
+    flex: none \!important;
+    flex-grow: 0 \!important;
+    flex-shrink: 0 \!important;
+    flex-basis: auto \!important;
+    gap: unset \!important;
+    justify-content: unset \!important;
+    align-items: unset \!important;
 }
