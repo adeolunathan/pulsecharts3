@@ -7892,6 +7892,84 @@ class PulseSankeyChart extends BaseChart {
     }
 
     /**
+     * Update category color
+     * @param {string} categoryName - Name of the category to update
+     * @param {string} newColor - New color for the category
+     * @returns {boolean} - True if successful, false otherwise
+     */
+    updateCategoryColor(categoryName, newColor) {
+        if (!categoryName || !newColor) {
+            console.warn('⚠️ Category name and color are required');
+            return false;
+        }
+        
+        // Check if it's a default category
+        if (this.categoryManager.defaultCategories.hasOwnProperty(categoryName)) {
+            this.categoryManager.defaultCategories[categoryName].color = newColor;
+            console.log(`🎨 Updated default category '${categoryName}' color to ${newColor}`);
+            return true;
+        }
+        
+        // Check if it's a user category
+        if (this.categoryManager.userCategories.has(categoryName)) {
+            const category = this.categoryManager.userCategories.get(categoryName);
+            category.color = newColor;
+            this.categoryManager.userCategories.set(categoryName, category);
+            console.log(`🎨 Updated user category '${categoryName}' color to ${newColor}`);
+            return true;
+        }
+        
+        console.warn(`⚠️ Category '${categoryName}' not found`);
+        return false;
+    }
+
+    /**
+     * Set custom color for a specific node
+     * @param {string} nodeId - ID of the node to color
+     * @param {string} color - New color for the node
+     * @returns {boolean} - True if successful, false otherwise
+     */
+    setNodeCustomColor(nodeId, color) {
+        if (!nodeId || !color) {
+            console.warn('⚠️ Node ID and color are required');
+            return false;
+        }
+        
+        // Initialize customColors if it doesn't exist
+        if (!this.customColors) {
+            this.customColors = {};
+        }
+        
+        // Set the custom color
+        this.customColors[nodeId] = color;
+        console.log(`🎨 Set custom color for node '${nodeId}' to ${color}`);
+        
+        return true;
+    }
+
+    /**
+     * Reset node color to default (remove custom color)
+     * @param {string} nodeId - ID of the node to reset
+     * @returns {boolean} - True if successful, false otherwise
+     */
+    resetNodeColor(nodeId) {
+        if (!nodeId) {
+            console.warn('⚠️ Node ID is required');
+            return false;
+        }
+        
+        // Remove custom color if it exists
+        if (this.customColors && this.customColors[nodeId]) {
+            delete this.customColors[nodeId];
+            console.log(`🔄 Reset custom color for node '${nodeId}'`);
+            return true;
+        }
+        
+        console.log(`ℹ️ No custom color found for node '${nodeId}'`);
+        return true; // Return true anyway since the goal is achieved
+    }
+
+    /**
      * Load categories from metadata
      */
     loadCategoriesFromMetadata() {

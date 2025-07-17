@@ -244,6 +244,28 @@ class CategoryAssignmentModal {
         // Setup chip listeners for category assignment
         this.setupChipListeners(modal);
         
+        // Node name color changing (right-click or Ctrl+click)
+        const nodeName = modal.querySelector('.md-node-name');
+        if (nodeName) {
+            // Add visual hint that it's interactive
+            nodeName.style.cursor = 'pointer';
+            nodeName.title = 'Right-click or Ctrl+click to change node color';
+            
+            // Right-click for color changing
+            nodeName.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.showNodeColorPicker(nodeName);
+            });
+            
+            // Ctrl+click alternative
+            nodeName.addEventListener('click', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    this.showNodeColorPicker(nodeName);
+                }
+            });
+        }
+        
         // Custom category creation
         modal.querySelector('#category-create-btn').addEventListener('click', () => this.createCustomCategory());
         
@@ -367,9 +389,28 @@ class CategoryAssignmentModal {
      */
     setupChipListeners(modal) {
         modal.querySelectorAll('.md-category-chip').forEach(chip => {
+            const categoryName = chip.dataset.category;
+            
+            // Regular click for all chips
             chip.addEventListener('click', (e) => {
                 const categoryName = e.currentTarget.dataset.category;
                 this.selectCategory(categoryName);
+            });
+            
+            // Skip color editing for the "remove category" chip
+            if (categoryName === '') return;
+            
+            // Right-click to edit color
+            chip.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.showCategoryColorPicker(categoryName, e.currentTarget);
+            });
+            
+            // Double-click alternative for color editing
+            chip.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showCategoryColorPicker(categoryName, e.currentTarget);
             });
             
             // Keyboard support
@@ -378,9 +419,288 @@ class CategoryAssignmentModal {
                     e.preventDefault();
                     const categoryName = e.currentTarget.dataset.category;
                     this.selectCategory(categoryName);
+                } else if (e.key === 'e' || e.key === 'E') {
+                    // Press 'E' to edit color
+                    e.preventDefault();
+                    this.showCategoryColorPicker(categoryName, e.currentTarget);
                 }
             });
         });
+    }
+
+    /**
+     * Show category color picker popup
+     */
+    showCategoryColorPicker(categoryName, chipElement) {
+        // Remove any existing color picker
+        const existingPicker = document.querySelector('.category-color-picker');
+        if (existingPicker) {
+            existingPicker.remove();
+        }
+        
+        const allCategories = this.chart.getAllCategories();
+        const category = allCategories[categoryName];
+        if (!category) return;
+        
+        // Create color picker popup
+        const picker = document.createElement('div');
+        picker.className = 'category-color-picker';
+        picker.innerHTML = `
+            <div class="color-picker-content">
+                <div class="color-picker-header">
+                    <span class="color-picker-title">Edit "${categoryName}" Color</span>
+                    <button class="color-picker-close">×</button>
+                </div>
+                <div class="color-picker-body">
+                    <input type="color" value="${category.color}" class="color-input">
+                    <div class="color-presets">
+                        <div class="preset-color" data-color="#1e40af" style="background: #1e40af"></div>
+                        <div class="preset-color" data-color="#dc2626" style="background: #dc2626"></div>
+                        <div class="preset-color" data-color="#059669" style="background: #059669"></div>
+                        <div class="preset-color" data-color="#d97706" style="background: #d97706"></div>
+                        <div class="preset-color" data-color="#7c3aed" style="background: #7c3aed"></div>
+                        <div class="preset-color" data-color="#db2777" style="background: #db2777"></div>
+                    </div>
+                    <div class="color-picker-actions">
+                        <button class="btn-apply">Apply</button>
+                        <button class="btn-cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Position near the chip
+        const chipRect = chipElement.getBoundingClientRect();
+        picker.style.position = 'fixed';
+        picker.style.left = chipRect.left + 'px';
+        picker.style.top = (chipRect.bottom + 5) + 'px';
+        picker.style.zIndex = '10001';
+        
+        document.body.appendChild(picker);
+        
+        // Event handlers
+        const colorInput = picker.querySelector('.color-input');
+        const presetColors = picker.querySelectorAll('.preset-color');
+        const applyBtn = picker.querySelector('.btn-apply');
+        const cancelBtn = picker.querySelector('.btn-cancel');
+        const closeBtn = picker.querySelector('.color-picker-close');
+        
+        // Preset color selection
+        presetColors.forEach(preset => {
+            preset.addEventListener('click', () => {
+                colorInput.value = preset.dataset.color;
+            });
+        });
+        
+        // Apply color change
+        const applyColor = () => {
+            const newColor = colorInput.value;
+            this.updateCategoryColor(categoryName, newColor);
+            picker.remove();
+        };
+        
+        // Cancel
+        const cancelColor = () => {
+            picker.remove();
+        };
+        
+        applyBtn.addEventListener('click', applyColor);
+        cancelBtn.addEventListener('click', cancelColor);
+        closeBtn.addEventListener('click', cancelColor);
+        
+        // Close on outside click
+        document.addEventListener('click', function outsideClick(e) {
+            if (!picker.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', outsideClick);
+            }
+        });
+        
+        // Focus color input
+        colorInput.focus();
+    }
+
+    /**
+     * Show node color picker popup
+     */
+    showNodeColorPicker(nodeElement) {
+        // Remove any existing color picker
+        const existingPicker = document.querySelector('.node-color-picker');
+        if (existingPicker) {
+            existingPicker.remove();
+        }
+        
+        const currentColor = this.getCurrentNodeColor();
+        
+        // Create color picker popup
+        const picker = document.createElement('div');
+        picker.className = 'node-color-picker';
+        picker.innerHTML = `
+            <div class="color-picker-content">
+                <div class="color-picker-header">
+                    <span class="color-picker-title">Edit Node "${this.node.id}" Color</span>
+                    <button class="color-picker-close">×</button>
+                </div>
+                <div class="color-picker-body">
+                    <input type="color" value="${currentColor}" class="color-input">
+                    <div class="color-presets">
+                        <div class="preset-color" data-color="#1e40af" style="background: #1e40af"></div>
+                        <div class="preset-color" data-color="#dc2626" style="background: #dc2626"></div>
+                        <div class="preset-color" data-color="#059669" style="background: #059669"></div>
+                        <div class="preset-color" data-color="#d97706" style="background: #d97706"></div>
+                        <div class="preset-color" data-color="#7c3aed" style="background: #7c3aed"></div>
+                        <div class="preset-color" data-color="#db2777" style="background: #db2777"></div>
+                    </div>
+                    <div class="color-picker-actions">
+                        <button class="btn-apply">Apply</button>
+                        <button class="btn-reset">Reset</button>
+                        <button class="btn-cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Position near the node name
+        const nodeRect = nodeElement.getBoundingClientRect();
+        picker.style.position = 'fixed';
+        picker.style.left = nodeRect.left + 'px';
+        picker.style.top = (nodeRect.bottom + 5) + 'px';
+        picker.style.zIndex = '10002';
+        
+        document.body.appendChild(picker);
+        
+        // Event handlers
+        const colorInput = picker.querySelector('.color-input');
+        const presetColors = picker.querySelectorAll('.preset-color');
+        const applyBtn = picker.querySelector('.btn-apply');
+        const resetBtn = picker.querySelector('.btn-reset');
+        const cancelBtn = picker.querySelector('.btn-cancel');
+        const closeBtn = picker.querySelector('.color-picker-close');
+        
+        // Preset color selection
+        presetColors.forEach(preset => {
+            preset.addEventListener('click', () => {
+                colorInput.value = preset.dataset.color;
+            });
+        });
+        
+        // Apply color change
+        const applyColor = () => {
+            const newColor = colorInput.value;
+            this.updateNodeColor(newColor);
+            picker.remove();
+        };
+        
+        // Reset to default
+        const resetColor = () => {
+            this.resetNodeColor();
+            picker.remove();
+        };
+        
+        // Cancel
+        const cancelColor = () => {
+            picker.remove();
+        };
+        
+        applyBtn.addEventListener('click', applyColor);
+        resetBtn.addEventListener('click', resetColor);
+        cancelBtn.addEventListener('click', cancelColor);
+        closeBtn.addEventListener('click', cancelColor);
+        
+        // Close on outside click
+        document.addEventListener('click', function outsideClick(e) {
+            if (!picker.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', outsideClick);
+            }
+        });
+        
+        // Focus color input
+        colorInput.focus();
+    }
+
+    /**
+     * Update individual node color
+     */
+    updateNodeColor(newColor) {
+        // Set custom color for this specific node
+        if (this.chart.setNodeCustomColor(this.node.id, newColor)) {
+            // Update the color preview in the modal if it exists
+            const colorPreview = document.querySelector('#color-preview');
+            if (colorPreview) {
+                colorPreview.style.backgroundColor = newColor;
+            }
+            
+            // Update the independent color input if it exists
+            const independentColorInput = document.querySelector('#independent-color-input');
+            if (independentColorInput) {
+                independentColorInput.value = newColor;
+            }
+            
+            // Show success message
+            this.showSnackbar(`Updated color for node "${this.node.id}"`, 'success');
+            
+            // Trigger chart re-render to apply new color
+            this.chart.render(this.chart.originalData);
+        } else {
+            this.showSnackbar('Failed to update node color', 'error');
+        }
+    }
+
+    /**
+     * Reset node color to default
+     */
+    resetNodeColor() {
+        if (this.chart.resetNodeColor(this.node.id)) {
+            // Update the color preview in the modal if it exists
+            const colorPreview = document.querySelector('#color-preview');
+            if (colorPreview) {
+                colorPreview.style.backgroundColor = this.getCurrentNodeColor();
+            }
+            
+            // Update the independent color input if it exists
+            const independentColorInput = document.querySelector('#independent-color-input');
+            if (independentColorInput) {
+                independentColorInput.value = this.getCurrentNodeColor();
+            }
+            
+            // Show success message
+            this.showSnackbar(`Reset color for node "${this.node.id}"`, 'success');
+            
+            // Trigger chart re-render
+            this.chart.render(this.chart.originalData);
+        } else {
+            this.showSnackbar('Failed to reset node color', 'error');
+        }
+    }
+
+    /**
+     * Update category color
+     */
+    updateCategoryColor(categoryName, newColor) {
+        // Update the category in the chart
+        if (this.chart.updateCategoryColor(categoryName, newColor)) {
+            // Refresh the category chips to show new color
+            const modal = document.getElementById(this.modalId);
+            const chipsContainer = modal.querySelector('.md-category-grid');
+            chipsContainer.innerHTML = this.renderMaterialCategoryChips();
+            
+            // Re-setup chip event listeners
+            this.setupChipListeners(modal);
+            
+            // Re-select current category if it was the one we updated
+            if (this.selectedCategory === categoryName) {
+                this.selectCategory(categoryName);
+            }
+            
+            // Show success message
+            this.showSnackbar(`Updated color for "${categoryName}"`, 'success');
+            
+            // Trigger chart re-render to apply new colors
+            this.chart.render(this.chart.originalData);
+        } else {
+            this.showSnackbar('Failed to update category color', 'error');
+        }
     }
 
     /**
@@ -1144,6 +1464,159 @@ class CategoryAssignmentModal {
                 transform: scale(1.1);
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
                 border-color: #6750a4;
+            }
+            
+            /* Category Color Picker Popup */
+            .category-color-picker {
+                position: fixed;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                border: 1px solid #e2e8f0;
+                z-index: 10001;
+                min-width: 240px;
+                animation: colorPickerFadeIn 0.2s ease-out;
+            }
+            
+            @keyframes colorPickerFadeIn {
+                from { opacity: 0; transform: scale(0.9) translateY(-5px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            
+            .color-picker-content {
+                padding: 0;
+            }
+            
+            .color-picker-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                border-bottom: 1px solid #e2e8f0;
+                background: #f8fafc;
+            }
+            
+            .color-picker-title {
+                font-size: 14px;
+                font-weight: 600;
+                color: #374151;
+            }
+            
+            .color-picker-close {
+                background: none;
+                border: none;
+                font-size: 18px;
+                color: #6b7280;
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 4px;
+                transition: background-color 0.2s;
+            }
+            
+            .color-picker-close:hover {
+                background: #e5e7eb;
+                color: #374151;
+            }
+            
+            .color-picker-body {
+                padding: 16px;
+            }
+            
+            .color-input {
+                width: 100%;
+                height: 40px;
+                border: 2px solid #e2e8f0;
+                border-radius: 6px;
+                cursor: pointer;
+                margin-bottom: 12px;
+                transition: border-color 0.2s;
+            }
+            
+            .color-input:hover {
+                border-color: #6366f1;
+            }
+            
+            .color-presets {
+                margin-bottom: 16px;
+            }
+            
+            .color-presets {
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+            
+            .preset-color {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                cursor: pointer;
+                border: 2px solid #e2e8f0;
+                transition: all 0.2s;
+            }
+            
+            .preset-color:hover {
+                transform: scale(1.1);
+                border-color: #6366f1;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+            
+            .color-picker-actions {
+                display: flex;
+                gap: 8px;
+                justify-content: flex-end;
+            }
+            
+            .btn-apply, .btn-cancel {
+                padding: 8px 16px;
+                border-radius: 6px;
+                border: none;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .btn-apply {
+                background: #6366f1;
+                color: white;
+            }
+            
+            .btn-apply:hover {
+                background: #5855eb;
+                transform: translateY(-1px);
+            }
+            
+            .btn-cancel {
+                background: #f3f4f6;
+                color: #374151;
+            }
+            
+            .btn-cancel:hover {
+                background: #e5e7eb;
+            }
+            
+            /* Node Color Picker Popup */
+            .node-color-picker {
+                position: fixed;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                border: 1px solid #e2e8f0;
+                z-index: 10002;
+                min-width: 260px;
+                animation: colorPickerFadeIn 0.2s ease-out;
+            }
+            
+            /* Make node name interactive */
+            .md-node-name {
+                transition: color 0.2s ease;
+            }
+            
+            .md-node-name:hover {
+                color: #6366f1;
+                text-decoration: underline;
             }
         `;
         
