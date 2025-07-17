@@ -158,8 +158,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     /* Force horizontal layout even on small screens */
     flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: visible;
+    overflow: hidden !important;
     /* Keep menu items tightly grouped */
     width: auto !important;
     box-sizing: border-box;
@@ -898,8 +897,8 @@ div.horizontal-controls-menu div.controls-menu-wrapper {
     display: block !important;
     text-align: left !important;
     white-space: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
     width: auto !important;
     max-width: none !important;
     min-width: auto !important;
@@ -908,24 +907,7 @@ div.horizontal-controls-menu div.controls-menu-wrapper {
 
 /* ===== RESPONSIVE DESIGN ===== */
 
-/* Force horizontal scrolling at all screen sizes - no breakpoints needed */
-.controls-menu-wrapper::-webkit-scrollbar {
-    height: 4px;
-}
-
-.controls-menu-wrapper::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
-}
-
-.controls-menu-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-}
-
-.controls-menu-wrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
+/* Remove scrollbar styling since we don't want forced scrolling */
 
 @media (max-width: 1024px) {
     /* Don't override wrapper settings - let base styles handle it */
@@ -6555,36 +6537,37 @@ div.horizontal-controls-menu div.controls-menu-wrapper {
 /* ===== FINAL NUCLEAR OVERRIDE FOR MENU SPACING - HIGHEST PRIORITY ===== */
 /* This should override any conflicting styles regardless of specificity */
 div#data-builder div.horizontal-controls-menu div.controls-menu-wrapper {
-    display: block \!important;
-    text-align: left \!important;
-    white-space: nowrap \!important;
-    overflow-x: auto \!important;
-    overflow-y: visible \!important;
-    width: auto \!important;
-    max-width: none \!important;
-    min-width: auto \!important;
-    padding: 0 24px \!important;
+    display: block !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    padding: 0 24px !important;
     /* Reset any flex properties */
-    flex: none \!important;
-    justify-content: unset \!important;
-    align-items: unset \!important;
-    gap: unset \!important;
+    flex: none !important;
+    justify-content: unset !important;
+    align-items: unset !important;
+    gap: unset !important;
 }
 
 div#data-builder div.horizontal-controls-menu div.controls-menu-wrapper div.menu-section {
-    display: inline-block \!important;
-    vertical-align: top \!important;
-    margin: 0 4px 0 0 \!important;
-    padding: 0 \!important;
-    width: auto \!important;
-    min-width: auto \!important;
-    max-width: none \!important;
+    display: inline-block !important;
+    vertical-align: top !important;
+    margin: 0 4px 0 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
     /* Reset any flex properties */
-    flex: none \!important;
-    flex-grow: 0 \!important;
-    flex-shrink: 0 \!important;
-    flex-basis: auto \!important;
-    gap: unset \!important;
-    justify-content: unset \!important;
-    align-items: unset \!important;
+    flex: none !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    flex-basis: auto !important;
+    gap: unset !important;
+    justify-content: unset !important;
+    align-items: unset !important;
 }
