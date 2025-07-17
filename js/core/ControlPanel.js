@@ -540,36 +540,46 @@ class PulseControlPanel {
 
     // Create slider control
     createSliderControl(container, config) {
-        const sliderContainer = container.append('div').attr('class', 'slider-container');
+        const sliderContainer = container.append('div')
+            .attr('class', 'slider-container');
         
         // **ENHANCED: Get current value with proper chart synchronization**
         let currentValue = this.getCurrentValue(config);
         
-        const slider = sliderContainer.append('input')
+        // Create slider wrapper for proper positioning
+        const sliderWrapper = sliderContainer.append('div')
+            .attr('class', 'slider-wrapper');
+        
+        const slider = sliderWrapper.append('input')
             .attr('type', 'range')
             .attr('min', config.min)
             .attr('max', config.max)
             .attr('step', config.step)
             .attr('value', currentValue)
-            .attr('class', 'control-slider')
-            .attr('data-value', this.formatValueClean(currentValue, config))
-            .style('width', '100%')
-            .on('input', (event) => {
-                const value = parseFloat(event.target.value);
-                // Update data attribute for CSS display
-                event.target.setAttribute('data-value', this.formatValueClean(value, config));
-                this.updateSliderTooltip(event.target, value, config);
-                this.handleChange(config.id, value);
-            })
-            .on('mousedown', (event) => {
-                this.showSliderTooltip(event.target, parseFloat(event.target.value), config);
-            })
-            .on('mouseup', (event) => {
-                this.hideSliderTooltip(event.target);
-            })
-            .on('mouseleave', (event) => {
-                this.hideSliderTooltip(event.target);
-            });
+            .attr('class', 'control-slider');
+        
+        // Update slider on input
+        slider.on('input', (event) => {
+            const value = parseFloat(event.target.value);
+            this.updateSliderTooltip(event.target, value, config);
+            this.handleChange(config.id, value);
+        });
+        
+        // Show tooltip on mousedown
+        slider.on('mousedown', (event) => {
+            this.showSliderTooltip(event.target, parseFloat(event.target.value), config);
+        });
+        
+        // Hide tooltip on mouseup
+        slider.on('mouseup', (event) => {
+            this.hideSliderTooltip();
+        });
+        
+        // Hide tooltip on mouseleave
+        slider.on('mouseleave', (event) => {
+            this.hideSliderTooltip();
+        });
+        
     }
 
     // Create dropdown control
@@ -961,43 +971,54 @@ class PulseControlPanel {
     }
 
     /**
-     * Format value for display without units (for tooltips)
+     * Format value for display without units (for tooltip display)
      */
     formatValueClean(value, config) {
+        // Special handling for Node Height Scale - show as percentage
+        if (config.id === 'nodeHeightScale') {
+            return `${value}%`;
+        }
+        
         if (config.step && config.step < 1) {
             return parseFloat(value).toFixed(2);
         }
         return value.toString();
     }
 
+
     /**
-     * Show slider tooltip that follows the thumb position
+     * Show tooltip above slider during drag
      */
     showSliderTooltip(sliderElement, value, config) {
+        // Remove any existing tooltip
+        this.hideSliderTooltip();
+        
         const tooltip = d3.select('body').append('div')
             .attr('class', 'slider-tooltip')
-            .style('position', 'absolute')
+            .style('position', 'fixed')
             .style('background', 'rgba(0, 0, 0, 0.8)')
             .style('color', 'white')
-            .style('padding', '4px 8px')
+            .style('padding', '6px 10px')
             .style('border-radius', '4px')
-            .style('font-size', '11px')
+            .style('font-size', '12px')
             .style('font-weight', '500')
             .style('white-space', 'nowrap')
-            .style('z-index', '1000')
+            .style('z-index', '9999')
             .style('pointer-events', 'none')
             .style('opacity', '0')
+            .style('transition', 'opacity 0.15s ease')
             .text(this.formatValueClean(value, config));
-
+        
         this.positionSliderTooltip(sliderElement, tooltip.node(), value, config);
         
-        tooltip.transition()
-            .duration(150)
-            .style('opacity', '1');
+        // Make visible with a slight delay to ensure positioning is complete
+        setTimeout(() => {
+            tooltip.style('opacity', '1');
+        }, 10);
     }
 
     /**
-     * Update slider tooltip position and value during drag
+     * Update tooltip position and value during drag
      */
     updateSliderTooltip(sliderElement, value, config) {
         const tooltip = d3.select('.slider-tooltip');
@@ -1008,39 +1029,33 @@ class PulseControlPanel {
     }
 
     /**
-     * Position tooltip above the slider thumb based on current value
+     * Position tooltip above slider thumb
      */
     positionSliderTooltip(sliderElement, tooltipElement, value, config) {
         const rect = sliderElement.getBoundingClientRect();
-        const min = parseFloat(sliderElement.min);
-        const max = parseFloat(sliderElement.max);
+        const min = parseFloat(config.min);
+        const max = parseFloat(config.max);
         const percentage = (value - min) / (max - min);
         
-        // Calculate thumb position accounting for thumb width
-        const thumbWidth = 24; // Approximate thumb width
+        // Calculate thumb position
+        const thumbWidth = 18;
         const trackWidth = rect.width - thumbWidth;
         const thumbPosition = percentage * trackWidth + (thumbWidth / 2);
         
         const left = rect.left + thumbPosition;
-        const top = rect.top - 35; // Position above the slider
+        const top = rect.top - 35;
         
         d3.select(tooltipElement)
             .style('left', `${left}px`)
             .style('top', `${top}px`)
-            .style('transform', 'translateX(-50%)'); // Center on thumb
+            .style('transform', 'translateX(-50%)');
     }
 
     /**
      * Hide slider tooltip
      */
-    hideSliderTooltip(sliderElement) {
-        const tooltip = d3.select('.slider-tooltip');
-        if (!tooltip.empty()) {
-            tooltip.transition()
-                .duration(150)
-                .style('opacity', '0')
-                .remove();
-        }
+    hideSliderTooltip() {
+        d3.select('.slider-tooltip').remove();
     }
 
     // FIXED: Handle control value changes with proper opacity updates
