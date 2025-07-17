@@ -990,8 +990,6 @@ class PulseControlPanel {
      * Show tooltip above slider during drag
      */
     showSliderTooltip(sliderElement, value, config) {
-        console.log('🔧 Creating tooltip with value:', value);
-        
         // Remove any existing tooltip
         this.hideSliderTooltip();
         
@@ -999,22 +997,11 @@ class PulseControlPanel {
             .attr('class', 'slider-tooltip')
             .text(this.formatValueClean(value, config));
         
-        console.log('🔧 Tooltip created:', tooltip.node());
-        
         // Make visible immediately
         tooltip.classed('visible', true);
-        console.log('🔧 Added visible class');
         
         // Position after making visible
         this.positionSliderTooltip(sliderElement, tooltip.node(), value, config);
-        
-        // Check if it's actually visible
-        setTimeout(() => {
-            const computedStyle = window.getComputedStyle(tooltip.node());
-            console.log('🔧 Final opacity:', computedStyle.opacity);
-            console.log('🔧 Final display:', computedStyle.display);
-            console.log('🔧 Final position:', computedStyle.left, computedStyle.top);
-        }, 50);
     }
 
     /**
