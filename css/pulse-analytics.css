@@ -416,7 +416,7 @@ body {
 .dropdown-content input[type="range"]::-webkit-slider-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -429,7 +429,7 @@ body {
 .dropdown-content input[type="range"]::-webkit-slider-runnable-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -442,7 +442,7 @@ body {
     appearance: none !important;
     height: 16px !important;
     width: 16px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
@@ -454,35 +454,35 @@ body {
 
 /* Webkit hover effects */
 .dropdown-content input[type="range"]::-webkit-slider-thumb:hover {
-    background: #047857;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-    transform: scale(1.1);
+    background: #7c3aed !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
+    transform: scale(1.1) !important;
 }
 
 .dropdown-content input[type="range"]::-webkit-slider-thumb:active {
-    background: #065f46;
-    transform: scale(0.95);
+    background: #6d28d9 !important;
+    transform: scale(0.95) !important;
 }
 
 /* Firefox track styling */
 .dropdown-content input[type="range"]::-moz-range-track {
-    height: 4px;
-    background: #059669;
-    border-radius: 2px;
-    border: none;
-    outline: none;
+    height: 4px !important;
+    background: #8b5cf6 !important;
+    border-radius: 2px !important;
+    border: none !important;
+    outline: none !important;
 }
 
 /* Firefox thumb styling */
 .dropdown-content input[type="range"]::-moz-range-thumb {
-    height: 16px;
-    width: 16px;
-    background: #059669;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    -moz-appearance: none;
+    height: 16px !important;
+    width: 16px !important;
+    background: #8b5cf6 !important;
+    border-radius: 50% !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    -moz-appearance: none !important;
 }
 
 /* Class-based selectors for backwards compatibility - SUPER STRONG */
@@ -503,7 +503,7 @@ body {
 .dropdown-content .control-slider::-webkit-slider-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -515,7 +515,7 @@ body {
 .dropdown-content .control-slider::-webkit-slider-runnable-track {
     -webkit-appearance: none !important;
     height: 4px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -527,7 +527,7 @@ body {
     appearance: none !important;
     height: 16px !important;
     width: 16px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
@@ -538,19 +538,19 @@ body {
 }
 
 .dropdown-content .control-slider::-webkit-slider-thumb:hover {
-    background: #047857 !important;
+    background: #7c3aed !important;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3) !important;
     transform: scale(1.1) !important;
 }
 
 .dropdown-content .control-slider::-webkit-slider-thumb:active {
-    background: #065f46 !important;
+    background: #6d28d9 !important;
     transform: scale(0.95) !important;
 }
 
 .dropdown-content .control-slider::-moz-range-track {
     height: 4px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 2px !important;
     border: none !important;
     outline: none !important;
@@ -560,7 +560,7 @@ body {
 .dropdown-content .control-slider::-moz-range-thumb {
     height: 16px !important;
     width: 16px !important;
-    background: #059669 !important;
+    background: #8b5cf6 !important;
     border-radius: 50% !important;
     border: none !important;
     cursor: pointer !important;
