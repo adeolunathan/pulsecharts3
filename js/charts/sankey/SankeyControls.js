@@ -1685,7 +1685,7 @@ class SankeyControlModule {
 
 
     /**
-     * Get category pill HTML with color
+     * Get category pill HTML with color - made clickable for color editing
      */
     getCategoryPill(category) {
         if (!category) {
@@ -1702,7 +1702,262 @@ class SankeyControlModule {
             categoryColor = categoryManager.defaultCategories[category].color;
         }
         
-        return `<span class="category-pill" style="background-color: ${categoryColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500;">${category}</span>`;
+        return `<span class="category-pill clickable-pill" data-category="${category}" style="background-color: ${categoryColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;" title="Click to change color">${category}</span>`;
+    }
+
+    /**
+     * Set up click handlers for category pills in bulk assignment modal
+     */
+    setupCategoryPillClickHandlers(modal) {
+        modal.addEventListener('click', (e) => {
+            // Check if clicked element is a category pill
+            if (e.target.classList.contains('clickable-pill')) {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent checkbox toggling
+                
+                const categoryName = e.target.dataset.category;
+                if (categoryName) {
+                    this.showCategoryColorPicker(categoryName, e.target, modal);
+                }
+            }
+        });
+    }
+
+    /**
+     * Show color picker for category in bulk assignment modal
+     */
+    showCategoryColorPicker(categoryName, pillElement, modal) {
+        // Remove any existing color picker
+        const existingPicker = document.querySelector('.bulk-category-color-picker');
+        if (existingPicker) {
+            existingPicker.remove();
+        }
+        
+        // Get current category color
+        const categoryManager = this.chart.categoryManager;
+        let currentColor = '#6b7280';
+        
+        if (categoryManager.userCategories.has(categoryName)) {
+            currentColor = categoryManager.userCategories.get(categoryName).color;
+        } else if (categoryManager.defaultCategories[categoryName]) {
+            currentColor = categoryManager.defaultCategories[categoryName].color;
+        }
+        
+        // Create color picker popup
+        const picker = document.createElement('div');
+        picker.className = 'bulk-category-color-picker';
+        picker.innerHTML = `
+            <div class="color-picker-content">
+                <div class="color-picker-header">
+                    <span class="color-picker-title">Edit "${categoryName}" Color</span>
+                    <button class="color-picker-close">×</button>
+                </div>
+                <div class="color-picker-body">
+                    <input type="color" value="${currentColor}" class="color-input">
+                    <div class="color-presets">
+                        <div class="preset-color" data-color="#1e40af" style="background: #1e40af"></div>
+                        <div class="preset-color" data-color="#dc2626" style="background: #dc2626"></div>
+                        <div class="preset-color" data-color="#059669" style="background: #059669"></div>
+                        <div class="preset-color" data-color="#d97706" style="background: #d97706"></div>
+                        <div class="preset-color" data-color="#7c3aed" style="background: #7c3aed"></div>
+                        <div class="preset-color" data-color="#db2777" style="background: #db2777"></div>
+                    </div>
+                    <div class="color-picker-actions">
+                        <button class="btn-apply">Apply</button>
+                        <button class="btn-cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .bulk-category-color-picker {
+                    position: fixed;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    border: 1px solid #e2e8f0;
+                    z-index: 10001;
+                    min-width: 240px;
+                    animation: colorPickerFadeIn 0.2s ease-out;
+                }
+                @keyframes colorPickerFadeIn {
+                    from { opacity: 0; transform: scale(0.9) translateY(-5px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+                .color-picker-content {
+                    padding: 0;
+                }
+                .color-picker-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 12px 16px;
+                    border-bottom: 1px solid #e2e8f0;
+                    background: #f8fafc;
+                }
+                .color-picker-title {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #374151;
+                }
+                .color-picker-close {
+                    background: none;
+                    border: none;
+                    font-size: 18px;
+                    color: #6b7280;
+                    cursor: pointer;
+                    padding: 4px;
+                    border-radius: 4px;
+                    transition: background-color 0.2s;
+                }
+                .color-picker-close:hover {
+                    background: #e5e7eb;
+                    color: #374151;
+                }
+                .color-picker-body {
+                    padding: 16px;
+                }
+                .color-input {
+                    width: 100%;
+                    height: 40px;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    margin-bottom: 12px;
+                    transition: border-color 0.2s;
+                }
+                .color-input:hover {
+                    border-color: #6366f1;
+                }
+                .color-presets {
+                    display: grid;
+                    grid-template-columns: repeat(6, 1fr);
+                    gap: 8px;
+                    margin-bottom: 16px;
+                }
+                .preset-color {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    border: 2px solid #e2e8f0;
+                    transition: all 0.2s;
+                }
+                .preset-color:hover {
+                    transform: scale(1.1);
+                    border-color: #6366f1;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                }
+                .color-picker-actions {
+                    display: flex;
+                    gap: 8px;
+                    justify-content: flex-end;
+                }
+                .btn-apply, .btn-cancel {
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    border: none;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .btn-apply {
+                    background: #6366f1;
+                    color: white;
+                }
+                .btn-apply:hover {
+                    background: #5855eb;
+                    transform: translateY(-1px);
+                }
+                .btn-cancel {
+                    background: #f3f4f6;
+                    color: #374151;
+                }
+                .btn-cancel:hover {
+                    background: #e5e7eb;
+                }
+            </style>
+        `;
+        
+        // Position near the pill element
+        const pillRect = pillElement.getBoundingClientRect();
+        picker.style.position = 'fixed';
+        picker.style.left = pillRect.left + 'px';
+        picker.style.top = (pillRect.bottom + 5) + 'px';
+        picker.style.zIndex = '10001';
+        
+        document.body.appendChild(picker);
+        
+        // Event handlers
+        const colorInput = picker.querySelector('.color-input');
+        const presetColors = picker.querySelectorAll('.preset-color');
+        const applyBtn = picker.querySelector('.btn-apply');
+        const cancelBtn = picker.querySelector('.btn-cancel');
+        const closeBtn = picker.querySelector('.color-picker-close');
+        
+        // Preset color selection
+        presetColors.forEach(preset => {
+            preset.addEventListener('click', () => {
+                colorInput.value = preset.dataset.color;
+            });
+        });
+        
+        // Apply color change
+        const applyColor = () => {
+            const newColor = colorInput.value;
+            this.updateCategoryColorInBulkModal(categoryName, newColor, modal);
+            picker.remove();
+        };
+        
+        // Cancel
+        const cancelColor = () => {
+            picker.remove();
+        };
+        
+        applyBtn.addEventListener('click', applyColor);
+        cancelBtn.addEventListener('click', cancelColor);
+        closeBtn.addEventListener('click', cancelColor);
+        
+        // Close on outside click
+        document.addEventListener('click', function outsideClick(e) {
+            if (!picker.contains(e.target) && !pillElement.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', outsideClick);
+            }
+        });
+        
+        // Focus color input
+        colorInput.focus();
+    }
+
+    /**
+     * Update category color and refresh pills in bulk modal
+     */
+    updateCategoryColorInBulkModal(categoryName, newColor, modal) {
+        // Update category color in the chart
+        const categoryManager = this.chart.categoryManager;
+        
+        if (categoryManager.userCategories.has(categoryName)) {
+            const category = categoryManager.userCategories.get(categoryName);
+            category.color = newColor;
+            categoryManager.userCategories.set(categoryName, category);
+        } else if (categoryManager.defaultCategories[categoryName]) {
+            // Convert to user category with new color
+            const category = { ...categoryManager.defaultCategories[categoryName], color: newColor };
+            categoryManager.userCategories.set(categoryName, category);
+        }
+        
+        // Update all pills with this category in the modal
+        modal.querySelectorAll('.clickable-pill').forEach(pill => {
+            if (pill.dataset.category === categoryName) {
+                pill.style.backgroundColor = newColor;
+            }
+        });
+        
+        // Trigger chart re-render to apply new colors if chart is visible
+        if (this.chart && this.chart.render && this.chart.originalData) {
+            this.chart.render(this.chart.originalData);
+        }
     }
 
     /**
@@ -1768,11 +2023,15 @@ class SankeyControlModule {
                                         const currentCategory = this.chart.categoryManager.nodeCategories.get(nodeKey) || node.category;
                                         const isUncategorized = !currentCategory;
                                         return `
-                                        <label class="node-item">
-                                            <input type="checkbox" class="node-checkbox" value="${nodeKey}" data-uncategorized="${isUncategorized ? 'true' : 'false'}" onchange="this.closest('.nodes-section').querySelector('.preview-count').textContent = this.closest('.node-selection-container').querySelectorAll('.node-checkbox:checked').length + ' nodes selected'">
-                                            <span class="node-name">${node.name || node.label || node.id || 'Unnamed'}</span>
-                                            ${this.getCategoryPill(currentCategory)}
-                                        </label>`;
+                                        <div class="node-item">
+                                            <label class="node-checkbox-label">
+                                                <input type="checkbox" class="node-checkbox" value="${nodeKey}" data-uncategorized="${isUncategorized ? 'true' : 'false'}" onchange="this.closest('.nodes-section').querySelector('.preview-count').textContent = this.closest('.node-selection-container').querySelectorAll('.node-checkbox:checked').length + ' nodes selected'">
+                                                <span class="node-name">${node.name || node.label || node.id || 'Unnamed'}</span>
+                                            </label>
+                                            <div class="category-pill-container">
+                                                ${this.getCategoryPill(currentCategory)}
+                                            </div>
+                                        </div>`;
                                     }).join('')}
                                 </div>
                                 <div class="preview-count">0 nodes selected</div>
@@ -1892,15 +2151,21 @@ class SankeyControlModule {
                 .node-item {
                     display: flex;
                     align-items: center;
+                    justify-content: space-between;
                     padding: 6px 8px;
                     margin: 2px 0;
                     background: white;
                     border-radius: 3px;
-                    cursor: pointer;
                     font-size: 13px;
                 }
                 .node-item:hover {
                     background: #f8f9fa;
+                }
+                .node-checkbox-label {
+                    display: flex;
+                    align-items: center;
+                    cursor: pointer;
+                    flex: 1;
                 }
                 .node-checkbox {
                     margin-right: 8px;
@@ -1908,6 +2173,13 @@ class SankeyControlModule {
                 .node-name {
                     font-weight: 500;
                     flex: 1;
+                }
+                .category-pill-container {
+                    margin-left: 8px;
+                }
+                .clickable-pill:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 }
                 .node-category {
                     color: #666;
@@ -1953,6 +2225,9 @@ class SankeyControlModule {
         });
         
         document.body.appendChild(modal);
+        
+        // Set up event handlers for category pill clicks
+        this.setupCategoryPillClickHandlers(modal);
         
         // Set up global function for applying assignment
         window.applyBulkAssignment = () => {
