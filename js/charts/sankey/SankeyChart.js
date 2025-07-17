@@ -1124,6 +1124,12 @@ class PulseSankeyChart extends BaseChart {
     }
 
     render(data) {
+        // Handle case where data is undefined or null
+        if (!data) {
+            console.warn('⚠️ No data provided to render method');
+            return this;
+        }
+        
         // Check if this is new data (requires branding update) or just a re-render
         const isNewData = !this.data || JSON.stringify(this.data) !== JSON.stringify(data);
         if (isNewData) {
@@ -1231,6 +1237,9 @@ class PulseSankeyChart extends BaseChart {
         // Ensure chart fits within fixed container dimensions
         this.ensureChartFitsContainer();
         
+        // Ensure user-assigned categories are properly reflected in expense formatting
+        this.syncExpenseTypesWithUserCategories();
+        
         return this;
     }
 
@@ -1293,7 +1302,7 @@ class PulseSankeyChart extends BaseChart {
     detectAndApplyColors(data) {
         // Removed revenue segment color handling - using generic category system
 
-        if (data.metadata && data.metadata.colorPalette) {
+        if (data && data.metadata && data.metadata.colorPalette) {
             this.customColors = { ...data.metadata.colorPalette };
             
             if (this.customColors.expense && !this.customColors.tax) {
@@ -1505,6 +1514,9 @@ class PulseSankeyChart extends BaseChart {
         this.applyManualPositions();
         this.minimizeCrossings();
         this.calculateLinkPositions();
+        
+        // Ensure user-assigned categories are properly reflected in expense formatting
+        this.syncExpenseTypesWithUserCategories();
     }
 
     /**
@@ -3544,6 +3556,36 @@ class PulseSankeyChart extends BaseChart {
                 node.isExpenseType = node.category === 'expense';
             });
         }
+        
+        // Ensure user-assigned categories are properly reflected in isExpenseType
+        this.syncExpenseTypesWithUserCategories();
+    }
+
+    /**
+     * Sync isExpenseType flags with user-assigned categories
+     * This ensures proper value formatting after chart refresh/reload
+     */
+    syncExpenseTypesWithUserCategories() {
+        if (!this.nodes || !this.categoryManager || !this.categoryManager.nodeCategories) return;
+        
+        this.nodes.forEach(node => {
+            // Get the effective category for this node (user-assigned takes precedence)
+            const userCategory = this.categoryManager.nodeCategories.get(node.id);
+            const effectiveCategory = userCategory || node.category;
+            
+            // Update isExpenseType based on effective category
+            if (effectiveCategory === 'expense' || effectiveCategory === 'tax') {
+                node.isExpenseType = true;
+            } else if (effectiveCategory === 'profit' || effectiveCategory === 'revenue') {
+                node.isExpenseType = false;
+            }
+            // For other categories, keep existing isExpenseType value or default to false
+            else if (node.isExpenseType === undefined) {
+                node.isExpenseType = false;
+            }
+        });
+        
+        console.log('🔄 Synced isExpenseType flags with user categories');
     }
 
 
@@ -7638,9 +7680,9 @@ class PulseSankeyChart extends BaseChart {
         }
         this.independentNodeColors[nodeId] = color;
 
-        // Apply color using same logic as category assignment but for color only
-        this.updateIndependentLinkColors(node, color);
-
+        // For independent node colors, DO NOT affect links - only color the node itself
+        // This preserves the category-based link colors from target nodes
+        
         // Re-render to apply changes
         this.rerenderWithNewColors();
         
@@ -7666,11 +7708,8 @@ class PulseSankeyChart extends BaseChart {
         if (this.independentNodeColors && this.independentNodeColors[nodeId]) {
             delete this.independentNodeColors[nodeId];
             
-            // Clear link colors for this node
-            const node = this.nodes?.find(n => n.id === nodeId);
-            if (node) {
-                this.updateIndependentLinkColors(node, null);
-            }
+            // For independent node colors, DO NOT affect links - only reset the node color
+            // This preserves the category-based link colors from target nodes
             
             this.rerenderWithNewColors();
             

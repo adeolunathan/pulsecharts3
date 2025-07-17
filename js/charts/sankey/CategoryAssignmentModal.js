@@ -697,7 +697,14 @@ class CategoryAssignmentModal {
             this.showSnackbar(`Updated color for "${categoryName}"`, 'success');
             
             // Trigger chart re-render to apply new colors
-            this.chart.render(this.chart.originalData);
+            if (this.chart.originalData) {
+                this.chart.render(this.chart.originalData);
+            } else if (this.chart.data) {
+                this.chart.render(this.chart.data);
+            } else {
+                // If no data available, just re-render colors without full re-render
+                this.chart.rerenderWithNewColors();
+            }
         } else {
             this.showSnackbar('Failed to update category color', 'error');
         }
