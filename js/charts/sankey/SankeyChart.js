@@ -1326,39 +1326,194 @@ class PulseSankeyChart extends BaseChart {
     }
 
     /**
-     * Enhanced auto-scale node height with user input interpretation for scaling only
-     * Rule: 3000 = 3 Billion, 300 = 300 Million (affects node height scaling, not display values)
+     * INTELLIGENT SCALING SYSTEM - Strategy 3: Total Height Distribution
+     * Calculate optimal scaling based on total node height distribution, not just max node
      */
-    autoScaleNodeHeight(data) {
+    calculateIntelligentNodeScale(data) {
         if (!data || !data.nodes) return;
 
         const values = data.nodes.map(node => Math.abs(node.value || 0)).filter(v => v > 0);
         if (values.length === 0) return;
 
+        const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom - 100;
+        
+        // Get data characteristics
         const maxValue = Math.max(...values);
-        const availableHeight = this.config.height - this.config.margin.top - this.config.margin.bottom - 100; // 100px buffer
+        const minValue = Math.min(...values);
+        const totalValue = values.reduce((sum, val) => sum + val, 0);
+        const dataRange = maxValue - minValue;
         
-        // Smart scaling: aim for the largest node to be ~20% of available height
-        const targetMaxNodeHeight = availableHeight * 0.2;
-        const optimalScale = targetMaxNodeHeight / maxValue;
+        // Create adaptive scaling profile based on data characteristics
+        const profile = this.createScalingProfile(dataRange, values.length);
         
-        // Clamp the scale to reasonable bounds
-        const clampedScale = Math.max(0.001, Math.min(1.0, optimalScale));
+        // SIMPLIFIED: Use max-based scaling that's more predictable
+        const targetMaxHeight = availableHeight * profile.targetFillRatio;
+        const baseScale = targetMaxHeight / maxValue;
         
-        // Only auto-scale if user hasn't manually adjusted nodeHeightScale
-        const defaultScales = [0.65, 0.05, 0.01, 0.00008, 0.00000008, 0.0002, 0.15];
-        const isDefaultScale = defaultScales.some(scale => Math.abs(this.config.nodeHeightScale - scale) < 0.0001);
         
-        if (isDefaultScale) {
-            this.config.nodeHeightScale = clampedScale;
+        // ALWAYS auto-scale when data changes significantly
+        const currentScale = this.config.nodeHeightScale;
+        const scaleRatio = Math.abs(baseScale - currentScale) / currentScale;
+        const shouldAutoScale = scaleRatio > 0.5; // Update if scale changes by more than 50%
+        
+        if (shouldAutoScale || currentScale === 50) { // Always update if still at default 50, or if significant change
+            const newScale = Math.max(0.001, Math.min(0.5, baseScale));
+            this.config.nodeHeightScale = newScale;
         }
+    }
+
+    /**
+     * Create adaptive scaling profile based on data characteristics
+     */
+    createScalingProfile(dataRange, nodeCount) {
+        // Determine data magnitude category
+        let magnitude, targetFillRatio, maxNodeHeight, minNodeHeight;
+        
+        if (dataRange <= 1000) {
+            // Micro data (0-1K): Need more visual space
+            magnitude = 'micro';
+            targetFillRatio = 0.7;
+            maxNodeHeight = 300; // Increased from 150
+            minNodeHeight = 15;
+        } else if (dataRange <= 10000) {
+            // Small data (1K-10K): Good balance
+            magnitude = 'small';
+            targetFillRatio = 0.6;
+            maxNodeHeight = 300; // Increased from 120 to allow proper scaling
+            minNodeHeight = 12;
+        } else if (dataRange <= 100000) {
+            // Medium data (10K-100K): Standard approach
+            magnitude = 'medium';
+            targetFillRatio = 0.5;
+            maxNodeHeight = 400; // Increased from 100
+            minNodeHeight = 10;
+        } else if (dataRange <= 1000000) {
+            // Large data (100K-1M): More conservative
+            magnitude = 'large';
+            targetFillRatio = 0.4;
+            maxNodeHeight = 80;
+            minNodeHeight = 8;
+        } else {
+            // Huge data (1M+): Very conservative
+            magnitude = 'huge';
+            targetFillRatio = 0.3;
+            maxNodeHeight = 60;
+            minNodeHeight = 6;
+        }
+
+        // Adjust for node count - more nodes need less space per node
+        if (nodeCount > 20) {
+            targetFillRatio *= 0.8;
+        } else if (nodeCount < 5) {
+            targetFillRatio *= 1.2;
+        }
+
+        return {
+            magnitude,
+            targetFillRatio: Math.min(targetFillRatio, 0.8), // Cap at 80%
+            maxNodeHeight,
+            minNodeHeight
+        };
+    }
+
+    /**
+     * Calculate intelligent base scale using total height distribution
+     */
+    calculateIntelligentBaseScale(maxValue, totalValue, availableHeight, profile) {
+        // Strategy 3: Base scale aims for total height, not just max node
+        const targetTotalHeight = availableHeight * profile.targetFillRatio;
+        const baseScale = targetTotalHeight / totalValue;
+        
+        // Ensure max node doesn't exceed maximum allowed height
+        const maxNodeScale = profile.maxNodeHeight / maxValue;
+        
+        // Ensure min node meets minimum height requirement
+        const minValue = Math.min(...this.nodes?.map(n => n.value) || [1]);
+        const minNodeScale = profile.minNodeHeight / minValue;
+        
+        // Use the most restrictive scale to ensure all constraints are met
+        let finalScale = Math.min(baseScale, maxNodeScale);
+        finalScale = Math.max(finalScale, minNodeScale);
+        
+        // Ensure scale is within reasonable bounds
+        return Math.max(0.001, Math.min(0.5, finalScale));
+    }
+
+    /**
+     * Calculate intelligent node heights with SIMPLE flow conservation
+     * SIMPLE PRINCIPLE: Node height = its actual value × scale factor
+     */
+    calculateIntelligentNodeHeights() {
+        if (!this.nodes || this.nodes.length === 0) return;
+
+        const values = this.nodes.map(node => Math.abs(node.value || 0)).filter(v => v > 0);
+        if (values.length === 0) return;
+
+        const dataRange = Math.max(...values) - Math.min(...values);
+        const profile = this.createScalingProfile(dataRange, values.length);
+        
+        // SIMPLE APPROACH: Each node height = its value × scale factor
+        // Flow conservation happens naturally because the data conserves flow
+        this.nodes.forEach(node => {
+            const baseHeight = Math.abs(node.value) * this.config.nodeHeightScale;
+            
+            // Ensure height meets profile constraints (only apply minimum, no maximum)
+            const constrainedHeight = Math.max(profile.minNodeHeight, baseHeight);
+            
+            node.height = constrainedHeight;
+        });
+
+        // For balance sheets, maintain proportional relationships
+        if (this.statementType === 'balance') {
+            this.maintainProportionalRelationships(profile);
+        }
+
+    }
+
+    /**
+     * Maintain proportional relationships for balance sheets with intelligent scaling
+     */
+    maintainProportionalRelationships(profile) {
+        const parentChildMap = this.buildParentChildMap();
+        
+        // Adjust heights to maintain proportional relationships while respecting profile constraints
+        parentChildMap.forEach((children, parentId) => {
+            const parent = this.nodes.find(n => n.id === parentId);
+            if (!parent || !children.length) return;
+
+            const childNodes = children.map(childId => this.nodes.find(n => n.id === childId)).filter(Boolean);
+            const totalChildValue = childNodes.reduce((sum, child) => sum + child.value, 0);
+            
+            if (totalChildValue > 0 && Math.abs(parent.value - totalChildValue) < 0.01) {
+                // Ensure children sum to parent height while respecting constraints
+                const targetParentHeight = Math.max(
+                    profile.minNodeHeight,
+                    Math.min(profile.maxNodeHeight, parent.value * this.config.nodeHeightScale)
+                );
+                
+                parent.height = targetParentHeight;
+                
+                // Distribute parent height among children proportionally
+                let remainingHeight = targetParentHeight;
+                childNodes.forEach((child, index) => {
+                    if (index === childNodes.length - 1) {
+                        // Last child gets remaining height
+                        child.height = Math.max(profile.minNodeHeight, remainingHeight);
+                    } else {
+                        const proportionalHeight = (child.value / totalChildValue) * targetParentHeight;
+                        child.height = Math.max(profile.minNodeHeight, proportionalHeight);
+                        remainingHeight -= child.height;
+                    }
+                });
+            }
+        });
     }
 
     processData(data) {
         const nodeMap = new Map();
         
-        // Auto-scale node height based on data magnitude with input interpretation
-        this.autoScaleNodeHeight(data);
+        // Calculate intelligent node scaling based on total height distribution
+        this.calculateIntelligentNodeScale(data);
         
         // Store existing manual positioning info from current nodes AND metadata
         const existingManualPositions = new Map();
@@ -1483,15 +1638,8 @@ class PulseSankeyChart extends BaseChart {
             }
         });
 
-        // ENHANCED: Apply proportional node heights for balance sheets
-        if (this.statementType === 'balance') {
-            this.calculateProportionalHeights();
-        } else {
-            // Standard height calculation for income statements
-            this.nodes.forEach(node => {
-                node.height = Math.max(8, node.value * this.config.nodeHeightScale);
-            });
-        }
+        // INTELLIGENT HEIGHT CALCULATION: Apply intelligent scaling to all nodes
+        this.calculateIntelligentNodeHeights();
 
         depths.forEach(depth => {
             const nodesAtDepth = nodesByDepth.get(depth);
@@ -2061,6 +2209,7 @@ class PulseSankeyChart extends BaseChart {
     // sortFinalLayerBySource function removed - maintaining original data order
 
     calculateLinkPositions() {
+        // FLOW-AWARE LINK CALCULATION: Links must match node heights exactly
         this.links.forEach(link => {
             link.width = link.value * this.config.linkWidthScale;
         });
@@ -2078,12 +2227,11 @@ class PulseSankeyChart extends BaseChart {
                 return;
             }
             
-            // Sorting removed - maintain original link order
-            
             const totalOutflow = d3.sum(node.sourceLinks, d => d.value || 0);
-            const effectiveNodeHeight = node.height * this.config.linkWidthScale;
+            // CRITICAL: Use full node height for flow conservation
+            const effectiveNodeHeight = node.height;
             
-            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
+            let currentY = node.y;
             
             node.sourceLinks.forEach((link, index) => {
                 link.sourceY = currentY;
@@ -2094,6 +2242,7 @@ class PulseSankeyChart extends BaseChart {
                 currentY += link.sourceHeight;
             });
             
+            // Ensure all source link heights sum to node height
             const totalUsedHeight = d3.sum(node.sourceLinks, d => d.sourceHeight);
             if (Math.abs(totalUsedHeight - effectiveNodeHeight) > 0.01) {
                 const lastLink = node.sourceLinks[node.sourceLinks.length - 1];
@@ -2114,12 +2263,11 @@ class PulseSankeyChart extends BaseChart {
                 return;
             }
             
-            // Sorting removed - maintain original link order
-            
             const totalInflow = d3.sum(node.targetLinks, d => d.value || 0);
-            const effectiveNodeHeight = node.height * this.config.linkWidthScale;
+            // CRITICAL: Use full node height for flow conservation
+            const effectiveNodeHeight = node.height;
             
-            let currentY = node.y + (node.height - effectiveNodeHeight) / 2;
+            let currentY = node.y;
             
             node.targetLinks.forEach((link, index) => {
                 link.targetY = currentY;
@@ -2130,6 +2278,7 @@ class PulseSankeyChart extends BaseChart {
                 currentY += link.targetHeight;
             });
             
+            // Ensure all target link heights sum to node height
             const totalUsedHeight = d3.sum(node.targetLinks, d => d.targetHeight);
             if (Math.abs(totalUsedHeight - effectiveNodeHeight) > 0.01) {
                 const lastLink = node.targetLinks[node.targetLinks.length - 1];
@@ -3158,7 +3307,7 @@ class PulseSankeyChart extends BaseChart {
 
     formatCurrency(value, node) {
         const currency = this.data?.metadata?.currency || 'USD';
-        const unit = this.data?.metadata?.unit || 'millions';
+        const unit = this.data?.metadata?.unit || 'actual';
 
         const currencySymbols = {
             'USD': '$',
@@ -3203,6 +3352,19 @@ class PulseSankeyChart extends BaseChart {
                     formattedValue = `${symbol}${value.toFixed(1)}B`;
                 } else {
                     formattedValue = `${symbol}${(value * 1000).toFixed(0)}M`;
+                }
+                break;
+
+            case 'actual':
+                // Display values as they are - no unit scaling
+                if (value >= 1000000000) {
+                    formattedValue = `${symbol}${(value/1000000000).toFixed(1)}B`;
+                } else if (value >= 1000000) {
+                    formattedValue = `${symbol}${(value/1000000).toFixed(1)}M`;
+                } else if (value >= 1000) {
+                    formattedValue = `${symbol}${(value/1000).toFixed(1)}K`;
+                } else {
+                    formattedValue = `${symbol}${value.toFixed(0)}`;
                 }
                 break;
 

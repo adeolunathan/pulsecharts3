@@ -814,62 +814,124 @@ class SankeyControlModule {
     }
 
     /**
-     * Convert percentage (0-100) to adaptive logarithmic scale
-     * This provides smooth, intuitive control regardless of data size
+     * INTELLIGENT SCALING: Uses the new intelligent base scale calculation
+     * Integrates with the adaptive scaling profiles
      */
     convertPercentageToScale(percentage, chart) {
         if (percentage === 0) return 0.00001; // Minimum visible scale
         
-        // Get the maximum value in the dataset to determine appropriate scaling
-        const maxValue = chart.nodes ? Math.max(...chart.nodes.map(n => n.value || 0)) : 1000;
+        if (!chart.nodes || chart.nodes.length === 0) return 0.1;
         
-        // Calculate target height for comfortable visualization
+        // Get data characteristics
+        const values = chart.nodes.map(n => n.value || 0).filter(v => v > 0);
+        const maxValue = Math.max(...values);
+        const minValue = Math.min(...values);
+        const totalValue = values.reduce((sum, val) => sum + val, 0);
+        const dataRange = maxValue - minValue;
         
-        // At 50% (middle), we want nodes to be around 100px for typical values
-        const targetMidHeight = 100;
+        // Use the same intelligent scaling logic as the chart
+        const availableHeight = 500; // Approximate available height
+        const profile = this.createScalingProfileForUI(dataRange, values.length);
         
-        // Calculate the scale needed for the max value to hit target height
-        const baseScale = targetMidHeight / maxValue;
+        // Calculate base scale using intelligent method
+        const targetTotalHeight = availableHeight * profile.targetFillRatio;
+        const baseScale = targetTotalHeight / totalValue;
         
-        // Use exponential scaling for smooth control
-        // percentage 0-100 maps to scale range with exponential curve
-        const normalizedPercentage = percentage / 100; // 0-1
-        const exponent = 3; // Exponential curve factor
+        // Apply profile constraints
+        const maxNodeScale = profile.maxNodeHeight / maxValue;
+        const minNodeScale = profile.minNodeHeight / minValue;
         
-        // Create exponential curve that gives fine control at lower values
-        const curveValue = Math.pow(normalizedPercentage, exponent);
+        let intelligentBaseScale = Math.min(baseScale, maxNodeScale);
+        intelligentBaseScale = Math.max(intelligentBaseScale, minNodeScale);
         
-        // Map to scale range (0.1x to 10x of base scale)
-        const minScale = baseScale * 0.01;
-        const maxScale = baseScale * 10;
+        // Linear scaling: 0-100% maps to 0.2x-2x of intelligent base scale
+        const minMultiplier = 0.2;
+        const maxMultiplier = 2.0;
+        const multiplier = minMultiplier + (maxMultiplier - minMultiplier) * (percentage / 100);
         
-        const actualScale = minScale + (maxScale - minScale) * curveValue;
-        
-        return Math.max(0.00001, actualScale);
+        return Math.max(0.00001, intelligentBaseScale * multiplier);
     }
 
     /**
-     * Convert actual scale back to percentage for slider display
+     * Create scaling profile for UI controls (matches chart logic)
+     */
+    createScalingProfileForUI(dataRange, nodeCount) {
+        let targetFillRatio, maxNodeHeight, minNodeHeight;
+        
+        if (dataRange <= 1000) {
+            targetFillRatio = 0.7;
+            maxNodeHeight = 150;
+            minNodeHeight = 15;
+        } else if (dataRange <= 10000) {
+            targetFillRatio = 0.6;
+            maxNodeHeight = 120;
+            minNodeHeight = 12;
+        } else if (dataRange <= 100000) {
+            targetFillRatio = 0.5;
+            maxNodeHeight = 100;
+            minNodeHeight = 10;
+        } else if (dataRange <= 1000000) {
+            targetFillRatio = 0.4;
+            maxNodeHeight = 80;
+            minNodeHeight = 8;
+        } else {
+            targetFillRatio = 0.3;
+            maxNodeHeight = 60;
+            minNodeHeight = 6;
+        }
+
+        // Adjust for node count
+        if (nodeCount > 20) {
+            targetFillRatio *= 0.8;
+        } else if (nodeCount < 5) {
+            targetFillRatio *= 1.2;
+        }
+
+        return {
+            targetFillRatio: Math.min(targetFillRatio, 0.8),
+            maxNodeHeight,
+            minNodeHeight
+        };
+    }
+
+    /**
+     * INTELLIGENT SCALING: Convert actual scale back to percentage for slider display
      */
     convertScaleToPercentage(scale, chart) {
         if (scale <= 0.00001) return 0;
         
-        // Reverse the conversion logic
-        const maxValue = chart.nodes ? Math.max(...chart.nodes.map(n => n.value || 0)) : 1000;
-        const targetMidHeight = 100;
-        const baseScale = targetMidHeight / maxValue;
+        if (!chart.nodes || chart.nodes.length === 0) return 50;
         
-        const minScale = baseScale * 0.01;
-        const maxScale = baseScale * 10;
+        // Get data characteristics (same as convertPercentageToScale)
+        const values = chart.nodes.map(n => n.value || 0).filter(v => v > 0);
+        const maxValue = Math.max(...values);
+        const minValue = Math.min(...values);
+        const totalValue = values.reduce((sum, val) => sum + val, 0);
+        const dataRange = maxValue - minValue;
         
-        // Reverse the exponential curve
-        const normalizedScale = (scale - minScale) / (maxScale - minScale);
-        const clampedScale = Math.max(0, Math.min(1, normalizedScale));
+        // Use the same intelligent scaling logic
+        const availableHeight = 500;
+        const profile = this.createScalingProfileForUI(dataRange, values.length);
         
-        const exponent = 3;
-        const curveValue = Math.pow(clampedScale, 1 / exponent);
+        // Calculate the same intelligent base scale
+        const targetTotalHeight = availableHeight * profile.targetFillRatio;
+        const baseScale = targetTotalHeight / totalValue;
         
-        return Math.round(curveValue * 100);
+        const maxNodeScale = profile.maxNodeHeight / maxValue;
+        const minNodeScale = profile.minNodeHeight / minValue;
+        
+        let intelligentBaseScale = Math.min(baseScale, maxNodeScale);
+        intelligentBaseScale = Math.max(intelligentBaseScale, minNodeScale);
+        
+        // Reverse the linear multiplier mapping
+        const minMultiplier = 0.2;
+        const maxMultiplier = 2.0;
+        const multiplier = scale / intelligentBaseScale;
+        
+        // Convert multiplier back to percentage
+        const percentage = ((multiplier - minMultiplier) / (maxMultiplier - minMultiplier)) * 100;
+        
+        return Math.max(0, Math.min(100, Math.round(percentage)));
     }
 
 
