@@ -696,13 +696,8 @@ class CategoryAssignmentModal {
             // Show success message
             this.showSnackbar(`Updated color for "${categoryName}"`, 'success');
             
-            // Trigger chart re-render to apply new colors
-            if (this.chart.originalData) {
-                this.chart.render(this.chart.originalData);
-            } else if (this.chart.data) {
-                this.chart.render(this.chart.data);
-            } else {
-                // If no data available, just re-render colors without full re-render
+            // Trigger chart color update without resetting positions
+            if (this.chart.rerenderWithNewColors) {
                 this.chart.rerenderWithNewColors();
             }
         } else {

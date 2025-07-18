@@ -4976,10 +4976,6 @@ class PulseSankeyChart extends BaseChart {
             return [];
         }
         
-        // Special case: Revenue nodes at depth 1 should only change node color (not outgoing links)
-        if (node.depth === 1 && (node.category === 'revenue' || node.id.toLowerCase().includes('revenue'))) {
-            return [];
-        }
         
         // Depth 0 nodes: Color outgoing links
         if (node.depth === 0) {
@@ -7900,8 +7896,7 @@ class PulseSankeyChart extends BaseChart {
         });
 
         const nodeType = this.isAggregationNode(node, this.links) ? 'aggregation' : 
-                        (node.depth === 0 ? 'revenue segment' : 
-                         (node.depth === 1 && (node.category === 'revenue' || node.id.toLowerCase().includes('revenue')) ? 'revenue depth 1' : 'other'));
+                        (node.depth === 0 ? 'revenue segment' : 'other');
         
     }
 

@@ -1501,17 +1501,10 @@ class SankeyControlModule {
             return;
         }
         
-        // Update category color in the chart
-        const categoryManager = chart.categoryManager;
-        
-        if (categoryManager.userCategories.has(categoryName)) {
-            const category = categoryManager.userCategories.get(categoryName);
-            category.color = newColor;
-            categoryManager.userCategories.set(categoryName, category);
-        } else if (categoryManager.defaultCategories[categoryName]) {
-            // Convert to user category with new color
-            const category = { ...categoryManager.defaultCategories[categoryName], color: newColor };
-            categoryManager.userCategories.set(categoryName, category);
+        // Update category color using the chart's proper method
+        if (!chart.updateCategoryColor(categoryName, newColor)) {
+            console.warn(`Failed to update category color for: ${categoryName}`);
+            return;
         }
         
         // Update all pills with this category in the modal
@@ -1521,9 +1514,9 @@ class SankeyControlModule {
             }
         });
         
-        // Trigger chart re-render to apply new colors if chart is visible
-        if (chart && chart.render && chart.originalData) {
-            chart.render(chart.originalData);
+        // Trigger chart color update without resetting positions
+        if (chart && chart.rerenderWithNewColors) {
+            chart.rerenderWithNewColors();
         }
     }
 
@@ -1983,6 +1976,21 @@ class SankeyControlModule {
             
             modal.remove();
         };
+    }
+
+    /**
+     * Check if this control module has dynamic controls
+     */
+    hasDynamicControls() {
+        return true;
+    }
+
+    /**
+     * Initialize dynamic controls and set chart reference
+     */
+    initializeDynamicControls(chart) {
+        this.chart = chart;
+        console.log('✅ SankeyControlModule initialized with chart reference');
     }
 }
 
