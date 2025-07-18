@@ -19,7 +19,7 @@ class SankeyControlModule {
                         type: "slider", 
                         label: "Node Width", 
                         min: 10, 
-                        max: 40, 
+                        max: 60, 
                         default: 35, 
                         step: 1, 
                         unit: "px", 

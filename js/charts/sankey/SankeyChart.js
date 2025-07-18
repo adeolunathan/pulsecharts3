@@ -2652,8 +2652,6 @@ class PulseSankeyChart extends BaseChart {
             .attr('height', d => d.height)
             .attr('fill', d => this.statementType === 'balance' ? this.getHierarchicalColor(d.id) : this.getNodeColor(d))
             .attr('fill-opacity', d => this.statementType === 'balance' ? this.getNodeOpacity(d) : this.config.nodeOpacity)
-            .attr('stroke', 'white')
-            .attr('stroke-width', 2)
             .attr('rx', 1)
             .style('cursor', 'move')
             .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
@@ -2726,8 +2724,8 @@ class PulseSankeyChart extends BaseChart {
                 self.isDragging = false;
                 
                 d3.select(this).select('rect')
-                    .style('stroke', 'white')
-                    .style('stroke-width', 2)
+                    .style('stroke', 'none')
+                    .style('stroke-width', null)
                     .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
                 
                 self.hideDragHint();
@@ -5748,8 +5746,8 @@ class PulseSankeyChart extends BaseChart {
             
         // Update visual state of nodes
         this.chart.selectAll('.sankey-node rect')
-            .style('stroke-width', '2px')
-            .style('stroke', 'white')
+            .style('stroke-width', null)
+            .style('stroke', 'none')
             .style('opacity', '1');
     }
     
@@ -7669,8 +7667,8 @@ class PulseSankeyChart extends BaseChart {
                 .transition()
                 .duration(300)
                 .attr('fill-opacity', this.config.nodeOpacity)
-                .style('stroke-width', '2px')
-                .style('stroke', 'white');
+                .style('stroke-width', null)
+                .style('stroke', 'none');
             
             // Reset all links to normal opacity
             this.chart.selectAll('.sankey-link path')
