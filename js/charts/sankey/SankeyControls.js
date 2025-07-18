@@ -1210,12 +1210,32 @@ class SankeyControlModule {
         
         // Get category color
         let categoryColor = '#6b7280'; // default gray
-        const categoryManager = this.chart.categoryManager;
         
-        if (categoryManager.userCategories.has(category)) {
-            categoryColor = categoryManager.userCategories.get(category).color;
-        } else if (categoryManager.defaultCategories[category]) {
-            categoryColor = categoryManager.defaultCategories[category].color;
+        // Try to get chart from multiple sources
+        let chart = this.chart;
+        if (!chart && window.pulseApp && window.pulseApp.chart) {
+            chart = window.pulseApp.chart;
+        }
+        
+        if (chart && chart.categoryManager) {
+            const categoryManager = chart.categoryManager;
+            
+            if (categoryManager.userCategories.has(category)) {
+                categoryColor = categoryManager.userCategories.get(category).color;
+            } else if (categoryManager.defaultCategories[category]) {
+                categoryColor = categoryManager.defaultCategories[category].color;
+            }
+        } else {
+            // Use default category colors when no chart is loaded
+            const defaultColors = {
+                'revenue': '#22c55e',
+                'expenses': '#ef4444', 
+                'assets': '#3b82f6',
+                'liabilities': '#f59e0b',
+                'equity': '#8b5cf6',
+                'operations': '#06b6d4'
+            };
+            categoryColor = defaultColors[category] || '#6b7280';
         }
         
         return `<span class="category-pill clickable-pill" data-category="${category}" style="background-color: ${categoryColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;" title="Click to change color">${category}</span>`;
@@ -1250,13 +1270,33 @@ class SankeyControlModule {
         }
         
         // Get current category color
-        const categoryManager = this.chart.categoryManager;
         let currentColor = '#6b7280';
         
-        if (categoryManager.userCategories.has(categoryName)) {
-            currentColor = categoryManager.userCategories.get(categoryName).color;
-        } else if (categoryManager.defaultCategories[categoryName]) {
-            currentColor = categoryManager.defaultCategories[categoryName].color;
+        // Try to get chart from multiple sources
+        let chart = this.chart;
+        if (!chart && window.pulseApp && window.pulseApp.chart) {
+            chart = window.pulseApp.chart;
+        }
+        
+        if (chart && chart.categoryManager) {
+            const categoryManager = chart.categoryManager;
+            
+            if (categoryManager.userCategories.has(categoryName)) {
+                currentColor = categoryManager.userCategories.get(categoryName).color;
+            } else if (categoryManager.defaultCategories[categoryName]) {
+                currentColor = categoryManager.defaultCategories[categoryName].color;
+            }
+        } else {
+            // Use default category colors when no chart is loaded
+            const defaultColors = {
+                'revenue': '#22c55e',
+                'expenses': '#ef4444', 
+                'assets': '#3b82f6',
+                'liabilities': '#f59e0b',
+                'equity': '#8b5cf6',
+                'operations': '#06b6d4'
+            };
+            currentColor = defaultColors[categoryName] || '#6b7280';
         }
         
         // Create color picker popup
@@ -1450,8 +1490,19 @@ class SankeyControlModule {
      * Update category color and refresh pills in bulk modal
      */
     updateCategoryColorInBulkModal(categoryName, newColor, modal) {
+        // Try to get chart from multiple sources
+        let chart = this.chart;
+        if (!chart && window.pulseApp && window.pulseApp.chart) {
+            chart = window.pulseApp.chart;
+        }
+        
+        if (!chart || !chart.categoryManager) {
+            console.warn('No chart or categoryManager available for updateCategoryColorInBulkModal');
+            return;
+        }
+        
         // Update category color in the chart
-        const categoryManager = this.chart.categoryManager;
+        const categoryManager = chart.categoryManager;
         
         if (categoryManager.userCategories.has(categoryName)) {
             const category = categoryManager.userCategories.get(categoryName);
@@ -1471,20 +1522,101 @@ class SankeyControlModule {
         });
         
         // Trigger chart re-render to apply new colors if chart is visible
-        if (this.chart && this.chart.render && this.chart.originalData) {
-            this.chart.render(this.chart.originalData);
+        if (chart && chart.render && chart.originalData) {
+            chart.render(chart.originalData);
         }
+    }
+
+    /**
+     * Extract unique nodes from current spreadsheet data
+     */
+    getNodesFromSpreadsheetData() {
+        // Get data from flowData global variable or from spreadsheet
+        let flows = [];
+        if (window.flowData && window.flowData.flows) {
+            flows = window.flowData.flows;
+        } else if (typeof flowData !== 'undefined' && flowData.flows) {
+            flows = flowData.flows;
+        } else {
+            // Try to extract from spreadsheet table directly
+            const tableRows = document.querySelectorAll('#flows-tbody tr');
+            tableRows.forEach(row => {
+                const sourcCell = row.querySelector('[data-col="source"] .cell-content');
+                const targetCell = row.querySelector('[data-col="target"] .cell-content');
+                if (sourcCell && targetCell && sourcCell.textContent.trim() && targetCell.textContent.trim()) {
+                    flows.push({
+                        source: sourcCell.textContent.trim(),
+                        target: targetCell.textContent.trim()
+                        // No category info available when extracting from DOM directly
+                    });
+                }
+            });
+        }
+        
+        // Extract unique node names with their categories
+        const nodeMap = new Map();
+        flows.forEach(flow => {
+            if (flow.source && flow.source.trim()) {
+                const sourceName = flow.source.trim();
+                if (!nodeMap.has(sourceName) && flow.sourceCategory) {
+                    nodeMap.set(sourceName, { id: sourceName, name: sourceName, category: flow.sourceCategory });
+                } else if (!nodeMap.has(sourceName)) {
+                    nodeMap.set(sourceName, { id: sourceName, name: sourceName });
+                }
+            }
+            if (flow.target && flow.target.trim()) {
+                const targetName = flow.target.trim();
+                if (!nodeMap.has(targetName) && flow.targetCategory) {
+                    nodeMap.set(targetName, { id: targetName, name: targetName, category: flow.targetCategory });
+                } else if (!nodeMap.has(targetName)) {
+                    nodeMap.set(targetName, { id: targetName, name: targetName });
+                }
+            }
+        });
+        
+        // Convert to node objects array
+        return Array.from(nodeMap.values());
+    }
+
+    /**
+     * Store node category assignment in flowData for later use
+     */
+    storeNodeCategoryAssignment(nodeKey, category) {
+        // Try different ways to access flow data
+        let flows = null;
+        
+        if (window.flowData && window.flowData.flows) {
+            flows = window.flowData.flows;
+        } else if (typeof flowData !== 'undefined' && flowData.flows) {
+            flows = flowData.flows;
+        } else {
+            // Create flowData if it doesn't exist
+            if (typeof flowData === 'undefined') {
+                window.flowData = { flows: [] };
+                flows = window.flowData.flows;
+            } else {
+                console.warn('No flowData available to store category assignment');
+                return;
+            }
+        }
+        
+        // Update all flows that involve this node
+        flows.forEach(flow => {
+            if (flow.source === nodeKey) {
+                flow.sourceCategory = category;
+            }
+            if (flow.target === nodeKey) {
+                flow.targetCategory = category;
+            }
+        });
+        
+        console.log(`Updated ${flows.length} flows with category assignment for node: ${nodeKey}`);
     }
 
     /**
      * Open bulk assignment modal
      */
     openBulkAssignmentModal() {
-        if (!this.chart) {
-            alert('No chart available. Please ensure a chart is loaded first.');
-            return;
-        }
-        
         // Auto-close data menu with slight delay to ensure it happens after click
         setTimeout(() => {
             if (window.DropdownManager) {
@@ -1492,17 +1624,52 @@ class SankeyControlModule {
             }
         }, 50);
         
-        if (!this.chart.nodes || this.chart.nodes.length === 0) {
-            alert('No nodes available. Please ensure chart data is loaded first.');
+        console.log('Bulk assignment modal - this.chart:', this.chart);
+        console.log('Bulk assignment modal - window.pulseApp:', window.pulseApp);
+        console.log('Bulk assignment modal - window.pulseApp?.chart:', window.pulseApp?.chart);
+        
+        // Try to get chart from multiple sources
+        let chart = this.chart;
+        if (!chart && window.pulseApp && window.pulseApp.chart) {
+            chart = window.pulseApp.chart;
+            this.chart = chart; // Update our reference
+            console.log('Found chart via window.pulseApp.chart, updating this.chart');
+        }
+        
+        // Get nodes from chart or from current spreadsheet data
+        let nodes = [];
+        if (chart && chart.nodes && chart.nodes.length > 0) {
+            nodes = chart.nodes;
+        } else {
+            // Extract nodes from current spreadsheet data
+            nodes = this.getNodesFromSpreadsheetData();
+        }
+        
+        if (!nodes || nodes.length === 0) {
+            alert('No nodes available. Please add some flow data in the spreadsheet first.');
             return;
         }
         
         const modal = document.createElement('div');
         modal.className = 'bulk-assignment-modal';
         
-        // Get all available categories
-        const categoryManager = this.chart.categoryManager;
-        const allCategories = new Map([...Object.entries(categoryManager.defaultCategories), ...categoryManager.userCategories]);
+        // Get all available categories - use chart's category manager if available, otherwise use default categories
+        let allCategories;
+        if (chart && chart.categoryManager) {
+            const categoryManager = chart.categoryManager;
+            allCategories = new Map([...Object.entries(categoryManager.defaultCategories), ...categoryManager.userCategories]);
+        } else {
+            // Use default categories when no chart is loaded
+            const defaultCategories = {
+                'revenue': { color: '#22c55e', icon: '💰' },
+                'expenses': { color: '#ef4444', icon: '💸' }, 
+                'assets': { color: '#3b82f6', icon: '🏦' },
+                'liabilities': { color: '#f59e0b', icon: '📊' },
+                'equity': { color: '#8b5cf6', icon: '📈' },
+                'operations': { color: '#06b6d4', icon: '⚙️' }
+            };
+            allCategories = new Map(Object.entries(defaultCategories));
+        }
         
         // Build category options
         let categoryOptions = '<option value="">Select a category...</option>';
@@ -1534,9 +1701,20 @@ class SankeyControlModule {
                                     <button type="button" class="btn-small select-uncategorized" onclick="this.parentElement.parentElement.querySelectorAll('.node-checkbox').forEach(cb => { cb.checked = cb.dataset.uncategorized === 'true'; }); this.parentElement.parentElement.parentElement.querySelector('.preview-count').textContent = this.parentElement.parentElement.querySelectorAll('.node-checkbox:checked').length + ' nodes selected'">Uncategorized Only</button>
                                 </div>
                                 <div class="node-list-scrollable">
-                                    ${this.chart.nodes.map(node => {
+                                    ${nodes.map(node => {
                                         const nodeKey = node.id || node.name || node.label;
-                                        const currentCategory = this.chart.categoryManager.nodeCategories.get(nodeKey) || node.category;
+                                        let currentCategory = null;
+                                        
+                                        // First try chart's category manager
+                                        if (chart && chart.categoryManager) {
+                                            currentCategory = chart.categoryManager.nodeCategories.get(nodeKey);
+                                        }
+                                        
+                                        // Fallback to node's category property (from spreadsheet data)
+                                        if (!currentCategory && node.category) {
+                                            currentCategory = node.category;
+                                        }
+                                        
                                         const isUncategorized = !currentCategory;
                                         return `
                                         <div class="node-item">
@@ -1556,7 +1734,7 @@ class SankeyControlModule {
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="this.closest('.bulk-assignment-modal').remove()">Cancel</button>
-                        <button class="btn btn-primary" onclick="window.applyBulkAssignment()">Apply Assignment</button>
+                        <button class="btn btn-primary" onclick="window.pulseApplyBulkAssignment()">Apply Assignment</button>
                     </div>
                 </div>
             </div>
@@ -1746,7 +1924,12 @@ class SankeyControlModule {
         this.setupCategoryPillClickHandlers(modal);
         
         // Set up global function for applying assignment
-        window.applyBulkAssignment = () => {
+        window.pulseApplyBulkAssignment = () => {
+            // Re-resolve chart in case it was updated
+            let currentChart = chart;
+            if (!currentChart && window.pulseApp && window.pulseApp.chart) {
+                currentChart = window.pulseApp.chart;
+            }
             const category = document.getElementById('bulkCategory').value;
             
             if (!category) {
@@ -1756,9 +1939,19 @@ class SankeyControlModule {
             
             // Get selected nodes from checkboxes
             const selectedCheckboxes = modal.querySelectorAll('.node-checkbox:checked');
+            
+            // Get nodes from chart or from current spreadsheet data
+            let availableNodes = [];
+            if (currentChart && currentChart.nodes && currentChart.nodes.length > 0) {
+                availableNodes = currentChart.nodes;
+            } else {
+                // Extract nodes from current spreadsheet data
+                availableNodes = this.getNodesFromSpreadsheetData();
+            }
+            
             const affectedNodes = Array.from(selectedCheckboxes).map(checkbox => {
                 const nodeValue = checkbox.value;
-                return this.chart.nodes.find(node => (node.id || node.name) === nodeValue);
+                return availableNodes.find(node => (node.id || node.name) === nodeValue);
             }).filter(node => node);
             
             if (affectedNodes.length === 0) {
@@ -1769,8 +1962,23 @@ class SankeyControlModule {
             // Apply assignments to nodes using the proper method to trigger automatic link coloring
             affectedNodes.forEach(node => {
                 const nodeKey = node.id || node.name;
-                this.chart.assignNodeToCategory(nodeKey, category);
+                if (currentChart && currentChart.assignNodeToCategory) {
+                    currentChart.assignNodeToCategory(nodeKey, category);
+                } else {
+                    // When no chart is loaded, store assignments in flowData for later use
+                    this.storeNodeCategoryAssignment(nodeKey, category);
+                    console.log(`Category "${category}" assigned to node "${nodeKey}"`);
+                }
             });
+            
+            // If no chart is loaded, refresh the table to show updated categories
+            if (!currentChart) {
+                if (typeof renderFlowTable === 'function') {
+                    renderFlowTable();
+                } else if (window.renderFlowTable) {
+                    window.renderFlowTable();
+                }
+            }
             
             
             modal.remove();
