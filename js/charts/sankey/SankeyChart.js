@@ -598,7 +598,7 @@ class PulseSankeyChart extends BaseChart {
         
         
         // Create header row
-        const headers = ['From', 'To', 'Current', 'Previous', 'Type', 'Description'];
+        const headers = ['From', 'To', 'Description', 'Previous', 'Current', 'Variance'];
         
         // Create rows from links data
         const rows = data.links.map((link, index) => {
@@ -608,10 +608,10 @@ class PulseSankeyChart extends BaseChart {
             const row = [
                 sourceId,                    // From
                 targetId,                    // To  
-                link.value || 0,            // Current Value
+                link.description || '',     // Description
                 link.previousValue || 0,    // Previous Value
-                link.type || '',            // Type
-                link.description || ''      // Description
+                link.value || 0,            // Current Value
+                ((link.value || 0) - (link.previousValue || 0)) // Variance
             ];
             
             return row;
@@ -7329,9 +7329,9 @@ class PulseSankeyChart extends BaseChart {
                 flows: spreadsheetData.slice(1).map(row => ({
                     source: row[0] || '',
                     target: row[1] || '',
-                    value: this.parseNumber(row[2]) || 0,
+                    description: row[2] || '',  // Description is at index 2
                     previousValue: this.parseNumber(row[3]) || 0,  // Previous value is at index 3
-                    description: row[4] || ''  // Description is at index 4 (not 5)
+                    value: this.parseNumber(row[4]) || 0  // Current value is at index 4
                 }))
             };
             

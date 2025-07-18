@@ -507,8 +507,8 @@
                                                 <th style="width: 120px;">From</th>
                                                 <th style="width: 120px;">To</th>
                                                 <th style="width: 180px; display: none;" id="description-col">Description</th>
-                                                <th style="width: 70px; display: table-cell;" id="current-value-col">Current</th>
                                                 <th style="width: 70px; display: table-cell;" id="previous-value-col">Previous</th>
+                                                <th style="width: 70px; display: table-cell;" id="current-value-col">Current</th>
                                                 <th style="width: 45px; display: table-cell;" id="variance-col">Variance</th>
                                             </tr>
                                         </thead>
@@ -1697,16 +1697,16 @@
             }
             
             // Create CSV content
-            const headers = ['Source', 'Target', 'Current Value', 'Previous Value', 'Variance %', 'Description'];
+            const headers = ['Source', 'Target', 'Description', 'Previous Value', 'Current Value', 'Variance'];
             const csvContent = [
                 headers.join(','),
                 ...flows.map(flow => [
                     flow.source,
                     flow.target,
-                    flow.value,
+                    flow.description || '',
                     flow.previousValue || 0,
-                    flow.getVariance().percentage.toFixed(1),
-                    flow.description || ''
+                    flow.value,
+                    flow.getVariance().percentage.toFixed(1)
                 ].map(value => `"${value}"`).join(','))
             ].join('\n');
             
@@ -2433,7 +2433,7 @@
             
             // Check if description column should be visible
             const descriptionToggle = document.getElementById('description-column-toggle');
-            const showDescription = descriptionToggle ? descriptionToggle.checked : true; // Default to true if toggle not found
+            const showDescription = descriptionToggle ? descriptionToggle.checked : false; // Default to false if toggle not found
             const descriptionDisplay = showDescription ? 'table-cell' : 'none';
             
             let rowHTML = `
@@ -2454,13 +2454,13 @@
                     <div class="cell-content">${flow.description || ''}</div>
                     <input type="text" class="cell-editor" style="display: none;" placeholder="Flow description...">
                 </td>
-                <td class="spreadsheet-cell" data-col="value" data-row="${index}" data-type="number">
-                    <div class="cell-content">${isEmpty ? '' : (flow.value ? flow.value.toLocaleString() : '0')}</div>
-                    <input type="number" class="cell-editor" style="display: none;">
-                </td>
                 <td class="spreadsheet-cell" data-col="previousValue" data-row="${index}" data-type="number">
                     <div class="cell-content">${isEmpty ? '' : (typeof flow.previousValue === 'number' ? flow.previousValue.toLocaleString() : '')}</div>
                     <input type="number" class="cell-editor" style="display: none;" placeholder="0">
+                </td>
+                <td class="spreadsheet-cell" data-col="value" data-row="${index}" data-type="number">
+                    <div class="cell-content">${isEmpty ? '' : (flow.value ? flow.value.toLocaleString() : '0')}</div>
+                    <input type="number" class="cell-editor" style="display: none;">
                 </td>
                 <td class="variance-cell">
                     <div style="text-align: center;">${isEmpty ? '' : flow.getVarianceDisplay()}</div>
@@ -2822,10 +2822,10 @@
         }
 
         function exportFlowsToCSV() {
-            let csv = 'Source,Target,Current Value,Previous Value,Description\n';
+            let csv = 'Source,Target,Description,Previous Value,Current Value,Variance\n';
             
             flowData.flows.forEach(flow => {
-                csv += `"${flow.source}","${flow.target}",${flow.value},${flow.previousValue || 0},"${flow.description}"\n`;
+                csv += `"${flow.source}","${flow.target}","${flow.description}",${flow.previousValue || 0},${flow.value},${(flow.value || 0) - (flow.previousValue || 0)}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -3326,23 +3326,23 @@
             let filename = '';
             
             if (selectedChartType === 'income') {
-                csv = 'Source,Target,Current Value,Previous Value,Description\n';
-                csv += '"Subscription Revenue","Total Revenue",300,250,"Recurring subscription income"\n';
-                csv += '"Professional Services","Total Revenue",60,55,"Implementation and consulting"\n';
-                csv += '"Total Revenue","Gross Profit",290,245,"Revenue after cost of revenue"\n';
-                csv += '"Total Revenue","Cost of Revenue",70,60,"Direct costs to deliver services"\n';
-                csv += '"Gross Profit","Operating Profit",120,100,"Profit from core operations"\n';
-                csv += '"Gross Profit","Operating Expenses",170,145,"Total operating expenses"\n';
-                csv += '"Operating Profit","Net Income",95,80,"Final net income"\n';
-                csv += '"Operating Profit","Tax Expense",25,20,"Income tax expense"\n';
+                csv = 'Source,Target,Description,Previous Value,Current Value,Variance\n';
+                csv += '"Subscription Revenue","Total Revenue","Recurring subscription income",250,300,50\n';
+                csv += '"Professional Services","Total Revenue","Implementation and consulting",55,60,5\n';
+                csv += '"Total Revenue","Gross Profit","Revenue after cost of revenue",245,290,45\n';
+                csv += '"Total Revenue","Cost of Revenue","Direct costs to deliver services",60,70,10\n';
+                csv += '"Gross Profit","Operating Profit","Profit from core operations",100,120,20\n';
+                csv += '"Gross Profit","Operating Expenses","Total operating expenses",145,170,25\n';
+                csv += '"Operating Profit","Net Income","Final net income",80,95,15\n';
+                csv += '"Operating Profit","Tax Expense","Income tax expense",20,25,5\n';
                 filename = 'income-statement-template.csv';
             } else if (selectedChartType === 'balance') {
-                csv = 'Source,Target,Current Value,Previous Value,Description\n';
-                csv += '"Current Assets","Total Assets",500,450,"Cash, receivables, inventory"\n';
-                csv += '"Non-Current Assets","Total Assets",800,750,"Property, equipment, intangibles"\n';
-                csv += '"Total Assets","Current Liabilities",300,280,"Short-term obligations"\n';
-                csv += '"Total Assets","Non-Current Liabilities",400,370,"Long-term debt and obligations"\n';
-                csv += '"Total Assets","Shareholders Equity",600,550,"Owner\'s equity in the business"\n';
+                csv = 'Source,Target,Description,Previous Value,Current Value,Variance\n';
+                csv += '"Current Assets","Total Assets","Cash, receivables, inventory",450,500,50\n';
+                csv += '"Non-Current Assets","Total Assets","Property, equipment, intangibles",750,800,50\n';
+                csv += '"Total Assets","Current Liabilities","Short-term obligations",280,300,20\n';
+                csv += '"Total Assets","Non-Current Liabilities","Long-term debt and obligations",370,400,30\n';
+                csv += '"Total Assets","Shareholders Equity","Owner\'s equity in the business",550,600,50\n';
                 filename = 'balance-sheet-template.csv';
             }
             
@@ -4733,16 +4733,32 @@
                 const startRow = parseInt(startCell.dataset.row);
                 const startCol = startCell.dataset.col;
                 
-                // Define column mapping for flow data
-                const columnMap = {
-                    'source': 0,
-                    'target': 1, 
-                    'value': 2,
-                    'previousValue': 3,
-                    'description': 4
-                };
+                // Check if description column is visible
+                const descriptionToggle = document.getElementById('description-column-toggle');
+                const showDescription = descriptionToggle ? descriptionToggle.checked : false;
                 
-                const columnOrder = ['source', 'target', 'value', 'previousValue', 'description'];
+                // Define dynamic column mapping based on description visibility
+                let columnMap, columnOrder;
+                if (showDescription) {
+                    columnMap = {
+                        'source': 0,
+                        'target': 1, 
+                        'description': 2,
+                        'previousValue': 3,
+                        'value': 4,
+                        'variance': 5
+                    };
+                    columnOrder = ['source', 'target', 'description', 'previousValue', 'value', 'variance'];
+                } else {
+                    columnMap = {
+                        'source': 0,
+                        'target': 1, 
+                        'previousValue': 2,
+                        'value': 3,
+                        'variance': 4
+                    };
+                    columnOrder = ['source', 'target', 'previousValue', 'value', 'variance'];
+                }
                 const startColIndex = columnOrder.indexOf(startCol);
                 
                 if (startColIndex === -1) {

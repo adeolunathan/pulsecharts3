@@ -13,9 +13,10 @@ class SankeySpreadsheetEditor extends SpreadsheetEditor {
             columns: [
                 { id: 'source', label: 'From', type: 'text', required: true },
                 { id: 'target', label: 'To', type: 'text', required: true },
-                { id: 'value', label: 'Current', type: 'number', required: true },
+                { id: 'description', label: 'Description', type: 'text', required: false },
                 { id: 'previousValue', label: 'Previous', type: 'number', required: false },
-                { id: 'description', label: 'Description', type: 'text', required: false }
+                { id: 'value', label: 'Current', type: 'number', required: true },
+                { id: 'variance', label: 'Variance', type: 'number', required: false }
             ],
             dataFormat: 'flows',
             title: '🌊 Sankey Flow Data Editor',
@@ -67,9 +68,10 @@ class SankeySpreadsheetEditor extends SpreadsheetEditor {
         this.columns = [
             { id: 'source', label: 'From', type: 'text', required: true },
             { id: 'target', label: 'To', type: 'text', required: true },
-            { id: 'value', label: 'Current', type: 'number', required: true },
+            { id: 'description', label: 'Description', type: 'text', required: false },
             { id: 'previousValue', label: 'Previous', type: 'number', required: false },
-            { id: 'description', label: 'Description', type: 'text', required: false }
+            { id: 'value', label: 'Current', type: 'number', required: true },
+            { id: 'variance', label: 'Variance', type: 'number', required: false }
         ];
     }
 
@@ -114,7 +116,7 @@ class SankeySpreadsheetEditor extends SpreadsheetEditor {
         
         // Create columns based on headers for Sankey charts
         headerRow.forEach((header, index) => {
-            const sankeyColumns = ['source', 'target', 'value', 'previousValue', 'description'];
+            const sankeyColumns = ['source', 'target', 'description', 'previousValue', 'value', 'variance'];
             const columnId = sankeyColumns[index] || `col_${index + 1}`;
             const columnType = ['source', 'target', 'description'].includes(columnId) ? 'text' : 'number';
             
@@ -129,11 +131,11 @@ class SankeySpreadsheetEditor extends SpreadsheetEditor {
     }
 
     testPaste() {
-        const testData = `From	To	Current	Previous	Description
-Revenue	Operations	1000000	950000	Core operational expenses
-Operations	Marketing	250000	200000	Marketing and advertising
-Operations	R&D	300000	280000	Research and development
-Marketing	Customer Acquisition	150000	120000	New customer acquisition`;
+        const testData = `From	To	Description	Previous	Current	Variance
+Revenue	Operations	Core operational expenses	950000	1000000	50000
+Operations	Marketing	Marketing and advertising	200000	250000	50000
+Operations	R&D	Research and development	280000	300000	20000
+Marketing	Customer Acquisition	New customer acquisition	120000	150000	30000`;
         
         console.log('🧪 Testing Sankey paste with sample data');
         this.processPasteData(testData);
