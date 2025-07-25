@@ -2695,7 +2695,7 @@
             
             // Set defaults if not found
             flowData.metadata.company = flowData.metadata.company || 'Your Company Name';
-            flowData.metadata.period = flowData.metadata.period || 'Q3 2025';
+            flowData.metadata.period = flowData.metadata.period || 'Q2 2025';
             flowData.metadata.currency = flowData.metadata.currency || 'USD ($)';
             flowData.metadata.unit = flowData.metadata.unit || 'Millions';
             flowData.metadata.periodType = flowData.metadata.periodType || 'Q/Q';
@@ -2737,7 +2737,7 @@
             
             // Form fields removed - use existing metadata or defaults
             flowData.metadata.company = flowData.metadata.company || 'Your Company Name';
-            flowData.metadata.period = flowData.metadata.period || 'Q3 2025';
+            flowData.metadata.period = flowData.metadata.period || 'Q2 2025';
             flowData.metadata.currency = flowData.metadata.currency || 'USD ($)';
             flowData.metadata.unit = flowData.metadata.unit || 'Millions';
             flowData.metadata.title = `${flowData.metadata.company} Financial Flow`;
@@ -5938,7 +5938,7 @@
 
             // Use default values since form fields are removed
             const companyName = 'TechFlow SaaS Corp';
-            const period = 'Q3 2025';
+            const period = 'Q2 2025';
             const defaultTitle = `${companyName} ${period} Income Statement`;
 
             // Get SVG dimensions
@@ -5972,7 +5972,7 @@
             // Parse current chart title to get existing values
             const chartTitle = window.ChartTitleManager ? window.ChartTitleManager.findTitleElement() : null;
             let companyName = 'TechFlow SaaS Corp';
-            let period = 'Q3 2025';
+            let period = 'Q2 2025';
             let currency = 'USD ($)';
             let statementType = 'Income Statement';
             let units = 'Millions';
@@ -6202,7 +6202,7 @@
         function saveTitleEdit() {
             // Get values from modal (with null checks)
             const companyName = document.getElementById('modal-company-name')?.value || 'TechFlow SaaS Corp';
-            const period = document.getElementById('modal-period')?.value || 'Q3 2025';
+            const period = document.getElementById('modal-period')?.value || 'Q2 2025';
             const currency = document.getElementById('modal-currency')?.value || 'USD ($)';
             const statementType = document.getElementById('modal-statement-type')?.value || 'Income Statement';
             const units = document.getElementById('modal-units')?.value || 'Millions';
